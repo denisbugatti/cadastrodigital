@@ -1,34 +1,56 @@
 /**
- * FormFlow — Light Clean Design
- * Main form container with clean white background and subtle accents.
+ * FormFlow — Typeform-style Form Container
+ * Full-screen immersive experience with logo top-left, thin progress bar,
+ * vertical slide transitions, and design customization from builder.
+ * Mobile-responsive.
  */
 
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import type { FormData } from "@/lib/formTypes";
 import { useFormEngine } from "@/hooks/useFormEngine";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
-import { ProgressBar } from "./ProgressBar";
-import { NavigationControls } from "./NavigationControls";
-import { QuestionWrapper } from "./QuestionWrapper";
 import { QuestionRenderer } from "./QuestionRenderer";
+import { ArrowUp, ArrowDown, Check } from "lucide-react";
 
 interface FormContainerProps {
   form: FormData;
 }
 
+/* Typeform-style vertical slide variants */
+const slideVariants = {
+  enter: (dir: "forward" | "backward") => ({
+    y: dir === "forward" ? "100%" : "-100%",
+    opacity: 0,
+  }),
+  center: {
+    y: 0,
+    opacity: 1,
+  },
+  exit: (dir: "forward" | "backward") => ({
+    y: dir === "forward" ? "-100%" : "100%",
+    opacity: 0,
+  }),
+};
+
 export function FormContainer({ form }: FormContainerProps) {
   const engine = useFormEngine(form);
   const [validationError, setValidationError] = useState<string | undefined>();
 
+  const d = form.design;
+  const bgColor = d?.backgroundColor || "#FFFFFF";
+  const questionColor = d?.questionColor || "#1E293B";
+  const answerColor = d?.answerColor || "#3B82F6";
+  const buttonColor = d?.buttonColor || "#3B82F6";
+  const fontFamily = d?.fontFamily || "Plus Jakarta Sans, sans-serif";
+  const logoUrl = d?.logoUrl;
+
   const questionNumber = useMemo(() => {
-    const actualQuestions = form.questions.filter(
+    const actual = form.questions.filter(
       (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
     );
-    const index = actualQuestions.findIndex(
-      (q) => q.id === engine.currentQuestion.id
-    );
-    return index + 1;
+    const idx = actual.findIndex((q) => q.id === engine.currentQuestion.id);
+    return idx + 1;
   }, [form.questions, engine.currentQuestion]);
 
   const totalActualQuestions = useMemo(
@@ -70,105 +92,171 @@ export function FormContainer({ form }: FormContainerProps) {
     isThankYou: engine.isThankYou,
   });
 
+  const isSpecialScreen = engine.isWelcome || engine.isThankYou;
+  const showNav = !engine.isWelcome && !engine.isThankYou;
+  const progress = engine.progress;
+
   return (
-    <div className="relative w-full min-h-screen overflow-hidden bg-white">
-      {/* Subtle background decoration */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+    <div
+      className="relative w-full h-screen overflow-hidden"
+      style={{
+        backgroundColor: bgColor,
+        fontFamily,
+        color: questionColor,
+      }}
+    >
+      {/* Background image if set */}
+      {d?.backgroundImage && (
         <div
-          className="absolute w-[800px] h-[800px] rounded-full"
+          className="absolute inset-0 pointer-events-none opacity-10"
           style={{
-            top: "-20%",
-            right: "-15%",
-            background: "radial-gradient(circle, oklch(0.93 0.03 250 / 0.4), transparent 70%)",
-            filter: "blur(80px)",
+            backgroundImage: `url(${d.backgroundImage})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full"
-          style={{
-            bottom: "-15%",
-            left: "-10%",
-            background: "radial-gradient(circle, oklch(0.93 0.03 290 / 0.3), transparent 70%)",
-            filter: "blur(80px)",
-          }}
-        />
-      </div>
+      )}
 
-      {/* Form header - Logo */}
-      <header className="fixed top-0 left-0 right-0 z-20 px-6 sm:px-8 py-5 bg-white/80 backdrop-blur-sm border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path
-                  d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M6 7.5H12M6 10.5H9.5"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <Link href="/" className="font-display text-lg font-bold text-foreground tracking-tight hover:text-brand transition-colors">
-              FormFlow
-            </Link>
-          </div>
+      {/* ─── Fixed Logo (top-left, always visible like Typeform) ─── */}
+      {logoUrl && (
+        <motion.div
+          className="fixed top-4 left-4 sm:top-6 sm:left-6 z-30"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <img
+            src={logoUrl}
+            alt="Logo"
+            className="h-7 sm:h-9 object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </motion.div>
+      )}
 
-          {/* Question counter */}
-          {!engine.isWelcome && !engine.isThankYou && !engine.isStatement && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-body text-brand font-semibold tracking-widest">
-                {String(questionNumber).padStart(2, "0")}
-              </span>
-              <span className="text-sm text-muted-foreground">/</span>
-              <span className="text-sm font-body text-muted-foreground tracking-widest">
-                {String(totalActualQuestions).padStart(2, "0")}
-              </span>
-            </div>
-          )}
+      {/* ─── Thin Progress Bar (very top, Typeform-style) ─── */}
+      {showNav && (
+        <div className="fixed top-0 left-0 right-0 z-40 h-[3px] bg-black/5">
+          <motion.div
+            className="h-full origin-left"
+            style={{ backgroundColor: buttonColor }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: progress / 100 }}
+            transition={{ type: "spring", stiffness: 200, damping: 30 }}
+          />
         </div>
-      </header>
+      )}
 
-      {/* Question area */}
-      <QuestionWrapper
-        questionId={engine.currentQuestion.id}
-        direction={engine.direction}
-      >
-        <QuestionRenderer
-          question={engine.currentQuestion}
-          questionNumber={questionNumber}
-          value={engine.getResponse(engine.currentQuestion.id)}
-          onChange={(value) =>
-            engine.setResponse(engine.currentQuestion.id, value)
-          }
-          onNext={handleNext}
-          validationError={validationError}
-        />
-      </QuestionWrapper>
+      {/* ─── Question Area with Typeform vertical slide ─── */}
+      <AnimatePresence mode="wait" custom={engine.direction}>
+        <motion.div
+          key={engine.currentQuestion.id}
+          custom={engine.direction}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{
+            y: { type: "spring", stiffness: 300, damping: 30 },
+            opacity: { duration: 0.2 },
+          }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className={`w-full ${isSpecialScreen ? "" : "max-w-2xl mx-auto px-5 sm:px-8"}`}>
+            <QuestionRenderer
+              question={engine.currentQuestion}
+              questionNumber={questionNumber}
+              value={engine.getResponse(engine.currentQuestion.id)}
+              onChange={(value) =>
+                engine.setResponse(engine.currentQuestion.id, value)
+              }
+              onNext={handleNext}
+              validationError={validationError}
+              design={form.design}
+            />
+          </div>
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Navigation controls */}
-      <NavigationControls
-        onNext={handleNext}
-        onPrev={handlePrev}
-        canGoNext={engine.canGoNext}
-        isFirst={engine.isFirst}
-        isLast={engine.isLast}
-        isWelcome={engine.isWelcome}
-        isThankYou={engine.isThankYou}
-        isBeforeThankYou={isBeforeThankYou}
-      />
+      {/* ─── Navigation Controls (bottom-right, Typeform-style) ─── */}
+      {showNav && (
+        <motion.div
+          className="fixed right-4 bottom-4 sm:right-6 sm:bottom-6 z-30 flex flex-col gap-1.5"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
+        >
+          {/* Next / Submit */}
+          <motion.button
+            onClick={handleNext}
+            disabled={!engine.canGoNext}
+            className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: engine.canGoNext ? buttonColor : "#94A3B8",
+              fontFamily,
+            }}
+            whileHover={engine.canGoNext ? { scale: 1.05 } : {}}
+            whileTap={engine.canGoNext ? { scale: 0.95 } : {}}
+          >
+            {isBeforeThankYou ? (
+              <>
+                Enviar <Check size={15} />
+              </>
+            ) : (
+              <>
+                OK <ArrowDown size={14} />
+              </>
+            )}
+          </motion.button>
 
-      {/* Progress bar */}
-      <ProgressBar
-        progress={engine.progress}
-        answeredCount={engine.answeredCount}
-        totalQuestions={totalActualQuestions}
-      />
+          {/* Prev */}
+          <AnimatePresence>
+            {!engine.isFirst && (
+              <motion.button
+                onClick={handlePrev}
+                className="flex items-center justify-center rounded-lg p-2.5 bg-white/80 backdrop-blur border border-black/10 text-gray-600 shadow-sm hover:bg-white transition-all"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileTap={{ scale: 0.9 }}
+                title="Voltar"
+              >
+                <ArrowUp size={15} />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* ─── Question counter (bottom-left) ─── */}
+      {showNav && (
+        <motion.div
+          className="fixed left-4 bottom-4 sm:left-6 sm:bottom-6 z-30 flex items-center gap-1.5 text-xs sm:text-sm opacity-50"
+          style={{ color: questionColor, fontFamily }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5 }}
+          transition={{ delay: 0.5 }}
+        >
+          <span className="font-bold">{questionNumber}</span>
+          <span>/</span>
+          <span>{totalActualQuestions}</span>
+        </motion.div>
+      )}
+
+      {/* ─── "Pressione Enter" hint (bottom-center, desktop only) ─── */}
+      {showNav && (
+        <motion.div
+          className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 hidden sm:flex items-center gap-2 text-xs opacity-30"
+          style={{ color: questionColor, fontFamily }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          transition={{ delay: 1 }}
+        >
+          Pressione <kbd className="px-1.5 py-0.5 rounded border border-current/20 text-[10px] font-mono">Enter ↵</kbd> para continuar
+        </motion.div>
+      )}
     </div>
   );
 }

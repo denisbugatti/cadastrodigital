@@ -1,44 +1,40 @@
 /**
- * FormFlow Thank You Screen (Light Theme)
- * Clean celebration screen with checkmark animation, custom media, and redirect support.
+ * FormFlow Thank You Screen — Typeform-style
+ * Full-screen celebration with design settings support.
  */
 
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import type { Question } from "@/lib/formTypes";
-import {
-  CheckCircle2, ExternalLink,
-  User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
-  Minus, AlignLeft, MessageSquare, Hash, DollarSign, Link,
-  CircleDot, ChevronDown, Image, ToggleLeft, CheckSquare,
-  Smile, Star, Gauge, ArrowUpDown, Grid3X3,
-  Calendar, Upload, Hand, Heart, ShieldCheck, Sparkles,
-} from "lucide-react";
+import { CheckCircle2, ExternalLink } from "lucide-react";
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
-  "building-2": Building2, "id-card": IdCard, "map-pin": MapPin,
-  minus: Minus, "align-left": AlignLeft, "message-square": MessageSquare,
-  hash: Hash, "dollar-sign": DollarSign, link: Link,
-  "circle-dot": CircleDot, "chevron-down": ChevronDown, image: Image,
-  "toggle-left": ToggleLeft, "check-square": CheckSquare,
-  smile: Smile, star: Star, gauge: Gauge, "arrow-up-down": ArrowUpDown,
-  "grid-3x3": Grid3X3, calendar: Calendar, upload: Upload,
-  hand: Hand, heart: Heart, "shield-check": ShieldCheck,
-  sparkles: Sparkles,
-};
-
-interface ThankYouScreenProps {
-  question: Question;
+interface DesignProps {
+  backgroundColor?: string;
+  questionColor?: string;
+  answerColor?: string;
+  buttonColor?: string;
+  fontFamily?: string;
+  logoUrl?: string;
+  backgroundImage?: string;
 }
 
-export function ThankYouScreen({ question }: ThankYouScreenProps) {
-  const hasImage = !!question.imageUrl;
-  const hasMotionIcon = !!question.motionIconUrl;
-  const hasSystemIcon = !!question.iconName;
+export interface ThankYouScreenProps {
+  question: Question;
+  design?: DesignProps;
+}
+
+export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
+  const bgColor = design?.backgroundColor || "#FFFFFF";
+  const buttonColor = design?.buttonColor || "#3B82F6";
+  const fontFamily = design?.fontFamily || "Plus Jakarta Sans, sans-serif";
   const showButton = question.showButton === true;
   const buttonText = question.buttonText || "Enviar outra resposta";
   const redirectUrl = question.redirectUrl;
+
+  const isLightBg = isLightColor(bgColor);
+  const textColor = isLightBg ? "#1E293B" : "#FFFFFF";
+  const subtitleColor = isLightBg ? "rgba(30,41,59,0.6)" : "rgba(255,255,255,0.7)";
+  const btnTextColor = isLightColor(buttonColor) ? "#1E293B" : "#FFFFFF";
 
   // Auto-redirect if URL is set
   useEffect(() => {
@@ -51,82 +47,39 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
   }, [redirectUrl]);
 
   return (
-    <div className={`flex ${hasImage ? "flex-row items-stretch" : "flex-col items-center text-center"} w-full max-w-4xl mx-auto gap-8`}>
-      {/* Image side (if set) */}
-      {hasImage && (
+    <div
+      className="w-full h-screen flex items-center justify-center relative overflow-hidden"
+      style={{ backgroundColor: bgColor, fontFamily }}
+    >
+      {/* Centered content */}
+      <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
+        {/* Checkmark animation */}
         <motion.div
-          className="w-1/2 rounded-2xl overflow-hidden shrink-0"
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto"
+          style={{
+            backgroundColor: isLightBg ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.2)",
+            border: `2px solid ${isLightBg ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.4)"}`,
+          }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
         >
-          <img
-            src={question.imageUrl}
-            alt=""
-            className="w-full h-full object-cover min-h-[400px]"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
+          <motion.div
+            initial={{ scale: 0, rotate: -90 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 15 }}
+          >
+            <CheckCircle2 size={40} className="text-emerald-500" strokeWidth={1.5} />
+          </motion.div>
         </motion.div>
-      )}
-
-      {/* Content side */}
-      <div className={`flex flex-col ${hasImage ? "w-1/2 justify-center" : "items-center"}`}>
-        {/* Animated icon area */}
-        {hasMotionIcon ? (
-          <motion.div
-            className="mb-8 w-24 h-24 rounded-full flex items-center justify-center bg-emerald-50 border-2 border-emerald-200 overflow-hidden"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
-          >
-            <img
-              src={question.motionIconUrl}
-              alt=""
-              className="w-16 h-16 object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          </motion.div>
-        ) : hasSystemIcon ? (
-          <motion.div
-            className="mb-8 w-24 h-24 rounded-full flex items-center justify-center bg-emerald-50 border-2 border-emerald-200"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 15 }}
-            >
-              {(() => {
-                const IconComp = iconMap[question.iconName!] || CheckCircle2;
-                return <IconComp size={44} className="text-emerald-500" />;
-              })()}
-            </motion.div>
-          </motion.div>
-        ) : (
-          <motion.div
-            className="mb-8 w-24 h-24 rounded-full flex items-center justify-center bg-emerald-50 border-2 border-emerald-200"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 15 }}
-            >
-              <CheckCircle2 size={44} className="text-emerald-500" strokeWidth={1.5} />
-            </motion.div>
-          </motion.div>
-        )}
 
         {/* Title */}
         <motion.h1
-          className={`font-display ${hasImage ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl"} font-bold text-foreground tracking-tight`}
-          initial={{ opacity: 0, y: 20 }}
+          className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight"
+          style={{ color: textColor, fontFamily }}
+          initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6 }}
+          transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           {question.title}
         </motion.h1>
@@ -134,10 +87,11 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
         {/* Subtitle */}
         {question.subtitle && (
           <motion.p
-            className={`mt-5 ${hasImage ? "text-base sm:text-lg" : "text-lg sm:text-xl"} text-muted-foreground font-body leading-relaxed ${hasImage ? "" : "max-w-lg"}`}
-            initial={{ opacity: 0, y: 15 }}
+            className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl leading-relaxed"
+            style={{ color: subtitleColor, fontFamily }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             {question.subtitle}
           </motion.p>
@@ -145,18 +99,25 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
 
         {/* Action buttons */}
         <motion.div
-          className="mt-8 flex flex-col gap-3"
+          className="mt-8 flex flex-col items-center gap-3"
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.5 }}
         >
           {showButton && (
-            <button
+            <motion.button
               onClick={() => window.location.reload()}
-              className="px-8 py-4 rounded-xl bg-brand text-white font-body font-semibold text-lg hover:bg-brand-dark transition-all duration-300 shadow-lg shadow-brand/20"
+              className="px-8 py-3.5 rounded-lg text-base font-semibold shadow-lg transition-all"
+              style={{
+                backgroundColor: buttonColor,
+                color: btnTextColor,
+                fontFamily,
+              }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
             >
               {buttonText}
-            </button>
+            </motion.button>
           )}
 
           {redirectUrl && (
@@ -164,9 +125,10 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
               href={redirectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-body font-medium text-brand hover:text-brand-dark border border-brand/20 hover:border-brand/40 hover:bg-brand-lighter/30 transition-all"
+              className="flex items-center gap-2 text-sm font-medium transition-all hover:opacity-80"
+              style={{ color: isLightBg ? buttonColor : "rgba(255,255,255,0.8)" }}
             >
-              <ExternalLink size={15} />
+              <ExternalLink size={14} />
               Visitar link
             </a>
           )}
@@ -175,7 +137,8 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
         {/* Redirect notice */}
         {redirectUrl && (
           <motion.p
-            className="mt-4 text-xs text-muted-foreground/60 font-body"
+            className="mt-4 text-xs"
+            style={{ color: subtitleColor }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9 }}
@@ -187,18 +150,19 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
         {/* Decorative dots */}
         {!redirectUrl && (
           <motion.div
-            className={`mt-10 flex gap-2 ${hasImage ? "" : "justify-center"}`}
+            className="mt-10 flex gap-2 justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 0.8 }}
           >
-            {["bg-brand", "bg-emerald-400", "bg-amber-400"].map((color, i) => (
+            {["#3B82F6", "#10B981", "#F59E0B"].map((color, i) => (
               <motion.div
                 key={i}
-                className={`w-2.5 h-2.5 rounded-full ${color}`}
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: color }}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.8 + i * 0.1, type: "spring", stiffness: 400, damping: 15 }}
+                transition={{ delay: 0.9 + i * 0.1, type: "spring", stiffness: 400, damping: 15 }}
               />
             ))}
           </motion.div>
@@ -206,4 +170,14 @@ export function ThankYouScreen({ question }: ThankYouScreenProps) {
       </div>
     </div>
   );
+}
+
+function isLightColor(hex: string): boolean {
+  const c = hex.replace("#", "");
+  if (c.length < 6) return true;
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
 }

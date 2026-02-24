@@ -37,6 +37,15 @@ interface QuestionRendererProps {
   onChange: (value: FormResponse["value"]) => void;
   onNext: () => void;
   validationError?: string;
+  design?: {
+    backgroundColor?: string;
+    questionColor?: string;
+    answerColor?: string;
+    buttonColor?: string;
+    fontFamily?: string;
+    logoUrl?: string;
+    backgroundImage?: string;
+  };
 }
 
 export function QuestionRenderer({
@@ -46,13 +55,14 @@ export function QuestionRenderer({
   onChange,
   onNext,
   validationError,
+  design,
 }: QuestionRendererProps) {
   // Special screens (no header)
   if (question.type === "welcome") {
-    return <WelcomeScreen question={question} onStart={onNext} />;
+    return <WelcomeScreen question={question} onStart={onNext} design={design} />;
   }
   if (question.type === "thank-you") {
-    return <ThankYouScreen question={question} />;
+    return <ThankYouScreen question={question} design={design} />;
   }
   if (question.type === "statement") {
     return <StatementScreen question={question} onNext={onNext} />;

@@ -1,5 +1,6 @@
 /**
- * FormFlow Rating Input (Light Theme)
+ * FormFlow Rating Input — Typeform-style
+ * Stars with hover scale, selection pulse, mobile-friendly.
  */
 
 import { motion } from "framer-motion";
@@ -19,43 +20,68 @@ export function RatingInput({ value, onChange, maxRating = 5, labels, onAutoAdva
   const displayValue = hovered || value;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
-      <div className="flex items-center gap-3">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3, duration: 0.4 }}
+    >
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         {Array.from({ length: maxRating }, (_, i) => {
           const rating = i + 1;
           const isActive = rating <= displayValue;
           return (
             <motion.button
               key={rating}
-              onClick={() => { onChange(rating); if (onAutoAdvance) setTimeout(onAutoAdvance, 500); }}
+              onClick={() => {
+                onChange(rating);
+                if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+              }}
               onMouseEnter={() => setHovered(rating)}
               onMouseLeave={() => setHovered(0)}
-              className="relative p-1 focus:outline-none"
+              className="relative p-0.5 sm:p-1 focus:outline-none touch-manipulation"
               whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.85 }}
               initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 + i * 0.06, type: "spring", stiffness: 300, damping: 20 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: value === rating ? [1, 1.15, 1] : 1,
+              }}
+              transition={{
+                delay: 0.35 + i * 0.05,
+                type: "spring",
+                stiffness: 300,
+                damping: 20,
+              }}
             >
               <Star
-                size={38}
-                className="relative z-10 transition-all duration-300"
-                style={isActive ? { fill: "#f59e0b", color: "#f59e0b" } : { fill: "transparent", color: "#d1d5db" }}
+                size={32}
+                className="sm:w-10 sm:h-10 transition-all duration-200"
+                style={
+                  isActive
+                    ? { fill: "#f59e0b", color: "#f59e0b" }
+                    : { fill: "transparent", color: "#d1d5db" }
+                }
                 strokeWidth={1.5}
               />
             </motion.button>
           );
         })}
         {value > 0 && (
-          <motion.span className="ml-3 text-3xl font-display font-bold text-brand" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
+          <motion.span
+            className="ml-2 text-2xl sm:text-3xl font-bold text-blue-500"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
             {value}
           </motion.span>
         )}
       </div>
       {labels && (
-        <div className="flex justify-between mt-5 px-1">
-          <span className="text-sm text-muted-foreground font-body">{labels.low}</span>
-          <span className="text-sm text-muted-foreground font-body">{labels.high}</span>
+        <div className="flex justify-between mt-4 sm:mt-5 px-1">
+          <span className="text-xs sm:text-sm opacity-50 font-body">{labels.low}</span>
+          <span className="text-xs sm:text-sm opacity-50 font-body">{labels.high}</span>
         </div>
       )}
     </motion.div>

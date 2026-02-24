@@ -101,6 +101,15 @@ export interface FormData {
     primaryColor?: string;
     accentColor?: string;
   };
+  design?: {
+    backgroundColor?: string;
+    questionColor?: string;
+    answerColor?: string;
+    buttonColor?: string;
+    fontFamily?: string;
+    logoUrl?: string;
+    backgroundImage?: string;
+  };
 }
 
 export interface FormResponse {

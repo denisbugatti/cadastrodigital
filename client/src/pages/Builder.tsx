@@ -34,6 +34,7 @@ export default function Builder() {
     addQuestion,
     removeQuestion,
     duplicateQuestion,
+    reorderQuestions,
     moveQuestion,
     updateQuestion,
     updateFormMeta,
@@ -191,6 +192,9 @@ export default function Builder() {
                 selectedQuestionId={selectedQuestionId}
                 onSelectQuestion={setSelectedQuestionId}
                 onAddQuestion={addQuestion}
+                onDuplicateQuestion={duplicateQuestion}
+                onRemoveQuestion={removeQuestion}
+                onReorderQuestions={reorderQuestions}
               />
               <BuilderCanvas
                 questions={form.questions}

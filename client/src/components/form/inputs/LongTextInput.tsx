@@ -1,5 +1,6 @@
 /**
- * FormFlow Long Text Input (Light Theme)
+ * FormFlow Long Text Input — Typeform-style
+ * Auto-growing textarea with clean border, mobile-friendly.
  */
 
 import { motion } from "framer-motion";
@@ -24,33 +25,51 @@ export function LongTextInput({ value, onChange, placeholder, error }: LongTextI
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = "auto";
-      textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
+      textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
     }
   }, [value]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3, duration: 0.4 }}
+    >
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={4}
-        className={`w-full rounded-xl border bg-white p-5 text-base font-body text-foreground leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-300 resize-none ${
-          error ? "border-red-300" : value ? "border-brand/30" : "border-border"
-        }`}
+        placeholder={placeholder || "Digite sua resposta aqui..."}
+        rows={3}
+        className={`
+          w-full rounded-lg border bg-transparent p-4 sm:p-5
+          text-base sm:text-lg font-body text-inherit leading-relaxed
+          placeholder:text-current/25
+          focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40
+          transition-all duration-200 resize-none
+          ${error ? "border-red-300" : value ? "border-blue-500/30" : "border-current/15"}
+        `}
       />
       {error && (
-        <motion.p className="mt-3 text-sm font-body text-red-500" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.p
+          className="mt-3 text-sm font-body text-red-500"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           {error}
         </motion.p>
       )}
-      <p className="mt-3 text-sm text-muted-foreground font-body">
-        <kbd className="px-2 py-0.5 rounded-md bg-secondary border border-border text-xs font-mono">Ctrl</kbd>
+      <motion.p
+        className="mt-3 text-xs sm:text-sm opacity-30 font-body"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.3 }}
+        transition={{ delay: 0.6 }}
+      >
+        <kbd className="px-1.5 py-0.5 rounded border border-current/20 text-[10px] font-mono">Ctrl</kbd>
         {" + "}
-        <kbd className="px-2 py-0.5 rounded-md bg-secondary border border-border text-xs font-mono">Enter ↵</kbd>
+        <kbd className="px-1.5 py-0.5 rounded border border-current/20 text-[10px] font-mono">Enter ↵</kbd>
         {" para enviar"}
-      </p>
+      </motion.p>
     </motion.div>
   );
 }

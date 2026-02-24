@@ -238,6 +238,26 @@ export function useBuilder(initialForm?: BuilderForm) {
     []
   );
 
+  // Reorder questions (for drag and drop)
+  const reorderQuestions = useCallback(
+    (activeId: string, overId: string) => {
+      setForm((prev) => {
+        const questions = [...prev.questions];
+        const oldIndex = questions.findIndex((q) => q.id === activeId);
+        const newIndex = questions.findIndex((q) => q.id === overId);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        // Don't allow moving welcome or thank-you
+        if (questions[oldIndex].type === "welcome" || questions[oldIndex].type === "thank-you") return prev;
+        // Don't allow placing before welcome or after thank-you
+        if (questions[newIndex].type === "welcome" && newIndex === 0) return prev;
+        const [removed] = questions.splice(oldIndex, 1);
+        questions.splice(newIndex, 0, removed);
+        return { ...prev, questions, updatedAt: new Date().toISOString() };
+      });
+    },
+    []
+  );
+
   // Get non-special questions for conditional logic targets
   const getConditionalTargets = useCallback(
     (currentQuestionId: string) => {
@@ -264,6 +284,7 @@ export function useBuilder(initialForm?: BuilderForm) {
     addQuestion,
     removeQuestion,
     duplicateQuestion,
+    reorderQuestions,
     moveQuestion,
     updateQuestion,
     updateFormMeta,

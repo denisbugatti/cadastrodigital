@@ -1,121 +1,89 @@
 /**
- * FormFlow Welcome Screen (Light Theme)
- * Clean welcome screen with brand accent, custom media, and smooth entrance.
+ * FormFlow Welcome Screen — Typeform-style
+ * Full-screen colored background with centered content.
+ * Supports builder design settings (colors, font, logo).
  */
 
 import { motion } from "framer-motion";
 import type { Question } from "@/lib/formTypes";
-import {
-  ArrowRight, User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
-  Minus, AlignLeft, MessageSquare, Hash, DollarSign, Link,
-  CircleDot, ChevronDown, Image, ToggleLeft, CheckSquare,
-  Smile, Star, Gauge, ArrowUpDown, Grid3X3,
-  Calendar, Upload, Hand, Heart, ShieldCheck, Sparkles,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
-  "building-2": Building2, "id-card": IdCard, "map-pin": MapPin,
-  minus: Minus, "align-left": AlignLeft, "message-square": MessageSquare,
-  hash: Hash, "dollar-sign": DollarSign, link: Link,
-  "circle-dot": CircleDot, "chevron-down": ChevronDown, image: Image,
-  "toggle-left": ToggleLeft, "check-square": CheckSquare,
-  smile: Smile, star: Star, gauge: Gauge, "arrow-up-down": ArrowUpDown,
-  "grid-3x3": Grid3X3, calendar: Calendar, upload: Upload,
-  hand: Hand, heart: Heart, "shield-check": ShieldCheck,
-  sparkles: Sparkles,
-};
-
-interface WelcomeScreenProps {
-  question: Question;
-  onStart: () => void;
+interface DesignProps {
+  backgroundColor?: string;
+  questionColor?: string;
+  answerColor?: string;
+  buttonColor?: string;
+  fontFamily?: string;
+  logoUrl?: string;
+  backgroundImage?: string;
 }
 
-export function WelcomeScreen({ question, onStart }: WelcomeScreenProps) {
-  const hasImage = !!question.imageUrl;
-  const hasMotionIcon = !!question.motionIconUrl;
-  const hasSystemIcon = !!question.iconName;
+export interface WelcomeScreenProps {
+  question: Question;
+  onStart: () => void;
+  design?: DesignProps;
+}
+
+export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps) {
+  const bgColor = design?.backgroundColor || "#3B82F6";
+  const buttonColor = design?.buttonColor || "#FFFFFF";
+  const fontFamily = design?.fontFamily || "Plus Jakarta Sans, sans-serif";
+  const logoUrl = design?.logoUrl;
   const buttonText = question.buttonText || "Começar";
   const showButton = question.showButton !== false;
+  const hasImage = !!question.imageUrl;
+
+  // Determine text color based on background brightness
+  const isLightBg = isLightColor(bgColor);
+  const textColor = isLightBg ? "#1E293B" : "#FFFFFF";
+  const subtitleColor = isLightBg ? "rgba(30,41,59,0.7)" : "rgba(255,255,255,0.75)";
+  const btnTextColor = isLightColor(buttonColor) ? "#1E293B" : "#FFFFFF";
+  const hintColor = isLightBg ? "rgba(30,41,59,0.4)" : "rgba(255,255,255,0.4)";
 
   return (
-    <div className={`flex ${hasImage ? "flex-row items-stretch" : "flex-col items-center text-center"} w-full max-w-4xl mx-auto gap-8`}>
-      {/* Image side (if set) */}
-      {hasImage && (
+    <div
+      className="w-full h-screen flex items-center justify-center relative overflow-hidden"
+      style={{ backgroundColor: bgColor, fontFamily }}
+    >
+      {/* Background image overlay */}
+      {question.imageUrl && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${question.imageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.15,
+          }}
+        />
+      )}
+
+      {/* Logo top-left (if set in design) */}
+      {logoUrl && (
         <motion.div
-          className="w-1/2 rounded-2xl overflow-hidden shrink-0"
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+          className="absolute top-6 left-6 z-10"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
           <img
-            src={question.imageUrl}
-            alt=""
-            className="w-full h-full object-cover min-h-[400px]"
+            src={logoUrl}
+            alt="Logo"
+            className="h-8 sm:h-10 object-contain"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
         </motion.div>
       )}
 
-      {/* Content side */}
-      <div className={`flex flex-col ${hasImage ? "w-1/2 justify-center" : "items-center"}`}>
-        {/* Motion icon or system icon or default */}
-        {hasMotionIcon ? (
-          <motion.div
-            className="mb-8 w-20 h-20 rounded-2xl bg-brand-lighter flex items-center justify-center overflow-hidden"
-            initial={{ opacity: 0, scale: 0.7, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
-          >
-            <img
-              src={question.motionIconUrl}
-              alt=""
-              className="w-14 h-14 object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          </motion.div>
-        ) : hasSystemIcon ? (
-          <motion.div
-            className="mb-8 w-20 h-20 rounded-2xl bg-brand-lighter flex items-center justify-center"
-            initial={{ opacity: 0, scale: 0.7, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
-          >
-            {(() => {
-              const IconComp = iconMap[question.iconName!] || Sparkles;
-              return <IconComp size={36} className="text-brand" />;
-            })()}
-          </motion.div>
-        ) : !hasImage && (
-          <motion.div
-            className="mb-10 w-20 h-20 rounded-2xl bg-brand-lighter flex items-center justify-center"
-            initial={{ opacity: 0, scale: 0.7, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
-          >
-            <svg width="36" height="36" viewBox="0 0 18 18" fill="none">
-              <path
-                d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z"
-                className="stroke-brand"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M6 7.5H12M6 10.5H9.5"
-                className="stroke-brand"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </motion.div>
-        )}
-
+      {/* Centered content */}
+      <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
         {/* Title */}
         <motion.h1
-          className={`font-display ${hasImage ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl lg:text-6xl"} font-bold text-foreground tracking-tight leading-tight`}
-          initial={{ opacity: 0, y: 20 }}
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight"
+          style={{ color: textColor, fontFamily }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.6 }}
+          transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           {question.title}
         </motion.h1>
@@ -123,10 +91,11 @@ export function WelcomeScreen({ question, onStart }: WelcomeScreenProps) {
         {/* Subtitle */}
         {question.subtitle && (
           <motion.p
-            className={`mt-5 ${hasImage ? "text-base sm:text-lg" : "text-lg sm:text-xl"} text-muted-foreground font-body leading-relaxed ${hasImage ? "" : "max-w-lg"}`}
-            initial={{ opacity: 0, y: 15 }}
+            className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl leading-relaxed"
+            style={{ color: subtitleColor, fontFamily }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
+            transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             {question.subtitle}
           </motion.p>
@@ -134,36 +103,51 @@ export function WelcomeScreen({ question, onStart }: WelcomeScreenProps) {
 
         {/* CTA Button */}
         {showButton && (
-          <motion.button
-            onClick={onStart}
-            className="
-              mt-10 px-8 py-4 rounded-xl
-              bg-brand text-white font-body font-semibold text-lg
-              hover:bg-brand-dark
-              transition-all duration-300 shadow-lg shadow-brand/20
-              flex items-center gap-3
-            "
+          <motion.div
+            className="mt-8 sm:mt-10 flex items-center justify-center gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.5 }}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            {buttonText}
-            <ArrowRight size={18} />
-          </motion.button>
-        )}
+            <motion.button
+              onClick={onStart}
+              className="px-8 py-3.5 sm:py-4 rounded-lg text-base sm:text-lg font-semibold shadow-lg flex items-center gap-3 transition-all"
+              style={{
+                backgroundColor: buttonColor,
+                color: btnTextColor,
+                fontFamily,
+              }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              {buttonText}
+              <ArrowRight size={18} />
+            </motion.button>
 
-        {/* Hint */}
-        <motion.p
-          className="mt-6 text-sm text-muted-foreground font-body"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          Pressione <kbd className="px-2 py-0.5 rounded-md bg-secondary border border-border text-xs font-mono">Enter ↵</kbd> para começar
-        </motion.p>
+            {/* Enter hint */}
+            <motion.span
+              className="text-xs sm:text-sm hidden sm:inline-flex items-center gap-1"
+              style={{ color: hintColor }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+            >
+              pressione <kbd className="px-1.5 py-0.5 rounded border text-[10px] font-mono" style={{ borderColor: hintColor }}>Enter ↵</kbd>
+            </motion.span>
+          </motion.div>
+        )}
       </div>
     </div>
   );
+}
+
+/** Helper to determine if a hex color is light */
+function isLightColor(hex: string): boolean {
+  const c = hex.replace("#", "");
+  if (c.length < 6) return true;
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
 }

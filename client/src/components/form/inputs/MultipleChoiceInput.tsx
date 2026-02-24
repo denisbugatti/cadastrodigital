@@ -1,10 +1,12 @@
 /**
- * FormFlow Multiple Choice Input (Light Theme)
+ * FormFlow Multiple Choice — Typeform-style
+ * Letter prefix (A, B, C), hover highlight, selection bounce with checkmark.
  */
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import type { Choice } from "@/lib/formTypes";
-import { useEffect } from "react";
+import { Check } from "lucide-react";
 
 interface MultipleChoiceInputProps {
   choices: Choice[];
@@ -16,60 +18,106 @@ interface MultipleChoiceInputProps {
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export function MultipleChoiceInput({ choices, value, onChange, onAutoAdvance }: MultipleChoiceInputProps) {
+  const [justSelected, setJustSelected] = useState<string | null>(null);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const index = letters.indexOf(e.key.toUpperCase());
       if (index >= 0 && index < choices.length) {
         e.preventDefault();
-        onChange(choices[index].id);
-        if (onAutoAdvance) setTimeout(onAutoAdvance, 400);
+        handleSelect(choices[index].id);
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [choices, onChange, onAutoAdvance]);
 
+  const handleSelect = (choiceId: string) => {
+    setJustSelected(choiceId);
+    onChange(choiceId);
+    // Brief delay for animation, then auto-advance
+    if (onAutoAdvance) {
+      setTimeout(onAutoAdvance, 600);
+    }
+    // Clear "just selected" after animation
+    setTimeout(() => setJustSelected(null), 700);
+  };
+
   return (
-    <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+    <motion.div
+      className="space-y-2.5 sm:space-y-3"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.2 }}
+    >
       {choices.map((choice, i) => {
         const isSelected = value === choice.id;
+        const isJust = justSelected === choice.id;
+
         return (
           <motion.button
             key={choice.id}
-            onClick={() => {
-              onChange(choice.id);
-              if (onAutoAdvance) setTimeout(onAutoAdvance, 400);
+            onClick={() => handleSelect(choice.id)}
+            className={`
+              w-full flex items-center gap-3 sm:gap-4 px-4 py-3 sm:py-3.5 rounded-lg text-left
+              font-body transition-colors duration-200 border
+              ${isSelected
+                ? "bg-blue-50 border-blue-400 dark:bg-blue-900/20 dark:border-blue-500"
+                : "bg-white border-gray-200 hover:border-gray-400 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:border-gray-500"
+              }
+            `}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: isJust ? [1, 1.02, 1] : 1,
             }}
-            className={`w-full flex items-center gap-4 p-4 rounded-xl text-left font-body transition-all duration-300 border ${
-              isSelected
-                ? "bg-brand/5 border-brand shadow-sm"
-                : "bg-white border-border hover:border-brand/30 hover:shadow-sm"
-            }`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + i * 0.06, type: "spring", stiffness: 300, damping: 25 }}
+            transition={{
+              opacity: { delay: 0.25 + i * 0.05, duration: 0.3 },
+              y: { delay: 0.25 + i * 0.05, type: "spring", stiffness: 300, damping: 25 },
+              scale: { duration: 0.3 },
+            }}
+            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold shrink-0 transition-all duration-300 ${
-              isSelected ? "bg-brand text-white" : "bg-secondary text-muted-foreground border border-border"
-            }`}>
+            {/* Letter badge */}
+            <span
+              className={`
+                inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-md
+                text-xs font-bold shrink-0 transition-all duration-300
+                ${isSelected
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-500 border border-gray-200"
+                }
+              `}
+            >
               {letters[i]}
             </span>
-            <span className="flex items-center gap-2.5 text-base">
-              {choice.icon && <span className="text-lg">{choice.icon}</span>}
-              <span className={`transition-colors duration-200 ${isSelected ? "text-foreground font-medium" : "text-foreground/70"}`}>
-                {choice.label}
-              </span>
+
+            {/* Label */}
+            <span className={`flex-1 text-sm sm:text-base transition-colors duration-200 ${
+              isSelected ? "text-gray-900 font-medium" : "text-gray-600"
+            }`}>
+              {choice.icon && <span className="mr-2">{choice.icon}</span>}
+              {choice.label}
             </span>
-            {isSelected && (
-              <motion.div className="ml-auto" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
-                <div className="w-5 h-5 rounded-full flex items-center justify-center bg-brand">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6L5 8.5L9.5 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </motion.div>
-            )}
+
+            {/* Checkmark */}
+            <AnimatePresence>
+              {isSelected && (
+                <motion.div
+                  className="shrink-0"
+                  initial={{ scale: 0, rotate: -90 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 90 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                >
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-blue-500">
+                    <Check size={12} className="text-white" strokeWidth={3} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.button>
         );
       })}

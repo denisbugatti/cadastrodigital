@@ -1,11 +1,26 @@
 /**
  * FormFlow Builder — Sidebar (Typeform-style)
- * Lists form questions for navigation. "Add content" button opens type picker popover.
- * Separate "Endings" section for thank-you screens.
+ * Drag-and-drop reordering with dnd-kit. 3-dot menu per question.
+ * "Add content" button opens type picker popover.
  */
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
   Minus, AlignLeft, MessageSquare, Hash, DollarSign, Link,
@@ -13,6 +28,7 @@ import {
   Smile, Star, Gauge, ArrowUpDown, Grid3X3,
   Calendar, Upload, Hand, Heart, ShieldCheck,
   ChevronRight, Search, Plus, GripVertical, X,
+  MoreVertical, Copy, Trash2,
 } from "lucide-react";
 import {
   questionCategories,
@@ -40,20 +56,193 @@ const categoryIconMap: Record<string, React.ComponentType<{ size?: number; class
   calendar: Calendar, paperclip: Upload, layout: Hand,
 };
 
+/* ─── Sortable Question Item ─── */
+interface SortableItemProps {
+  question: BuilderQuestion;
+  isSelected: boolean;
+  questionNumber: number | null;
+  onSelect: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onRemove: (id: string) => void;
+  isDraggable: boolean;
+}
+
+function SortableQuestionItem({
+  question, isSelected, questionNumber, onSelect, onDuplicate, onRemove, isDraggable,
+}: SortableItemProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: question.id,
+    disabled: !isDraggable,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  };
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMenu]);
+
+  const typeInfo = questionTypes.find(t => t.type === question.type);
+  const Icon = typeInfo ? iconMap[typeInfo.icon] || Minus : Minus;
+  const isWelcome = question.type === "welcome";
+  const isThankYou = question.type === "thank-you";
+  const isSpecial = isWelcome || question.type === "statement" || question.type === "legal";
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <button
+        onClick={() => onSelect(question.id)}
+        className={`w-full flex items-center gap-2 px-2 py-2 rounded-xl text-left transition-all ${
+          isSelected
+            ? "bg-brand/8 border border-brand/20"
+            : "hover:bg-secondary border border-transparent"
+        }`}
+      >
+        {/* Drag handle */}
+        {isDraggable && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="p-0.5 rounded cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          >
+            <GripVertical size={12} />
+          </div>
+        )}
+        {!isDraggable && <div className="w-4 shrink-0" />}
+
+        {/* Icon */}
+        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+          isSelected ? "bg-brand text-white" : "bg-secondary text-muted-foreground"
+        }`}>
+          {isWelcome ? <Hand size={12} /> : isThankYou ? <Heart size={12} /> : <Icon size={12} />}
+        </div>
+
+        {/* Number */}
+        {!isSpecial && !isWelcome && !isThankYou && questionNumber !== null && (
+          <span className={`text-[10px] font-body font-bold shrink-0 min-w-[14px] text-center ${
+            isSelected ? "text-brand" : "text-muted-foreground/50"
+          }`}>
+            {questionNumber}
+          </span>
+        )}
+        {isThankYou && (
+          <span className={`text-[10px] font-body font-bold shrink-0 ${
+            isSelected ? "text-brand" : "text-muted-foreground/50"
+          }`}>A</span>
+        )}
+
+        {/* Title */}
+        <span className={`text-[13px] font-body truncate flex-1 ${
+          isSelected ? "text-foreground font-medium" : "text-foreground/70"
+        }`}>
+          {question.title || typeInfo?.label || "Sem título"}
+        </span>
+
+        {/* 3-dot menu trigger */}
+        {!isWelcome && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setShowMenu(!showMenu);
+            }}
+            className={`p-1 rounded-lg transition-all shrink-0 ${
+              showMenu
+                ? "text-foreground bg-secondary"
+                : "text-muted-foreground/30 hover:text-muted-foreground opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            <MoreVertical size={13} />
+          </div>
+        )}
+      </button>
+
+      {/* Dropdown menu */}
+      <AnimatePresence>
+        {showMenu && (
+          <motion.div
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.1 }}
+            className="absolute right-2 top-full mt-1 z-50 bg-white rounded-xl border border-border shadow-xl py-1 min-w-[140px]"
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate(question.id);
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-body text-foreground/80 hover:bg-secondary transition-colors"
+            >
+              <Copy size={13} />
+              Duplicar
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(question.id);
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-body text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={13} />
+              Excluir
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Main Sidebar ─── */
 interface BuilderSidebarProps {
   questions: BuilderQuestion[];
   selectedQuestionId: string | null;
   onSelectQuestion: (id: string) => void;
   onAddQuestion: (type: BuilderQuestionType) => void;
+  onDuplicateQuestion: (id: string) => void;
+  onRemoveQuestion: (id: string) => void;
+  onReorderQuestions: (activeId: string, overId: string) => void;
 }
 
-export function BuilderSidebar({ questions, selectedQuestionId, onSelectQuestion, onAddQuestion }: BuilderSidebarProps) {
+export function BuilderSidebar({
+  questions, selectedQuestionId, onSelectQuestion, onAddQuestion,
+  onDuplicateQuestion, onRemoveQuestion, onReorderQuestions,
+}: BuilderSidebarProps) {
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategory, setExpandedCategory] = useState<QuestionCategory | null>("contact");
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  // Close picker on click outside
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
   useEffect(() => {
     if (!showTypePicker) return;
     const handler = (e: MouseEvent) => {
@@ -65,19 +254,37 @@ export function BuilderSidebar({ questions, selectedQuestionId, onSelectQuestion
     return () => document.removeEventListener("mousedown", handler);
   }, [showTypePicker]);
 
-  // Separate questions into regular and endings
   const regularQuestions = questions.filter(q => q.type !== "thank-you");
   const endings = questions.filter(q => q.type === "thank-you");
 
-  // Question number (excluding welcome and thank-you)
-  let questionNumber = 0;
+  // Build question numbers
+  let qNum = 0;
+  const questionNumbers = new Map<string, number | null>();
+  regularQuestions.forEach((q) => {
+    if (q.type === "welcome" || q.type === "statement" || q.type === "legal") {
+      questionNumbers.set(q.id, null);
+    } else {
+      qNum++;
+      questionNumbers.set(q.id, qNum);
+    }
+  });
 
+  const sortableIds = regularQuestions.map(q => q.id);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorderQuestions(active.id as string, over.id as string);
+    }
+  };
+
+  const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const filteredTypes = searchQuery.trim()
     ? questionTypes.filter(
         (t) =>
           t.category !== "special" &&
-          (t.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          (normalize(t.label).includes(normalize(searchQuery)) ||
+          normalize(t.description).includes(normalize(searchQuery)))
       )
     : questionTypes.filter(t => t.category !== "special");
 
@@ -101,78 +308,35 @@ export function BuilderSidebar({ questions, selectedQuestionId, onSelectQuestion
         </button>
       </div>
 
-      {/* Question List */}
+      {/* Question List with DnD */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-2 space-y-0.5">
-          {regularQuestions.map((question) => {
-            const typeInfo = questionTypes.find(t => t.type === question.type);
-            const Icon = typeInfo ? iconMap[typeInfo.icon] || Minus : Minus;
-            const isSelected = selectedQuestionId === question.id;
-            const isWelcome = question.type === "welcome";
-            const isSpecial = isWelcome || question.type === "statement" || question.type === "legal";
-
-            if (!isWelcome && question.type !== "statement" && question.type !== "legal") {
-              questionNumber++;
-            }
-
-            return (
-              <button
-                key={question.id}
-                onClick={() => onSelectQuestion(question.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all group ${
-                  isSelected
-                    ? "bg-brand/8 border border-brand/20"
-                    : "hover:bg-secondary border border-transparent"
-                }`}
-              >
-                {/* Icon with type color */}
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                  isSelected ? "bg-brand text-white" : "bg-secondary text-muted-foreground"
-                }`}>
-                  {isWelcome ? (
-                    <Hand size={14} />
-                  ) : (
-                    <Icon size={14} />
-                  )}
-                </div>
-
-                {/* Number */}
-                {!isSpecial && !isWelcome && (
-                  <span className={`text-xs font-body font-bold shrink-0 ${
-                    isSelected ? "text-brand" : "text-muted-foreground/60"
-                  }`}>
-                    {questionNumber}
-                  </span>
-                )}
-                {isWelcome && (
-                  <span className={`text-xs font-body font-bold shrink-0 ${
-                    isSelected ? "text-brand" : "text-muted-foreground/60"
-                  }`}>
-                    
-                  </span>
-                )}
-
-                {/* Title */}
-                <span className={`text-sm font-body truncate flex-1 ${
-                  isSelected ? "text-foreground font-medium" : "text-foreground/70"
-                }`}>
-                  {question.title || typeInfo?.label || "Sem título"}
-                </span>
-
-                {/* Motion icon indicator */}
-                {question.motionIconUrl && (
-                  <img src={question.motionIconUrl} alt="" className="w-4 h-4 shrink-0" />
-                )}
-              </button>
-            );
-          })}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              {regularQuestions.map((question) => {
+                const isDraggable = question.type !== "welcome";
+                return (
+                  <SortableQuestionItem
+                    key={question.id}
+                    question={question}
+                    isSelected={selectedQuestionId === question.id}
+                    questionNumber={questionNumbers.get(question.id) ?? null}
+                    onSelect={onSelectQuestion}
+                    onDuplicate={onDuplicateQuestion}
+                    onRemove={onRemoveQuestion}
+                    isDraggable={isDraggable}
+                  />
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         </div>
 
         {/* Endings Section */}
         {endings.length > 0 && (
           <div className="border-t border-border mt-2">
             <div className="px-4 py-2.5 flex items-center justify-between">
-              <span className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider">
+              <span className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider">
                 Endings
               </span>
               <button
@@ -184,36 +348,18 @@ export function BuilderSidebar({ questions, selectedQuestionId, onSelectQuestion
               </button>
             </div>
             <div className="px-2 pb-2 space-y-0.5">
-              {endings.map((ending, idx) => {
-                const isSelected = selectedQuestionId === ending.id;
-                return (
-                  <button
-                    key={ending.id}
-                    onClick={() => onSelectQuestion(ending.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all ${
-                      isSelected
-                        ? "bg-brand/8 border border-brand/20"
-                        : "hover:bg-secondary border border-transparent"
-                    }`}
-                  >
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      isSelected ? "bg-brand text-white" : "bg-secondary text-muted-foreground"
-                    }`}>
-                      <Heart size={14} />
-                    </div>
-                    <span className={`text-xs font-body font-bold shrink-0 ${
-                      isSelected ? "text-brand" : "text-muted-foreground/60"
-                    }`}>
-                      A
-                    </span>
-                    <span className={`text-sm font-body truncate flex-1 ${
-                      isSelected ? "text-foreground font-medium" : "text-foreground/70"
-                    }`}>
-                      {ending.title || "Agradecimento"}
-                    </span>
-                  </button>
-                );
-              })}
+              {endings.map((ending) => (
+                <SortableQuestionItem
+                  key={ending.id}
+                  question={ending}
+                  isSelected={selectedQuestionId === ending.id}
+                  questionNumber={null}
+                  onSelect={onSelectQuestion}
+                  onDuplicate={onDuplicateQuestion}
+                  onRemove={onRemoveQuestion}
+                  isDraggable={false}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -230,7 +376,6 @@ export function BuilderSidebar({ questions, selectedQuestionId, onSelectQuestion
             transition={{ duration: 0.15 }}
             className="absolute top-14 left-3 right-3 z-50 bg-white rounded-2xl border border-border shadow-2xl max-h-[70vh] flex flex-col overflow-hidden"
           >
-            {/* Picker header */}
             <div className="p-3 border-b border-border flex items-center gap-2">
               <Search size={15} className="text-muted-foreground shrink-0" />
               <input
@@ -249,7 +394,6 @@ export function BuilderSidebar({ questions, selectedQuestionId, onSelectQuestion
               </button>
             </div>
 
-            {/* Picker content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
               {groupedByCategory.map((category) => {
                 if (category.types.length === 0) return null;

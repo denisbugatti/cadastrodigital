@@ -1,11 +1,12 @@
 /**
- * FormFlow Builder — Preview Overlay (Light Theme)
- * Renders the conversational form in a full-screen preview.
+ * FormFlow Builder — Preview Overlay
+ * Full-screen preview with prominent close button, ESC support, mobile-friendly.
  */
 
 import { useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Monitor, Smartphone } from "lucide-react";
+import { useState } from "react";
 import type { BuilderForm } from "@/lib/builderTypes";
 import { builderToFormData } from "@/lib/builderToForm";
 import { FormContainer } from "@/components/form/FormContainer";
@@ -18,6 +19,7 @@ interface BuilderPreviewProps {
 
 export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
   const formData = useMemo(() => builderToFormData(form), [form]);
+  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -36,54 +38,75 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex flex-col bg-white"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.25 }}
         >
-          {/* Backdrop */}
+          {/* Top bar */}
           <motion.div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
-
-          {/* Preview container */}
-          <motion.div
-            className="relative w-full h-full flex flex-col bg-white z-[101]"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            className="h-12 sm:h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 bg-gray-900 text-white z-[102] relative"
+            initial={{ y: -56 }}
+            animate={{ y: 0 }}
+            exit={{ y: -56 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            {/* Top bar */}
-            <div className="h-14 flex items-center justify-between px-6 shrink-0 border-b border-border bg-white">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <span className="text-sm font-body text-muted-foreground ml-2">
-                  Preview — {form.title || "Formulário sem título"}
-                </span>
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
               </div>
+              <span className="text-xs sm:text-sm font-body text-gray-400 sm:ml-2 truncate max-w-[200px] sm:max-w-none">
+                Preview — {form.title || "Formulário sem título"}
+              </span>
+            </div>
 
+            {/* View mode toggle (desktop only) */}
+            <div className="hidden sm:flex items-center gap-1 bg-gray-800 rounded-lg p-1">
               <button
-                onClick={onClose}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                onClick={() => setViewMode("desktop")}
+                className={`p-1.5 rounded-md transition-all ${viewMode === "desktop" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
               >
-                <X size={16} />
-                Fechar
+                <Monitor size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode("mobile")}
+                className={`p-1.5 rounded-md transition-all ${viewMode === "mobile" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                <Smartphone size={16} />
               </button>
             </div>
 
-            {/* Form preview area — full screen */}
-            <div className="flex-1 overflow-hidden">
-              <FormContainer form={formData} key={JSON.stringify(formData)} />
+            <button
+              onClick={onClose}
+              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-all"
+            >
+              <X size={16} />
+              <span className="hidden sm:inline">Fechar</span>
+              <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-[10px] font-mono text-gray-500 ml-1">
+                ESC
+              </kbd>
+            </button>
+          </motion.div>
+
+          {/* Preview container */}
+          <motion.div
+            className="flex-1 overflow-hidden bg-gray-100 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div
+              className={`h-full bg-white transition-all duration-300 overflow-hidden ${
+                viewMode === "mobile"
+                  ? "w-[375px] rounded-2xl shadow-2xl my-4 max-h-[calc(100vh-80px)]"
+                  : "w-full"
+              }`}
+            >
+              <FormContainer form={formData} key={JSON.stringify(formData) + viewMode} />
             </div>
           </motion.div>
         </motion.div>

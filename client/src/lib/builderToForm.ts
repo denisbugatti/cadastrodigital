@@ -98,5 +98,14 @@ export function builderToFormData(builderForm: BuilderForm): FormData {
     title: builderForm.title,
     description: builderForm.description || undefined,
     questions: builderForm.questions.map(convertQuestion),
+    design: {
+      backgroundColor: builderForm.design.backgroundColor,
+      questionColor: builderForm.design.questionColor,
+      answerColor: builderForm.design.answerColor,
+      buttonColor: builderForm.design.buttonColor,
+      fontFamily: builderForm.design.fontFamily,
+      logoUrl: builderForm.design.logoUrl || undefined,
+      backgroundImage: builderForm.design.backgroundImage || undefined,
+    },
   };
 }
