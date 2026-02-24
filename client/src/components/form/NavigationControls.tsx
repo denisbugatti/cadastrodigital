@@ -1,6 +1,6 @@
 /**
- * FormFlow — Dark Futuristic Design
- * Navigation controls with glassmorphism and neon glow effects.
+ * FormFlow Navigation Controls (Light Theme)
+ * Clean navigation buttons with subtle shadows.
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,7 +30,7 @@ export function NavigationControls({
 
   return (
     <motion.div
-      className="fixed right-6 sm:right-8 bottom-12 z-40 flex flex-col gap-2"
+      className="fixed right-6 sm:right-8 bottom-12 z-20 flex flex-col gap-2"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.5, duration: 0.4 }}
@@ -42,15 +42,15 @@ export function NavigationControls({
           onClick={onNext}
           disabled={!canGoNext}
           className={`
-            group flex items-center gap-2 rounded-full px-5 py-3
-            font-body text-sm font-medium
-            transition-all duration-300
+            group flex items-center gap-2 rounded-xl px-5 py-3
+            font-body text-sm font-semibold
+            transition-all duration-300 shadow-sm
             ${
               canGoNext
                 ? isBeforeThankYou
-                  ? "bg-neon-blue text-white glow-blue hover:scale-105"
-                  : "glass-card text-foreground border border-glass-border hover:border-neon-blue/40 hover:scale-105 hover:glow-blue"
-                : "glass-card text-muted-foreground cursor-not-allowed opacity-40"
+                  ? "bg-brand text-white hover:bg-brand-dark hover:scale-105"
+                  : "bg-white text-foreground border border-border hover:border-brand/40 hover:scale-105 hover:shadow-md"
+                : "bg-secondary text-muted-foreground cursor-not-allowed opacity-40"
             }
           `}
           initial={{ opacity: 0, scale: 0.9 }}
@@ -58,11 +58,7 @@ export function NavigationControls({
           exit={{ opacity: 0, scale: 0.9 }}
           whileTap={canGoNext ? { scale: 0.95 } : {}}
         >
-          {isWelcome ? (
-            <>
-              Começar <Sparkles size={14} className="text-neon-cyan" />
-            </>
-          ) : isBeforeThankYou ? (
+          {isBeforeThankYou ? (
             <>
               Enviar <Check size={16} className="transition-transform group-hover:scale-110" />
             </>
@@ -71,7 +67,7 @@ export function NavigationControls({
               OK{" "}
               <ArrowDown
                 size={14}
-                className="transition-transform group-hover:translate-y-0.5 text-neon-cyan"
+                className="transition-transform group-hover:translate-y-0.5 text-brand"
               />
             </>
           )}
@@ -84,9 +80,9 @@ export function NavigationControls({
           <motion.button
             onClick={onPrev}
             className="
-              flex items-center justify-center rounded-full p-2.5
-              glass-card border border-glass-border text-muted-foreground
-              hover:text-foreground hover:border-neon-blue/30
+              flex items-center justify-center rounded-xl p-2.5
+              bg-white border border-border text-muted-foreground shadow-sm
+              hover:text-foreground hover:border-brand/30 hover:shadow-md
               transition-all duration-300 hover:scale-105
             "
             initial={{ opacity: 0, scale: 0.8 }}

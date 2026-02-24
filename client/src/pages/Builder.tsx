@@ -1,11 +1,7 @@
 /**
- * FormFlow Builder Page
- * Design: Dark futuristic with glassmorphism, neon accents (blue/cyan).
+ * FormFlow Builder Page — Light Clean Design
+ * Fontes: Plus Jakarta Sans (display) + Inter (body)
  * Top navigation: Editor | Opções | Compartilhar | Respostas
- * Editor tab: Three-panel layout (Sidebar + Canvas + Config)
- * Opções tab: Design editor + Webhook + Workspace
- * Compartilhar tab: Link sharing, social, embed code
- * Respostas tab: Response viewer (empty state)
  */
 
 import { useState, useEffect } from "react";
@@ -25,7 +21,6 @@ import { WebhookPanel } from "@/components/builder/WebhookPanel";
 import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { WorkspaceManager } from "@/components/builder/WorkspaceManager";
 import { useBuilder } from "@/hooks/useBuilder";
-import type { Workspace } from "@/lib/builderTypes";
 import { sampleWorkspaces } from "@/lib/builderTypes";
 
 type BuilderTab = "editor" | "opcoes" | "compartilhar" | "respostas";
@@ -54,7 +49,6 @@ export default function Builder() {
   const [activeTab, setActiveTab] = useState<BuilderTab>("editor");
   const [showPreview, setShowPreview] = useState(false);
 
-  // Listen for tab switch events (from ResponsesPanel)
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -82,7 +76,6 @@ export default function Builder() {
     setShowPreview(true);
   };
 
-  // Find current workspace domain
   const currentWorkspace = form.workspaceId
     ? sampleWorkspaces.find((w) => w.id === form.workspaceId)
     : null;
@@ -95,14 +88,11 @@ export default function Builder() {
   ];
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: "oklch(0.09 0.01 260)" }}>
+    <div className="h-screen flex flex-col bg-background">
       {/* ─── Top Bar ─── */}
-      <header
-        className="border-b border-glass-border shrink-0"
-        style={{ background: "oklch(0.11 0.015 260)" }}
-      >
+      <header className="border-b border-border shrink-0 bg-white">
         {/* Upper row: Logo + Title + Actions */}
-        <div className="h-12 flex items-center justify-between px-4">
+        <div className="h-14 flex items-center justify-between px-5">
           {/* Left: Back + Form title */}
           <div className="flex items-center gap-3">
             <Link href="/">
@@ -110,33 +100,34 @@ export default function Builder() {
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                 whileHover={{ x: -2 }}
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={18} />
               </motion.div>
             </Link>
 
-            <div className="w-px h-5 bg-glass-border" />
+            <div className="w-px h-6 bg-border" />
 
             <div className="flex items-center gap-2">
-              <Zap size={14} className="text-neon-blue" />
+              <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
+                <Zap size={14} className="text-white" />
+              </div>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => updateFormMeta({ title: e.target.value })}
-                className="bg-transparent text-sm font-display font-semibold text-foreground focus:outline-none border-b border-transparent focus:border-neon-blue/30 transition-colors px-1 py-0.5 max-w-[200px]"
+                className="bg-transparent text-base font-display font-bold text-foreground focus:outline-none border-b-2 border-transparent focus:border-brand/30 transition-colors px-1 py-0.5 max-w-[250px]"
                 placeholder="Nome do formulário..."
               />
             </div>
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={handlePreview}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium text-muted-foreground hover:text-foreground border border-glass-border hover:border-glass-hover transition-all"
-              style={{ background: "oklch(0.14 0.015 260)" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-foreground border border-border hover:border-brand/30 hover:bg-brand-lighter/30 transition-all"
             >
-              <Eye size={13} />
-              Ver
+              <Eye size={15} />
+              Visualizar
             </button>
 
             <button
@@ -145,20 +136,16 @@ export default function Builder() {
                   description: "Todas as alterações foram salvas.",
                 })
               }
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-body font-semibold text-white transition-all hover:opacity-90"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.65 0.2 250), oklch(0.55 0.25 270))",
-                boxShadow: "0 0 12px oklch(0.65 0.2 250 / 0.3)",
-              }}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-body font-semibold text-white bg-brand brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all"
             >
-              <Save size={13} />
+              <Save size={15} />
               Salvar
             </button>
           </div>
         </div>
 
         {/* Lower row: Tab navigation */}
-        <div className="flex items-center px-4">
+        <div className="flex items-center px-5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -166,22 +153,18 @@ export default function Builder() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-1.5 px-4 py-2.5 text-xs font-body font-medium transition-all ${
+                className={`relative flex items-center gap-2 px-5 py-3 text-sm font-body font-medium transition-all ${
                   isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground/80"
+                    ? "text-brand"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Icon size={13} />
+                <Icon size={15} />
                 {tab.label}
                 {isActive && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                    style={{
-                      background: "linear-gradient(90deg, oklch(0.65 0.2 250), oklch(0.7 0.18 200))",
-                      boxShadow: "0 0 8px oklch(0.65 0.2 250 / 0.4)",
-                    }}
+                    className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full bg-brand"
                   />
                 )}
               </button>
@@ -193,7 +176,7 @@ export default function Builder() {
       {/* ─── Tab Content ─── */}
       <div className="flex-1 overflow-hidden">
         <AnimatePresence mode="wait">
-          {/* ═══ EDITOR TAB ═══ */}
+          {/* EDITOR TAB */}
           {activeTab === "editor" && (
             <motion.div
               key="editor"
@@ -203,10 +186,7 @@ export default function Builder() {
               transition={{ duration: 0.15 }}
               className="h-full flex"
             >
-              {/* Left: Question types sidebar */}
               <BuilderSidebar onAddQuestion={addQuestion} />
-
-              {/* Center: Canvas */}
               <BuilderCanvas
                 questions={form.questions}
                 selectedQuestionId={selectedQuestionId}
@@ -215,8 +195,6 @@ export default function Builder() {
                 onDuplicate={duplicateQuestion}
                 onMove={moveQuestion}
               />
-
-              {/* Right: Config panel */}
               <BuilderConfigPanel
                 question={selectedQuestion}
                 onUpdate={updateQuestion}
@@ -228,7 +206,7 @@ export default function Builder() {
             </motion.div>
           )}
 
-          {/* ═══ OPÇÕES TAB ═══ */}
+          {/* OPÇÕES TAB */}
           {activeTab === "opcoes" && (
             <motion.div
               key="opcoes"
@@ -239,13 +217,10 @@ export default function Builder() {
               className="h-full flex"
             >
               {/* Left: Design Editor */}
-              <div
-                className="w-[340px] border-r border-glass-border shrink-0 overflow-hidden"
-                style={{ background: "oklch(0.11 0.015 260)" }}
-              >
-                <div className="p-3 border-b border-glass-border">
-                  <h3 className="text-xs font-display font-bold text-foreground flex items-center gap-2">
-                    <Settings size={13} className="text-neon-blue" />
+              <div className="w-[360px] border-r border-border shrink-0 overflow-hidden bg-white">
+                <div className="p-4 border-b border-border">
+                  <h3 className="text-sm font-display font-bold text-foreground flex items-center gap-2">
+                    <Settings size={15} className="text-brand" />
                     Configurações
                   </h3>
                 </div>
@@ -253,30 +228,20 @@ export default function Builder() {
               </div>
 
               {/* Center: Webhook + Workspace */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="max-w-2xl mx-auto p-6 space-y-6">
-                  {/* Webhook section */}
-                  <div
-                    className="rounded-2xl border border-glass-border overflow-hidden"
-                    style={{ background: "oklch(0.11 0.015 260)" }}
-                  >
+              <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
+                <div className="max-w-2xl mx-auto p-8 space-y-6">
+                  <div className="clean-card rounded-2xl overflow-hidden">
                     <WebhookPanel
                       webhook={form.webhook}
                       onUpdate={updateWebhook}
                     />
                   </div>
 
-                  {/* Workspace section */}
-                  <div
-                    className="rounded-2xl border border-glass-border p-4"
-                    style={{ background: "oklch(0.11 0.015 260)" }}
-                  >
+                  <div className="clean-card rounded-2xl p-5">
                     <WorkspaceManager
                       currentWorkspaceId={form.workspaceId}
                       onSelectWorkspace={(id) => {
-                        updateFormMeta({} as any);
-                        // We need to update workspaceId directly
-                        // Using a workaround through the form state
+                        updateFormMeta({ workspaceId: id });
                       }}
                     />
                   </div>
@@ -284,38 +249,45 @@ export default function Builder() {
               </div>
 
               {/* Right: Live preview mini */}
-              <div
-                className="w-[300px] border-l border-glass-border shrink-0 flex flex-col"
-                style={{ background: "oklch(0.11 0.015 260)" }}
-              >
-                <div className="p-3 border-b border-glass-border">
-                  <h3 className="text-xs font-display font-bold text-foreground flex items-center gap-2">
-                    <Eye size={13} className="text-neon-cyan" />
+              <div className="w-[320px] border-l border-border shrink-0 flex flex-col bg-white">
+                <div className="p-4 border-b border-border">
+                  <h3 className="text-sm font-display font-bold text-foreground flex items-center gap-2">
+                    <Eye size={15} className="text-brand" />
                     Pré-visualização
                   </h3>
                 </div>
-                <div className="flex-1 flex items-center justify-center p-4">
+                <div className="flex-1 flex items-center justify-center p-5">
                   <div
-                    className="w-full rounded-2xl overflow-hidden border border-glass-border shadow-2xl"
+                    className="w-full rounded-2xl overflow-hidden border border-border shadow-lg relative"
                     style={{
                       background: form.design.backgroundColor,
                       aspectRatio: "9/16",
                       maxHeight: "500px",
                     }}
                   >
-                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                    {form.design.backgroundImage && (
+                      <div
+                        className="absolute inset-0 opacity-20 pointer-events-none"
+                        style={{
+                          backgroundImage: `url(${form.design.backgroundImage})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      />
+                    )}
+                    <div className="h-full flex flex-col items-center justify-center p-6 text-center relative z-10">
                       {form.design.logoUrl && (
                         <img
                           src={form.design.logoUrl}
                           alt="Logo"
-                          className="h-8 mb-4 object-contain"
+                          className="h-10 mb-5 object-contain"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = "none";
                           }}
                         />
                       )}
                       <h2
-                        className="text-lg font-bold mb-2"
+                        className="text-xl font-bold mb-2"
                         style={{
                           color: form.design.questionColor,
                           fontFamily: form.design.fontFamily,
@@ -324,7 +296,7 @@ export default function Builder() {
                         {form.title || "Seu formulário"}
                       </h2>
                       <p
-                        className="text-xs mb-6 opacity-60"
+                        className="text-sm mb-8 opacity-60"
                         style={{
                           color: form.design.questionColor,
                           fontFamily: form.design.fontFamily,
@@ -333,25 +305,14 @@ export default function Builder() {
                         {form.description || "Descrição do formulário"}
                       </p>
                       <button
-                        className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white transition-all"
+                        className="px-8 py-3 rounded-xl text-sm font-semibold text-white transition-all"
                         style={{
                           backgroundColor: form.design.buttonColor,
                           fontFamily: form.design.fontFamily,
-                          boxShadow: `0 0 20px ${form.design.buttonColor}40`,
                         }}
                       >
                         Começar
                       </button>
-                      {form.design.backgroundImage && (
-                        <div
-                          className="absolute inset-0 opacity-20 pointer-events-none"
-                          style={{
-                            backgroundImage: `url(${form.design.backgroundImage})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                        />
-                      )}
                     </div>
                   </div>
                 </div>
@@ -359,7 +320,7 @@ export default function Builder() {
             </motion.div>
           )}
 
-          {/* ═══ COMPARTILHAR TAB ═══ */}
+          {/* COMPARTILHAR TAB */}
           {activeTab === "compartilhar" && (
             <motion.div
               key="compartilhar"
@@ -369,11 +330,7 @@ export default function Builder() {
               transition={{ duration: 0.15 }}
               className="h-full flex"
             >
-              {/* Left: Sharing panel */}
-              <div
-                className="w-[400px] border-r border-glass-border shrink-0 overflow-hidden"
-                style={{ background: "oklch(0.11 0.015 260)" }}
-              >
+              <div className="w-[420px] border-r border-border shrink-0 overflow-hidden bg-white">
                 <SharingPanel
                   sharing={form.sharing}
                   formTitle={form.title}
@@ -382,40 +339,39 @@ export default function Builder() {
                 />
               </div>
 
-              {/* Right: Preview of shared form */}
-              <div className="flex-1 flex items-center justify-center p-8" style={{ background: "oklch(0.08 0.01 260)" }}>
+              <div className="flex-1 flex items-center justify-center p-8 bg-secondary/30">
                 <div className="text-center max-w-md">
                   <div
-                    className="w-full rounded-2xl overflow-hidden border border-glass-border shadow-2xl mx-auto mb-6"
+                    className="w-full rounded-2xl overflow-hidden border border-border shadow-xl mx-auto mb-6 relative"
                     style={{
                       background: form.design.backgroundColor,
                       maxWidth: "360px",
                       aspectRatio: "9/16",
                     }}
                   >
-                    <div className="h-full flex flex-col items-center justify-center p-6 text-center relative">
-                      {form.design.backgroundImage && (
-                        <div
-                          className="absolute inset-0 opacity-20 pointer-events-none"
-                          style={{
-                            backgroundImage: `url(${form.design.backgroundImage})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                        />
-                      )}
+                    {form.design.backgroundImage && (
+                      <div
+                        className="absolute inset-0 opacity-20 pointer-events-none"
+                        style={{
+                          backgroundImage: `url(${form.design.backgroundImage})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      />
+                    )}
+                    <div className="h-full flex flex-col items-center justify-center p-6 text-center relative z-10">
                       {form.design.logoUrl && (
                         <img
                           src={form.design.logoUrl}
                           alt="Logo"
-                          className="h-8 mb-4 object-contain relative z-10"
+                          className="h-10 mb-5 object-contain"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = "none";
                           }}
                         />
                       )}
                       <h2
-                        className="text-lg font-bold mb-2 relative z-10"
+                        className="text-xl font-bold mb-2"
                         style={{
                           color: form.design.questionColor,
                           fontFamily: form.design.fontFamily,
@@ -424,7 +380,7 @@ export default function Builder() {
                         {form.title || "Seu formulário"}
                       </h2>
                       <p
-                        className="text-xs mb-6 opacity-60 relative z-10"
+                        className="text-sm mb-8 opacity-60"
                         style={{
                           color: form.design.questionColor,
                           fontFamily: form.design.fontFamily,
@@ -433,18 +389,17 @@ export default function Builder() {
                         Pré-visualização do formulário compartilhado
                       </p>
                       <button
-                        className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white relative z-10"
+                        className="px-8 py-3 rounded-xl text-sm font-semibold text-white"
                         style={{
                           backgroundColor: form.design.buttonColor,
                           fontFamily: form.design.fontFamily,
-                          boxShadow: `0 0 20px ${form.design.buttonColor}40`,
                         }}
                       >
                         Começar
                       </button>
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/40">
+                  <p className="text-sm text-muted-foreground">
                     Exemplo de como ficará ao acessar o link
                   </p>
                 </div>
@@ -452,7 +407,7 @@ export default function Builder() {
             </motion.div>
           )}
 
-          {/* ═══ RESPOSTAS TAB ═══ */}
+          {/* RESPOSTAS TAB */}
           {activeTab === "respostas" && (
             <motion.div
               key="respostas"
@@ -460,8 +415,7 @@ export default function Builder() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="h-full"
-              style={{ background: "oklch(0.09 0.01 260)" }}
+              className="h-full bg-background"
             >
               <ResponsesPanel formTitle={form.title} responseCount={0} />
             </motion.div>
@@ -469,7 +423,7 @@ export default function Builder() {
         </AnimatePresence>
       </div>
 
-      {/* ─── Preview Overlay ─── */}
+      {/* Preview Overlay */}
       <BuilderPreview
         form={form}
         isOpen={showPreview}

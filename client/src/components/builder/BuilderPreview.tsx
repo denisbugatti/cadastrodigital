@@ -1,12 +1,11 @@
 /**
- * FormFlow Builder — Preview Overlay
- * Design: Dark futuristic, glassmorphism, neon accents.
- * Renders the conversational form in a phone-like frame overlay.
+ * FormFlow Builder — Preview Overlay (Light Theme)
+ * Renders the conversational form in a full-screen preview.
  */
 
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Smartphone, Monitor } from "lucide-react";
+import { X } from "lucide-react";
 import type { BuilderForm } from "@/lib/builderTypes";
 import { builderToFormData } from "@/lib/builderToForm";
 import { FormContainer } from "@/components/form/FormContainer";
@@ -32,8 +31,7 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0"
-            style={{ background: "oklch(0.05 0.01 260 / 0.9)", backdropFilter: "blur(20px)" }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,37 +40,30 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
 
           {/* Preview container */}
           <motion.div
-            className="relative w-full h-full flex flex-col"
+            className="relative w-full h-full flex flex-col bg-white"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Top bar */}
-            <div
-              className="h-12 flex items-center justify-between px-6 shrink-0 border-b"
-              style={{
-                background: "oklch(0.11 0.015 260)",
-                borderColor: "oklch(1 0 0 / 0.06)",
-              }}
-            >
+            <div className="h-14 flex items-center justify-between px-6 shrink-0 border-b border-border bg-white">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "oklch(0.7 0.2 30)" }} />
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "oklch(0.8 0.15 90)" }} />
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "oklch(0.7 0.2 150)" }} />
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
                 </div>
-                <span className="text-xs font-body text-muted-foreground/60 ml-2">
+                <span className="text-sm font-body text-muted-foreground ml-2">
                   Preview — {form.title || "Formulário sem título"}
                 </span>
               </div>
 
               <button
                 onClick={onClose}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
-                style={{ background: "oklch(0.15 0.015 260)" }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
               >
-                <X size={14} />
+                <X size={16} />
                 Fechar
               </button>
             </div>

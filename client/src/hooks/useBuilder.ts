@@ -135,7 +135,7 @@ export function useBuilder(initialForm?: BuilderForm) {
 
   // Update form metadata
   const updateFormMeta = useCallback(
-    (updates: Partial<Pick<BuilderForm, "title" | "description">>) => {
+    (updates: Partial<Pick<BuilderForm, "title" | "description" | "workspaceId">>) => {
       setForm((prev) => ({ ...prev, ...updates, updatedAt: new Date().toISOString() }));
     },
     []

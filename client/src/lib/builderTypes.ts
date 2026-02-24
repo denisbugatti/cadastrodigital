@@ -434,15 +434,15 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
 
 export const defaultDesignSettings: FormDesignSettings = {
   buttonColor: "#3B82F6",
-  questionColor: "#FFFFFF",
-  answerColor: "#60A5FA",
-  backgroundColor: "#0A0E1A",
+  questionColor: "#1E293B",
+  answerColor: "#3B82F6",
+  backgroundColor: "#FFFFFF",
   backgroundImage: "",
   logoUrl: "",
   ogTitle: "",
   ogDescription: "",
   ogImage: "",
-  fontFamily: "Space Grotesk",
+  fontFamily: "Plus Jakarta Sans",
 };
 
 export const defaultWebhookSettings: WebhookSettings = {
@@ -500,7 +500,7 @@ export const sampleWorkspaces: Workspace[] = [
     name: "Felipe Galvão",
     domain: "felipegalvao.com.br",
     description: "Formulários do Felipe",
-    designDefaults: { ...defaultDesignSettings, buttonColor: "#10B981", backgroundColor: "#0F172A" },
+    designDefaults: { ...defaultDesignSettings, buttonColor: "#10B981" },
     formIds: ["form_3"],
     createdAt: new Date().toISOString(),
   },

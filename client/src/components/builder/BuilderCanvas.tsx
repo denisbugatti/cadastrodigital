@@ -1,7 +1,6 @@
 /**
- * FormFlow Builder — Canvas
+ * FormFlow Builder — Canvas (Light Theme)
  * Central area showing the list of questions added to the form.
- * Supports selection, reordering, and visual feedback.
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,14 +46,14 @@ export function BuilderCanvas({
   onMove,
 }: BuilderCanvasProps) {
   return (
-    <div className="flex-1 h-full overflow-y-auto custom-scrollbar" style={{ background: "oklch(0.09 0.01 260)" }}>
+    <div className="flex-1 h-full overflow-y-auto custom-scrollbar bg-secondary/30">
       <div className="max-w-2xl mx-auto py-8 px-6">
         {/* Form title area */}
         <div className="text-center mb-8">
-          <p className="text-xs text-muted-foreground/50 font-body uppercase tracking-widest mb-2">
+          <p className="text-sm text-muted-foreground font-body uppercase tracking-widest mb-2">
             Fluxo do formulário
           </p>
-          <p className="text-xs text-muted-foreground/40 font-body">
+          <p className="text-sm text-muted-foreground/60 font-body">
             {questions.length} pergunta{questions.length !== 1 ? "s" : ""} adicionada{questions.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -79,73 +78,58 @@ export function BuilderCanvas({
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   onClick={() => onSelect(question.id)}
                   className={`
-                    group relative rounded-xl border cursor-pointer transition-all duration-200
+                    group relative rounded-2xl border cursor-pointer transition-all duration-200
                     ${
                       isSelected
-                        ? "border-neon-blue/50 bg-neon-blue/5"
-                        : "border-glass-border hover:border-glass-hover bg-card/40 hover:bg-card/60"
+                        ? "border-brand bg-white shadow-md ring-2 ring-brand/10"
+                        : "border-border bg-white hover:border-brand/30 hover:shadow-sm"
                     }
                   `}
-                  style={
-                    isSelected
-                      ? { boxShadow: "0 0 20px oklch(0.65 0.2 250 / 0.1)" }
-                      : {}
-                  }
                 >
-                  <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="flex items-center gap-3 px-5 py-4">
                     {/* Drag handle */}
                     {!isSpecial && (
-                      <div className="opacity-0 group-hover:opacity-40 transition-opacity shrink-0">
-                        <GripVertical size={14} className="text-muted-foreground" />
+                      <div className="opacity-0 group-hover:opacity-50 transition-opacity shrink-0">
+                        <GripVertical size={16} className="text-muted-foreground" />
                       </div>
                     )}
 
                     {/* Question number */}
                     <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-body font-bold"
-                      style={{
-                        background: isSelected
-                          ? "oklch(0.65 0.2 250 / 0.15)"
-                          : "oklch(0.2 0.015 260)",
-                        color: isSelected
-                          ? "oklch(0.75 0.15 195)"
-                          : "oklch(0.5 0.02 260)",
-                      }}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-body font-bold ${
+                        isSelected
+                          ? "bg-brand text-white"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
                     >
                       {isSpecial ? (
-                        <Icon size={13} />
+                        <Icon size={15} />
                       ) : (
                         index
                       )}
                     </div>
 
                     {/* Type icon */}
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{
-                        background: "oklch(0.65 0.2 250 / 0.08)",
-                        border: "1px solid oklch(0.65 0.2 250 / 0.12)",
-                      }}
-                    >
-                      <Icon size={14} className="text-neon-blue" />
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-lighter border border-brand/10">
+                      <Icon size={16} className="text-brand" />
                     </div>
 
                     {/* Question info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-body font-medium text-foreground/90 truncate">
+                        <p className="text-base font-body font-medium text-foreground truncate">
                           {question.title || "Sem título"}
                         </p>
                         {hasConditional && (
-                          <GitBranch size={12} className="text-neon-cyan shrink-0" />
+                          <GitBranch size={14} className="text-brand shrink-0" />
                         )}
                         {question.required && (
-                          <span className="text-[9px] text-neon-blue/70 font-body font-medium shrink-0">
+                          <span className="text-xs text-brand font-body font-medium shrink-0 bg-brand-lighter px-2 py-0.5 rounded-full">
                             Obrigatório
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground/50 font-body mt-0.5">
+                      <p className="text-sm text-muted-foreground font-body mt-0.5">
                         {typeInfo?.label || question.type}
                       </p>
                     </div>
@@ -158,40 +142,40 @@ export function BuilderCanvas({
                             e.stopPropagation();
                             onMove(question.id, "up");
                           }}
-                          className="p-1.5 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           title="Mover para cima"
                         >
-                          <ChevronUp size={13} />
+                          <ChevronUp size={15} />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onMove(question.id, "down");
                           }}
-                          className="p-1.5 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           title="Mover para baixo"
                         >
-                          <ChevronDownIcon size={13} />
+                          <ChevronDownIcon size={15} />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onDuplicate(question.id);
                           }}
-                          className="p-1.5 rounded-md hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           title="Duplicar"
                         >
-                          <Copy size={13} />
+                          <Copy size={15} />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onRemove(question.id);
                           }}
-                          className="p-1.5 rounded-md hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                          className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           title="Remover"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     )}
@@ -199,7 +183,7 @@ export function BuilderCanvas({
 
                   {/* Connector line */}
                   {index < questions.length - 1 && (
-                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-px h-3 bg-glass-border" />
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-px h-3 bg-border" />
                   )}
                 </motion.div>
               );

@@ -1,16 +1,15 @@
 /**
- * FormFlow Builder — Config Panel
+ * FormFlow Builder — Config Panel (Light Theme)
  * Right panel for editing the selected question's properties.
- * Includes conditional logic editor for multiple-choice, dropdown, yes-no.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings, Type, AlignLeft, ToggleLeft, Plus, Trash2, X,
-  GitBranch, ArrowRight, ChevronDown, ChevronUp, Sparkles,
+  GitBranch, ArrowRight, Sparkles,
 } from "lucide-react";
-import type { BuilderQuestion, BuilderChoice, ConditionalBranch } from "@/lib/builderTypes";
+import type { BuilderQuestion, BuilderChoice } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -36,10 +35,10 @@ export function BuilderConfigPanel({
 
   if (!question) {
     return (
-      <div className="w-80 h-full border-l border-glass-border flex items-center justify-center" style={{ background: "oklch(0.11 0.015 260)" }}>
+      <div className="w-80 h-full border-l border-border flex items-center justify-center bg-white">
         <div className="text-center px-8">
-          <Settings size={32} className="mx-auto text-muted-foreground/20 mb-3" />
-          <p className="text-sm text-muted-foreground/50 font-body">
+          <Settings size={36} className="mx-auto text-muted-foreground/20 mb-4" />
+          <p className="text-base text-muted-foreground/60 font-body">
             Selecione uma pergunta para editar suas configurações
           </p>
         </div>
@@ -53,42 +52,41 @@ export function BuilderConfigPanel({
   const isSpecial = question.type === "welcome" || question.type === "thank-you" || question.type === "statement";
 
   return (
-    <div className="w-80 h-full border-l border-glass-border flex flex-col" style={{ background: "oklch(0.11 0.015 260)" }}>
+    <div className="w-80 h-full border-l border-border flex flex-col bg-white">
       {/* Header */}
-      <div className="p-4 border-b border-glass-border">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={14} className="text-neon-cyan" />
-          <h3 className="font-display text-sm font-semibold text-foreground">
+      <div className="p-5 border-b border-border">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={16} className="text-brand" />
+          <h3 className="font-display text-base font-bold text-foreground">
             Configurações
           </h3>
         </div>
-        <p className="text-[11px] text-muted-foreground/50 font-body">
+        <p className="text-sm text-muted-foreground font-body">
           {typeInfo?.label || question.type}
         </p>
 
-        {/* Tabs for questions with conditional logic */}
         {hasConditionalLogic && (
-          <div className="flex gap-1 mt-3 p-1 rounded-lg" style={{ background: "oklch(0.14 0.015 260)" }}>
+          <div className="flex gap-1 mt-4 p-1 rounded-xl bg-secondary">
             <button
               onClick={() => setActiveTab("general")}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-body font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-body font-medium transition-all ${
                 activeTab === "general"
-                  ? "bg-neon-blue/15 text-neon-blue"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Settings size={11} />
+              <Settings size={14} />
               Geral
             </button>
             <button
               onClick={() => setActiveTab("logic")}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-body font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-body font-medium transition-all ${
                 activeTab === "logic"
-                  ? "bg-neon-cyan/15 text-neon-cyan"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <GitBranch size={11} />
+              <GitBranch size={14} />
               Lógica
             </button>
           </div>
@@ -96,7 +94,7 @@ export function BuilderConfigPanel({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
         <AnimatePresence mode="wait">
           {activeTab === "general" ? (
             <motion.div
@@ -104,51 +102,48 @@ export function BuilderConfigPanel({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="space-y-5"
+              className="space-y-6"
             >
               {/* Title */}
-              <FieldGroup label="Título da pergunta" icon={<Type size={12} />}>
+              <FieldGroup label="Título da pergunta" icon={<Type size={14} />}>
                 <input
                   type="text"
                   value={question.title}
                   onChange={(e) => onUpdate(question.id, { title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors"
-                  style={{ background: "oklch(0.14 0.015 260)" }}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   placeholder="Digite o título..."
                 />
               </FieldGroup>
 
               {/* Subtitle */}
-              <FieldGroup label="Subtítulo (opcional)" icon={<AlignLeft size={12} />}>
+              <FieldGroup label="Subtítulo (opcional)" icon={<AlignLeft size={14} />}>
                 <input
                   type="text"
                   value={question.subtitle}
                   onChange={(e) => onUpdate(question.id, { subtitle: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg text-sm font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors"
-                  style={{ background: "oklch(0.14 0.015 260)" }}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   placeholder="Texto auxiliar..."
                 />
               </FieldGroup>
 
-              {/* Placeholder (for text inputs) */}
+              {/* Placeholder */}
               {!isSpecial && question.type !== "yes-no" && question.type !== "rating" && question.type !== "satisfaction" && question.type !== "nps" && question.type !== "ranking" && question.type !== "matrix" && question.type !== "file-upload" && question.type !== "legal" && !hasChoices && (
-                <FieldGroup label="Placeholder" icon={<Type size={12} />}>
+                <FieldGroup label="Placeholder" icon={<Type size={14} />}>
                   <input
                     type="text"
                     value={question.placeholder}
                     onChange={(e) => onUpdate(question.id, { placeholder: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg text-sm font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors"
-                    style={{ background: "oklch(0.14 0.015 260)" }}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                     placeholder="Texto do placeholder..."
                   />
                 </FieldGroup>
               )}
 
               {/* Required toggle */}
-              {!isSpecial && question.type !== "welcome" && question.type !== "thank-you" && (
-                <div className="flex items-center justify-between py-2">
-                  <Label className="text-xs font-body text-foreground/80 flex items-center gap-2">
-                    <ToggleLeft size={12} className="text-muted-foreground" />
+              {!isSpecial && (
+                <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
+                  <Label className="text-sm font-body text-foreground flex items-center gap-2">
+                    <ToggleLeft size={16} className="text-muted-foreground" />
                     Obrigatório
                   </Label>
                   <Switch
@@ -160,11 +155,11 @@ export function BuilderConfigPanel({
 
               {/* Choices editor */}
               {hasChoices && (
-                <FieldGroup label="Opções" icon={<Plus size={12} />}>
+                <FieldGroup label="Opções" icon={<Plus size={14} />}>
                   <div className="space-y-2">
                     {question.choices.map((choice, idx) => (
                       <div key={choice.id} className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground/40 font-body w-4 text-center shrink-0">
+                        <span className="text-xs text-muted-foreground font-body w-5 text-center shrink-0 font-semibold">
                           {String.fromCharCode(65 + idx)}
                         </span>
                         <input
@@ -173,25 +168,24 @@ export function BuilderConfigPanel({
                           onChange={(e) =>
                             onUpdateChoice(question.id, choice.id, { label: e.target.value })
                           }
-                          className="flex-1 px-3 py-1.5 rounded-lg text-xs font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors"
-                          style={{ background: "oklch(0.14 0.015 260)" }}
+                          className="flex-1 px-3 py-2 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                           placeholder={`Opção ${idx + 1}`}
                         />
                         {question.choices.length > 2 && (
                           <button
                             onClick={() => onRemoveChoice(question.id, choice.id)}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                           >
-                            <X size={12} />
+                            <X size={14} />
                           </button>
                         )}
                       </div>
                     ))}
                     <button
                       onClick={() => onAddChoice(question.id)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-glass-border text-[11px] font-body text-muted-foreground hover:text-neon-blue hover:border-neon-blue/30 transition-all"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-border text-sm font-body text-muted-foreground hover:text-brand hover:border-brand/30 hover:bg-brand-lighter/20 transition-all"
                     >
-                      <Plus size={11} />
+                      <Plus size={14} />
                       Adicionar opção
                     </button>
                   </div>
@@ -200,18 +194,17 @@ export function BuilderConfigPanel({
 
               {/* Rating config */}
               {(question.type === "rating" || question.type === "satisfaction") && (
-                <FieldGroup label="Escala máxima" icon={<Type size={12} />}>
+                <FieldGroup label="Escala máxima" icon={<Type size={14} />}>
                   <div className="flex items-center gap-3">
                     {[3, 4, 5, 7, 10].map((n) => (
                       <button
                         key={n}
                         onClick={() => onUpdate(question.id, { maxRating: n })}
-                        className={`w-9 h-9 rounded-lg text-xs font-body font-medium transition-all ${
+                        className={`w-10 h-10 rounded-xl text-sm font-body font-medium transition-all ${
                           question.maxRating === n
-                            ? "bg-neon-blue/20 text-neon-blue border border-neon-blue/30"
-                            : "border border-glass-border text-muted-foreground hover:text-foreground"
+                            ? "bg-brand text-white shadow-sm"
+                            : "bg-secondary border border-border text-muted-foreground hover:text-foreground hover:border-brand/30"
                         }`}
-                        style={question.maxRating !== n ? { background: "oklch(0.14 0.015 260)" } : {}}
                       >
                         {n}
                       </button>
@@ -222,11 +215,11 @@ export function BuilderConfigPanel({
 
               {/* Ranking items */}
               {question.type === "ranking" && (
-                <FieldGroup label="Itens para ordenar" icon={<Plus size={12} />}>
+                <FieldGroup label="Itens para ordenar" icon={<Plus size={14} />}>
                   <div className="space-y-2">
                     {question.rankItems.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground/40 font-body w-4 text-center shrink-0">
+                        <span className="text-xs text-muted-foreground font-body w-5 text-center shrink-0 font-semibold">
                           {idx + 1}
                         </span>
                         <input
@@ -237,8 +230,7 @@ export function BuilderConfigPanel({
                             newItems[idx] = e.target.value;
                             onUpdate(question.id, { rankItems: newItems });
                           }}
-                          className="flex-1 px-3 py-1.5 rounded-lg text-xs font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors"
-                          style={{ background: "oklch(0.14 0.015 260)" }}
+                          className="flex-1 px-3 py-2 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                         />
                         {question.rankItems.length > 2 && (
                           <button
@@ -246,18 +238,18 @@ export function BuilderConfigPanel({
                               const newItems = question.rankItems.filter((_, i) => i !== idx);
                               onUpdate(question.id, { rankItems: newItems });
                             }}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                           >
-                            <X size={12} />
+                            <X size={14} />
                           </button>
                         )}
                       </div>
                     ))}
                     <button
                       onClick={() => onUpdate(question.id, { rankItems: [...question.rankItems, `Item ${question.rankItems.length + 1}`] })}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-glass-border text-[11px] font-body text-muted-foreground hover:text-neon-blue hover:border-neon-blue/30 transition-all"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-border text-sm font-body text-muted-foreground hover:text-brand hover:border-brand/30 hover:bg-brand-lighter/20 transition-all"
                     >
-                      <Plus size={11} />
+                      <Plus size={14} />
                       Adicionar item
                     </button>
                   </div>
@@ -266,12 +258,11 @@ export function BuilderConfigPanel({
 
               {/* Legal text */}
               {question.type === "legal" && (
-                <FieldGroup label="Texto dos termos" icon={<AlignLeft size={12} />}>
+                <FieldGroup label="Texto dos termos" icon={<AlignLeft size={14} />}>
                   <textarea
                     value={question.legalText}
                     onChange={(e) => onUpdate(question.id, { legalText: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg text-sm font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors resize-none h-24"
-                    style={{ background: "oklch(0.14 0.015 260)" }}
+                    className="w-full px-4 py-3 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all resize-none h-28"
                     placeholder="Texto dos termos de uso..."
                   />
                 </FieldGroup>
@@ -312,7 +303,6 @@ function ConditionalLogicEditor({
   const logic = question.conditionalLogic;
   const isYesNo = question.type === "yes-no";
 
-  // For yes-no, we create virtual choices
   const choices = isYesNo
     ? [
         { id: "yes", label: "Sim" },
@@ -339,7 +329,6 @@ function ConditionalLogicEditor({
     const newBranches = logic.branches.map((b) =>
       b.choiceId === choiceId ? { ...b, goToQuestionId } : b
     );
-    // If branch doesn't exist, add it
     if (!newBranches.find((b) => b.choiceId === choiceId)) {
       newBranches.push({ choiceId, goToQuestionId });
     }
@@ -349,11 +338,11 @@ function ConditionalLogicEditor({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Enable toggle */}
-      <div className="flex items-center justify-between">
-        <Label className="text-xs font-body text-foreground/80 flex items-center gap-2">
-          <GitBranch size={12} className="text-neon-cyan" />
+      <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
+        <Label className="text-sm font-body text-foreground flex items-center gap-2">
+          <GitBranch size={16} className="text-brand" />
           Lógica condicional
         </Label>
         <Switch
@@ -363,12 +352,11 @@ function ConditionalLogicEditor({
       </div>
 
       {logic.enabled && (
-        <div className="space-y-1">
-          <p className="text-[10px] text-muted-foreground/50 font-body mb-3">
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground font-body">
             Defina para onde o formulário vai após cada resposta:
           </p>
 
-          {/* Branch for each choice */}
           {choices.map((choice) => {
             const branch = logic.branches.find((b) => b.choiceId === choice.id);
             const currentTarget = branch?.goToQuestionId || "next";
@@ -376,30 +364,22 @@ function ConditionalLogicEditor({
             return (
               <div
                 key={choice.id}
-                className="rounded-lg border border-glass-border p-3 space-y-2"
-                style={{ background: "oklch(0.13 0.015 260)" }}
+                className="rounded-xl border border-border p-4 space-y-3 bg-secondary/50"
               >
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-body font-bold"
-                    style={{
-                      background: "oklch(0.65 0.2 250 / 0.12)",
-                      color: "oklch(0.75 0.15 195)",
-                    }}
-                  >
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-body font-bold bg-brand-lighter text-brand">
                     {isYesNo ? (choice.id === "yes" ? "S" : "N") : String.fromCharCode(65 + choices.indexOf(choice))}
                   </div>
-                  <span className="text-xs font-body text-foreground/80 flex-1 truncate">
+                  <span className="text-sm font-body text-foreground flex-1 truncate font-medium">
                     {choice.label}
                   </span>
-                  <ArrowRight size={11} className="text-muted-foreground/40 shrink-0" />
+                  <ArrowRight size={14} className="text-muted-foreground shrink-0" />
                 </div>
 
                 <select
                   value={currentTarget}
                   onChange={(e) => updateBranch(choice.id, e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-md text-[11px] font-body text-foreground border border-glass-border focus:outline-none focus:border-neon-cyan/40 transition-colors appearance-none"
-                  style={{ background: "oklch(0.15 0.015 260)" }}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
                 >
                   <option value="next">Próxima pergunta (padrão)</option>
                   <option value="end">Ir para agradecimento</option>
@@ -414,11 +394,8 @@ function ConditionalLogicEditor({
           })}
 
           {/* Info box */}
-          <div
-            className="mt-3 p-3 rounded-lg border border-neon-cyan/10 text-[10px] font-body text-neon-cyan/60 leading-relaxed"
-            style={{ background: "oklch(0.75 0.15 195 / 0.03)" }}
-          >
-            <GitBranch size={11} className="inline mr-1.5" />
+          <div className="mt-3 p-4 rounded-xl border border-brand/10 bg-brand-lighter/30 text-sm font-body text-brand-dark leading-relaxed">
+            <GitBranch size={14} className="inline mr-2" />
             Quando ativada, cada opção pode direcionar o respondente para uma pergunta diferente, criando fluxos personalizados.
           </div>
         </div>
@@ -439,8 +416,8 @@ function FieldGroup({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <label className="text-[11px] font-body font-medium text-muted-foreground flex items-center gap-1.5">
+    <div className="space-y-2.5">
+      <label className="text-sm font-body font-medium text-muted-foreground flex items-center gap-2">
         {icon}
         {label}
       </label>

@@ -1,6 +1,5 @@
 /**
- * FormFlow — Dark Futuristic Design
- * Phone input with Brazilian mask (XX) XXXXX-XXXX.
+ * FormFlow Phone Input (Light Theme)
  */
 
 import { motion } from "framer-motion";
@@ -15,50 +14,25 @@ interface PhoneInputProps {
 
 export function PhoneInput({ value, onChange, error }: PhoneInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => inputRef.current?.focus(), 400);
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => { const timer = setTimeout(() => inputRef.current?.focus(), 400); return () => clearTimeout(timer); }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3, duration: 0.4 }}
-    >
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="tel"
-          value={value}
-          onChange={(e) => onChange(maskPhone(e.target.value))}
-          placeholder="(00) 00000-0000"
-          maxLength={15}
-          className="w-full bg-transparent border-0 border-b-2 py-4 text-xl font-body text-foreground placeholder:text-muted-foreground/30 focus:outline-none transition-colors duration-300"
-          style={{
-            borderBottomColor: error ? "oklch(0.6 0.22 25)" : value ? "oklch(0.65 0.2 250)" : "oklch(0.3 0.02 260 / 0.5)",
-            caretColor: "oklch(0.75 0.15 195)",
-          }}
-          autoComplete="off"
-        />
-        {value && (
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 h-px"
-            style={{ background: "linear-gradient(90deg, oklch(0.65 0.2 250), oklch(0.75 0.15 195))", filter: "blur(3px)" }}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.3 }}
-          />
-        )}
-      </div>
-      {error && (
-        <motion.p className="mt-3 text-sm font-body" style={{ color: "oklch(0.6 0.22 25)" }} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
-          {error}
-        </motion.p>
-      )}
-      <p className="mt-4 text-xs text-muted-foreground/40 font-body">
-        Pressione <kbd className="kbd-dark">Enter ↵</kbd> para continuar
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
+      <input
+        ref={inputRef}
+        type="tel"
+        value={value}
+        onChange={(e) => onChange(maskPhone(e.target.value))}
+        placeholder="(00) 00000-0000"
+        maxLength={15}
+        className={`w-full bg-transparent border-0 border-b-2 py-4 text-xl font-body text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-colors duration-300 ${
+          error ? "border-red-400" : value ? "border-brand" : "border-border"
+        }`}
+        autoComplete="off"
+      />
+      {error && <motion.p className="mt-3 text-sm font-body text-red-500" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>{error}</motion.p>}
+      <p className="mt-4 text-sm text-muted-foreground font-body">
+        Pressione <kbd className="px-2 py-0.5 rounded-md bg-secondary border border-border text-xs font-mono">Enter ↵</kbd> para continuar
       </p>
     </motion.div>
   );

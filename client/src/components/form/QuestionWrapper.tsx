@@ -1,6 +1,6 @@
 /**
- * FormFlow — Dark Futuristic Design
- * Wrapper with dramatic slide transitions and blur effects.
+ * FormFlow Question Wrapper (Light Theme)
+ * Smooth slide transitions between questions.
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,22 +15,19 @@ interface QuestionWrapperProps {
 
 const variants = {
   enter: (direction: Direction) => ({
-    y: direction === "forward" ? 80 : -80,
+    y: direction === "forward" ? 60 : -60,
     opacity: 0,
-    scale: 0.95,
-    filter: "blur(8px)",
+    scale: 0.98,
   }),
   center: {
     y: 0,
     opacity: 1,
     scale: 1,
-    filter: "blur(0px)",
   },
   exit: (direction: Direction) => ({
-    y: direction === "forward" ? -80 : 80,
+    y: direction === "forward" ? -60 : 60,
     opacity: 0,
-    scale: 0.95,
-    filter: "blur(8px)",
+    scale: 0.98,
   }),
 };
 
@@ -54,7 +51,7 @@ export function QuestionWrapper({
           damping: 28,
           mass: 0.9,
         }}
-        className="w-full flex items-center justify-center min-h-screen px-6"
+        className="w-full flex items-center justify-center min-h-screen px-6 pt-20 pb-16"
       >
         <div className="w-full max-w-2xl mx-auto">
           {children}

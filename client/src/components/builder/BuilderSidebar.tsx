@@ -1,7 +1,6 @@
 /**
- * FormFlow Builder — Sidebar
+ * FormFlow Builder — Sidebar (Light Theme)
  * Lists all 28 question types organized by category.
- * Click to add a question to the form.
  */
 
 import { useState } from "react";
@@ -61,21 +60,20 @@ export function BuilderSidebar({ onAddQuestion }: BuilderSidebarProps) {
   }));
 
   return (
-    <div className="w-72 h-full flex flex-col border-r border-glass-border" style={{ background: "oklch(0.11 0.015 260)" }}>
+    <div className="w-72 h-full flex flex-col border-r border-border bg-white">
       {/* Header */}
-      <div className="p-4 border-b border-glass-border">
-        <h3 className="font-display text-sm font-semibold text-foreground mb-3">
+      <div className="p-4 border-b border-border">
+        <h3 className="font-display text-sm font-bold text-foreground mb-3">
           Tipos de Pergunta
         </h3>
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar tipo..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs font-body text-foreground placeholder:text-muted-foreground/40 border border-glass-border focus:outline-none focus:border-neon-blue/40 transition-colors"
-            style={{ background: "oklch(0.14 0.015 260)" }}
+            className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm font-body text-foreground placeholder:text-muted-foreground/50 bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
           />
         </div>
       </div>
@@ -89,27 +87,25 @@ export function BuilderSidebar({ onAddQuestion }: BuilderSidebarProps) {
 
           return (
             <div key={category.id} className="mb-1">
-              {/* Category header */}
               <button
                 onClick={() =>
                   setExpandedCategory((prev) =>
                     prev === category.id ? null : category.id
                   )
                 }
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-body font-medium text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-all"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
               >
                 <ChevronRight
-                  size={12}
+                  size={14}
                   className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
                 />
-                <CatIcon size={13} />
+                <CatIcon size={15} />
                 <span>{category.label}</span>
-                <span className="ml-auto text-[10px] text-muted-foreground/50">
+                <span className="ml-auto text-xs text-muted-foreground/50">
                   {category.types.length}
                 </span>
               </button>
 
-              {/* Question types */}
               <AnimatePresence>
                 {isExpanded && (
                   <motion.div
@@ -126,20 +122,14 @@ export function BuilderSidebar({ onAddQuestion }: BuilderSidebarProps) {
                           <button
                             key={typeInfo.type}
                             onClick={() => onAddQuestion(typeInfo.type)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-body text-foreground/70 hover:text-foreground hover:bg-neon-blue/10 transition-all group"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body text-foreground/70 hover:text-foreground hover:bg-brand-lighter/40 transition-all group"
                           >
-                            <div
-                              className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
-                              style={{
-                                background: "oklch(0.65 0.2 250 / 0.08)",
-                                border: "1px solid oklch(0.65 0.2 250 / 0.12)",
-                              }}
-                            >
-                              <Icon size={13} className="text-neon-blue" />
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all group-hover:scale-110 bg-brand-lighter border border-brand/10">
+                              <Icon size={15} className="text-brand" />
                             </div>
                             <div className="text-left">
-                              <div className="font-medium">{typeInfo.label}</div>
-                              <div className="text-[10px] text-muted-foreground/50 mt-0.5 leading-tight">
+                              <div className="font-medium text-sm">{typeInfo.label}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5 leading-tight">
                                 {typeInfo.description}
                               </div>
                             </div>

@@ -1,13 +1,12 @@
 /**
- * FormFlow Design Editor
- * Design: Dark futuristic with glassmorphism.
+ * FormFlow Design Editor (Light Theme)
  * Allows customizing colors, fonts, logo, background, and OG meta.
  */
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Palette, Type, Image, Upload, Eye, Globe,
+  Palette, Type, Image, Globe,
 } from "lucide-react";
 import type { FormDesignSettings } from "@/lib/builderTypes";
 
@@ -17,9 +16,8 @@ interface DesignEditorProps {
 }
 
 const fontOptions = [
-  "Space Grotesk",
-  "Syne",
   "Inter",
+  "Plus Jakarta Sans",
   "Poppins",
   "DM Sans",
   "Roboto",
@@ -27,17 +25,18 @@ const fontOptions = [
   "Nunito",
   "Lato",
   "Open Sans",
+  "Space Grotesk",
 ];
 
 const presetPalettes = [
-  { name: "Neon Blue", buttonColor: "#3B82F6", questionColor: "#FFFFFF", answerColor: "#60A5FA", backgroundColor: "#0A0E1A" },
-  { name: "Emerald", buttonColor: "#10B981", questionColor: "#FFFFFF", answerColor: "#34D399", backgroundColor: "#0F1A15" },
-  { name: "Sunset", buttonColor: "#F59E0B", questionColor: "#FFFFFF", answerColor: "#FBBF24", backgroundColor: "#1A150A" },
-  { name: "Rose", buttonColor: "#F43F5E", questionColor: "#FFFFFF", answerColor: "#FB7185", backgroundColor: "#1A0A0F" },
-  { name: "Purple", buttonColor: "#8B5CF6", questionColor: "#FFFFFF", answerColor: "#A78BFA", backgroundColor: "#0F0A1A" },
-  { name: "Light Clean", buttonColor: "#2563EB", questionColor: "#1E293B", answerColor: "#3B82F6", backgroundColor: "#FFFFFF" },
-  { name: "Light Warm", buttonColor: "#D97706", questionColor: "#292524", answerColor: "#F59E0B", backgroundColor: "#FFFBEB" },
-  { name: "Dark Slate", buttonColor: "#06B6D4", questionColor: "#E2E8F0", answerColor: "#22D3EE", backgroundColor: "#0F172A" },
+  { name: "Azul Moderno", buttonColor: "#3B82F6", questionColor: "#1E293B", answerColor: "#3B82F6", backgroundColor: "#FFFFFF" },
+  { name: "Esmeralda", buttonColor: "#10B981", questionColor: "#1E293B", answerColor: "#10B981", backgroundColor: "#F0FDF4" },
+  { name: "Sunset", buttonColor: "#F59E0B", questionColor: "#292524", answerColor: "#D97706", backgroundColor: "#FFFBEB" },
+  { name: "Rosa", buttonColor: "#F43F5E", questionColor: "#1E293B", answerColor: "#F43F5E", backgroundColor: "#FFF1F2" },
+  { name: "Roxo", buttonColor: "#8B5CF6", questionColor: "#1E293B", answerColor: "#7C3AED", backgroundColor: "#FAF5FF" },
+  { name: "Oceano", buttonColor: "#06B6D4", questionColor: "#1E293B", answerColor: "#0891B2", backgroundColor: "#ECFEFF" },
+  { name: "Dark Elegante", buttonColor: "#3B82F6", questionColor: "#FFFFFF", answerColor: "#60A5FA", backgroundColor: "#0F172A" },
+  { name: "Dark Neon", buttonColor: "#06B6D4", questionColor: "#E2E8F0", answerColor: "#22D3EE", backgroundColor: "#0A0E1A" },
 ];
 
 function ColorInput({
@@ -50,15 +49,15 @@ function ColorInput({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-xs font-body text-muted-foreground">{label}</span>
+    <div className="flex items-center justify-between gap-3 py-2">
+      <span className="text-sm font-body text-foreground">{label}</span>
       <div className="flex items-center gap-2">
         <div className="relative">
           <input
             type="color"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-8 h-8 rounded-lg border border-glass-border cursor-pointer appearance-none bg-transparent"
+            className="w-9 h-9 rounded-xl border border-border cursor-pointer appearance-none bg-transparent"
             style={{ padding: 0 }}
           />
         </div>
@@ -66,7 +65,7 @@ function ColorInput({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-[85px] px-2 py-1.5 rounded-lg text-xs font-mono bg-transparent border border-glass-border text-foreground focus:outline-none focus:border-neon-blue/40 transition-colors"
+          className="w-24 px-3 py-2 rounded-xl text-sm font-mono bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
         />
       </div>
     </div>
@@ -84,9 +83,9 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden bg-white">
       {/* Section tabs */}
-      <div className="flex border-b border-glass-border shrink-0">
+      <div className="flex border-b border-border shrink-0">
         {sections.map((s) => {
           const Icon = s.icon;
           const isActive = activeSection === s.id;
@@ -94,13 +93,13 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
             <button
               key={s.id}
               onClick={() => setActiveSection(s.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] font-body font-medium transition-all border-b-2 ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-body font-medium transition-all border-b-2 ${
                 isActive
-                  ? "text-neon-blue border-neon-blue"
+                  ? "text-brand border-brand"
                   : "text-muted-foreground border-transparent hover:text-foreground"
               }`}
             >
-              <Icon size={12} />
+              <Icon size={16} />
               {s.label}
             </button>
           );
@@ -108,16 +107,16 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
         {activeSection === "colors" && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-5"
+            className="space-y-6"
           >
             {/* Preset palettes */}
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-3">
                 Paletas prontas
               </h4>
               <div className="grid grid-cols-2 gap-2">
@@ -132,24 +131,23 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                         backgroundColor: p.backgroundColor,
                       })
                     }
-                    className="flex items-center gap-2 p-2 rounded-lg border border-glass-border hover:border-neon-blue/30 transition-all group"
-                    style={{ background: "oklch(0.14 0.015 260)" }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-border hover:border-brand/30 hover:shadow-sm transition-all group bg-secondary/50"
                   >
-                    <div className="flex gap-0.5">
+                    <div className="flex gap-1">
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-4 h-4 rounded-full border border-border/50"
                         style={{ backgroundColor: p.buttonColor }}
                       />
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-4 h-4 rounded-full border border-border/50"
                         style={{ backgroundColor: p.answerColor }}
                       />
                       <div
-                        className="w-3 h-3 rounded-full border border-glass-border"
+                        className="w-4 h-4 rounded-full border border-border/50"
                         style={{ backgroundColor: p.backgroundColor }}
                       />
                     </div>
-                    <span className="text-[10px] font-body text-muted-foreground group-hover:text-foreground transition-colors">
+                    <span className="text-sm font-body text-muted-foreground group-hover:text-foreground transition-colors">
                       {p.name}
                     </span>
                   </button>
@@ -159,10 +157,10 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
 
             {/* Custom colors */}
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-3">
                 Cores personalizadas
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-1 bg-secondary/50 rounded-xl p-4 border border-border">
                 <ColorInput
                   label="Cor do botão"
                   value={design.buttonColor}
@@ -188,41 +186,41 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
 
             {/* Live preview mini */}
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-3">
                 Pré-visualização
               </h4>
               <div
-                className="rounded-xl p-5 border border-glass-border"
+                className="rounded-2xl p-6 border border-border shadow-sm"
                 style={{ backgroundColor: design.backgroundColor }}
               >
                 {design.logoUrl && (
                   <img
                     src={design.logoUrl}
                     alt="Logo"
-                    className="h-6 mb-3 object-contain"
+                    className="h-8 mb-4 object-contain"
                   />
                 )}
                 <p
-                  className="text-sm font-display font-bold mb-2"
+                  className="text-base font-display font-bold mb-2"
                   style={{ color: design.questionColor }}
                 >
                   Como você avalia nosso serviço?
                 </p>
                 <p
-                  className="text-xs mb-3"
+                  className="text-sm mb-4"
                   style={{ color: design.answerColor }}
                 >
                   Selecione uma opção abaixo
                 </p>
                 <div className="flex gap-2">
                   <div
-                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold text-white"
+                    className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
                     style={{ backgroundColor: design.buttonColor }}
                   >
                     Excelente
                   </div>
                   <div
-                    className="px-3 py-1.5 rounded-lg text-[10px] border"
+                    className="px-4 py-2 rounded-xl text-sm border"
                     style={{
                       borderColor: design.buttonColor + "40",
                       color: design.answerColor,
@@ -243,7 +241,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
             className="space-y-4"
           >
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-3">
                 Fonte do formulário
               </h4>
               <div className="space-y-1.5">
@@ -251,21 +249,15 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                   <button
                     key={font}
                     onClick={() => onUpdate({ fontFamily: font })}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all border ${
+                    className={`w-full text-left px-4 py-3 rounded-xl text-base transition-all border ${
                       design.fontFamily === font
-                        ? "border-neon-blue/40 text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-glass-border"
+                        ? "border-brand bg-brand-lighter text-foreground shadow-sm"
+                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary hover:border-border"
                     }`}
-                    style={{
-                      fontFamily: font,
-                      background:
-                        design.fontFamily === font
-                          ? "oklch(0.18 0.03 250 / 0.3)"
-                          : "transparent",
-                    }}
+                    style={{ fontFamily: font }}
                   >
                     {font}
-                    <span className="block text-[10px] mt-0.5 opacity-50">
+                    <span className="block text-sm mt-1 opacity-50">
                       ABCDEFGHIJ abcdefghij 0123456789
                     </span>
                   </button>
@@ -279,14 +271,14 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-5"
+            className="space-y-6"
           >
             {/* Logo */}
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-1">
                 Logotipo
               </h4>
-              <p className="text-[10px] text-muted-foreground/60 mb-3">
+              <p className="text-sm text-muted-foreground mb-3">
                 Aparece no topo do formulário. Recomendado: PNG transparente.
               </p>
               <input
@@ -294,14 +286,14 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                 value={design.logoUrl}
                 onChange={(e) => onUpdate({ logoUrl: e.target.value })}
                 placeholder="URL da imagem do logo..."
-                className="w-full px-3 py-2 rounded-lg text-xs bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neon-blue/40 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
               />
               {design.logoUrl && (
-                <div className="mt-3 p-3 rounded-lg border border-glass-border flex items-center justify-center" style={{ background: "oklch(0.12 0.01 260)" }}>
+                <div className="mt-3 p-4 rounded-xl border border-border flex items-center justify-center bg-secondary/50">
                   <img
                     src={design.logoUrl}
                     alt="Logo preview"
-                    className="max-h-12 object-contain"
+                    className="max-h-16 object-contain"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
@@ -312,10 +304,10 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
 
             {/* Background image */}
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-1">
                 Imagem de fundo
               </h4>
-              <p className="text-[10px] text-muted-foreground/60 mb-3">
+              <p className="text-sm text-muted-foreground mb-3">
                 Imagem que aparece no fundo do formulário. Cuidado com o contraste.
               </p>
               <input
@@ -323,14 +315,14 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                 value={design.backgroundImage}
                 onChange={(e) => onUpdate({ backgroundImage: e.target.value })}
                 placeholder="URL da imagem de fundo..."
-                className="w-full px-3 py-2 rounded-lg text-xs bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neon-blue/40 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
               />
               {design.backgroundImage && (
-                <div className="mt-3 rounded-lg overflow-hidden border border-glass-border">
+                <div className="mt-3 rounded-xl overflow-hidden border border-border">
                   <img
                     src={design.backgroundImage}
                     alt="Background preview"
-                    className="w-full h-24 object-cover"
+                    className="w-full h-28 object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
@@ -345,22 +337,19 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-5"
+            className="space-y-6"
           >
             <div>
-              <h4 className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <h4 className="text-sm font-body font-semibold text-foreground mb-1">
                 Ao compartilhar...
               </h4>
-              <p className="text-[10px] text-muted-foreground/60 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Essas informações aparecem quando o link é compartilhado em redes sociais.
               </p>
 
               {/* OG Preview card */}
-              <div className="rounded-xl overflow-hidden border border-glass-border mb-4" style={{ background: "oklch(0.2 0.01 260)" }}>
-                <div
-                  className="w-full h-28 flex items-center justify-center"
-                  style={{ background: "oklch(0.25 0.01 260)" }}
-                >
+              <div className="rounded-2xl overflow-hidden border border-border mb-5 shadow-sm bg-white">
+                <div className="w-full h-32 flex items-center justify-center bg-secondary">
                   {design.ogImage ? (
                     <img
                       src={design.ogImage}
@@ -371,25 +360,25 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                       }}
                     />
                   ) : (
-                    <div className="flex flex-col items-center gap-1 text-muted-foreground/30">
-                      <Image size={20} />
-                      <span className="text-[9px]">Imagem de capa</span>
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground/40">
+                      <Image size={24} />
+                      <span className="text-sm">Imagem de capa</span>
                     </div>
                   )}
                 </div>
-                <div className="p-3">
-                  <p className="text-xs font-semibold text-neon-blue truncate">
+                <div className="p-4">
+                  <p className="text-base font-semibold text-brand truncate">
                     {design.ogTitle || "Título da página"}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                  <p className="text-sm text-muted-foreground mt-1 truncate">
                     {design.ogDescription || "Descrição da página..."}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-body text-muted-foreground mb-1 block">
+                  <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
                     Título da página
                   </label>
                   <input
@@ -397,11 +386,11 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                     value={design.ogTitle}
                     onChange={(e) => onUpdate({ ogTitle: e.target.value })}
                     placeholder="Título exibido ao compartilhar..."
-                    className="w-full px-3 py-2 rounded-lg text-xs bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neon-blue/40 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-body text-muted-foreground mb-1 block">
+                  <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
                     Descrição da página
                   </label>
                   <textarea
@@ -409,11 +398,11 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                     onChange={(e) => onUpdate({ ogDescription: e.target.value })}
                     placeholder="Descrição exibida ao compartilhar..."
                     rows={2}
-                    className="w-full px-3 py-2 rounded-lg text-xs bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neon-blue/40 transition-colors resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all resize-none"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-body text-muted-foreground mb-1 block">
+                  <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
                     Imagem de capa
                   </label>
                   <input
@@ -421,7 +410,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                     value={design.ogImage}
                     onChange={(e) => onUpdate({ ogImage: e.target.value })}
                     placeholder="URL da imagem de capa..."
-                    className="w-full px-3 py-2 rounded-lg text-xs bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neon-blue/40 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   />
                 </div>
               </div>

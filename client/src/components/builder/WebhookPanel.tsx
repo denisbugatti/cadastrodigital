@@ -1,6 +1,5 @@
 /**
- * FormFlow Webhook Panel
- * Design: Dark futuristic with glassmorphism.
+ * FormFlow Webhook Panel (Light Theme)
  * Configure webhook URL, method, headers, and triggers per form.
  */
 
@@ -45,8 +44,6 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
       return;
     }
     setTestStatus("loading");
-
-    // Simulate test
     setTimeout(() => {
       if (webhook.url.startsWith("http")) {
         setTestStatus("success");
@@ -83,38 +80,45 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
+    <div className="h-full flex flex-col overflow-hidden bg-white">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
         {/* Enable toggle */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Webhook size={16} className="text-neon-blue" />
-              <h4 className="text-xs font-body font-semibold text-foreground">
-                Webhook
-              </h4>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-lighter flex items-center justify-center">
+                <Webhook size={20} className="text-brand" />
+              </div>
+              <div>
+                <h4 className="text-base font-display font-bold text-foreground">
+                  Webhook
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Envie dados automaticamente
+                </p>
+              </div>
             </div>
             <button
               onClick={() => onUpdate({ enabled: !webhook.enabled })}
-              className={`relative w-10 h-5 rounded-full transition-all ${
+              className={`relative w-12 h-6 rounded-full transition-all ${
                 webhook.enabled
-                  ? "bg-neon-blue shadow-[0_0_10px_oklch(0.65_0.2_250_/_0.4)]"
-                  : "bg-glass-border"
+                  ? "bg-brand"
+                  : "bg-border"
               }`}
             >
               <div
-                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
-                  webhook.enabled ? "left-5.5" : "left-0.5"
+                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all ${
+                  webhook.enabled ? "left-6" : "left-0.5"
                 }`}
               />
             </button>
           </div>
 
           {!webhook.enabled && (
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-sm text-muted-foreground bg-secondary rounded-xl p-4 border border-border">
               Ative o webhook para enviar os dados das respostas automaticamente para uma URL externa quando o formulário for preenchido.
             </p>
           )}
@@ -124,11 +128,11 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-5"
+            className="space-y-6"
           >
             {/* URL */}
             <div>
-              <label className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+              <label className="text-sm font-body font-semibold text-foreground mb-2 block">
                 URL do Webhook
               </label>
               <input
@@ -136,13 +140,13 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
                 value={webhook.url}
                 onChange={(e) => onUpdate({ url: e.target.value })}
                 placeholder="https://seu-servidor.com/webhook"
-                className="w-full px-3 py-2.5 rounded-lg text-xs bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neon-blue/40 transition-colors font-mono"
+                className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all font-mono"
               />
             </div>
 
             {/* Method */}
             <div>
-              <label className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+              <label className="text-sm font-body font-semibold text-foreground mb-2 block">
                 Método HTTP
               </label>
               <div className="flex gap-2">
@@ -150,17 +154,11 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
                   <button
                     key={method}
                     onClick={() => onUpdate({ method })}
-                    className={`px-4 py-2 rounded-lg text-xs font-mono font-semibold transition-all border ${
+                    className={`px-5 py-2.5 rounded-xl text-sm font-mono font-semibold transition-all border ${
                       webhook.method === method
-                        ? "border-neon-blue/40 text-neon-blue"
-                        : "border-glass-border text-muted-foreground hover:border-glass-hover"
+                        ? "border-brand bg-brand-lighter text-brand"
+                        : "border-border bg-secondary text-muted-foreground hover:border-brand/30"
                     }`}
-                    style={{
-                      background:
-                        webhook.method === method
-                          ? "oklch(0.18 0.03 250 / 0.3)"
-                          : "oklch(0.14 0.015 260)",
-                    }}
                   >
                     {method}
                   </button>
@@ -170,19 +168,19 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
 
             {/* Headers */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-body font-semibold text-foreground">
                   Headers personalizados
                 </label>
                 <button
                   onClick={addHeader}
-                  className="flex items-center gap-1 text-[10px] text-neon-blue hover:text-neon-cyan transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-brand hover:text-brand-dark transition-colors font-medium"
                 >
-                  <Plus size={11} /> Adicionar
+                  <Plus size={16} /> Adicionar
                 </button>
               </div>
               {webhook.headers.length === 0 && (
-                <p className="text-[10px] text-muted-foreground/40 italic">
+                <p className="text-sm text-muted-foreground italic bg-secondary rounded-xl p-3 border border-border">
                   Nenhum header personalizado
                 </p>
               )}
@@ -194,20 +192,20 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
                       value={header.key}
                       onChange={(e) => updateHeader(i, "key", e.target.value)}
                       placeholder="Header-Name"
-                      className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-mono bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-neon-blue/40"
+                      className="flex-1 px-3 py-2.5 rounded-xl text-sm font-mono bg-secondary border border-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                     />
                     <input
                       type="text"
                       value={header.value}
                       onChange={(e) => updateHeader(i, "value", e.target.value)}
                       placeholder="valor"
-                      className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-mono bg-transparent border border-glass-border text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-neon-blue/40"
+                      className="flex-1 px-3 py-2.5 rounded-xl text-sm font-mono bg-secondary border border-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                     />
                     <button
                       onClick={() => removeHeader(i)}
-                      className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                      className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
@@ -216,38 +214,38 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
 
             {/* Triggers */}
             <div>
-              <label className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+              <label className="text-sm font-body font-semibold text-foreground mb-3 block">
                 Quando enviar
               </label>
               <div className="space-y-2">
-                <label className="flex items-center gap-3 p-2.5 rounded-lg border border-glass-border cursor-pointer hover:border-glass-hover transition-all" style={{ background: "oklch(0.14 0.015 260)" }}>
+                <label className="flex items-center gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-brand/30 transition-all bg-secondary/50">
                   <input
                     type="checkbox"
                     checked={webhook.sendOnComplete}
                     onChange={(e) => onUpdate({ sendOnComplete: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded accent-neon-blue"
+                    className="w-4 h-4 rounded accent-brand"
                   />
                   <div>
-                    <span className="text-[10px] font-body font-semibold text-foreground block">
+                    <span className="text-sm font-body font-semibold text-foreground block">
                       Ao completar o formulário
                     </span>
-                    <span className="text-[9px] text-muted-foreground/50">
+                    <span className="text-sm text-muted-foreground">
                       Envia quando o usuário finaliza todas as perguntas
                     </span>
                   </div>
                 </label>
-                <label className="flex items-center gap-3 p-2.5 rounded-lg border border-glass-border cursor-pointer hover:border-glass-hover transition-all" style={{ background: "oklch(0.14 0.015 260)" }}>
+                <label className="flex items-center gap-3 p-4 rounded-xl border border-border cursor-pointer hover:border-brand/30 transition-all bg-secondary/50">
                   <input
                     type="checkbox"
                     checked={webhook.sendOnPartial}
                     onChange={(e) => onUpdate({ sendOnPartial: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded accent-neon-blue"
+                    className="w-4 h-4 rounded accent-brand"
                   />
                   <div>
-                    <span className="text-[10px] font-body font-semibold text-foreground block">
+                    <span className="text-sm font-body font-semibold text-foreground block">
                       A cada resposta parcial
                     </span>
-                    <span className="text-[9px] text-muted-foreground/50">
+                    <span className="text-sm text-muted-foreground">
                       Envia a cada pergunta respondida (tempo real)
                     </span>
                   </div>
@@ -259,64 +257,53 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
             <button
               onClick={testWebhook}
               disabled={testStatus === "loading"}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-body font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-              style={{
-                background:
-                  testStatus === "success"
-                    ? "oklch(0.55 0.2 150)"
-                    : testStatus === "error"
-                    ? "oklch(0.55 0.2 25)"
-                    : "linear-gradient(135deg, oklch(0.65 0.2 250), oklch(0.55 0.25 270))",
-                boxShadow:
-                  testStatus === "success"
-                    ? "0 0 15px oklch(0.55 0.2 150 / 0.3)"
-                    : testStatus === "error"
-                    ? "0 0 15px oklch(0.55 0.2 25 / 0.3)"
-                    : "0 0 15px oklch(0.65 0.2 250 / 0.3)",
-              }}
+              className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-body font-semibold text-white transition-all disabled:opacity-50 ${
+                testStatus === "success"
+                  ? "bg-emerald-500"
+                  : testStatus === "error"
+                  ? "bg-red-500"
+                  : "bg-brand hover:bg-brand-dark"
+              }`}
             >
               {testStatus === "loading" && (
                 <>
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Testando...
                 </>
               )}
               {testStatus === "success" && (
                 <>
-                  <CheckCircle size={13} /> Sucesso!
+                  <CheckCircle size={16} /> Sucesso!
                 </>
               )}
               {testStatus === "error" && (
                 <>
-                  <AlertCircle size={13} /> Erro
+                  <AlertCircle size={16} /> Erro
                 </>
               )}
               {testStatus === "idle" && (
                 <>
-                  <Send size={13} /> Testar webhook
+                  <Send size={16} /> Testar webhook
                 </>
               )}
             </button>
 
             {/* Sample payload */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-body font-semibold text-foreground">
                   Exemplo de payload
                 </label>
                 <button
                   onClick={copyPayload}
-                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-neon-blue transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand transition-colors"
                 >
-                  {copied ? <Check size={10} /> : <Copy size={10} />}
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
                   {copied ? "Copiado" : "Copiar"}
                 </button>
               </div>
-              <pre
-                className="p-3 rounded-lg text-[9px] font-mono overflow-x-auto custom-scrollbar border border-glass-border leading-relaxed"
-                style={{ background: "oklch(0.08 0.01 260)" }}
-              >
-                <code className="text-neon-cyan/70">{samplePayload}</code>
+              <pre className="p-4 rounded-xl text-sm font-mono overflow-x-auto custom-scrollbar bg-slate-900 border border-slate-700 leading-relaxed">
+                <code className="text-emerald-400">{samplePayload}</code>
               </pre>
             </div>
           </motion.div>
