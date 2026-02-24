@@ -67,6 +67,14 @@ export interface Question {
     message?: string;
   };
   image?: string;
+  // Per-question media
+  imageUrl?: string;
+  iconName?: string;
+  motionIconUrl?: string;
+  // Welcome/Thank-you specific
+  buttonText?: string;
+  showButton?: boolean;
+  redirectUrl?: string;
   // Legal
   legalText?: string;
   // Matrix

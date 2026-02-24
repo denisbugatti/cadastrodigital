@@ -1,18 +1,49 @@
 /**
  * FormFlow Builder — Config Panel (Light Theme)
  * Right panel for editing the selected question's properties.
+ * Includes: image/video, system icons, Motion icons, and special screen configs.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings, Type, AlignLeft, ToggleLeft, Plus, Trash2, X,
-  GitBranch, ArrowRight, Sparkles,
+  GitBranch, ArrowRight, Sparkles, ImagePlus, Smile, Link2,
+  MousePointerClick, ExternalLink, RotateCcw,
+  User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
+  Minus, MessageSquare, Hash, DollarSign, Link,
+  CircleDot, ChevronDown, Image, CheckSquare,
+  Star, Gauge, ArrowUpDown, Grid3X3,
+  Calendar, Upload, Hand, Heart, ShieldCheck,
 } from "lucide-react";
 import type { BuilderQuestion, BuilderChoice } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+
+// System icons available for selection
+const systemIcons = [
+  { name: "user", Icon: User, label: "Usuário" },
+  { name: "mail", Icon: Mail, label: "E-mail" },
+  { name: "phone", Icon: Phone, label: "Telefone" },
+  { name: "heart", Icon: Heart, label: "Coração" },
+  { name: "star", Icon: Star, label: "Estrela" },
+  { name: "smile", Icon: Smile, label: "Sorriso" },
+  { name: "hand", Icon: Hand, label: "Mão" },
+  { name: "shield-check", Icon: ShieldCheck, label: "Escudo" },
+  { name: "sparkles", Icon: Sparkles, label: "Brilho" },
+  { name: "fingerprint", Icon: Fingerprint, label: "Digital" },
+  { name: "building-2", Icon: Building2, label: "Empresa" },
+  { name: "map-pin", Icon: MapPin, label: "Local" },
+  { name: "calendar", Icon: Calendar, label: "Data" },
+  { name: "hash", Icon: Hash, label: "Número" },
+  { name: "dollar-sign", Icon: DollarSign, label: "Moeda" },
+  { name: "link", Icon: Link, label: "Link" },
+  { name: "image", Icon: Image, label: "Imagem" },
+  { name: "upload", Icon: Upload, label: "Upload" },
+  { name: "message-square", Icon: MessageSquare, label: "Mensagem" },
+  { name: "gauge", Icon: Gauge, label: "Medidor" },
+];
 
 interface BuilderConfigPanelProps {
   question: BuilderQuestion | null;
@@ -31,7 +62,8 @@ export function BuilderConfigPanel({
   onRemoveChoice,
   conditionalTargets,
 }: BuilderConfigPanelProps) {
-  const [activeTab, setActiveTab] = useState<"general" | "logic">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "media" | "logic">("general");
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
   if (!question) {
     return (
@@ -49,7 +81,20 @@ export function BuilderConfigPanel({
   const typeInfo = questionTypes.find((t) => t.type === question.type);
   const hasChoices = typeInfo?.hasChoices || false;
   const hasConditionalLogic = typeInfo?.hasConditionalLogic || false;
-  const isSpecial = question.type === "welcome" || question.type === "thank-you" || question.type === "statement";
+  const isWelcome = question.type === "welcome";
+  const isThankYou = question.type === "thank-you";
+  const isSpecialScreen = isWelcome || isThankYou;
+  const isStatement = question.type === "statement";
+  const isSpecial = isSpecialScreen || isStatement;
+
+  // Determine available tabs
+  const tabs: { id: "general" | "media" | "logic"; label: string; icon: typeof Settings }[] = [
+    { id: "general", label: isSpecialScreen ? "Conteúdo" : "Geral", icon: Settings },
+    { id: "media", label: "Mídia", icon: ImagePlus },
+  ];
+  if (hasConditionalLogic) {
+    tabs.push({ id: "logic", label: "Lógica", icon: GitBranch });
+  }
 
   return (
     <div className="w-80 h-full border-l border-border flex flex-col bg-white">
@@ -65,38 +110,33 @@ export function BuilderConfigPanel({
           {typeInfo?.label || question.type}
         </p>
 
-        {hasConditionalLogic && (
-          <div className="flex gap-1 mt-4 p-1 rounded-xl bg-secondary">
-            <button
-              onClick={() => setActiveTab("general")}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-body font-medium transition-all ${
-                activeTab === "general"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Settings size={14} />
-              Geral
-            </button>
-            <button
-              onClick={() => setActiveTab("logic")}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-body font-medium transition-all ${
-                activeTab === "logic"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <GitBranch size={14} />
-              Lógica
-            </button>
-          </div>
-        )}
+        {/* Tabs */}
+        <div className="flex gap-1 mt-4 p-1 rounded-xl bg-secondary">
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-body font-medium transition-all ${
+                  activeTab === tab.id
+                    ? "bg-white text-brand shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <TabIcon size={13} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
         <AnimatePresence mode="wait">
-          {activeTab === "general" ? (
+          {/* ─── GENERAL TAB ─── */}
+          {activeTab === "general" && (
             <motion.div
               key="general"
               initial={{ opacity: 0, x: -10 }}
@@ -151,6 +191,50 @@ export function BuilderConfigPanel({
                     onCheckedChange={(checked) => onUpdate(question.id, { required: checked })}
                   />
                 </div>
+              )}
+
+              {/* ─── Welcome / Thank-you specific ─── */}
+              {isSpecialScreen && (
+                <>
+                  {/* Button text */}
+                  <FieldGroup label="Texto do botão" icon={<MousePointerClick size={14} />}>
+                    <input
+                      type="text"
+                      value={question.buttonText}
+                      onChange={(e) => onUpdate(question.id, { buttonText: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                      placeholder={isWelcome ? "Começar" : "Enviar outra resposta"}
+                    />
+                  </FieldGroup>
+
+                  {/* Show button toggle */}
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
+                    <Label className="text-sm font-body text-foreground flex items-center gap-2">
+                      <MousePointerClick size={16} className="text-muted-foreground" />
+                      Mostrar botão
+                    </Label>
+                    <Switch
+                      checked={question.showButton}
+                      onCheckedChange={(checked) => onUpdate(question.id, { showButton: checked })}
+                    />
+                  </div>
+
+                  {/* Thank-you: redirect URL */}
+                  {isThankYou && (
+                    <FieldGroup label="Redirecionar após envio" icon={<ExternalLink size={14} />}>
+                      <input
+                        type="url"
+                        value={question.redirectUrl}
+                        onChange={(e) => onUpdate(question.id, { redirectUrl: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                        placeholder="https://seusite.com/obrigado"
+                      />
+                      <p className="text-xs text-muted-foreground/60 font-body mt-1">
+                        Deixe vazio para mostrar a tela de agradecimento
+                      </p>
+                    </FieldGroup>
+                  )}
+                </>
               )}
 
               {/* Choices editor */}
@@ -231,6 +315,7 @@ export function BuilderConfigPanel({
                             onUpdate(question.id, { rankItems: newItems });
                           }}
                           className="flex-1 px-3 py-2 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                          placeholder={`Item ${idx + 1}`}
                         />
                         {question.rankItems.length > 2 && (
                           <button
@@ -268,7 +353,166 @@ export function BuilderConfigPanel({
                 </FieldGroup>
               )}
             </motion.div>
-          ) : (
+          )}
+
+          {/* ─── MEDIA TAB ─── */}
+          {activeTab === "media" && (
+            <motion.div
+              key="media"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="space-y-6"
+            >
+              {/* Image URL */}
+              <FieldGroup label="Imagem ou vídeo" icon={<ImagePlus size={14} />}>
+                <input
+                  type="url"
+                  value={question.imageUrl}
+                  onChange={(e) => onUpdate(question.id, { imageUrl: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                  placeholder="Cole a URL da imagem..."
+                />
+                {question.imageUrl && (
+                  <div className="mt-3 relative rounded-xl overflow-hidden border border-border">
+                    <img
+                      src={question.imageUrl}
+                      alt="Preview"
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <button
+                      onClick={() => onUpdate(question.id, { imageUrl: "" })}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground/60 font-body mt-1.5">
+                  A imagem aparecerá ao lado da pergunta no formulário
+                </p>
+              </FieldGroup>
+
+              {/* System Icon Picker */}
+              <FieldGroup label="Ícone do sistema" icon={<Smile size={14} />}>
+                <div className="space-y-3">
+                  {question.iconName && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary border border-border">
+                      <div className="w-10 h-10 rounded-xl bg-brand-lighter flex items-center justify-center">
+                        {(() => {
+                          const found = systemIcons.find(i => i.name === question.iconName);
+                          if (found) {
+                            const IconComp = found.Icon;
+                            return <IconComp size={20} className="text-brand" />;
+                          }
+                          return <Smile size={20} className="text-brand" />;
+                        })()}
+                      </div>
+                      <span className="text-sm font-body text-foreground flex-1">
+                        {systemIcons.find(i => i.name === question.iconName)?.label || question.iconName}
+                      </span>
+                      <button
+                        onClick={() => onUpdate(question.id, { iconName: "" })}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setShowIconPicker(!showIconPicker)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-border text-sm font-body text-muted-foreground hover:text-brand hover:border-brand/30 hover:bg-brand-lighter/20 transition-all"
+                  >
+                    <Plus size={14} />
+                    {question.iconName ? "Trocar ícone" : "Escolher ícone"}
+                  </button>
+
+                  <AnimatePresence>
+                    {showIconPicker && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-5 gap-2 p-3 rounded-xl bg-secondary border border-border">
+                          {systemIcons.map((iconInfo) => {
+                            const IconComp = iconInfo.Icon;
+                            const isActive = question.iconName === iconInfo.name;
+                            return (
+                              <button
+                                key={iconInfo.name}
+                                onClick={() => {
+                                  onUpdate(question.id, { iconName: iconInfo.name });
+                                  setShowIconPicker(false);
+                                }}
+                                className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${
+                                  isActive
+                                    ? "bg-brand text-white shadow-sm"
+                                    : "bg-white border border-border text-muted-foreground hover:text-brand hover:border-brand/30"
+                                }`}
+                                title={iconInfo.label}
+                              >
+                                <IconComp size={16} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </FieldGroup>
+
+              {/* Motion Icon URL */}
+              <FieldGroup label="Motion Icon (animado)" icon={<RotateCcw size={14} />}>
+                <input
+                  type="url"
+                  value={question.motionIconUrl}
+                  onChange={(e) => onUpdate(question.id, { motionIconUrl: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                  placeholder="URL do ícone animado..."
+                />
+                {question.motionIconUrl && (
+                  <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-secondary border border-border">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden">
+                      <img
+                        src={question.motionIconUrl}
+                        alt="Motion icon"
+                        className="w-10 h-10 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "";
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground/60 font-body truncate">
+                        {question.motionIconUrl}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onUpdate(question.id, { motionIconUrl: "" })}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground/60 font-body mt-1.5">
+                  Use ícones de <a href="https://icons8.com/animated-icons" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">Icons8</a>, <a href="https://lordicon.com" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">Lordicon</a> ou qualquer URL de GIF/SVG animado
+                </p>
+              </FieldGroup>
+            </motion.div>
+          )}
+
+          {/* ─── LOGIC TAB ─── */}
+          {activeTab === "logic" && hasConditionalLogic && (
             <motion.div
               key="logic"
               initial={{ opacity: 0, x: 10 }}

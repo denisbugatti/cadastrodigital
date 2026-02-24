@@ -114,6 +114,14 @@ export interface BuilderQuestion {
   conditionalLogic: ConditionalLogic;
   // Image for welcome/thank-you
   image: string;
+  // Per-question media
+  imageUrl: string;
+  iconName: string; // lucide icon name or empty
+  motionIconUrl: string; // URL to animated icon (Motion/Lordicon etc)
+  // Welcome/Thank-you specific
+  buttonText: string;
+  showButton: boolean;
+  redirectUrl: string;
   // Legal text
   legalText: string;
   // Address fields config
@@ -280,6 +288,12 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     validation: {},
     conditionalLogic: { enabled: false, branches: [], defaultGoTo: "next" },
     image: "",
+    imageUrl: "",
+    iconName: "",
+    motionIconUrl: "",
+    buttonText: "Continuar",
+    showButton: true,
+    redirectUrl: "",
     legalText: "",
     addressFields: {
       cep: true,
@@ -415,10 +429,15 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     case "welcome":
       base.title = "Bem-vindo!";
       base.subtitle = "Responda algumas perguntas rápidas.";
+      base.buttonText = "Começar";
+      base.showButton = true;
       break;
     case "thank-you":
       base.title = "Obrigado!";
       base.subtitle = "Suas respostas foram enviadas com sucesso.";
+      base.buttonText = "Enviar outra resposta";
+      base.showButton = false;
+      base.redirectUrl = "";
       break;
     case "legal":
       base.title = "Termos de Uso";

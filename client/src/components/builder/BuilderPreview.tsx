@@ -3,7 +3,7 @@
  * Renders the conversational form in a full-screen preview.
  */
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { BuilderForm } from "@/lib/builderTypes";
@@ -18,6 +18,19 @@ interface BuilderPreviewProps {
 
 export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
   const formData = useMemo(() => builderToFormData(form), [form]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isOpen, onClose]);
 
   return (
     <AnimatePresence>
@@ -40,7 +53,7 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
 
           {/* Preview container */}
           <motion.div
-            className="relative w-full h-full flex flex-col bg-white"
+            className="relative w-full h-full flex flex-col bg-white z-[101]"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}

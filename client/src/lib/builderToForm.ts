@@ -62,10 +62,18 @@ function convertQuestion(bq: BuilderQuestion): Question {
     question.matrixColumns = bq.matrix.columns;
   }
 
-  // Handle welcome/thank-you images
+  // Handle welcome/thank-you images and special fields
   if (bq.type === "welcome" || bq.type === "thank-you") {
     question.image = bq.image || (bq.type === "welcome" ? "welcome" : "thankyou");
+    question.buttonText = bq.buttonText;
+    question.showButton = bq.showButton;
+    question.redirectUrl = bq.redirectUrl;
   }
+
+  // Handle per-question media
+  if (bq.imageUrl) question.imageUrl = bq.imageUrl;
+  if (bq.iconName) question.iconName = bq.iconName;
+  if (bq.motionIconUrl) question.motionIconUrl = bq.motionIconUrl;
 
   // Handle conditional logic
   if (bq.conditionalLogic?.enabled && bq.conditionalLogic.branches.length > 0) {

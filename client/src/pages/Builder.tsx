@@ -186,7 +186,12 @@ export default function Builder() {
               transition={{ duration: 0.15 }}
               className="h-full flex"
             >
-              <BuilderSidebar onAddQuestion={addQuestion} />
+              <BuilderSidebar
+                questions={form.questions}
+                selectedQuestionId={selectedQuestionId}
+                onSelectQuestion={setSelectedQuestionId}
+                onAddQuestion={addQuestion}
+              />
               <BuilderCanvas
                 questions={form.questions}
                 selectedQuestionId={selectedQuestionId}
