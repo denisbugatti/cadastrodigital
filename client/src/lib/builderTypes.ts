@@ -134,11 +134,71 @@ export interface BuilderChoice {
   imageUrl?: string; // for image-choice
 }
 
+// ─── Design Settings ───
+
+export interface FormDesignSettings {
+  // Colors
+  buttonColor: string;
+  questionColor: string;
+  answerColor: string;
+  backgroundColor: string;
+  // Media
+  backgroundImage: string;
+  logoUrl: string;
+  // Open Graph (social sharing)
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  // Font
+  fontFamily: string;
+}
+
+// ─── Webhook Settings ───
+
+export interface WebhookSettings {
+  enabled: boolean;
+  url: string;
+  method: "POST" | "PUT";
+  headers: { key: string; value: string }[];
+  sendOnComplete: boolean;
+  sendOnPartial: boolean;
+}
+
+// ─── Sharing / Embed Settings ───
+
+export type EmbedMode = "normal" | "fullscreen" | "button-link" | "button-popup";
+
+export interface SharingSettings {
+  slug: string; // URL slug for the form
+  isPublished: boolean;
+  embedMode: EmbedMode;
+  embedWidth: string;
+  embedHeight: string;
+  embedButtonText: string;
+  embedButtonColor: string;
+}
+
+// ─── Workspace (folder with custom domain) ───
+
+export interface Workspace {
+  id: string;
+  name: string;
+  domain: string; // e.g. "denisbugatti.com.br"
+  description: string;
+  designDefaults: FormDesignSettings;
+  formIds: string[];
+  createdAt: string;
+}
+
 export interface BuilderForm {
   id: string;
   title: string;
   description: string;
   questions: BuilderQuestion[];
+  design: FormDesignSettings;
+  webhook: WebhookSettings;
+  sharing: SharingSettings;
+  workspaceId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -372,16 +432,76 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
 
 // ─── Helper: Create a new empty form ───
 
+export const defaultDesignSettings: FormDesignSettings = {
+  buttonColor: "#3B82F6",
+  questionColor: "#FFFFFF",
+  answerColor: "#60A5FA",
+  backgroundColor: "#0A0E1A",
+  backgroundImage: "",
+  logoUrl: "",
+  ogTitle: "",
+  ogDescription: "",
+  ogImage: "",
+  fontFamily: "Space Grotesk",
+};
+
+export const defaultWebhookSettings: WebhookSettings = {
+  enabled: false,
+  url: "",
+  method: "POST",
+  headers: [],
+  sendOnComplete: true,
+  sendOnPartial: false,
+};
+
+export const defaultSharingSettings: SharingSettings = {
+  slug: "",
+  isPublished: false,
+  embedMode: "normal",
+  embedWidth: "100",
+  embedHeight: "600",
+  embedButtonText: "Responder formulário",
+  embedButtonColor: "#3B82F6",
+};
+
 export function createEmptyForm(): BuilderForm {
   const welcomeQ = createDefaultQuestion("welcome");
   const thankYouQ = createDefaultQuestion("thank-you");
+  const slug = `form-${Date.now().toString(36)}`;
 
   return {
     id: `form_${Date.now()}`,
     title: "Novo Formulário",
     description: "",
     questions: [welcomeQ, thankYouQ],
+    design: { ...defaultDesignSettings },
+    webhook: { ...defaultWebhookSettings },
+    sharing: { ...defaultSharingSettings, slug },
+    workspaceId: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
+
+// ─── Sample Workspaces ───
+
+export const sampleWorkspaces: Workspace[] = [
+  {
+    id: "ws_1",
+    name: "Denis Bugatti",
+    domain: "denisbugatti.com.br",
+    description: "Formulários do Denis",
+    designDefaults: { ...defaultDesignSettings },
+    formIds: ["form_1", "form_2"],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "ws_2",
+    name: "Felipe Galvão",
+    domain: "felipegalvao.com.br",
+    description: "Formulários do Felipe",
+    designDefaults: { ...defaultDesignSettings, buttonColor: "#10B981", backgroundColor: "#0F172A" },
+    formIds: ["form_3"],
+    createdAt: new Date().toISOString(),
+  },
+];

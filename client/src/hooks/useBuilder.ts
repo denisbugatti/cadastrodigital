@@ -9,6 +9,9 @@ import {
   type BuilderQuestion,
   type BuilderQuestionType,
   type BuilderChoice,
+  type FormDesignSettings,
+  type WebhookSettings,
+  type SharingSettings,
   createDefaultQuestion,
   createEmptyForm,
 } from "@/lib/builderTypes";
@@ -138,6 +141,42 @@ export function useBuilder(initialForm?: BuilderForm) {
     []
   );
 
+  // Update design settings
+  const updateDesign = useCallback(
+    (updates: Partial<FormDesignSettings>) => {
+      setForm((prev) => ({
+        ...prev,
+        design: { ...prev.design, ...updates },
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    []
+  );
+
+  // Update webhook settings
+  const updateWebhook = useCallback(
+    (updates: Partial<WebhookSettings>) => {
+      setForm((prev) => ({
+        ...prev,
+        webhook: { ...prev.webhook, ...updates },
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    []
+  );
+
+  // Update sharing settings
+  const updateSharing = useCallback(
+    (updates: Partial<SharingSettings>) => {
+      setForm((prev) => ({
+        ...prev,
+        sharing: { ...prev.sharing, ...updates },
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    []
+  );
+
   // Choice management
   const addChoice = useCallback(
     (questionId: string) => {
@@ -228,6 +267,9 @@ export function useBuilder(initialForm?: BuilderForm) {
     moveQuestion,
     updateQuestion,
     updateFormMeta,
+    updateDesign,
+    updateWebhook,
+    updateSharing,
     addChoice,
     updateChoice,
     removeChoice,
