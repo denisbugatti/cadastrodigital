@@ -1,12 +1,16 @@
 /**
- * FormFlow — Organic Flow Design
- * Core form engine hook: manages navigation, responses, and validation.
+ * FormFlow — Dark Futuristic Design
+ * Core form engine hook: manages navigation, responses, validation,
+ * and conditional branching logic.
  */
 
 import { useCallback, useMemo, useState } from "react";
 import type { FormData, FormResponse, Question } from "@/lib/formTypes";
 
 export type Direction = "forward" | "backward";
+
+// Non-question types that don't count toward progress
+const SCREEN_TYPES = new Set(["welcome", "thank-you", "statement"]);
 
 interface UseFormEngineReturn {
   currentIndex: number;
@@ -20,6 +24,7 @@ interface UseFormEngineReturn {
   isLast: boolean;
   isWelcome: boolean;
   isThankYou: boolean;
+  isStatement: boolean;
   canGoNext: boolean;
   goNext: () => void;
   goPrev: () => void;
@@ -35,6 +40,8 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     new Map()
   );
   const [direction, setDirection] = useState<Direction>("forward");
+  // Track navigation history for back navigation with branching
+  const [navHistory, setNavHistory] = useState<number[]>([0]);
 
   const questions = form.questions;
   const totalQuestions = questions.length;
@@ -42,12 +49,13 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
 
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === totalQuestions - 1;
-  const isWelcome = currentQuestion.type === "welcome";
-  const isThankYou = currentQuestion.type === "thank-you";
+  const isWelcome = currentQuestion?.type === "welcome";
+  const isThankYou = currentQuestion?.type === "thank-you";
+  const isStatement = currentQuestion?.type === "statement";
 
-  // Count only actual questions (not welcome/thank-you)
+  // Count only actual questions (not welcome/thank-you/statement)
   const actualQuestions = useMemo(
-    () => questions.filter((q) => q.type !== "welcome" && q.type !== "thank-you"),
+    () => questions.filter((q) => !SCREEN_TYPES.has(q.type)),
     [questions]
   );
 
@@ -64,11 +72,10 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
 
   const progress = useMemo(() => {
     if (actualQuestions.length === 0) return 0;
-    // Welcome = 0%, Thank you = 100%
     if (isWelcome) return 0;
     if (isThankYou) return 100;
     const questionIndex = actualQuestions.findIndex(
-      (q) => q.id === currentQuestion.id
+      (q) => q.id === currentQuestion?.id
     );
     if (questionIndex === -1) return 0;
     return Math.round(((questionIndex + 1) / actualQuestions.length) * 100);
@@ -96,9 +103,10 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     valid: boolean;
     message?: string;
   } => {
-    if (isWelcome || isThankYou) return { valid: true };
+    if (isWelcome || isThankYou || isStatement) return { valid: true };
 
     const q = currentQuestion;
+    if (!q) return { valid: true };
     const r = responses.get(q.id);
     const value = r?.value;
 
@@ -124,33 +132,86 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     }
 
     return { valid: true };
-  }, [currentQuestion, responses, isWelcome, isThankYou]);
+  }, [currentQuestion, responses, isWelcome, isThankYou, isStatement]);
 
   const canGoNext = useMemo(() => {
-    if (isWelcome) return true;
+    if (isWelcome || isStatement) return true;
     if (isThankYou) return false;
     return validateCurrent().valid;
-  }, [isWelcome, isThankYou, validateCurrent]);
+  }, [isWelcome, isThankYou, isStatement, validateCurrent]);
+
+  /**
+   * Determine the next question index based on conditional logic.
+   * If the current question has conditional rules and the user's answer
+   * matches a rule, jump to that question. Otherwise, go to next.
+   */
+  const getNextIndex = useCallback((): number => {
+    const q = currentQuestion;
+    if (!q || !q.conditionalLogic?.enabled || !q.conditionalLogic.rules) {
+      return currentIndex + 1;
+    }
+
+    const response = responses.get(q.id);
+    const value = response?.value;
+
+    if (value !== null && value !== undefined) {
+      // For multiple-choice / dropdown: value is a string (choice ID)
+      // For yes-no: value is boolean
+      let matchedRule;
+
+      if (typeof value === "string") {
+        matchedRule = q.conditionalLogic.rules.find(
+          (r) => r.choiceId === value
+        );
+      } else if (typeof value === "boolean") {
+        // yes-no: map boolean to "yes"/"no"
+        const boolId = value ? "yes" : "no";
+        matchedRule = q.conditionalLogic.rules.find(
+          (r) => r.choiceId === boolId
+        );
+      }
+
+      if (matchedRule && matchedRule.goToQuestionId !== "next") {
+        // Find the target question index
+        const targetIdx = questions.findIndex(
+          (q2) => q2.id === matchedRule.goToQuestionId
+        );
+        if (targetIdx !== -1) {
+          return targetIdx;
+        }
+      }
+    }
+
+    return currentIndex + 1;
+  }, [currentQuestion, currentIndex, responses, questions]);
 
   const goNext = useCallback(() => {
-    if (currentIndex < totalQuestions - 1) {
+    const nextIdx = getNextIndex();
+    if (nextIdx < totalQuestions) {
       setDirection("forward");
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex(nextIdx);
+      setNavHistory((prev) => [...prev, nextIdx]);
     }
-  }, [currentIndex, totalQuestions]);
+  }, [getNextIndex, totalQuestions]);
 
   const goPrev = useCallback(() => {
-    if (currentIndex > 0) {
+    // Use navigation history to go back correctly even with branching
+    setNavHistory((prev) => {
+      if (prev.length <= 1) return prev;
+      const newHistory = prev.slice(0, -1);
+      const prevIndex = newHistory[newHistory.length - 1];
       setDirection("backward");
-      setCurrentIndex((prev) => prev - 1);
-    }
-  }, [currentIndex]);
+      setCurrentIndex(prevIndex);
+      return newHistory;
+    });
+  }, []);
 
   const goToIndex = useCallback(
     (index: number) => {
       if (index >= 0 && index < totalQuestions) {
         setDirection(index > currentIndex ? "forward" : "backward");
         setCurrentIndex(index);
+        setNavHistory((prev) => [...prev, index]);
       }
     },
     [currentIndex, totalQuestions]
@@ -168,6 +229,7 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     isLast,
     isWelcome,
     isThankYou,
+    isStatement,
     canGoNext,
     goNext,
     goPrev,

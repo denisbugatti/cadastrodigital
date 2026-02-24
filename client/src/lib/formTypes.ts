@@ -1,26 +1,53 @@
 /**
- * FormFlow — Organic Flow Design
+ * FormFlow — Dark Futuristic Design
  * Types and demo data for the conversational form engine.
+ * Supports all 28 question types.
  */
 
 export type QuestionType =
   | "welcome"
+  | "thank-you"
+  | "statement"
+  // Text & contact
   | "short-text"
   | "long-text"
   | "email"
   | "phone"
+  | "name"
+  | "number"
+  | "currency"
+  | "link"
+  // Documents
+  | "cpf"
+  | "cnpj"
+  | "identity-doc"
+  // Location
+  | "address"
+  // Choice
   | "multiple-choice"
   | "multiple-select"
-  | "rating"
+  | "dropdown"
+  | "image-choice"
   | "yes-no"
+  | "checkbox"
+  // Rating & scale
+  | "satisfaction"
+  | "rating"
+  | "nps"
+  | "ranking"
+  | "matrix"
+  // Date
   | "date"
-  | "number"
-  | "thank-you";
+  // Files
+  | "file-upload"
+  // Legal
+  | "legal";
 
 export interface Choice {
   id: string;
   label: string;
   icon?: string;
+  imageUrl?: string;
 }
 
 export interface Question {
@@ -40,6 +67,21 @@ export interface Question {
     message?: string;
   };
   image?: string;
+  // Legal
+  legalText?: string;
+  // Matrix
+  matrixRows?: string[];
+  matrixColumns?: string[];
+  // Ranking
+  rankItems?: string[];
+  // Conditional logic
+  conditionalLogic?: {
+    enabled: boolean;
+    rules: Array<{
+      choiceId: string;
+      goToQuestionId: string;
+    }>;
+  };
 }
 
 export interface FormData {
@@ -55,7 +97,7 @@ export interface FormData {
 
 export interface FormResponse {
   questionId: string;
-  value: string | string[] | number | boolean | null;
+  value: string | string[] | number | boolean | Record<string, string> | null;
 }
 
 // Demo form data — Pesquisa de Satisfação

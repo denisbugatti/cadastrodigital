@@ -183,7 +183,7 @@ export default function Dashboard() {
           </div>
 
           {/* Create new button */}
-          <Link href="/form/new">
+          <Link href="/builder">
             <motion.button
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-neon-blue text-white font-body text-sm font-semibold glow-blue hover:scale-105 active:scale-95 transition-all duration-300 shrink-0"
               whileHover={{ scale: 1.05 }}
@@ -214,7 +214,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Create new card */}
-            <Link href="/form/new">
+            <Link href="/builder">
               <motion.div
                 className="group relative h-full min-h-[200px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-300"
                 style={{

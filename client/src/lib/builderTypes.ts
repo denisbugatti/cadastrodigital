@@ -1,0 +1,387 @@
+/**
+ * FormFlow Builder — Types & Data
+ * 28 question types organized by category, with conditional logic support.
+ */
+
+// ─── Question Type Definitions ───
+
+export type BuilderQuestionType =
+  // Contact Info
+  | "name"
+  | "email"
+  | "phone"
+  | "cpf"
+  | "cnpj"
+  | "identity-doc"
+  | "address"
+  // Text & Content
+  | "short-text"
+  | "long-text"
+  | "statement"
+  | "number"
+  | "currency"
+  | "link"
+  // Choice & Selection
+  | "multiple-choice"
+  | "dropdown"
+  | "image-choice"
+  | "yes-no"
+  | "checkbox"
+  // Rating & Scale
+  | "satisfaction"
+  | "rating"
+  | "nps"
+  | "ranking"
+  | "matrix"
+  // Date
+  | "date"
+  // Media
+  | "file-upload"
+  // Special Screens
+  | "welcome"
+  | "thank-you"
+  | "legal";
+
+export interface QuestionTypeInfo {
+  type: BuilderQuestionType;
+  label: string;
+  icon: string; // lucide icon name
+  description: string;
+  category: QuestionCategory;
+  hasChoices?: boolean;
+  hasConditionalLogic?: boolean;
+}
+
+export type QuestionCategory =
+  | "contact"
+  | "text"
+  | "choice"
+  | "rating"
+  | "date"
+  | "media"
+  | "special";
+
+export interface CategoryInfo {
+  id: QuestionCategory;
+  label: string;
+  icon: string;
+}
+
+// ─── Builder Question (instance in the form) ───
+
+export interface ConditionalBranch {
+  choiceId: string;
+  goToQuestionId: string; // "next" = default next, or question ID
+}
+
+export interface ConditionalLogic {
+  enabled: boolean;
+  branches: ConditionalBranch[];
+  defaultGoTo: string; // "next" or question ID
+}
+
+export interface MatrixConfig {
+  rows: string[];
+  columns: string[];
+}
+
+export interface BuilderQuestion {
+  id: string;
+  type: BuilderQuestionType;
+  title: string;
+  subtitle: string;
+  placeholder: string;
+  required: boolean;
+  // Choice-based fields
+  choices: BuilderChoice[];
+  // Rating fields
+  maxRating: number;
+  ratingLabels: { low: string; high: string };
+  // NPS fields
+  npsLabels: { low: string; mid: string; high: string };
+  // Matrix
+  matrix: MatrixConfig;
+  // Ranking
+  rankItems: string[];
+  // Validation
+  validation: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    message?: string;
+  };
+  // Conditional logic (for multiple-choice, yes-no, dropdown)
+  conditionalLogic: ConditionalLogic;
+  // Image for welcome/thank-you
+  image: string;
+  // Legal text
+  legalText: string;
+  // Address fields config
+  addressFields: {
+    cep: boolean;
+    street: boolean;
+    number: boolean;
+    complement: boolean;
+    neighborhood: boolean;
+    city: boolean;
+    state: boolean;
+  };
+}
+
+export interface BuilderChoice {
+  id: string;
+  label: string;
+  imageUrl?: string; // for image-choice
+}
+
+export interface BuilderForm {
+  id: string;
+  title: string;
+  description: string;
+  questions: BuilderQuestion[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Category Data ───
+
+export const questionCategories: CategoryInfo[] = [
+  { id: "contact", label: "Informações de Contato", icon: "user" },
+  { id: "text", label: "Texto e Conteúdo", icon: "type" },
+  { id: "choice", label: "Escolha e Seleção", icon: "list" },
+  { id: "rating", label: "Avaliação e Escala", icon: "star" },
+  { id: "date", label: "Data", icon: "calendar" },
+  { id: "media", label: "Mídia e Arquivos", icon: "paperclip" },
+  { id: "special", label: "Telas Especiais", icon: "layout" },
+];
+
+// ─── All 28 Question Types ───
+
+export const questionTypes: QuestionTypeInfo[] = [
+  // Contact Info
+  { type: "name", label: "Nome próprio", icon: "user", description: "Campo para nome completo", category: "contact" },
+  { type: "email", label: "E-mail", icon: "mail", description: "Campo com validação de e-mail", category: "contact" },
+  { type: "phone", label: "Telefone", icon: "phone", description: "Campo com máscara de telefone", category: "contact" },
+  { type: "cpf", label: "CPF", icon: "fingerprint", description: "Com validação real de CPF", category: "contact" },
+  { type: "cnpj", label: "CNPJ", icon: "building-2", description: "Com validação de CNPJ", category: "contact" },
+  { type: "identity-doc", label: "Documento de Identidade", icon: "id-card", description: "RG ou outro documento", category: "contact" },
+  { type: "address", label: "Endereço", icon: "map-pin", description: "Busca automática por CEP", category: "contact" },
+  // Text & Content
+  { type: "short-text", label: "Resposta curta", icon: "minus", description: "Texto de uma linha", category: "text" },
+  { type: "long-text", label: "Texto longo", icon: "align-left", description: "Área de texto expandida", category: "text" },
+  { type: "statement", label: "Mensagem", icon: "message-square", description: "Tela informativa sem input", category: "text" },
+  { type: "number", label: "Número", icon: "hash", description: "Campo numérico", category: "text" },
+  { type: "currency", label: "Valor Monetário", icon: "dollar-sign", description: "Campo com máscara R$", category: "text" },
+  { type: "link", label: "Link / Website", icon: "link", description: "Campo para URL", category: "text" },
+  // Choice & Selection
+  { type: "multiple-choice", label: "Múltipla Escolha", icon: "circle-dot", description: "Selecionar uma opção", category: "choice", hasChoices: true, hasConditionalLogic: true },
+  { type: "dropdown", label: "Seleção de Lista", icon: "chevron-down", description: "Lista suspensa", category: "choice", hasChoices: true, hasConditionalLogic: true },
+  { type: "image-choice", label: "Seleção de Imagem", icon: "image", description: "Opções com imagens", category: "choice", hasChoices: true },
+  { type: "yes-no", label: "Sim / Não", icon: "toggle-left", description: "Pergunta binária", category: "choice", hasConditionalLogic: true },
+  { type: "checkbox", label: "Checkbox", icon: "check-square", description: "Marcar múltiplas opções", category: "choice", hasChoices: true },
+  // Rating & Scale
+  { type: "satisfaction", label: "Escala de Satisfação", icon: "smile", description: "Escala visual com emojis", category: "rating" },
+  { type: "rating", label: "Rating (Estrelas)", icon: "star", description: "Avaliação com estrelas", category: "rating" },
+  { type: "nps", label: "NPS", icon: "gauge", description: "Net Promoter Score (0-10)", category: "rating" },
+  { type: "ranking", label: "Ranking", icon: "arrow-up-down", description: "Ordenar por preferência", category: "rating" },
+  { type: "matrix", label: "Matrix", icon: "grid-3x3", description: "Tabela de avaliação", category: "rating" },
+  // Date
+  { type: "date", label: "Data", icon: "calendar", description: "Seletor de data", category: "date" },
+  // Media
+  { type: "file-upload", label: "Arquivo Anexo", icon: "upload", description: "Upload de arquivos", category: "media" },
+  // Special Screens
+  { type: "welcome", label: "Boas-vindas", icon: "hand", description: "Tela inicial do formulário", category: "special" },
+  { type: "thank-you", label: "Agradecimento", icon: "heart", description: "Tela final após envio", category: "special" },
+  { type: "legal", label: "Termos de Uso", icon: "shield-check", description: "Aceite de termos obrigatório", category: "special" },
+];
+
+// ─── Helper: Create a new question with defaults ───
+
+let questionCounter = 0;
+
+export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestion {
+  questionCounter++;
+  const typeInfo = questionTypes.find((t) => t.type === type)!;
+  const id = `q_${Date.now()}_${questionCounter}`;
+
+  const base: BuilderQuestion = {
+    id,
+    type,
+    title: "",
+    subtitle: "",
+    placeholder: "",
+    required: false,
+    choices: [],
+    maxRating: 5,
+    ratingLabels: { low: "Ruim", high: "Excelente" },
+    npsLabels: { low: "Nada provável", mid: "Neutro", high: "Muito provável" },
+    matrix: { rows: ["Item 1", "Item 2"], columns: ["Ruim", "Regular", "Bom", "Ótimo"] },
+    rankItems: ["Item 1", "Item 2", "Item 3"],
+    validation: {},
+    conditionalLogic: { enabled: false, branches: [], defaultGoTo: "next" },
+    image: "",
+    legalText: "",
+    addressFields: {
+      cep: true,
+      street: true,
+      number: true,
+      complement: true,
+      neighborhood: true,
+      city: true,
+      state: true,
+    },
+  };
+
+  // Set sensible defaults per type
+  switch (type) {
+    case "name":
+      base.title = "Qual é o seu nome?";
+      base.placeholder = "Digite seu nome completo...";
+      base.required = true;
+      break;
+    case "email":
+      base.title = "Qual é o seu e-mail?";
+      base.placeholder = "seu@email.com";
+      base.required = true;
+      break;
+    case "phone":
+      base.title = "Qual é o seu telefone?";
+      base.placeholder = "(00) 00000-0000";
+      base.required = true;
+      break;
+    case "cpf":
+      base.title = "Qual é o seu CPF?";
+      base.placeholder = "000.000.000-00";
+      base.required = true;
+      break;
+    case "cnpj":
+      base.title = "Qual é o CNPJ da empresa?";
+      base.placeholder = "00.000.000/0000-00";
+      base.required = true;
+      break;
+    case "identity-doc":
+      base.title = "Qual é o seu documento de identidade?";
+      base.placeholder = "Digite o número do documento...";
+      break;
+    case "address":
+      base.title = "Qual é o seu endereço?";
+      base.placeholder = "Digite o CEP...";
+      base.required = true;
+      break;
+    case "short-text":
+      base.title = "Sua pergunta aqui";
+      base.placeholder = "Digite sua resposta...";
+      break;
+    case "long-text":
+      base.title = "Sua pergunta aqui";
+      base.placeholder = "Escreva sua resposta...";
+      break;
+    case "statement":
+      base.title = "Sua mensagem aqui";
+      base.subtitle = "Texto informativo para o respondente";
+      break;
+    case "number":
+      base.title = "Digite um número";
+      base.placeholder = "0";
+      break;
+    case "currency":
+      base.title = "Qual é o valor?";
+      base.placeholder = "R$ 0,00";
+      break;
+    case "link":
+      base.title = "Compartilhe um link";
+      base.placeholder = "https://...";
+      break;
+    case "multiple-choice":
+      base.title = "Escolha uma opção";
+      base.choices = [
+        { id: `c_${Date.now()}_1`, label: "Opção 1" },
+        { id: `c_${Date.now()}_2`, label: "Opção 2" },
+        { id: `c_${Date.now()}_3`, label: "Opção 3" },
+      ];
+      break;
+    case "dropdown":
+      base.title = "Selecione uma opção";
+      base.choices = [
+        { id: `c_${Date.now()}_1`, label: "Opção 1" },
+        { id: `c_${Date.now()}_2`, label: "Opção 2" },
+        { id: `c_${Date.now()}_3`, label: "Opção 3" },
+      ];
+      break;
+    case "image-choice":
+      base.title = "Escolha uma imagem";
+      base.choices = [
+        { id: `c_${Date.now()}_1`, label: "Opção 1", imageUrl: "" },
+        { id: `c_${Date.now()}_2`, label: "Opção 2", imageUrl: "" },
+      ];
+      break;
+    case "yes-no":
+      base.title = "Sua pergunta sim ou não";
+      break;
+    case "checkbox":
+      base.title = "Selecione todas que se aplicam";
+      base.choices = [
+        { id: `c_${Date.now()}_1`, label: "Opção 1" },
+        { id: `c_${Date.now()}_2`, label: "Opção 2" },
+        { id: `c_${Date.now()}_3`, label: "Opção 3" },
+      ];
+      break;
+    case "satisfaction":
+      base.title = "Qual é o seu nível de satisfação?";
+      base.maxRating = 5;
+      break;
+    case "rating":
+      base.title = "Como você avalia?";
+      base.maxRating = 5;
+      break;
+    case "nps":
+      base.title = "De 0 a 10, o quanto você recomendaria?";
+      break;
+    case "ranking":
+      base.title = "Ordene por preferência";
+      base.rankItems = ["Item 1", "Item 2", "Item 3"];
+      break;
+    case "matrix":
+      base.title = "Avalie cada item";
+      break;
+    case "date":
+      base.title = "Selecione uma data";
+      base.placeholder = "DD/MM/AAAA";
+      break;
+    case "file-upload":
+      base.title = "Envie seu arquivo";
+      base.subtitle = "Arraste ou clique para enviar";
+      break;
+    case "welcome":
+      base.title = "Bem-vindo!";
+      base.subtitle = "Responda algumas perguntas rápidas.";
+      break;
+    case "thank-you":
+      base.title = "Obrigado!";
+      base.subtitle = "Suas respostas foram enviadas com sucesso.";
+      break;
+    case "legal":
+      base.title = "Termos de Uso";
+      base.legalText = "Li e aceito os termos de uso e a política de privacidade.";
+      base.required = true;
+      break;
+  }
+
+  return base;
+}
+
+// ─── Helper: Create a new empty form ───
+
+export function createEmptyForm(): BuilderForm {
+  const welcomeQ = createDefaultQuestion("welcome");
+  const thankYouQ = createDefaultQuestion("thank-you");
+
+  return {
+    id: `form_${Date.now()}`,
+    title: "Novo Formulário",
+    description: "",
+    questions: [welcomeQ, thankYouQ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}

@@ -26,7 +26,7 @@ export function FormContainer({ form }: FormContainerProps) {
 
   const questionNumber = useMemo(() => {
     const actualQuestions = form.questions.filter(
-      (q) => q.type !== "welcome" && q.type !== "thank-you"
+      (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
     );
     const index = actualQuestions.findIndex(
       (q) => q.id === engine.currentQuestion.id
@@ -37,7 +37,7 @@ export function FormContainer({ form }: FormContainerProps) {
   const totalActualQuestions = useMemo(
     () =>
       form.questions.filter(
-        (q) => q.type !== "welcome" && q.type !== "thank-you"
+        (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
       ).length,
     [form.questions]
   );
@@ -150,7 +150,7 @@ export function FormContainer({ form }: FormContainerProps) {
           </div>
 
           {/* Question counter */}
-          {!engine.isWelcome && !engine.isThankYou && (
+          {!engine.isWelcome && !engine.isThankYou && !engine.isStatement && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-body text-neon-blue font-medium tracking-widest uppercase">
                 {String(questionNumber).padStart(2, "0")}

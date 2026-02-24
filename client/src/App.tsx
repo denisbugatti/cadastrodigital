@@ -6,11 +6,14 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import FormView from "./pages/FormView";
+import Builder from "./pages/Builder";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Dashboard} />
+      <Route path={"/builder"} component={Builder} />
+      <Route path={"/builder/:id"} component={Builder} />
       <Route path={"/form/:id"} component={FormView} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
