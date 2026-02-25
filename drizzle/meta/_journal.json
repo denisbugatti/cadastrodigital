@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1771997222494,
+      "tag": "0000_romantic_mikhail_rasputin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1771997365269,
+      "tag": "0001_pink_toro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771997776951,
+      "tag": "0002_brief_sage",
+      "breakpoints": true
+    }
+  ]
+}

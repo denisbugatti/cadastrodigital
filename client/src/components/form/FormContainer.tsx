@@ -15,6 +15,7 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { FormData } from "@/lib/formTypes";
 import { useFormEngine } from "@/hooks/useFormEngine";
+import { trpc } from "@/lib/trpc";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { QuestionRenderer } from "./QuestionRenderer";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -136,10 +137,42 @@ export function FormContainer({ form }: FormContainerProps) {
   }, [form.id, form.questions.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Auto-save responses on every change ───
+  // Submit responses to database when form is completed
+  const submitResponseMutation = trpc.responses.submit.useMutation();
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
   useEffect(() => {
     if (!hasRestoredFromSave) return;
     if (engine.isThankYou) {
       clearSavedResponses(form.id);
+
+      // Submit to database if we have a dbFormId and haven't submitted yet
+      if (form._dbFormId && !hasSubmitted) {
+        const answersObj: Record<string, unknown> = {};
+        engine.responses.forEach((v, k) => {
+          answersObj[k] = v.value;
+        });
+
+        // Extract name and email from responses
+        let respondentName: string | undefined;
+        let respondentEmail: string | undefined;
+        engine.responses.forEach((v) => {
+          const q = form.questions.find((q) => q.id === v.questionId);
+          if (q?.type === "name" || q?.type === "short-text") {
+            if (!respondentName && typeof v.value === "string") respondentName = v.value;
+          }
+          if (q?.type === "email" && typeof v.value === "string") respondentEmail = v.value;
+        });
+
+        submitResponseMutation.mutate({
+          formId: form._dbFormId,
+          answers: answersObj,
+          respondentName,
+          respondentEmail,
+          isComplete: true,
+        });
+        setHasSubmitted(true);
+      }
       return;
     }
     saveResponses(form.id, engine.responses, engine.currentIndex);

@@ -1,0 +1,1 @@
+ALTER TABLE `forms` ADD `color` varchar(100) DEFAULT '#0D8BD9';

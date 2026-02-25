@@ -112,6 +112,8 @@ export interface FormData {
     logoUrl?: string;
     backgroundImage?: string;
   };
+  /** Database form ID for response submission (internal use) */
+  _dbFormId?: number;
 }
 
 export interface FormResponse {

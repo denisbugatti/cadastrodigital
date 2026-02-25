@@ -2,9 +2,10 @@
  * FormFlow Dashboard — Light Clean Design with Folders
  * Fontes: Plus Jakarta Sans (display) + Inter (body)
  * Features: pastas, busca, filtros por status, ordenação, duplicar, excluir
+ * Now uses tRPC API for all data operations (database persistence).
  */
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
@@ -27,13 +28,8 @@ import {
   X,
   Download,
   Upload,
+  Loader2,
 } from "lucide-react";
-import {
-  userForms as initialForms,
-  defaultFolders,
-  type UserForm,
-  type Folder,
-} from "@/lib/dashboardData";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,16 +51,40 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { importFormFromJSON, exportFormAsJSON, loadForm } from "@/lib/formStorage";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import { exportFormAsJSON, importFormFromJSON } from "@/lib/formStorage";
 
 /* ─── Types ─── */
 
 type StatusFilter = "all" | "published" | "draft" | "closed";
 type SortOption = "updated" | "name" | "responses" | "created";
 
+interface DashboardForm {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: "published" | "draft" | "closed";
+  responseCount: number;
+  questionsCount: number;
+  color: string | null;
+  workspaceId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface DashboardFolder {
+  id: number;
+  name: string;
+  color: string;
+  createdAt: Date;
+}
+
 /* ─── Status config ─── */
 
-function getStatusConfig(status: UserForm["status"]) {
+function getStatusConfig(status: DashboardForm["status"]) {
   switch (status) {
     case "published":
       return { label: "Publicado", dotColor: "#22c55e", textClass: "text-green-600", bgClass: "bg-green-50 border-green-200 text-green-700" };
@@ -94,20 +114,102 @@ const FOLDER_COLORS = ["#0D8BD9", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#
 /* ─── Dashboard ─── */
 
 export default function Dashboard() {
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("updated");
-  const [forms, setForms] = useState<UserForm[]>(initialForms);
-  const [folders, setFolders] = useState<Folder[]>(defaultFolders);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<UserForm | null>(null);
-  const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DashboardForm | null>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<DashboardFolder | null>(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const utils = trpc.useUtils();
+
+  // ─── tRPC Queries ───
+  const formsQuery = trpc.forms.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const workspacesQuery = trpc.workspaces.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  // ─── tRPC Mutations ───
+  const createFormMutation = trpc.forms.create.useMutation({
+    onSuccess: () => {
+      utils.forms.list.invalidate();
+    },
+  });
+
+  const deleteFormMutation = trpc.forms.delete.useMutation({
+    onSuccess: () => {
+      utils.forms.list.invalidate();
+    },
+  });
+
+  const duplicateFormMutation = trpc.forms.duplicate.useMutation({
+    onSuccess: () => {
+      utils.forms.list.invalidate();
+    },
+  });
+
+  const updateFormMutation = trpc.forms.update.useMutation({
+    onSuccess: () => {
+      utils.forms.list.invalidate();
+    },
+  });
+
+  const createWorkspaceMutation = trpc.workspaces.create.useMutation({
+    onSuccess: () => {
+      utils.workspaces.list.invalidate();
+    },
+  });
+
+  const updateWorkspaceMutation = trpc.workspaces.update.useMutation({
+    onSuccess: () => {
+      utils.workspaces.list.invalidate();
+    },
+  });
+
+  const deleteWorkspaceMutation = trpc.workspaces.delete.useMutation({
+    onSuccess: () => {
+      utils.workspaces.list.invalidate();
+      utils.forms.list.invalidate();
+    },
+  });
+
+  // ─── Transform API data to dashboard format ───
+  const forms: DashboardForm[] = useMemo(() => {
+    if (!formsQuery.data) return [];
+    return formsQuery.data.map((f: any) => ({
+      id: f.id,
+      slug: f.slug,
+      title: f.title,
+      description: f.description,
+      status: f.status as "published" | "draft" | "closed",
+      responseCount: f.responseCount ?? 0,
+      questionsCount: Array.isArray(f.questions) ? f.questions.length : 0,
+      color: f.color ?? "#0D8BD9",
+      workspaceId: f.workspaceId,
+      createdAt: new Date(f.createdAt),
+      updatedAt: new Date(f.updatedAt),
+    }));
+  }, [formsQuery.data]);
+
+  const folders: DashboardFolder[] = useMemo(() => {
+    if (!workspacesQuery.data) return [];
+    return workspacesQuery.data.map((w: any) => ({
+      id: w.id,
+      name: w.name,
+      color: (w.designDefaults as any)?.color ?? "#0D8BD9",
+      createdAt: new Date(w.createdAt),
+    }));
+  }, [workspacesQuery.data]);
 
   // Import form from JSON file
   const handleImportForm = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,42 +217,74 @@ export default function Dashboard() {
     if (!file) return;
     const imported = await importFormFromJSON(file);
     if (imported) {
-      const newForm: UserForm = {
-        id: imported.id,
-        title: imported.title,
-        description: imported.description || "Formulário importado",
-        status: "draft",
-        questionsCount: imported.questions.length,
-        responsesCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        color: "#0D8BD9",
-      };
-      setForms((prev) => [newForm, ...prev]);
-      toast.success("Formulário importado!", { description: `"${imported.title}" foi adicionado.` });
+      try {
+        await createFormMutation.mutateAsync({
+          title: imported.title,
+          description: imported.description || "Formulário importado",
+          questions: imported.questions,
+          design: imported.design,
+          webhook: imported.webhook,
+          sharing: imported.sharing,
+          status: "draft",
+        });
+        toast.success("Formulário importado!", { description: `"${imported.title}" foi adicionado.` });
+      } catch (err) {
+        toast.error("Erro ao importar", { description: "Falha ao salvar no banco de dados." });
+      }
     } else {
       toast.error("Erro ao importar", { description: "O arquivo não é um formulário FormFlow válido." });
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
+  }, [createFormMutation]);
 
   // Export form as JSON
-  const handleExportForm = useCallback((form: UserForm) => {
-    const savedForm = loadForm(form.id);
-    if (savedForm) {
-      exportFormAsJSON(savedForm);
-      toast.success("Formulário exportado!", { description: `"${form.title}" foi baixado como JSON.` });
-    } else {
-      toast.error("Erro ao exportar", { description: "Este formulário não possui dados salvos localmente." });
+  const handleExportForm = useCallback(async (form: DashboardForm) => {
+    // Fetch full form data from API
+    try {
+      const fullForm = await utils.forms.getById.fetch({ id: form.id });
+      if (fullForm) {
+        const exportData = {
+          _type: "formflow_export",
+          _version: "1.0",
+          _exportedAt: new Date().toISOString(),
+          form: {
+            id: fullForm.slug,
+            title: fullForm.title,
+            description: fullForm.description,
+            questions: fullForm.questions,
+            design: fullForm.design,
+            webhook: fullForm.webhook,
+            sharing: fullForm.sharing,
+          },
+        };
+        const json = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${form.title.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").replace(/\s+/g, "_")}_formflow.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Formulário exportado!", { description: `"${form.title}" foi baixado como JSON.` });
+      }
+    } catch (err) {
+      toast.error("Erro ao exportar", { description: "Falha ao buscar dados do formulário." });
     }
-  }, []);
+  }, [utils]);
 
   const filteredAndSortedForms = useMemo(() => {
     let result = [...forms];
 
     // Filter by folder
-    if (selectedFolderId) {
-      result = result.filter((f) => f.folderId === selectedFolderId);
+    if (selectedFolderId !== null) {
+      if (selectedFolderId === -1) {
+        // "Sem pasta" filter
+        result = result.filter((f) => !f.workspaceId);
+      } else {
+        result = result.filter((f) => f.workspaceId === String(selectedFolderId));
+      }
     }
 
     // Filter by status
@@ -164,23 +298,23 @@ export default function Dashboard() {
       result = result.filter(
         (f) =>
           f.title.toLowerCase().includes(q) ||
-          f.description.toLowerCase().includes(q)
+          (f.description ?? "").toLowerCase().includes(q)
       );
     }
 
     // Sort
     switch (sortBy) {
       case "updated":
-        result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        result.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
         break;
       case "name":
         result.sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
         break;
       case "responses":
-        result.sort((a, b) => b.responsesCount - a.responsesCount);
+        result.sort((a, b) => b.responseCount - a.responseCount);
         break;
       case "created":
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         break;
     }
 
@@ -188,7 +322,9 @@ export default function Dashboard() {
   }, [forms, searchQuery, statusFilter, sortBy, selectedFolderId]);
 
   const statusCounts = useMemo(() => {
-    const base = selectedFolderId ? forms.filter((f) => f.folderId === selectedFolderId) : forms;
+    const base = selectedFolderId !== null
+      ? forms.filter((f) => selectedFolderId === -1 ? !f.workspaceId : f.workspaceId === String(selectedFolderId))
+      : forms;
     const counts = { all: base.length, published: 0, draft: 0, closed: 0 };
     base.forEach((f) => { counts[f.status]++; });
     return counts;
@@ -196,71 +332,124 @@ export default function Dashboard() {
 
   const folderCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    folders.forEach((f) => { counts[f.id] = forms.filter((form) => form.folderId === f.id).length; });
-    counts["__none__"] = forms.filter((f) => !f.folderId).length;
+    folders.forEach((f) => { counts[String(f.id)] = forms.filter((form) => form.workspaceId === String(f.id)).length; });
+    counts["__none__"] = forms.filter((f) => !f.workspaceId).length;
     return counts;
   }, [forms, folders]);
 
-  const handleDelete = (form: UserForm) => {
-    setForms((prev) => prev.filter((f) => f.id !== form.id));
-    setDeleteTarget(null);
-    toast.success("Formulário excluído", {
-      description: `"${form.title}" foi removido com sucesso.`,
-    });
+  const handleDelete = async (form: DashboardForm) => {
+    try {
+      await deleteFormMutation.mutateAsync({ id: form.id });
+      setDeleteTarget(null);
+      toast.success("Formulário excluído", {
+        description: `"${form.title}" foi removido com sucesso.`,
+      });
+    } catch (err) {
+      toast.error("Erro ao excluir formulário");
+    }
   };
 
-  const handleDuplicate = (form: UserForm) => {
-    const newForm: UserForm = {
-      ...form,
-      id: `${form.id}_copy_${Date.now()}`,
-      title: `${form.title} (cópia)`,
-      status: "draft" as const,
-      responsesCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setForms((prev) => [newForm, ...prev]);
-    toast.success("Formulário duplicado!", {
-      description: `"${form.title}" foi duplicado como rascunho.`,
-    });
+  const handleDuplicate = async (form: DashboardForm) => {
+    try {
+      await duplicateFormMutation.mutateAsync({ id: form.id });
+      toast.success("Formulário duplicado!", {
+        description: `"${form.title}" foi duplicado como rascunho.`,
+      });
+    } catch (err) {
+      toast.error("Erro ao duplicar formulário");
+    }
   };
 
-  const handleMoveToFolder = (formId: string, folderId: string | undefined) => {
-    setForms((prev) => prev.map((f) => f.id === formId ? { ...f, folderId } : f));
-    const folderName = folderId ? folders.find((f) => f.id === folderId)?.name : "Sem pasta";
-    toast.success("Formulário movido", { description: `Movido para "${folderName}"` });
+  const handleMoveToFolder = async (formId: number, folderId: number | undefined) => {
+    try {
+      await updateFormMutation.mutateAsync({
+        id: formId,
+        workspaceId: folderId ? String(folderId) : null,
+      });
+      const folderName = folderId ? folders.find((f) => f.id === folderId)?.name : "Sem pasta";
+      toast.success("Formulário movido", { description: `Movido para "${folderName}"` });
+    } catch (err) {
+      toast.error("Erro ao mover formulário");
+    }
   };
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    const newFolder: Folder = {
-      id: `folder-${Date.now()}`,
-      name: newFolderName.trim(),
-      color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
-      createdAt: new Date().toISOString(),
-    };
-    setFolders((prev) => [...prev, newFolder]);
-    setNewFolderName("");
-    setCreatingFolder(false);
-    toast.success("Pasta criada!", { description: `"${newFolder.name}" foi criada.` });
+    try {
+      await createWorkspaceMutation.mutateAsync({
+        name: newFolderName.trim(),
+        color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
+      });
+      setNewFolderName("");
+      setCreatingFolder(false);
+      toast.success("Pasta criada!", { description: `"${newFolderName.trim()}" foi criada.` });
+    } catch (err) {
+      toast.error("Erro ao criar pasta");
+    }
   };
 
-  const handleRenameFolder = (folderId: string) => {
+  const handleRenameFolder = async (folderId: number) => {
     if (!editingFolderName.trim()) return;
-    setFolders((prev) => prev.map((f) => f.id === folderId ? { ...f, name: editingFolderName.trim() } : f));
-    setEditingFolderId(null);
-    setEditingFolderName("");
-    toast.success("Pasta renomeada!");
+    try {
+      await updateWorkspaceMutation.mutateAsync({
+        id: folderId,
+        name: editingFolderName.trim(),
+      });
+      setEditingFolderId(null);
+      setEditingFolderName("");
+      toast.success("Pasta renomeada!");
+    } catch (err) {
+      toast.error("Erro ao renomear pasta");
+    }
   };
 
-  const handleDeleteFolder = (folder: Folder) => {
-    // Move forms out of folder
-    setForms((prev) => prev.map((f) => f.folderId === folder.id ? { ...f, folderId: undefined } : f));
-    setFolders((prev) => prev.filter((f) => f.id !== folder.id));
-    if (selectedFolderId === folder.id) setSelectedFolderId(null);
-    setDeleteFolderTarget(null);
-    toast.success("Pasta excluída", { description: `Os formulários foram movidos para "Sem pasta".` });
+  const handleDeleteFolder = async (folder: DashboardFolder) => {
+    try {
+      await deleteWorkspaceMutation.mutateAsync({ id: folder.id });
+      if (selectedFolderId === folder.id) setSelectedFolderId(null);
+      setDeleteFolderTarget(null);
+      toast.success("Pasta excluída", { description: `Os formulários foram movidos para "Sem pasta".` });
+    } catch (err) {
+      toast.error("Erro ao excluir pasta");
+    }
   };
+
+  // Show login prompt if not authenticated
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={32} className="animate-spin text-brand" />
+          <p className="text-muted-foreground font-body">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mx-auto mb-6 brand-shadow">
+            <svg width="28" height="28" viewBox="0 0 18 18" fill="none">
+              <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
+            </svg>
+          </div>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-3">Bem-vindo ao FormFlow</h1>
+          <p className="text-muted-foreground font-body mb-6">Faça login para acessar seus formulários e criar novos.</p>
+          <a
+            href={getLoginUrl()}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark transition-all duration-200"
+          >
+            Entrar
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const isLoading = formsQuery.isLoading || workspacesQuery.isLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -329,12 +518,12 @@ export default function Dashboard() {
               <button
                 onClick={() => setSelectedFolderId(null)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
-                  !selectedFolderId
+                  selectedFolderId === null
                     ? "bg-brand/10 text-brand border border-brand/20"
                     : "text-foreground hover:bg-secondary border border-transparent"
                 }`}
               >
-                <FileText size={16} className={!selectedFolderId ? "text-brand" : "text-muted-foreground"} />
+                <FileText size={16} className={selectedFolderId === null ? "text-brand" : "text-muted-foreground"} />
                 <span className="flex-1 text-left">Todos</span>
                 <span className="text-xs text-muted-foreground">{forms.length}</span>
               </button>
@@ -368,7 +557,7 @@ export default function Dashboard() {
                     >
                       <FolderOpen size={16} style={{ color: folder.color }} />
                       <span className="flex-1 text-left truncate">{folder.name}</span>
-                      <span className="text-xs text-muted-foreground">{folderCounts[folder.id] || 0}</span>
+                      <span className="text-xs text-muted-foreground">{folderCounts[String(folder.id)] || 0}</span>
                     </button>
                   )}
 
@@ -404,9 +593,9 @@ export default function Dashboard() {
               {/* Sem pasta */}
               {folderCounts["__none__"] > 0 && (
                 <button
-                  onClick={() => setSelectedFolderId("__none__")}
+                  onClick={() => setSelectedFolderId(selectedFolderId === -1 ? null : -1)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
-                    selectedFolderId === "__none__"
+                    selectedFolderId === -1
                       ? "bg-brand/10 text-brand border border-brand/20"
                       : "text-muted-foreground hover:bg-secondary border border-transparent"
                   }`}
@@ -457,7 +646,7 @@ export default function Dashboard() {
               <button onClick={() => setSelectedFolderId(null)} className="hover:text-foreground transition-colors">
                 Formulários
               </button>
-              {selectedFolderId && selectedFolderId !== "__none__" && (
+              {selectedFolderId !== null && selectedFolderId !== -1 && (
                 <>
                   <ChevronRight size={14} />
                   <span className="text-foreground font-medium">
@@ -465,7 +654,7 @@ export default function Dashboard() {
                   </span>
                 </>
               )}
-              {selectedFolderId === "__none__" && (
+              {selectedFolderId === -1 && (
                 <>
                   <ChevronRight size={14} />
                   <span className="text-foreground font-medium">Sem pasta</span>
@@ -473,9 +662,9 @@ export default function Dashboard() {
               )}
             </div>
             <h2 className="font-display text-3xl font-bold text-foreground tracking-tight">
-              {selectedFolderId && selectedFolderId !== "__none__"
+              {selectedFolderId !== null && selectedFolderId !== -1
                 ? folders.find((f) => f.id === selectedFolderId)?.name || "Meus formulários"
-                : selectedFolderId === "__none__"
+                : selectedFolderId === -1
                 ? "Sem pasta"
                 : "Meus formulários"}
             </h2>
@@ -504,7 +693,7 @@ export default function Dashboard() {
                     {filter.id !== "all" && (
                       <div
                         className="w-2 h-2 rounded-full shrink-0"
-                        style={{ background: getStatusConfig(filter.id as UserForm["status"]).dotColor }}
+                        style={{ background: getStatusConfig(filter.id as DashboardForm["status"]).dotColor }}
                       />
                     )}
                     {filter.label}
@@ -538,52 +727,63 @@ export default function Dashboard() {
             </DropdownMenu>
           </div>
 
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 size={32} className="animate-spin text-brand" />
+            </div>
+          )}
+
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <Link href="/editor">
-              <motion.div
-                className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                <div className="w-16 h-16 rounded-2xl bg-brand-lighter flex items-center justify-center transition-all duration-200 group-hover:bg-brand/10 group-hover:scale-110">
-                  <Plus size={28} className="text-brand" />
-                </div>
-                <div className="text-center">
-                  <p className="font-display text-base font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
-                    Criar novo formulário
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Comece do zero</p>
-                </div>
-              </motion.div>
-            </Link>
+          {!isLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <Link href="/editor">
+                <motion.div
+                  className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-brand-lighter flex items-center justify-center transition-all duration-200 group-hover:bg-brand/10 group-hover:scale-110">
+                    <Plus size={28} className="text-brand" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-display text-base font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
+                      Criar novo formulário
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">Comece do zero</p>
+                  </div>
+                </motion.div>
+              </Link>
 
-            <AnimatePresence mode="popLayout">
-              {filteredAndSortedForms.map((form, i) => (
-                <FormCard
-                  key={form.id}
-                  form={form}
-                  index={i}
-                  folders={folders}
-                  onNavigate={navigate}
-                  onRequestDelete={(f) => setDeleteTarget(f)}
-                  onDuplicate={handleDuplicate}
-                  onMoveToFolder={handleMoveToFolder}
-                  onExport={handleExportForm}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
+              <AnimatePresence mode="popLayout">
+                {filteredAndSortedForms.map((form, i) => (
+                  <FormCard
+                    key={form.id}
+                    form={form}
+                    index={i}
+                    folders={folders}
+                    onNavigate={navigate}
+                    onRequestDelete={(f) => setDeleteTarget(f)}
+                    onDuplicate={handleDuplicate}
+                    onMoveToFolder={handleMoveToFolder}
+                    onExport={handleExportForm}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
 
-          {filteredAndSortedForms.length === 0 && (
+          {!isLoading && filteredAndSortedForms.length === 0 && (
             <motion.div className="text-center py-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Search size={48} className="mx-auto text-muted-foreground/30 mb-4" />
               <p className="text-lg text-muted-foreground font-body">
                 {searchQuery
                   ? `Nenhum formulário encontrado para "${searchQuery}"`
+                  : forms.length === 0
+                  ? "Nenhum formulário criado ainda. Crie seu primeiro!"
                   : "Nenhum formulário nesta pasta"}
               </p>
-              {(statusFilter !== "all" || selectedFolderId) && (
+              {(statusFilter !== "all" || selectedFolderId !== null) && (
                 <button
                   onClick={() => { setStatusFilter("all"); setSelectedFolderId(null); }}
                   className="mt-4 text-sm font-body font-medium text-brand hover:underline"
@@ -611,9 +811,9 @@ export default function Dashboard() {
             <AlertDialogDescription className="text-base text-muted-foreground font-body leading-relaxed">
               Tem certeza que deseja excluir{" "}
               <span className="font-semibold text-foreground">"{deleteTarget?.title}"</span>?
-              {deleteTarget && deleteTarget.responsesCount > 0 && (
+              {deleteTarget && deleteTarget.responseCount > 0 && (
                 <span className="block mt-2 text-sm text-red-500 font-medium">
-                  Este formulário possui {deleteTarget.responsesCount} resposta{deleteTarget.responsesCount !== 1 ? "s" : ""}.
+                  Este formulário possui {deleteTarget.responseCount} resposta{deleteTarget.responseCount !== 1 ? "s" : ""}.
                 </span>
               )}
               <span className="block mt-2 text-sm">Esta ação não pode ser desfeita.</span>
@@ -671,20 +871,20 @@ export default function Dashboard() {
 /* ─── Form Card Component ─── */
 
 interface FormCardProps {
-  form: UserForm;
+  form: DashboardForm;
   index: number;
-  folders: Folder[];
+  folders: DashboardFolder[];
   onNavigate: (to: string) => void;
-  onRequestDelete: (form: UserForm) => void;
-  onDuplicate: (form: UserForm) => void;
-  onMoveToFolder: (formId: string, folderId: string | undefined) => void;
-  onExport: (form: UserForm) => void;
+  onRequestDelete: (form: DashboardForm) => void;
+  onDuplicate: (form: DashboardForm) => void;
+  onMoveToFolder: (formId: number, folderId: number | undefined) => void;
+  onExport: (form: DashboardForm) => void;
 }
 
 function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onMoveToFolder, onExport }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const currentFolder = folders.find((f) => f.id === form.folderId);
+  const currentFolder = folders.find((f) => String(f.id) === form.workspaceId);
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (dropdownOpen) {
@@ -692,6 +892,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       e.stopPropagation();
       return;
     }
+    // Navigate to editor using database ID
     onNavigate(`/editor/${form.id}`);
   };
 
@@ -707,15 +908,15 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
     >
       <div
         className="absolute top-0 left-8 right-8 h-[3px] rounded-b-full opacity-70 group-hover:opacity-100 transition-opacity"
-        style={{ background: `linear-gradient(90deg, transparent, ${form.color}, transparent)` }}
+        style={{ background: `linear-gradient(90deg, transparent, ${form.color ?? "#0D8BD9"}, transparent)` }}
       />
 
       <div className="flex items-start justify-between mb-4">
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: `${form.color}15`, border: `1px solid ${form.color}25` }}
+          style={{ background: `${form.color ?? "#0D8BD9"}15`, border: `1px solid ${form.color ?? "#0D8BD9"}25` }}
         >
-          <FileText size={20} style={{ color: form.color }} />
+          <FileText size={20} style={{ color: form.color ?? "#0D8BD9" }} />
         </div>
 
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -731,7 +932,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
               <Pencil size={15} className="mr-2" /> Editar
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); toast.info("Respostas", { description: `${form.responsesCount} respostas coletadas` }); }}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); toast.info("Respostas", { description: `${form.responseCount} respostas coletadas` }); }}>
               <BarChart3 size={15} className="mr-2" /> Ver respostas
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -750,7 +951,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                   <DropdownMenuItem
                     key={folder.id}
                     onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, folder.id); }}
-                    className={form.folderId === folder.id ? "bg-brand/5 font-semibold" : ""}
+                    className={form.workspaceId === String(folder.id) ? "bg-brand/5 font-semibold" : ""}
                   >
                     <div className="w-3 h-3 rounded shrink-0 mr-2" style={{ backgroundColor: folder.color }} />
                     {folder.name}
@@ -762,7 +963,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onDuplicate(form); }}>
               <Copy size={15} className="mr-2" /> Duplicar
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`https://formflow.app/f/${form.id}`); toast.success("Link copiado!"); }}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
               <Share2 size={15} className="mr-2" /> Compartilhar link
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
@@ -786,7 +987,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         </span>
         <span className="flex items-center gap-2">
           <Users size={14} />
-          {form.responsesCount} respostas
+          {form.responseCount} respostas
         </span>
       </div>
 
@@ -804,7 +1005,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
           )}
         </div>
         <span className="text-sm text-muted-foreground font-body">
-          {new Date(form.updatedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+          {form.updatedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
         </span>
       </div>
     </motion.div>

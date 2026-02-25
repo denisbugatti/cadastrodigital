@@ -48,9 +48,10 @@ type BuilderTab = "content" | "design" | "compartilhar" | "respostas";
 
 interface BuilderProps {
   initialForm?: import("@/lib/builderTypes").BuilderForm;
+  dbFormId?: number;
 }
 
-export default function Builder({ initialForm }: BuilderProps) {
+export default function Builder({ initialForm, dbFormId }: BuilderProps) {
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,7 +82,7 @@ export default function Builder({ initialForm }: BuilderProps) {
     restoreFromVersion,
     removeVersion,
     exportForm,
-  } = useBuilder(initialForm);
+  } = useBuilder(initialForm, { dbFormId });
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
   const [showPreview, setShowPreview] = useState(false);

@@ -30,3 +30,10 @@
 - [ ] Salvar progresso no localStorage ao responder
 - [ ] Ao reabrir o formulário, perguntar se quer continuar de onde parou
 - [ ] Limpar dados salvos ao completar o formulário
+
+## Full-Stack Migration (Database + S3)
+- [x] Create database schema (forms, questions, responses, versions, files)
+- [x] Create backend API routes (forms CRUD, responses, file uploads)
+- [x] Update frontend to use tRPC API instead of localStorage
+- [x] Integrate S3 file storage for form file uploads
+- [x] Test full-stack integration (28 tests passing)
