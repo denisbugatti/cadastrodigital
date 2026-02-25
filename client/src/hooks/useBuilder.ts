@@ -1,9 +1,10 @@
 /**
  * FormFlow Builder — State Management Hook
  * Manages the builder form state: questions, selection, reordering, conditional logic.
+ * Now with auto-save to localStorage.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   type BuilderForm,
   type BuilderQuestion,
@@ -15,12 +16,61 @@ import {
   createDefaultQuestion,
   createEmptyForm,
 } from "@/lib/builderTypes";
+import { saveForm, loadForm } from "@/lib/formStorage";
 
 export function useBuilder(initialForm?: BuilderForm) {
-  const [form, setForm] = useState<BuilderForm>(initialForm || createEmptyForm());
+  // Try to load from localStorage first, then use initialForm, then create empty
+  const [form, setForm] = useState<BuilderForm>(() => {
+    if (initialForm) {
+      // Check if there's a saved version in localStorage
+      const saved = loadForm(initialForm.id);
+      if (saved) {
+        return saved;
+      }
+      return initialForm;
+    }
+    return createEmptyForm();
+  });
+
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     form.questions[0]?.id || null
   );
+
+  // Track save status
+  const [isSaved, setIsSaved] = useState(true);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-save with debounce (500ms after last change)
+  useEffect(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    setIsSaved(false);
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveForm(form);
+      setIsSaved(true);
+      setLastSavedAt(new Date().toISOString());
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [form]);
+
+  // Manual save function
+  const saveNow = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveForm(form);
+    setIsSaved(true);
+    setLastSavedAt(new Date().toISOString());
+  }, [form]);
 
   const selectedQuestion = form.questions.find((q) => q.id === selectedQuestionId) || null;
 
@@ -30,7 +80,6 @@ export function useBuilder(initialForm?: BuilderForm) {
       const newQ = createDefaultQuestion(type);
       setForm((prev) => {
         const questions = [...prev.questions];
-        // Insert before the last question if it's thank-you
         const lastQ = questions[questions.length - 1];
         const insertIndex =
           lastQ?.type === "thank-you" ? questions.length - 1 : questions.length;
@@ -47,7 +96,6 @@ export function useBuilder(initialForm?: BuilderForm) {
     (questionId: string) => {
       setForm((prev) => {
         const questions = prev.questions.filter((q) => q.id !== questionId);
-        // Also clean up conditional logic references
         const cleaned = questions.map((q) => ({
           ...q,
           conditionalLogic: {
@@ -105,7 +153,6 @@ export function useBuilder(initialForm?: BuilderForm) {
         if (idx === -1) return prev;
 
         const targetIdx = direction === "up" ? idx - 1 : idx + 1;
-        // Don't move welcome (first) or thank-you (last) out of position
         if (targetIdx < 0 || targetIdx >= questions.length) return prev;
         if (questions[idx].type === "welcome" || questions[idx].type === "thank-you")
           return prev;
@@ -246,9 +293,7 @@ export function useBuilder(initialForm?: BuilderForm) {
         const oldIndex = questions.findIndex((q) => q.id === activeId);
         const newIndex = questions.findIndex((q) => q.id === overId);
         if (oldIndex === -1 || newIndex === -1) return prev;
-        // Don't allow moving welcome or thank-you
         if (questions[oldIndex].type === "welcome" || questions[oldIndex].type === "thank-you") return prev;
-        // Don't allow placing before welcome or after thank-you
         if (questions[newIndex].type === "welcome" && newIndex === 0) return prev;
         const [removed] = questions.splice(oldIndex, 1);
         questions.splice(newIndex, 0, removed);
@@ -295,5 +340,9 @@ export function useBuilder(initialForm?: BuilderForm) {
     updateChoice,
     removeChoice,
     getConditionalTargets,
+    // Save state
+    isSaved,
+    lastSavedAt,
+    saveNow,
   };
 }

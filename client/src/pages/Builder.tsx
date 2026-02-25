@@ -11,7 +11,7 @@ import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
-  FileText,
+  FileText, Save, Check, Cloud,
 } from "lucide-react";
 import { useBuilder } from "@/hooks/useBuilder";
 import { BuilderSidebar } from "@/components/builder/BuilderSidebar";
@@ -53,6 +53,9 @@ export default function Builder({ initialForm }: BuilderProps) {
     updateChoice,
     removeChoice,
     getConditionalTargets,
+    isSaved,
+    lastSavedAt,
+    saveNow,
   } = useBuilder(initialForm);
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
@@ -118,8 +121,32 @@ export default function Builder({ initialForm }: BuilderProps) {
           })}
         </nav>
 
-        {/* Right: Preview + Publish */}
+        {/* Right: Save + Preview + Publish */}
         <div className="flex items-center gap-2">
+          {/* Save indicator */}
+          <button
+            onClick={() => {
+              saveNow();
+              toast.success("Formulário salvo!", { description: "Todas as alterações foram salvas." });
+            }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-body font-medium transition-all ${
+              isSaved
+                ? "text-green-600 bg-green-50 hover:bg-green-100"
+                : "text-amber-600 bg-amber-50 hover:bg-amber-100 animate-pulse"
+            }`}
+          >
+            {isSaved ? (
+              <>
+                <Cloud size={15} />
+                Salvo
+              </>
+            ) : (
+              <>
+                <Save size={15} />
+                Salvando...
+              </>
+            )}
+          </button>
           <button
             onClick={() => setShowPreview(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
