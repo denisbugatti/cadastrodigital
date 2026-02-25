@@ -16,7 +16,7 @@ import {
   createDefaultQuestion,
   createEmptyForm,
 } from "@/lib/builderTypes";
-import { saveForm, loadForm } from "@/lib/formStorage";
+import { saveForm, saveFormWithVersion, loadForm, getVersionHistory, restoreVersion, deleteVersion, exportFormAsJSON, type FormVersion } from "@/lib/formStorage";
 
 export function useBuilder(initialForm?: BuilderForm) {
   // Try to load from localStorage first, then use initialForm, then create empty
@@ -92,6 +92,42 @@ export function useBuilder(initialForm?: BuilderForm) {
     saveForm(form);
     setIsSaved(true);
     setLastSavedAt(new Date().toISOString());
+  }, [form]);
+
+  // Save with version snapshot (manual checkpoint)
+  const saveVersion = useCallback((label?: string) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveFormWithVersion(form, label);
+    setIsSaved(true);
+    setLastSavedAt(new Date().toISOString());
+  }, [form]);
+
+  // Get version history
+  const getHistory = useCallback((): FormVersion[] => {
+    return getVersionHistory(form.id);
+  }, [form.id]);
+
+  // Restore a version
+  const restoreFromVersion = useCallback((versionId: string) => {
+    const restored = restoreVersion(form.id, versionId);
+    if (restored) {
+      setForm(restored);
+      setIsSaved(true);
+      setLastSavedAt(new Date().toISOString());
+    }
+    return restored;
+  }, [form.id]);
+
+  // Delete a version
+  const removeVersion = useCallback((versionId: string) => {
+    deleteVersion(form.id, versionId);
+  }, [form.id]);
+
+  // Export form as JSON
+  const exportForm = useCallback(() => {
+    exportFormAsJSON(form);
   }, [form]);
 
   const selectedQuestion = form.questions.find((q) => q.id === selectedQuestionId) || null;
@@ -366,5 +402,12 @@ export function useBuilder(initialForm?: BuilderForm) {
     isSaved,
     lastSavedAt,
     saveNow,
+    // Version history
+    saveVersion,
+    getHistory,
+    restoreFromVersion,
+    removeVersion,
+    // Export
+    exportForm,
   };
 }

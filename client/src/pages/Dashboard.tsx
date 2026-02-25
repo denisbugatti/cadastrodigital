@@ -4,7 +4,7 @@
  * Features: pastas, busca, filtros por status, ordenação, duplicar, excluir
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
@@ -25,6 +25,8 @@ import {
   FolderPlus,
   ChevronRight,
   X,
+  Download,
+  Upload,
 } from "lucide-react";
 import {
   userForms as initialForms,
@@ -53,6 +55,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { importFormFromJSON, exportFormAsJSON, loadForm } from "@/lib/formStorage";
 
 /* ─── Types ─── */
 
@@ -104,6 +107,43 @@ export default function Dashboard() {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [, navigate] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Import form from JSON file
+  const handleImportForm = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const imported = await importFormFromJSON(file);
+    if (imported) {
+      const newForm: UserForm = {
+        id: imported.id,
+        title: imported.title,
+        description: imported.description || "Formulário importado",
+        status: "draft",
+        questionsCount: imported.questions.length,
+        responsesCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        color: "#0D8BD9",
+      };
+      setForms((prev) => [newForm, ...prev]);
+      toast.success("Formulário importado!", { description: `"${imported.title}" foi adicionado.` });
+    } else {
+      toast.error("Erro ao importar", { description: "O arquivo não é um formulário FormFlow válido." });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  // Export form as JSON
+  const handleExportForm = useCallback((form: UserForm) => {
+    const savedForm = loadForm(form.id);
+    if (savedForm) {
+      exportFormAsJSON(savedForm);
+      toast.success("Formulário exportado!", { description: `"${form.title}" foi baixado como JSON.` });
+    } else {
+      toast.error("Erro ao exportar", { description: "Este formulário não possui dados salvos localmente." });
+    }
+  }, []);
 
   const filteredAndSortedForms = useMemo(() => {
     let result = [...forms];
@@ -248,6 +288,15 @@ export default function Dashboard() {
             />
           </div>
 
+          {/* Import button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-secondary text-foreground font-body text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
+          >
+            <Upload size={18} />
+            Importar
+          </button>
+
           <Link href="/editor">
             <motion.button
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
@@ -259,6 +308,15 @@ export default function Dashboard() {
           </Link>
         </div>
       </header>
+
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleImportForm}
+      />
 
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
         {/* ─── Folder Sidebar ─── */}
@@ -511,6 +569,7 @@ export default function Dashboard() {
                   onRequestDelete={(f) => setDeleteTarget(f)}
                   onDuplicate={handleDuplicate}
                   onMoveToFolder={handleMoveToFolder}
+                  onExport={handleExportForm}
                 />
               ))}
             </AnimatePresence>
@@ -619,9 +678,10 @@ interface FormCardProps {
   onRequestDelete: (form: UserForm) => void;
   onDuplicate: (form: UserForm) => void;
   onMoveToFolder: (formId: string, folderId: string | undefined) => void;
+  onExport: (form: UserForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onMoveToFolder }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onMoveToFolder, onExport }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const currentFolder = folders.find((f) => f.id === form.folderId);
@@ -704,6 +764,9 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`https://formflow.app/f/${form.id}`); toast.success("Link copiado!"); }}>
               <Share2 size={15} className="mr-2" /> Compartilhar link
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
+              <Download size={15} className="mr-2" /> Exportar JSON
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onRequestDelete(form); }}>

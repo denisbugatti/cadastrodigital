@@ -4,14 +4,16 @@
  * Center: Live preview of selected question (editable inline)
  * Right: Config panel (settings, media, logic)
  * Top: Tab bar (Content, Design, Share, Responses)
+ * Features: Version history, export/import JSON
  */
 
-import { useState, useMemo, useCallback } from "react";
-import { useLocation, Link } from "wouter";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
-  FileText, Save, Check, Cloud,
+  FileText, Save, Cloud, Download, Upload, History,
+  RotateCcw, Trash2, X, Clock, MoreVertical,
 } from "lucide-react";
 import { useBuilder } from "@/hooks/useBuilder";
 import { BuilderSidebar } from "@/components/builder/BuilderSidebar";
@@ -22,6 +24,7 @@ import { SharingPanel } from "@/components/builder/SharingPanel";
 import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { BuilderLivePreview } from "@/components/builder/BuilderLivePreview";
 import { WebhookPanel } from "@/components/builder/WebhookPanel";
+import { importFormFromJSON, type FormVersion } from "@/lib/formStorage";
 
 import { toast } from "sonner";
 import {
@@ -33,6 +36,13 @@ import {
   AlertDialogTitle,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type BuilderTab = "content" | "design" | "compartilhar" | "respostas";
 
@@ -42,6 +52,7 @@ interface BuilderProps {
 
 export default function Builder({ initialForm }: BuilderProps) {
   const [, navigate] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     form,
@@ -65,11 +76,19 @@ export default function Builder({ initialForm }: BuilderProps) {
     isSaved,
     lastSavedAt,
     saveNow,
+    saveVersion,
+    getHistory,
+    restoreFromVersion,
+    removeVersion,
+    exportForm,
   } = useBuilder(initialForm);
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
   const [showPreview, setShowPreview] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<FormVersion[]>([]);
+  const [restoreTarget, setRestoreTarget] = useState<FormVersion | null>(null);
 
   // Handle back navigation with unsaved changes guard
   const handleBack = useCallback(() => {
@@ -91,6 +110,58 @@ export default function Builder({ initialForm }: BuilderProps) {
     navigate("/form");
   }, [saveNow, navigate]);
 
+  // Version history
+  const openHistory = useCallback(() => {
+    setVersionHistory(getHistory());
+    setShowHistoryPanel(true);
+  }, [getHistory]);
+
+  const handleSaveVersion = useCallback(() => {
+    const label = `Versão manual — ${new Date().toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`;
+    saveVersion(label);
+    toast.success("Versão salva!", { description: "Um ponto de restauração foi criado." });
+    setVersionHistory(getHistory());
+  }, [saveVersion, getHistory]);
+
+  const handleRestoreVersion = useCallback((version: FormVersion) => {
+    setRestoreTarget(version);
+  }, []);
+
+  const confirmRestore = useCallback(() => {
+    if (!restoreTarget) return;
+    const restored = restoreFromVersion(restoreTarget.id);
+    if (restored) {
+      toast.success("Versão restaurada!", { description: `Restaurado para: ${restoreTarget.label}` });
+      setVersionHistory(getHistory());
+    } else {
+      toast.error("Erro ao restaurar versão");
+    }
+    setRestoreTarget(null);
+  }, [restoreTarget, restoreFromVersion, getHistory]);
+
+  const handleDeleteVersion = useCallback((versionId: string) => {
+    removeVersion(versionId);
+    setVersionHistory(getHistory());
+    toast.success("Versão removida");
+  }, [removeVersion, getHistory]);
+
+  // Import
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const imported = await importFormFromJSON(file);
+    if (imported) {
+      toast.success("Formulário importado!", { description: `"${imported.title}" foi adicionado à sua lista.` });
+    } else {
+      toast.error("Erro ao importar", { description: "O arquivo não é um formulário FormFlow válido." });
+    }
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
 
   const conditionalTargets = useMemo(
     () => (selectedQuestionId ? getConditionalTargets(selectedQuestionId) : []),
@@ -106,6 +177,15 @@ export default function Builder({ initialForm }: BuilderProps) {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleFileImport}
+      />
+
       {/* ─── Top Bar ─── */}
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 shrink-0 z-50">
         {/* Left: Back + Form name */}
@@ -152,7 +232,7 @@ export default function Builder({ initialForm }: BuilderProps) {
           })}
         </nav>
 
-        {/* Right: Save + Preview + Publish */}
+        {/* Right: Save + More menu + Preview + Publish */}
         <div className="flex items-center gap-2">
           {/* Save indicator */}
           <button
@@ -160,7 +240,7 @@ export default function Builder({ initialForm }: BuilderProps) {
               saveNow();
               toast.success("Formulário salvo!", { description: "Todas as alterações foram salvas." });
             }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-body font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-body font-medium transition-all ${
               isSaved
                 ? "text-green-600 bg-green-50 hover:bg-green-100"
                 : "text-amber-600 bg-amber-50 hover:bg-amber-100 animate-pulse"
@@ -178,6 +258,35 @@ export default function Builder({ initialForm }: BuilderProps) {
               </>
             )}
           </button>
+
+          {/* More actions menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                <MoreVertical size={18} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-56">
+              <DropdownMenuItem onClick={handleSaveVersion}>
+                <Save size={15} className="mr-2" />
+                Criar ponto de restauração
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={openHistory}>
+                <History size={15} className="mr-2" />
+                Histórico de versões
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportForm}>
+                <Download size={15} className="mr-2" />
+                Exportar como JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImportClick}>
+                <Upload size={15} className="mr-2" />
+                Importar formulário
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <button
             onClick={() => setShowPreview(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
@@ -449,6 +558,135 @@ export default function Builder({ initialForm }: BuilderProps) {
         onClose={() => setShowPreview(false)}
       />
 
+      {/* ─── Version History Side Panel ─── */}
+      <AnimatePresence>
+        {showHistoryPanel && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 z-[60]"
+              onClick={() => setShowHistoryPanel(false)}
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed top-0 right-0 h-full w-[400px] bg-white border-l border-border shadow-2xl z-[61] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <History size={18} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base font-bold text-foreground">Histórico de versões</h3>
+                    <p className="text-xs text-muted-foreground">Últimas {versionHistory.length} versões salvas</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowHistoryPanel(false)}
+                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Save version button */}
+              <div className="px-6 py-3 border-b border-border shrink-0">
+                <button
+                  onClick={handleSaveVersion}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all brand-shadow"
+                >
+                  <Save size={15} />
+                  Criar ponto de restauração
+                </button>
+              </div>
+
+              {/* Version list */}
+              <div className="flex-1 overflow-y-auto">
+                {versionHistory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                    <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
+                      <Clock size={28} className="text-muted-foreground/40" />
+                    </div>
+                    <p className="text-base font-body font-medium text-foreground mb-1">Nenhuma versão salva</p>
+                    <p className="text-sm text-muted-foreground">
+                      Clique em "Criar ponto de restauração" para salvar o estado atual do formulário.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {versionHistory.map((version, index) => (
+                      <div
+                        key={version.id}
+                        className="px-6 py-4 hover:bg-secondary/30 transition-colors group"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${index === 0 ? "bg-green-500" : "bg-muted-foreground/30"}`} />
+                              <span className="text-sm font-body font-semibold text-foreground line-clamp-1">
+                                {version.label}
+                              </span>
+                              {index === 0 && (
+                                <span className="text-[10px] font-body font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-md uppercase">
+                                  Mais recente
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground ml-4.5">
+                              {new Date(version.savedAt).toLocaleString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                            <p className="text-xs text-muted-foreground/70 ml-4.5 mt-0.5">
+                              {version.data.questions.length} perguntas
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleRestoreVersion(version)}
+                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Restaurar esta versão"
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteVersion(version.id)}
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                              title="Excluir esta versão"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer info */}
+              <div className="px-6 py-3 border-t border-border bg-secondary/30 shrink-0">
+                <p className="text-xs text-muted-foreground text-center">
+                  Máximo de 5 versões. Versões mais antigas são removidas automaticamente.
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
         <AlertDialogContent>
@@ -473,6 +711,32 @@ export default function Builder({ initialForm }: BuilderProps) {
               className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-brand text-white hover:bg-brand-dark transition-colors"
             >
               Salvar e sair
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Version Confirmation Dialog */}
+      <AlertDialog open={!!restoreTarget} onOpenChange={(open) => !open && setRestoreTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restaurar versão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja restaurar o formulário para a versão{" "}
+              <span className="font-semibold text-foreground">"{restoreTarget?.label}"</span>?
+              <span className="block mt-2 text-sm">
+                O estado atual será substituído. Considere criar um ponto de restauração antes.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <button
+              onClick={confirmRestore}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-brand text-white hover:bg-brand-dark transition-colors gap-1.5"
+            >
+              <RotateCcw size={14} />
+              Restaurar
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>
