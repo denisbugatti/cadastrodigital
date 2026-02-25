@@ -2,6 +2,7 @@
  * FormFlow Multiple Choice — Typeform/Respondi-style
  * Letter prefix (A, B, C), animated selection with checkmark,
  * auto-advance after selection, adapts to form design colors.
+ * White borders on dark backgrounds for better visibility.
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,8 +31,6 @@ export function MultipleChoiceInput({
     (choiceId: string) => {
       setJustSelected(choiceId);
       onChange(choiceId);
-      // Auto-advance after brief animation delay, passing the selected value
-      // for conditional logic (React state hasn't updated yet)
       if (onAutoAdvance) {
         setTimeout(() => onAutoAdvance(choiceId), 600);
       }
@@ -40,7 +39,6 @@ export function MultipleChoiceInput({
     [onChange, onAutoAdvance]
   );
 
-  // Keyboard shortcuts (A, B, C...)
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const index = LETTERS.indexOf(e.key.toUpperCase());
@@ -71,10 +69,10 @@ export function MultipleChoiceInput({
             className="group w-full flex items-center gap-3 sm:gap-4 px-4 py-3 sm:py-3.5 rounded-lg text-left transition-all duration-200 border"
             style={{
               borderColor: isSelected
-                ? "currentColor"
-                : "rgba(128,128,128,0.25)",
+                ? "rgba(255,255,255,0.9)"
+                : "rgba(255,255,255,0.3)",
               backgroundColor: isSelected
-                ? "rgba(128,128,128,0.08)"
+                ? "rgba(255,255,255,0.12)"
                 : "transparent",
             }}
             initial={{ opacity: 0, y: 15 }}
@@ -88,11 +86,11 @@ export function MultipleChoiceInput({
             }}
             whileHover={{
               backgroundColor: isSelected
-                ? "rgba(128,128,128,0.12)"
-                : "rgba(128,128,128,0.05)",
+                ? "rgba(255,255,255,0.15)"
+                : "rgba(255,255,255,0.06)",
               borderColor: isSelected
-                ? "currentColor"
-                : "rgba(128,128,128,0.4)",
+                ? "rgba(255,255,255,1)"
+                : "rgba(255,255,255,0.5)",
             }}
             whileTap={{ scale: 0.98 }}
           >
@@ -101,11 +99,12 @@ export function MultipleChoiceInput({
               className="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-md text-xs font-bold shrink-0 transition-all duration-300 border"
               style={{
                 borderColor: isSelected
-                  ? "currentColor"
-                  : "rgba(128,128,128,0.3)",
+                  ? "rgba(255,255,255,0.9)"
+                  : "rgba(255,255,255,0.4)",
                 backgroundColor: isSelected
-                  ? "currentColor"
+                  ? "rgba(255,255,255,0.9)"
                   : "transparent",
+                color: isSelected ? "#1a1a2e" : "inherit",
               }}
             >
               {isSelected ? (
@@ -114,10 +113,10 @@ export function MultipleChoiceInput({
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 20 }}
                 >
-                  <Check size={14} className="text-white mix-blend-difference" strokeWidth={3} />
+                  <Check size={14} strokeWidth={3} />
                 </motion.span>
               ) : (
-                <span className="opacity-60">{letter}</span>
+                <span className="opacity-80">{letter}</span>
               )}
             </span>
 
@@ -139,9 +138,9 @@ export function MultipleChoiceInput({
                 >
                   <div
                     className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "currentColor" }}
+                    style={{ backgroundColor: "rgba(255,255,255,0.9)" }}
                   >
-                    <Check size={12} className="text-white mix-blend-difference" strokeWidth={3} />
+                    <Check size={12} className="text-gray-900" strokeWidth={3} />
                   </div>
                 </motion.div>
               )}
@@ -150,8 +149,8 @@ export function MultipleChoiceInput({
             {/* Keyboard hint on hover */}
             {!isSelected && (
               <span
-                className="hidden sm:flex items-center justify-center w-6 h-6 rounded border text-[10px] font-mono opacity-0 group-hover:opacity-30 transition-opacity"
-                style={{ borderColor: "rgba(128,128,128,0.3)" }}
+                className="hidden sm:flex items-center justify-center w-6 h-6 rounded border text-[10px] font-mono opacity-0 group-hover:opacity-40 transition-opacity"
+                style={{ borderColor: "rgba(255,255,255,0.3)" }}
               >
                 {letter}
               </span>
@@ -162,9 +161,9 @@ export function MultipleChoiceInput({
 
       {/* Hint */}
       <motion.p
-        className="mt-2 text-xs sm:text-sm opacity-30"
+        className="mt-2 text-xs sm:text-sm opacity-40"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
+        animate={{ opacity: 0.4 }}
         transition={{ delay: 0.5 }}
       >
         Pressione a letra ou clique para selecionar

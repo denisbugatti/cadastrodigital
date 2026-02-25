@@ -1,20 +1,32 @@
-# FormFlow Redesign — Todo List
+# FormFlow - Melhorias v3
 
-## Tema Claro + Fontes Maiores
-- [ ] Reescrever index.css com paleta light
-- [ ] Aumentar todos os tamanhos de fonte
-- [ ] Atualizar App.tsx para defaultTheme="light"
+## Editor Estilo Typeform (3 colunas)
+- [ ] Redesign do Builder.tsx para layout 3 colunas: sidebar perguntas | preview central | painel configurações
+- [ ] Sidebar esquerda: lista de perguntas com ícones de tipo, drag-and-drop, botão "+ Add content"
+- [ ] Centro: preview live da pergunta selecionada (editável inline)
+- [ ] Direita: painel de configurações (tipo de resposta, branching, obrigatório, etc.)
 
-## Dashboard
-- [ ] Remover galeria de templates
-- [ ] Aplicar tema claro
+## Visual do Formulário (Preview/Respondente)
+- [ ] Bordas dos botões de múltipla escolha → brancas (não azul escuro)
+- [ ] Melhorar contraste geral — textos mais legíveis
+- [ ] Motion/animações suaves ao mudar de pergunta (slide + fade)
+- [ ] Barra de progresso "Pergunta X de Y" no rodapé
+- [ ] Botão voltar (seta para cima) funcional
 
-## Builder + Abas
-- [ ] Aplicar tema claro em todos os componentes do builder
-- [ ] Aplicar tema claro em todas as abas (Opções, Compartilhar, Respostas)
+## Tipo Capa/Statement
+- [ ] Adicionar tipo "statement" ao builder (pergunta divisória com título + descrição + botão continuar)
+- [ ] Redesign visual do statement/capa — mais elegante, com ícone ou imagem opcional
+- [ ] Atualizar o Check List do One Innovation para usar o novo visual
 
-## Formulário Conversacional
-- [ ] Aplicar tema claro no FormContainer e inputs
+## Gráficos na Aba Respostas
+- [ ] Gráfico de pizza: distribuição PF vs PJ
+- [ ] Gráfico de barras: respostas por dia
+- [ ] Cards de estatísticas melhorados
 
-## Botões Não Funcionais
-- [ ] Verificar e corrigir todos os botões
+## Duplicar Formulário
+- [ ] Botão de duplicar/clonar formulário no dashboard
+
+## Salvar Respostas Parciais
+- [ ] Salvar progresso no localStorage ao responder
+- [ ] Ao reabrir o formulário, perguntar se quer continuar de onde parou
+- [ ] Limpar dados salvos ao completar o formulário

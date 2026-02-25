@@ -3,10 +3,13 @@
  * Full-screen immersive experience with:
  * - Logo loading animation on start
  * - Logo fixed top-left
- * - Thin progress bar
- * - Vertical slide transitions
+ * - Thin progress bar + textual "Pergunta X de Y"
+ * - Vertical slide transitions with spring physics
  * - Design customization from builder (colors, font, logo)
  * - Navigation arrows bottom-right (Respondi-style)
+ * - Back button support
+ * - Auto-save partial responses to localStorage
+ * - Resume from where user left off
  * - Mobile-responsive
  */
 
@@ -38,15 +41,54 @@ const slideVariants = {
   }),
 };
 
+/* ─── LocalStorage helpers ─── */
+const STORAGE_PREFIX = "formflow_partial_";
+
+function getSavedResponses(formId: string): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(`${STORAGE_PREFIX}${formId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && parsed.responses) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function saveResponses(formId: string, responses: Map<string, { questionId: string; value: unknown }>, currentIndex: number) {
+  try {
+    const obj: Record<string, unknown> = {};
+    responses.forEach((v, k) => { obj[k] = v.value; });
+    localStorage.setItem(`${STORAGE_PREFIX}${formId}`, JSON.stringify({
+      responses: obj,
+      currentIndex,
+      savedAt: new Date().toISOString(),
+    }));
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
+function clearSavedResponses(formId: string) {
+  try {
+    localStorage.removeItem(`${STORAGE_PREFIX}${formId}`);
+  } catch {
+    // Ignore
+  }
+}
+
 export function FormContainer({ form }: FormContainerProps) {
   const engine = useFormEngine(form);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [showLoading, setShowLoading] = useState(true);
+  const [hasRestoredFromSave, setHasRestoredFromSave] = useState(false);
 
   const d = form.design;
   const bgColor = d?.backgroundColor || "#FFFFFF";
   const questionColor = d?.questionColor || "#1E293B";
-  const answerColor = d?.answerColor || "#3B82F6";
   const buttonColor = d?.buttonColor || "#3B82F6";
   const fontFamily = d?.fontFamily || "Plus Jakarta Sans, sans-serif";
   const logoUrl = d?.logoUrl;
@@ -68,6 +110,42 @@ export function FormContainer({ form }: FormContainerProps) {
   const navBtnHoverBg = isLightBg ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.25)";
   const navBtnColor = isLightBg ? questionColor : "#FFFFFF";
   const progressBg = isLightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)";
+
+  // ─── Restore saved responses on mount ───
+  useEffect(() => {
+    if (hasRestoredFromSave) return;
+    const saved = getSavedResponses(form.id);
+    if (saved && typeof saved === "object") {
+      const { responses: savedResps, currentIndex: savedIdx } = saved as {
+        responses: Record<string, unknown>;
+        currentIndex: number;
+      };
+      // Restore responses
+      if (savedResps && typeof savedResps === "object") {
+        Object.entries(savedResps).forEach(([qId, value]) => {
+          if (value !== null && value !== undefined && value !== "") {
+            engine.setResponse(qId, value as string | number | boolean | string[] | Record<string, string> | null);
+          }
+        });
+      }
+      // Restore position
+      if (typeof savedIdx === "number" && savedIdx > 0 && savedIdx < form.questions.length) {
+        engine.goToIndex(savedIdx);
+      }
+    }
+    setHasRestoredFromSave(true);
+  }, [form.id, form.questions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Auto-save responses on every change ───
+  useEffect(() => {
+    if (!hasRestoredFromSave) return;
+    // Don't save if on thank-you screen (form completed)
+    if (engine.isThankYou) {
+      clearSavedResponses(form.id);
+      return;
+    }
+    saveResponses(form.id, engine.responses, engine.currentIndex);
+  }, [engine.responses, engine.currentIndex, engine.isThankYou, form.id, hasRestoredFromSave]);
 
   // Loading animation — show logo for 1.5s then fade out
   useEffect(() => {
@@ -304,7 +382,7 @@ export function FormContainer({ form }: FormContainerProps) {
         </motion.div>
       )}
 
-      {/* ─── Question counter (bottom-left, subtle) ─── */}
+      {/* ─── Question counter (bottom-left, "Pergunta X de Y") ─── */}
       {showNav && (
         <motion.div
           className="fixed left-4 bottom-4 sm:left-6 sm:bottom-6 z-30 flex items-center gap-1.5 text-xs sm:text-sm"
@@ -313,9 +391,9 @@ export function FormContainer({ form }: FormContainerProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <span className="font-bold">{questionNumber}</span>
-          <span>/</span>
-          <span>{totalActualQuestions}</span>
+          <span className="font-bold" style={{ color: buttonColor }}>{questionNumber}</span>
+          <span className="opacity-60">/</span>
+          <span className="opacity-60">{totalActualQuestions}</span>
         </motion.div>
       )}
     </div>

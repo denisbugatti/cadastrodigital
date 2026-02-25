@@ -90,6 +90,149 @@ function generateSampleResponses(questions: BuilderQuestion[]): SimulatedRespons
 
 type DateFilter = "all" | "today" | "7days" | "30days" | "custom";
 
+/* ─── Pie Chart Component ─── */
+function ResponsePieChart({ responses, questions }: { responses: SimulatedResponse[]; questions: BuilderQuestion[] }) {
+  // Find the multiple-choice question that has PF/PJ
+  const pfPjQ = questions.find(q => 
+    q.type === "multiple-choice" && 
+    q.choices.some(c => c.label.toLowerCase().includes("pessoa") || c.label.toLowerCase().includes("cpf") || c.label.toLowerCase().includes("cnpj"))
+  );
+
+  const data = useMemo(() => {
+    if (!pfPjQ) {
+      // Fallback: count complete vs partial
+      const complete = responses.filter(r => r.status === "complete").length;
+      const partial = responses.filter(r => r.status === "partial").length;
+      return [
+        { label: "Completas", value: complete, color: "#10B981" },
+        { label: "Parciais", value: partial, color: "#F59E0B" },
+      ];
+    }
+    // Count per choice
+    const counts: Record<string, number> = {};
+    pfPjQ.choices.forEach(c => { counts[c.label] = 0; });
+    responses.forEach(r => {
+      const answer = r.answers[pfPjQ.id];
+      if (answer && counts[answer] !== undefined) counts[answer]++;
+    });
+    const colors = ["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"];
+    return Object.entries(counts).map(([label, value], i) => ({
+      label,
+      value,
+      color: colors[i % colors.length],
+    }));
+  }, [responses, pfPjQ]);
+
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return null;
+
+  // SVG pie chart
+  let cumulativeAngle = 0;
+  const segments = data.map(d => {
+    const angle = (d.value / total) * 360;
+    const startAngle = cumulativeAngle;
+    cumulativeAngle += angle;
+    return { ...d, startAngle, angle };
+  });
+
+  function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+    const rad = ((angleDeg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+    const start = polarToCartesian(cx, cy, r, endAngle);
+    const end = polarToCartesian(cx, cy, r, startAngle);
+    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
+  }
+
+  return (
+    <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
+      <p className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        {pfPjQ ? "Distribuição PF / PJ" : "Status das Respostas"}
+      </p>
+      <div className="flex items-center gap-4">
+        <svg viewBox="0 0 100 100" className="w-20 h-20 shrink-0">
+          {segments.map((seg, i) => (
+            <path
+              key={i}
+              d={seg.angle >= 359.99
+                ? `M 50 5 A 45 45 0 1 1 49.99 5 Z`
+                : arcPath(50, 50, 45, seg.startAngle, seg.startAngle + seg.angle)
+              }
+              fill={seg.color}
+              className="transition-all duration-300"
+            />
+          ))}
+          <circle cx="50" cy="50" r="25" fill="white" />
+          <text x="50" y="53" textAnchor="middle" className="text-[11px] font-bold fill-current">{total}</text>
+        </svg>
+        <div className="flex flex-col gap-1.5">
+          {data.map(d => (
+            <div key={d.label} className="flex items-center gap-2 text-xs font-body">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+              <span className="text-muted-foreground">{d.label}</span>
+              <span className="font-semibold text-foreground ml-auto">{d.value}</span>
+              <span className="text-muted-foreground/50">({Math.round(d.value / total * 100)}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Bar Chart Component ─── */
+function ResponseBarChart({ responses }: { responses: SimulatedResponse[] }) {
+  const dailyData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const now = new Date();
+    // Last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      counts[key] = 0;
+    }
+    responses.forEach(r => {
+      const d = new Date(r.submittedAt);
+      const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      if (counts[key] !== undefined) counts[key]++;
+    });
+    return Object.entries(counts).map(([date, count]) => ({ date, count }));
+  }, [responses]);
+
+  const maxCount = Math.max(...dailyData.map(d => d.count), 1);
+
+  return (
+    <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
+      <p className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        Respostas por dia (últimos 7 dias)
+      </p>
+      <div className="flex items-end gap-1.5 h-20">
+        {dailyData.map(d => (
+          <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+            <motion.div
+              className="w-full rounded-t-md min-h-[2px]"
+              style={{
+                backgroundColor: d.count > 0 ? "#3B82F6" : "#E2E8F0",
+                height: `${Math.max((d.count / maxCount) * 100, 3)}%`,
+              }}
+              initial={{ height: 0 }}
+              animate={{ height: `${Math.max((d.count / maxCount) * 100, 3)}%` }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            />
+            <span className="text-[9px] font-body text-muted-foreground/60 leading-none">
+              {d.date.split("/")[0]}/{d.date.split("/")[1]}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }: ResponsesPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
@@ -250,7 +393,15 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
           ))}
         </div>
 
-        {/* Filters row */}
+        {/* ─── Charts ─── */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* Pie chart - PF vs PJ */}
+          <ResponsePieChart responses={responses} questions={actualQuestions} />
+          {/* Bar chart - Responses per day */}
+          <ResponseBarChart responses={responses} />
+        </div>
+
+      {/* Filters row */}
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="flex-1 relative">

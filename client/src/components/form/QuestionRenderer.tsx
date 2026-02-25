@@ -67,7 +67,7 @@ export function QuestionRenderer({
     return <ThankYouScreen question={question} design={design} />;
   }
   if (question.type === "statement") {
-    return <StatementScreen question={question} onNext={onNext} />;
+    return <StatementScreen question={question} onNext={onNext} design={design} />;
   }
 
   // Regular question with header

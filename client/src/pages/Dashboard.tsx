@@ -142,6 +142,22 @@ export default function Dashboard() {
     setDeleteTarget(form);
   };
 
+  const handleDuplicate = (form: UserForm) => {
+    const newForm: UserForm = {
+      ...form,
+      id: `${form.id}_copy_${Date.now()}`,
+      title: `${form.title} (cópia)`,
+      status: "draft" as const,
+      responsesCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setForms((prev) => [newForm, ...prev]);
+    toast.success("Formulário duplicado!", {
+      description: `"${form.title}" foi duplicado como rascunho.`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -299,6 +315,7 @@ export default function Dashboard() {
                   index={i}
                   onNavigate={navigate}
                   onRequestDelete={handleRequestDelete}
+                  onDuplicate={handleDuplicate}
                 />
               ))}
             </AnimatePresence>
@@ -380,9 +397,10 @@ interface FormCardProps {
   index: number;
   onNavigate: (to: string) => void;
   onRequestDelete: (form: UserForm) => void;
+  onDuplicate: (form: UserForm) => void;
 }
 
-function FormCard({ form, index, onNavigate, onRequestDelete }: FormCardProps) {
+function FormCard({ form, index, onNavigate, onRequestDelete, onDuplicate }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -464,9 +482,7 @@ function FormCard({ form, index, onNavigate, onRequestDelete }: FormCardProps) {
                 e.stopPropagation();
                 e.preventDefault();
                 setDropdownOpen(false);
-                toast.success("Formulário duplicado!", {
-                  description: `"${form.title}" foi duplicado com sucesso.`,
-                });
+                onDuplicate(form);
               }}
             >
               <Copy size={15} className="mr-2" /> Duplicar
