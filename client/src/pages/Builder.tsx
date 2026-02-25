@@ -96,7 +96,7 @@ export default function Builder() {
         <div className="h-14 flex items-center justify-between px-5">
           {/* Left: Back + Form title */}
           <div className="flex items-center gap-3">
-            <Link href="/">
+            <Link href="/form">
               <motion.div
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                 whileHover={{ x: -2 }}

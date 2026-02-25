@@ -1,6 +1,7 @@
 /**
- * FormFlow Yes/No Input — Typeform-style
- * Two elegant buttons with selection animation. Mobile-friendly.
+ * FormFlow Yes/No Input — Typeform/Respondi-style
+ * Two elegant buttons that inherit text color from parent.
+ * Works on any background (light or dark).
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,10 +18,14 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === "y" || e.key.toLowerCase() === "s") {
-        e.preventDefault(); onChange(true); if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+        e.preventDefault();
+        onChange(true);
+        if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
       }
       if (e.key.toLowerCase() === "n") {
-        e.preventDefault(); onChange(false); if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+        e.preventDefault();
+        onChange(false);
+        if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -45,26 +50,40 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
         return (
           <motion.button
             key={opt.label}
-            onClick={() => { onChange(opt.val); if (onAutoAdvance) setTimeout(onAutoAdvance, 500); }}
-            className={`
-              flex-1 flex items-center justify-center gap-3 py-4 sm:py-5 rounded-lg
-              font-body text-base sm:text-lg font-medium transition-all duration-200 border
-              ${isSelected
-                ? opt.val
-                  ? "bg-emerald-50 border-emerald-400 text-emerald-600"
-                  : "bg-red-50 border-red-400 text-red-500"
-                : "bg-white border-gray-200 text-gray-500 hover:border-gray-400 hover:bg-gray-50"
-              }
-            `}
+            onClick={() => {
+              onChange(opt.val);
+              if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+            }}
+            className="flex-1 flex items-center justify-center gap-3 py-4 sm:py-5 rounded-lg text-base sm:text-lg font-medium transition-all duration-200 border"
+            style={{
+              borderColor: isSelected
+                ? "currentColor"
+                : "rgba(128,128,128,0.25)",
+              backgroundColor: isSelected
+                ? "rgba(128,128,128,0.08)"
+                : "transparent",
+            }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 + i * 0.08, type: "spring", stiffness: 300, damping: 25 }}
+            transition={{
+              delay: 0.35 + i * 0.08,
+              type: "spring",
+              stiffness: 300,
+              damping: 25,
+            }}
             whileTap={{ scale: 0.96 }}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{
+              backgroundColor: isSelected
+                ? "rgba(128,128,128,0.12)"
+                : "rgba(128,128,128,0.05)",
+            }}
           >
             <Icon size={20} strokeWidth={1.5} />
             <span>{opt.label}</span>
-            <kbd className="px-1.5 py-0.5 rounded border border-current/20 text-[10px] font-mono ml-1 opacity-40">
+            <kbd
+              className="px-1.5 py-0.5 rounded border text-[10px] font-mono ml-1 opacity-40"
+              style={{ borderColor: "rgba(128,128,128,0.3)" }}
+            >
               {opt.letter}
             </kbd>
             <AnimatePresence>

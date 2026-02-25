@@ -184,7 +184,7 @@ export default function Dashboard() {
           </div>
 
           {/* Create new button */}
-          <Link href="/builder">
+          <Link href="/editor">
             <motion.button
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
               whileTap={{ scale: 0.98 }}
@@ -270,7 +270,7 @@ export default function Dashboard() {
           {/* ─── Cards Grid ─── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {/* Create new card */}
-            <Link href="/builder">
+            <Link href="/editor">
               <motion.div
                 className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
                 whileHover={{ scale: 1.01 }}
@@ -392,7 +392,7 @@ function FormCard({ form, index, onNavigate, onRequestDelete }: FormCardProps) {
       e.stopPropagation();
       return;
     }
-    onNavigate(`/builder/${form.id}`);
+    onNavigate(`/editor/${form.id}`);
   };
 
   return (
@@ -441,7 +441,7 @@ function FormCard({ form, index, onNavigate, onRequestDelete }: FormCardProps) {
                 e.stopPropagation();
                 e.preventDefault();
                 setDropdownOpen(false);
-                onNavigate(`/builder/${form.id}`);
+                onNavigate(`/editor/${form.id}`);
               }}
             >
               <Pencil size={15} className="mr-2" /> Editar

@@ -1,6 +1,6 @@
 /**
- * FormFlow Long Text Input — Typeform-style
- * Auto-growing textarea with clean border, mobile-friendly.
+ * FormFlow Long Text Input — Typeform/Respondi-style
+ * Auto-growing textarea that inherits text color from parent.
  */
 
 import { motion } from "framer-motion";
@@ -13,7 +13,12 @@ interface LongTextInputProps {
   error?: string;
 }
 
-export function LongTextInput({ value, onChange, placeholder, error }: LongTextInputProps) {
+export function LongTextInput({
+  value,
+  onChange,
+  placeholder,
+  error,
+}: LongTextInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -22,10 +27,10 @@ export function LongTextInput({ value, onChange, placeholder, error }: LongTextI
   }, []);
 
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${Math.max(el.scrollHeight, 80)}px`;
     }
   }, [value]);
 
@@ -35,24 +40,33 @@ export function LongTextInput({ value, onChange, placeholder, error }: LongTextI
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
     >
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Digite sua resposta aqui..."}
-        rows={3}
-        className={`
-          w-full rounded-lg border bg-transparent p-4 sm:p-5
-          text-base sm:text-lg font-body text-inherit leading-relaxed
-          placeholder:text-current/25
-          focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40
-          transition-all duration-200 resize-none
-          ${error ? "border-red-300" : value ? "border-blue-500/30" : "border-current/15"}
-        `}
-      />
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || "Escreva sua resposta aqui..."}
+          rows={3}
+          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-base sm:text-lg md:text-xl font-medium focus:outline-none transition-colors duration-300 resize-none"
+          style={{
+            color: "inherit",
+            borderColor: error
+              ? "#EF4444"
+              : value
+                ? "currentColor"
+                : "rgba(128,128,128,0.3)",
+          }}
+        />
+        <style>{`
+          textarea::placeholder {
+            color: inherit;
+            opacity: 0.25;
+          }
+        `}</style>
+      </div>
       {error && (
         <motion.p
-          className="mt-3 text-sm font-body text-red-500"
+          className="mt-3 text-sm text-red-400 font-medium"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -60,15 +74,15 @@ export function LongTextInput({ value, onChange, placeholder, error }: LongTextI
         </motion.p>
       )}
       <motion.p
-        className="mt-3 text-xs sm:text-sm opacity-30 font-body"
+        className="mt-4 text-xs sm:text-sm opacity-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}
       >
-        <kbd className="px-1.5 py-0.5 rounded border border-current/20 text-[10px] font-mono">Ctrl</kbd>
-        {" + "}
-        <kbd className="px-1.5 py-0.5 rounded border border-current/20 text-[10px] font-mono">Enter ↵</kbd>
-        {" para enviar"}
+        <kbd className="px-1.5 py-0.5 rounded border text-[10px] font-mono" style={{ borderColor: "rgba(128,128,128,0.3)" }}>
+          Shift + Enter
+        </kbd>{" "}
+        para nova linha
       </motion.p>
     </motion.div>
   );

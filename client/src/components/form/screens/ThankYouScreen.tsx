@@ -1,6 +1,7 @@
 /**
- * FormFlow Thank You Screen — Typeform-style
- * Full-screen celebration with design settings support.
+ * FormFlow Thank You Screen — Respondi/Typeform-style
+ * Full-screen celebration with animated checkmark.
+ * Adapts to design settings (colors, font, logo).
  */
 
 import { useEffect } from "react";
@@ -30,11 +31,13 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
   const showButton = question.showButton === true;
   const buttonText = question.buttonText || "Enviar outra resposta";
   const redirectUrl = question.redirectUrl;
+  const logoUrl = design?.logoUrl;
 
   const isLightBg = isLightColor(bgColor);
   const textColor = isLightBg ? "#1E293B" : "#FFFFFF";
-  const subtitleColor = isLightBg ? "rgba(30,41,59,0.6)" : "rgba(255,255,255,0.7)";
+  const subtitleColor = isLightBg ? "rgba(30,41,59,0.6)" : "rgba(255,255,255,0.65)";
   const btnTextColor = isLightColor(buttonColor) ? "#1E293B" : "#FFFFFF";
+  const checkColor = isLightBg ? "#10B981" : "#34D399";
 
   // Auto-redirect if URL is set
   useEffect(() => {
@@ -51,14 +54,33 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
       className="w-full h-screen flex items-center justify-center relative overflow-hidden"
       style={{ backgroundColor: bgColor, fontFamily }}
     >
+      {/* Logo top-left */}
+      {logoUrl && (
+        <motion.div
+          className="absolute top-5 left-5 sm:top-7 sm:left-8 z-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          <img
+            src={logoUrl}
+            alt="Logo"
+            className="h-7 sm:h-9 md:h-10 object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </motion.div>
+      )}
+
       {/* Centered content */}
       <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
         {/* Checkmark animation */}
         <motion.div
-          className="mb-8 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto"
+          className="mb-6 sm:mb-8 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto"
           style={{
-            backgroundColor: isLightBg ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.2)",
-            border: `2px solid ${isLightBg ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.4)"}`,
+            backgroundColor: isLightBg ? "rgba(16,185,129,0.1)" : "rgba(52,211,153,0.15)",
+            border: `2px solid ${isLightBg ? "rgba(16,185,129,0.25)" : "rgba(52,211,153,0.3)"}`,
           }}
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -69,13 +91,13 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 15 }}
           >
-            <CheckCircle2 size={40} className="text-emerald-500" strokeWidth={1.5} />
+            <CheckCircle2 size={36} style={{ color: checkColor }} strokeWidth={1.5} />
           </motion.div>
         </motion.div>
 
         {/* Title */}
         <motion.h1
-          className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight"
           style={{ color: textColor, fontFamily }}
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
@@ -87,7 +109,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
         {/* Subtitle */}
         {question.subtitle && (
           <motion.p
-            className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl leading-relaxed"
+            className="mt-3 sm:mt-5 text-sm sm:text-base md:text-lg leading-relaxed"
             style={{ color: subtitleColor, fontFamily }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -99,7 +121,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
 
         {/* Action buttons */}
         <motion.div
-          className="mt-8 flex flex-col items-center gap-3"
+          className="mt-7 flex flex-col items-center gap-3"
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.5 }}
@@ -107,7 +129,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
           {showButton && (
             <motion.button
               onClick={() => window.location.reload()}
-              className="px-8 py-3.5 rounded-lg text-base font-semibold shadow-lg transition-all"
+              className="px-7 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg transition-all"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,
@@ -145,27 +167,6 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
           >
             Você será redirecionado em 3 segundos...
           </motion.p>
-        )}
-
-        {/* Decorative dots */}
-        {!redirectUrl && (
-          <motion.div
-            className="mt-10 flex gap-2 justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-          >
-            {["#3B82F6", "#10B981", "#F59E0B"].map((color, i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: color }}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.9 + i * 0.1, type: "spring", stiffness: 400, damping: 15 }}
-              />
-            ))}
-          </motion.div>
         )}
       </div>
     </div>

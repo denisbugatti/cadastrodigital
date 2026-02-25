@@ -36,6 +36,7 @@ interface QuestionRendererProps {
   value: FormResponse["value"] | undefined;
   onChange: (value: FormResponse["value"]) => void;
   onNext: () => void;
+  onAutoAdvance?: () => void;
   validationError?: string;
   design?: {
     backgroundColor?: string;
@@ -54,6 +55,7 @@ export function QuestionRenderer({
   value,
   onChange,
   onNext,
+  onAutoAdvance,
   validationError,
   design,
 }: QuestionRendererProps) {
@@ -193,7 +195,7 @@ export function QuestionRenderer({
             choices={question.choices}
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         ) : null;
 
@@ -204,7 +206,7 @@ export function QuestionRenderer({
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
             placeholder={question.placeholder}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         ) : null;
 
@@ -214,7 +216,7 @@ export function QuestionRenderer({
             choices={question.choices}
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         ) : null;
 
@@ -233,7 +235,7 @@ export function QuestionRenderer({
           <YesNoInput
             value={value as boolean | null}
             onChange={(v) => onChange(v)}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         );
 
@@ -245,7 +247,7 @@ export function QuestionRenderer({
             onChange={(v) => onChange(v)}
             maxRating={question.maxRating}
             labels={question.ratingLabels}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         );
 
@@ -256,7 +258,7 @@ export function QuestionRenderer({
             onChange={(v) => onChange(v)}
             maxRating={question.maxRating}
             labels={question.ratingLabels}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         );
 
@@ -266,7 +268,7 @@ export function QuestionRenderer({
             value={typeof value === "number" ? value : -1}
             onChange={(v) => onChange(v)}
             labels={question.ratingLabels}
-            onAutoAdvance={onNext}
+            onAutoAdvance={onAutoAdvance || onNext}
           />
         );
 
@@ -315,12 +317,11 @@ export function QuestionRenderer({
           <LegalInput
             value={value as boolean | null}
             onChange={(v) => onChange(v)}
-            legalText={question.legalText || question.subtitle}
-            onAutoAdvance={onNext}
+            legalText={question.legalText || question.subtitle}            onAutoAdvance={onAutoAdvance || onNext}
           />
         );
 
-      default:
+      // Legal:
         return (
           <TextInput
             value={(value as string) || ""}

@@ -1,6 +1,7 @@
 /**
- * FormFlow Rating Input — Typeform-style
- * Stars with hover scale, selection pulse, mobile-friendly.
+ * FormFlow Rating Input — Typeform/Respondi-style
+ * Stars with hover scale, selection pulse.
+ * Inherits text color from parent for labels.
  */
 
 import { motion } from "framer-motion";
@@ -15,7 +16,13 @@ interface RatingInputProps {
   onAutoAdvance?: () => void;
 }
 
-export function RatingInput({ value, onChange, maxRating = 5, labels, onAutoAdvance }: RatingInputProps) {
+export function RatingInput({
+  value,
+  onChange,
+  maxRating = 5,
+  labels,
+  onAutoAdvance,
+}: RatingInputProps) {
   const [hovered, setHovered] = useState<number>(0);
   const displayValue = hovered || value;
 
@@ -42,11 +49,7 @@ export function RatingInput({ value, onChange, maxRating = 5, labels, onAutoAdva
               whileHover={{ scale: 1.2 }}
               whileTap={{ scale: 0.85 }}
               initial={{ opacity: 0, y: 10 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: value === rating ? [1, 1.15, 1] : 1,
-              }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{
                 delay: 0.35 + i * 0.05,
                 type: "spring",
@@ -60,7 +63,7 @@ export function RatingInput({ value, onChange, maxRating = 5, labels, onAutoAdva
                 style={
                   isActive
                     ? { fill: "#f59e0b", color: "#f59e0b" }
-                    : { fill: "transparent", color: "#d1d5db" }
+                    : { fill: "transparent", color: "rgba(128,128,128,0.35)" }
                 }
                 strokeWidth={1.5}
               />
@@ -69,7 +72,7 @@ export function RatingInput({ value, onChange, maxRating = 5, labels, onAutoAdva
         })}
         {value > 0 && (
           <motion.span
-            className="ml-2 text-2xl sm:text-3xl font-bold text-blue-500"
+            className="ml-2 text-2xl sm:text-3xl font-bold"
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
@@ -80,8 +83,8 @@ export function RatingInput({ value, onChange, maxRating = 5, labels, onAutoAdva
       </div>
       {labels && (
         <div className="flex justify-between mt-4 sm:mt-5 px-1">
-          <span className="text-xs sm:text-sm opacity-50 font-body">{labels.low}</span>
-          <span className="text-xs sm:text-sm opacity-50 font-body">{labels.high}</span>
+          <span className="text-xs sm:text-sm opacity-40">{labels.low}</span>
+          <span className="text-xs sm:text-sm opacity-40">{labels.high}</span>
         </div>
       )}
     </motion.div>

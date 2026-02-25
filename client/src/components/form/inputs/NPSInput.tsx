@@ -53,7 +53,7 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{
                 opacity: 1,
-                scale: isActive ? [1, 1.1, 1] : 1,
+                scale: 1,
               }}
               transition={{ delay: 0.3 + i * 0.03, type: "spring", stiffness: 300, damping: 20 }}
               whileTap={{ scale: 0.9 }}
