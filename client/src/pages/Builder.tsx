@@ -76,7 +76,7 @@ export default function Builder({ initialForm }: BuilderProps) {
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 shrink-0 z-50">
         {/* Left: Back + Form name */}
         <div className="flex items-center gap-3">
-          <Link href="/dashboard">
+          <Link href="/form">
             <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
               <ArrowLeft size={18} />
             </button>
