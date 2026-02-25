@@ -133,7 +133,7 @@ export function FormContainer({ form }: FormContainerProps) {
   const showNav = !engine.isWelcome && !engine.isThankYou;
   const progress = engine.progress;
 
-  // ─── Loading Screen with Logo ───
+  // ─── Loading Screen with Logo + Progress Bar (Respondi-style) ───
   if (showLoading && logoUrl) {
     return (
       <div
@@ -145,7 +145,7 @@ export function FormContainer({ form }: FormContainerProps) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center gap-6"
+          className="flex flex-col items-center gap-8"
         >
           <motion.img
             src={logoUrl}
@@ -155,29 +155,21 @@ export function FormContainer({ form }: FormContainerProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           />
-          {/* Subtle loading dots */}
+          {/* Animated progress bar (Respondi-style) */}
           <motion.div
-            className="flex gap-1.5"
+            className="w-48 sm:w-56 h-1 rounded-full overflow-hidden"
+            style={{ backgroundColor: isLightBg ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.4 }}
           >
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: isLightBg ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.4)" }}
-                animate={{
-                  opacity: [0.3, 1, 0.3],
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: isLightBg ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.6)" }}
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+            />
           </motion.div>
         </motion.div>
       </div>

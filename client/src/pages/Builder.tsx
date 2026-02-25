@@ -430,7 +430,7 @@ export default function Builder({ initialForm }: BuilderProps = {}) {
               transition={{ duration: 0.15 }}
               className="h-full bg-background"
             >
-              <ResponsesPanel formTitle={form.title} responseCount={0} />
+              <ResponsesPanel formTitle={form.title} responseCount={0} questions={form.questions} />
             </motion.div>
           )}
         </AnimatePresence>

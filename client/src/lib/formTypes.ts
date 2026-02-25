@@ -89,6 +89,7 @@ export interface Question {
       choiceId: string;
       goToQuestionId: string;
     }>;
+    defaultGoTo?: string;
   };
 }
 

@@ -2,11 +2,14 @@
  * FormFlow — One Innovation Cadastro Online
  * Formulário pré-criado idêntico ao Respondi da One Innovation
  * com todas as perguntas, cores, logo e lógica condicional PF/PJ.
+ *
+ * Ordem e tipos replicados fielmente do original:
+ * https://one.cadastroonline.com.br/vNdwk1kr
  */
 
 import type { BuilderForm, BuilderQuestion } from "./builderTypes";
 
-const ONE_LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663342930280/FrkRifsSVZQkhZrL.webp";
+const ONE_LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663342930280/idQysuOkKZvswPXU.png";
 
 function makeQ(overrides: Partial<BuilderQuestion> & { id: string; type: BuilderQuestion["type"]; title: string }): BuilderQuestion {
   return {
@@ -43,13 +46,13 @@ export function createOneInnovationForm(): BuilderForm {
     makeQ({
       id: "one_welcome",
       type: "welcome",
-      title: "Bem vindos ao cadastro Digital",
+      title: "Bem vindos ao cadastro online",
       subtitle: "Seu cadastro levará 5 minutos para ser concluído.",
-      buttonText: "começar",
+      buttonText: "Começar",
       showButton: true,
     }),
 
-    // ─── 1. Tipo de pessoa (com lógica condicional) ───
+    // ─── 1. Tipo de pessoa (com lógica condicional PF/PJ) ───
     makeQ({
       id: "one_q1",
       type: "multiple-choice",
@@ -62,7 +65,7 @@ export function createOneInnovationForm(): BuilderForm {
       conditionalLogic: {
         enabled: true,
         branches: [
-          { choiceId: "c_pf", goToQuestionId: "one_q2_nome" },
+          { choiceId: "c_pf", goToQuestionId: "one_pf_nome" },
           { choiceId: "c_pj", goToQuestionId: "one_pj_razao_social" },
         ],
         defaultGoTo: "next",
@@ -70,39 +73,39 @@ export function createOneInnovationForm(): BuilderForm {
     }),
 
     // ═══════════════════════════════════════════════
-    // FLUXO PESSOA FÍSICA (PF)
+    // FLUXO PESSOA FÍSICA (PF) — ordem idêntica ao Respondi
     // ═══════════════════════════════════════════════
 
-    // 2. Nome completo (PF)
+    // PF-1. Nome completo
     makeQ({
-      id: "one_q2_nome",
+      id: "one_pf_nome",
       type: "name",
       title: "Nome completo",
       placeholder: "Sua resposta...",
       required: true,
     }),
 
-    // 3. CPF (PF) — com validação real
+    // PF-2. CPF (com validação real de dígito verificador)
     makeQ({
-      id: "one_q3_cpf",
+      id: "one_pf_cpf",
       type: "cpf",
       title: "CPF",
       placeholder: "000.000.000-00",
       required: true,
     }),
 
-    // 4. Data de nascimento (PF)
+    // PF-3. Data de nascimento
     makeQ({
-      id: "one_q4_nascimento",
+      id: "one_pf_nascimento",
       type: "date",
       title: "Data de nascimento",
       placeholder: "DD/MM/AAAA",
       required: true,
     }),
 
-    // 5. Sexo (PF)
+    // PF-4. Sexo
     makeQ({
-      id: "one_q5_sexo",
+      id: "one_pf_sexo",
       type: "multiple-choice",
       title: "Sexo",
       required: true,
@@ -112,18 +115,18 @@ export function createOneInnovationForm(): BuilderForm {
       ],
     }),
 
-    // 6. Nacionalidade (PF)
+    // PF-5. Nacionalidade
     makeQ({
-      id: "one_q6_nacionalidade",
+      id: "one_pf_nacionalidade",
       type: "short-text",
       title: "Nacionalidade",
       placeholder: "Sua resposta...",
       required: true,
     }),
 
-    // 7. Estado civil (PF)
+    // PF-6. Estado civil (8 opções como no original)
     makeQ({
-      id: "one_q7_estado_civil",
+      id: "one_pf_estado_civil",
       type: "multiple-choice",
       title: "Estado civil",
       required: true,
@@ -139,80 +142,63 @@ export function createOneInnovationForm(): BuilderForm {
       ],
     }),
 
-    // 8. Identidade (RG) (PF)
+    // PF-7. Identidade (RG)
     makeQ({
-      id: "one_q8_rg",
-      type: "short-text",
+      id: "one_pf_rg",
+      type: "number",
       title: "Identidade nº (RG)",
       placeholder: "Um número...",
       required: true,
     }),
 
-    // 9. Órgão expedidor (PF)
+    // PF-8. Celular (com seletor de país)
     makeQ({
-      id: "one_q9_orgao",
-      type: "short-text",
-      title: "Órgão expedidor",
-      placeholder: "Ex: SSP/SP",
-      required: true,
-    }),
-
-    // 10. E-mail (PF) — pula para perguntas comuns
-    makeQ({
-      id: "one_q10_email",
-      type: "email",
-      title: "E-mail",
-      placeholder: "seu@email.com",
-      required: true,
-      conditionalLogic: {
-        enabled: false,
-        branches: [],
-        defaultGoTo: "next",
-      },
-    }),
-
-    // 11. Telefone / WhatsApp (PF) — vai para perguntas comuns
-    makeQ({
-      id: "one_q11_telefone",
+      id: "one_pf_celular",
       type: "phone",
-      title: "Telefone / WhatsApp",
+      title: "Celular",
       placeholder: "(00) 00000-0000",
       required: true,
     }),
 
-    // 12. Profissão (PF)
+    // PF-9. E-mail
     makeQ({
-      id: "one_q12_profissao",
+      id: "one_pf_email",
+      type: "email",
+      title: "E-mail",
+      placeholder: "exemplo@exemplo.com",
+      required: true,
+    }),
+
+    // PF-10. Endereço residencial (CEP com busca automática)
+    makeQ({
+      id: "one_pf_endereco",
+      type: "address",
+      title: "Endereço residencial",
+      placeholder: "CEP",
+      required: true,
+    }),
+
+    // PF-11. Profissão
+    makeQ({
+      id: "one_pf_profissao",
       type: "short-text",
       title: "Profissão",
       placeholder: "Sua resposta...",
       required: true,
     }),
 
-    // 13. Renda mensal (PF) — pula para perguntas comuns (endereço)
+    // PF-12. Renda mensal (campo currency R$, NÃO múltipla escolha)
     makeQ({
-      id: "one_q13_renda",
-      type: "multiple-choice",
-      title: "Faixa de renda mensal",
+      id: "one_pf_renda",
+      type: "currency",
+      title: "Renda mensal: R$",
+      placeholder: "0,00",
       required: true,
-      choices: [
-        { id: "c_r1", label: "Até R$ 5.000" },
-        { id: "c_r2", label: "R$ 5.000 a R$ 10.000" },
-        { id: "c_r3", label: "R$ 10.000 a R$ 20.000" },
-        { id: "c_r4", label: "R$ 20.000 a R$ 50.000" },
-        { id: "c_r5", label: "Acima de R$ 50.000" },
-      ],
-      // After renda, skip PJ section and go to common endereço
+      // Após renda, pular PJ e ir para Check List de documentos
       conditionalLogic: {
         enabled: true,
-        branches: [
-          { choiceId: "c_r1", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_r2", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_r3", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_r4", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_r5", goToQuestionId: "one_common_endereco" },
-        ],
-        defaultGoTo: "next",
+        branches: [],
+        defaultGoTo: "one_common_checklist",
       },
     }),
 
@@ -283,74 +269,67 @@ export function createOneInnovationForm(): BuilderForm {
       required: true,
     }),
 
-    // PJ-8. Faturamento mensal — after this, go to common section (endereço)
+    // PJ-8. Faturamento mensal (currency, não múltipla escolha)
     makeQ({
       id: "one_pj_faturamento",
-      type: "multiple-choice",
-      title: "Faixa de faturamento mensal",
+      type: "currency",
+      title: "Faturamento mensal: R$",
+      placeholder: "0,00",
       required: true,
-      choices: [
-        { id: "c_fat1", label: "Até R$ 50.000" },
-        { id: "c_fat2", label: "R$ 50.000 a R$ 200.000" },
-        { id: "c_fat3", label: "R$ 200.000 a R$ 500.000" },
-        { id: "c_fat4", label: "R$ 500.000 a R$ 1.000.000" },
-        { id: "c_fat5", label: "Acima de R$ 1.000.000" },
-      ],
-      // After faturamento, jump to common endereço section
-      conditionalLogic: {
-        enabled: true,
-        branches: [
-          { choiceId: "c_fat1", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_fat2", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_fat3", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_fat4", goToQuestionId: "one_common_endereco" },
-          { choiceId: "c_fat5", goToQuestionId: "one_common_endereco" },
-        ],
-        defaultGoTo: "next",
-      },
     }),
 
     // ═══════════════════════════════════════════════
     // PERGUNTAS COMUNS (PF e PJ convergem aqui)
     // ═══════════════════════════════════════════════
 
-    // 14. Endereço
+    // Check List de documentos (statement)
     makeQ({
-      id: "one_common_endereco",
-      type: "address",
-      title: "Endereço",
-      placeholder: "Digite o CEP...",
+      id: "one_common_checklist",
+      type: "statement",
+      title: "Check List de documentos",
+      subtitle: "",
+      buttonText: "Subir documentos →",
+      showButton: true,
+    }),
+
+    // Upload CNH (obrigatório)
+    makeQ({
+      id: "one_common_cnh",
+      type: "file-upload",
+      title: "CNH",
       required: true,
     }),
 
-    // 15. Empreendimento de interesse
+    // Upload RG Frente
     makeQ({
-      id: "one_common_empreendimento",
-      type: "multiple-choice",
-      title: "Qual empreendimento você tem interesse?",
-      required: true,
-      choices: [
-        { id: "c_emp1", label: "One Innovation" },
-        { id: "c_emp2", label: "One Tower" },
-        { id: "c_emp3", label: "One Residence" },
-        { id: "c_emp4", label: "Outro" },
-      ],
-    }),
-
-    // 16. Como conheceu
-    makeQ({
-      id: "one_common_como_conheceu",
-      type: "multiple-choice",
-      title: "Como você conheceu a One Innovation?",
+      id: "one_common_rg_frente",
+      type: "file-upload",
+      title: "RG (Frente)",
       required: false,
-      choices: [
-        { id: "c_ck1", label: "Redes Sociais" },
-        { id: "c_ck2", label: "Indicação de amigo" },
-        { id: "c_ck3", label: "Google" },
-        { id: "c_ck4", label: "Corretor" },
-        { id: "c_ck5", label: "Evento" },
-        { id: "c_ck6", label: "Outro" },
-      ],
+    }),
+
+    // Upload RG Verso
+    makeQ({
+      id: "one_common_rg_verso",
+      type: "file-upload",
+      title: "RG (Verso)",
+      required: false,
+    }),
+
+    // Upload Comprovante de Renda
+    makeQ({
+      id: "one_common_comp_renda",
+      type: "file-upload",
+      title: "Comprovante de Renda",
+      required: false,
+    }),
+
+    // Upload Comprovante de Residência
+    makeQ({
+      id: "one_common_comp_residencia",
+      type: "file-upload",
+      title: "Comprovante de Residência",
+      required: false,
     }),
 
     // ─── Thank You ───
@@ -380,7 +359,7 @@ export function createOneInnovationForm(): BuilderForm {
       ogTitle: "Cadastro Online | One Innovation",
       ogDescription: "Seu cadastro levará 5 minutos para ser concluído.",
       ogImage: "",
-      fontFamily: "Plus Jakarta Sans",
+      fontFamily: "Inter",
     },
     webhook: {
       enabled: false,

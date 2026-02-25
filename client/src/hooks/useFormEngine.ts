@@ -148,16 +148,15 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
    */
   const getNextIndex = useCallback((): number => {
     const q = currentQuestion;
-    if (!q || !q.conditionalLogic?.enabled || !q.conditionalLogic.rules) {
+    if (!q || !q.conditionalLogic?.enabled) {
       return currentIndex + 1;
     }
 
     const response = responses.get(q.id);
     const value = response?.value;
 
-    if (value !== null && value !== undefined) {
-      // For multiple-choice / dropdown: value is a string (choice ID)
-      // For yes-no: value is boolean
+    // Check branch rules first
+    if (q.conditionalLogic.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
       let matchedRule;
 
       if (typeof value === "string") {
@@ -165,7 +164,6 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
           (r) => r.choiceId === value
         );
       } else if (typeof value === "boolean") {
-        // yes-no: map boolean to "yes"/"no"
         const boolId = value ? "yes" : "no";
         matchedRule = q.conditionalLogic.rules.find(
           (r) => r.choiceId === boolId
@@ -173,13 +171,22 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
       }
 
       if (matchedRule && matchedRule.goToQuestionId !== "next") {
-        // Find the target question index
         const targetIdx = questions.findIndex(
           (q2) => q2.id === matchedRule.goToQuestionId
         );
         if (targetIdx !== -1) {
           return targetIdx;
         }
+      }
+    }
+
+    // Check defaultGoTo (for non-choice questions like currency/text with skip logic)
+    if (q.conditionalLogic.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
+      const targetIdx = questions.findIndex(
+        (q2) => q2.id === q.conditionalLogic!.defaultGoTo
+      );
+      if (targetIdx !== -1) {
+        return targetIdx;
       }
     }
 
@@ -205,16 +212,27 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
       const q = currentQuestion;
       let nextIdx = currentIndex + 1;
 
-      if (q?.conditionalLogic?.enabled && q.conditionalLogic.rules && value !== null && value !== undefined) {
-        let matchedRule;
-        if (typeof value === "string") {
-          matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === value);
-        } else if (typeof value === "boolean") {
-          const boolId = value ? "yes" : "no";
-          matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === boolId);
+      if (q?.conditionalLogic?.enabled) {
+        // Check branch rules first
+        if (q.conditionalLogic.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
+          let matchedRule;
+          if (typeof value === "string") {
+            matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === value);
+          } else if (typeof value === "boolean") {
+            const boolId = value ? "yes" : "no";
+            matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === boolId);
+          }
+          if (matchedRule && matchedRule.goToQuestionId !== "next") {
+            const targetIdx = questions.findIndex((q2) => q2.id === matchedRule.goToQuestionId);
+            if (targetIdx !== -1) {
+              nextIdx = targetIdx;
+            }
+          }
         }
-        if (matchedRule && matchedRule.goToQuestionId !== "next") {
-          const targetIdx = questions.findIndex((q2) => q2.id === matchedRule.goToQuestionId);
+
+        // Check defaultGoTo (for non-choice questions like currency/text with skip logic)
+        if (nextIdx === currentIndex + 1 && q.conditionalLogic.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
+          const targetIdx = questions.findIndex((q2) => q2.id === q.conditionalLogic!.defaultGoTo);
           if (targetIdx !== -1) {
             nextIdx = targetIdx;
           }

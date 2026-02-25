@@ -2,6 +2,7 @@
  * FormFlow Builder — Sidebar (Typeform-style)
  * Drag-and-drop reordering with dnd-kit. 3-dot menu per question.
  * "Add content" button opens type picker popover.
+ * Branching indicators show conditional logic targets.
  */
 
 import { useState, useRef, useEffect } from "react";
@@ -28,7 +29,7 @@ import {
   Smile, Star, Gauge, ArrowUpDown, Grid3X3,
   Calendar, Upload, Hand, Heart, ShieldCheck,
   ChevronRight, Search, Plus, GripVertical, X,
-  MoreVertical, Copy, Trash2,
+  MoreVertical, Copy, Trash2, GitBranch, ArrowRight,
 } from "lucide-react";
 import {
   questionCategories,
@@ -65,12 +66,14 @@ interface SortableItemProps {
   onDuplicate: (id: string) => void;
   onRemove: (id: string) => void;
   isDraggable: boolean;
+  allQuestions: BuilderQuestion[];
 }
 
 function SortableQuestionItem({
-  question, isSelected, questionNumber, onSelect, onDuplicate, onRemove, isDraggable,
+  question, isSelected, questionNumber, onSelect, onDuplicate, onRemove, isDraggable, allQuestions,
 }: SortableItemProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showBranches, setShowBranches] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -108,6 +111,29 @@ function SortableQuestionItem({
   const isWelcome = question.type === "welcome";
   const isThankYou = question.type === "thank-you";
   const isSpecial = isWelcome || question.type === "statement" || question.type === "legal";
+
+  // Check if this question has active conditional logic
+  const hasBranches = question.conditionalLogic?.enabled &&
+    question.conditionalLogic.branches.length > 0;
+  const hasDefaultGoTo = question.conditionalLogic?.enabled &&
+    question.conditionalLogic.defaultGoTo &&
+    question.conditionalLogic.defaultGoTo !== "next";
+  const hasConditional = hasBranches || hasDefaultGoTo;
+
+  // Build branch info for tooltip
+  const branchInfo = hasBranches
+    ? question.conditionalLogic.branches
+        .filter(b => b.goToQuestionId && b.goToQuestionId !== "next")
+        .map(branch => {
+          const choice = question.choices.find(c => c.id === branch.choiceId);
+          const targetQ = allQuestions.find(q => q.id === branch.goToQuestionId);
+          return {
+            choiceLabel: choice?.label || "Opção",
+            targetLabel: targetQ?.title || "Pergunta",
+            targetType: targetQ?.type,
+          };
+        })
+    : [];
 
   return (
     <div ref={setNodeRef} style={style} className="relative group">
@@ -152,12 +178,32 @@ function SortableQuestionItem({
           }`}>A</span>
         )}
 
-        {/* Title */}
+        {/* Title + branch badge */}
         <span className={`text-[13px] font-body truncate flex-1 ${
           isSelected ? "text-foreground font-medium" : "text-foreground/70"
         }`}>
           {question.title || typeInfo?.label || "Sem título"}
         </span>
+
+        {/* Branching indicator badge */}
+        {hasConditional && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setShowBranches(!showBranches);
+            }}
+            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-body font-semibold shrink-0 cursor-pointer transition-all ${
+              showBranches
+                ? "bg-violet-100 text-violet-700 border border-violet-200"
+                : "bg-violet-50 text-violet-500 border border-violet-100 hover:bg-violet-100 hover:text-violet-700"
+            }`}
+            title={`${branchInfo.length + (hasDefaultGoTo ? 1 : 0)} ramificaç${(branchInfo.length + (hasDefaultGoTo ? 1 : 0)) > 1 ? "ões" : "ão"}`}
+          >
+            <GitBranch size={10} />
+            <span>{branchInfo.length + (hasDefaultGoTo ? 1 : 0)}</span>
+          </div>
+        )}
 
         {/* 3-dot menu trigger */}
         {!isWelcome && (
@@ -177,6 +223,47 @@ function SortableQuestionItem({
           </div>
         )}
       </button>
+
+      {/* Branch details tooltip */}
+      <AnimatePresence>
+        {showBranches && hasConditional && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15 }}
+            className="overflow-hidden ml-8 mr-2"
+          >
+            <div className="py-1.5 space-y-1">
+              {branchInfo.map((branch, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-violet-50/80 border border-violet-100/60"
+                >
+                  <div className="flex items-center gap-1 flex-1 min-w-0">
+                    <span className="text-[10px] font-body font-medium text-violet-600 truncate max-w-[60px]">
+                      {branch.choiceLabel}
+                    </span>
+                    <ArrowRight size={9} className="text-violet-400 shrink-0" />
+                    <span className="text-[10px] font-body font-medium text-violet-700 truncate">
+                      {branch.targetLabel}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {question.conditionalLogic.defaultGoTo && question.conditionalLogic.defaultGoTo !== "next" && (
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                  <span className="text-[10px] font-body text-muted-foreground italic">Padrão</span>
+                  <ArrowRight size={9} className="text-muted-foreground/50 shrink-0" />
+                  <span className="text-[10px] font-body text-muted-foreground truncate">
+                    {allQuestions.find(q => q.id === question.conditionalLogic.defaultGoTo)?.title || "Próxima"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Dropdown menu */}
       <AnimatePresence>
@@ -325,6 +412,7 @@ export function BuilderSidebar({
                     onDuplicate={onDuplicateQuestion}
                     onRemove={onRemoveQuestion}
                     isDraggable={isDraggable}
+                    allQuestions={questions}
                   />
                 );
               })}
@@ -358,6 +446,7 @@ export function BuilderSidebar({
                   onDuplicate={onDuplicateQuestion}
                   onRemove={onRemoveQuestion}
                   isDraggable={false}
+                  allQuestions={questions}
                 />
               ))}
             </div>
@@ -432,7 +521,7 @@ export function BuilderSidebar({
                         >
                           <div className="pl-1 pb-1">
                             {category.types.map((typeInfo) => {
-                              const Icon = iconMap[typeInfo.icon] || Minus;
+                              const TypeIcon = iconMap[typeInfo.icon] || Minus;
                               return (
                                 <button
                                   key={typeInfo.type}
@@ -444,10 +533,11 @@ export function BuilderSidebar({
                                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-body text-foreground/70 hover:text-foreground hover:bg-brand-lighter/40 transition-all group"
                                 >
                                   <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all group-hover:scale-110 bg-brand-lighter border border-brand/10">
-                                    <Icon size={13} className="text-brand" />
+                                    <TypeIcon size={13} className="text-brand" />
                                   </div>
                                   <div className="text-left min-w-0">
                                     <div className="font-medium text-sm truncate">{typeInfo.label}</div>
+                                    <div className="text-[11px] text-muted-foreground/60 truncate">{typeInfo.description}</div>
                                   </div>
                                 </button>
                               );

@@ -76,14 +76,19 @@ function convertQuestion(bq: BuilderQuestion): Question {
   if (bq.motionIconUrl) question.motionIconUrl = bq.motionIconUrl;
 
   // Handle conditional logic
-  if (bq.conditionalLogic?.enabled && bq.conditionalLogic.branches.length > 0) {
-    question.conditionalLogic = {
-      enabled: true,
-      rules: bq.conditionalLogic.branches.map((b) => ({
-        choiceId: b.choiceId,
-        goToQuestionId: b.goToQuestionId,
-      })),
-    };
+  if (bq.conditionalLogic?.enabled) {
+    const hasBranches = bq.conditionalLogic.branches.length > 0;
+    const hasDefaultGoTo = bq.conditionalLogic.defaultGoTo && bq.conditionalLogic.defaultGoTo !== "next";
+    if (hasBranches || hasDefaultGoTo) {
+      question.conditionalLogic = {
+        enabled: true,
+        rules: bq.conditionalLogic.branches.map((b) => ({
+          choiceId: b.choiceId,
+          goToQuestionId: b.goToQuestionId,
+        })),
+        defaultGoTo: hasDefaultGoTo ? bq.conditionalLogic.defaultGoTo : undefined,
+      };
+    }
   }
 
   return question;
