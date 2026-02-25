@@ -6,6 +6,45 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import * as db from "./db";
 import { storagePut } from "./storage";
+import { ENV } from "./_core/env";
+import { TRPCError } from "@trpc/server";
+import { t } from "./_core/trpc";
+
+/**
+ * ownerFallbackProcedure:
+ * If the user is authenticated, use their id.
+ * If not authenticated, fall back to the owner user (OWNER_OPEN_ID).
+ * This allows the app to work without login — all data belongs to the owner.
+ */
+const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user) {
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  // Fall back to owner
+  const ownerOpenId = ENV.ownerOpenId;
+  if (!ownerOpenId) {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner not configured" });
+  }
+
+  let ownerUser = await db.getUserByOpenId(ownerOpenId);
+  if (!ownerUser) {
+    // Auto-create owner user
+    await db.upsertUser({
+      openId: ownerOpenId,
+      name: process.env.OWNER_NAME ?? "Owner",
+      role: "admin",
+      lastSignedIn: new Date(),
+    });
+    ownerUser = await db.getUserByOpenId(ownerOpenId);
+  }
+
+  if (!ownerUser) {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not resolve owner user" });
+  }
+
+  return next({ ctx: { ...ctx, user: ownerUser } });
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -20,7 +59,7 @@ export const appRouter = router({
 
   // ─── Forms ───
   forms: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: ownerFallbackProcedure.query(async ({ ctx }) => {
       return db.getFormsByUser(ctx.user.id);
     }),
 
@@ -36,7 +75,7 @@ export const appRouter = router({
         return db.getFormById(input.id);
       }),
 
-    create: protectedProcedure
+    create: ownerFallbackProcedure
       .input(z.object({
         title: z.string(),
         description: z.string().optional(),
@@ -67,7 +106,7 @@ export const appRouter = router({
         });
       }),
 
-    update: protectedProcedure
+    update: ownerFallbackProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -91,7 +130,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: protectedProcedure
+    delete: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.id);
@@ -102,7 +141,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    duplicate: protectedProcedure
+    duplicate: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const newSlug = `form_${nanoid(10)}`;
@@ -134,7 +173,7 @@ export const appRouter = router({
         });
       }),
 
-    listByForm: protectedProcedure
+    listByForm: ownerFallbackProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ ctx, input }) => {
         // Verify ownership
@@ -145,7 +184,7 @@ export const appRouter = router({
         return db.getResponsesByForm(input.formId);
       }),
 
-    getById: protectedProcedure
+    getById: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return db.getResponseById(input.id);
@@ -167,7 +206,7 @@ export const appRouter = router({
 
   // ─── Form Versions ───
   versions: router({
-    create: protectedProcedure
+    create: ownerFallbackProcedure
       .input(z.object({
         formId: z.number(),
         label: z.string(),
@@ -182,19 +221,19 @@ export const appRouter = router({
         });
       }),
 
-    listByForm: protectedProcedure
+    listByForm: ownerFallbackProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getVersionsByForm(input.formId);
       }),
 
-    getById: protectedProcedure
+    getById: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return db.getVersionById(input.id);
       }),
 
-    delete: protectedProcedure
+    delete: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteVersion(input.id);
@@ -204,7 +243,7 @@ export const appRouter = router({
 
   // ─── File Upload ───
   files: router({
-    upload: protectedProcedure
+    upload: ownerFallbackProcedure
       .input(z.object({
         filename: z.string(),
         contentBase64: z.string(),
@@ -235,13 +274,13 @@ export const appRouter = router({
         return { id: record.id, url, fileKey };
       }),
 
-    listByForm: protectedProcedure
+    listByForm: ownerFallbackProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getFilesByForm(input.formId);
       }),
 
-    delete: protectedProcedure
+    delete: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteFileRecord(input.id);
@@ -251,11 +290,11 @@ export const appRouter = router({
 
   // ─── Workspaces (Folders) ───
   workspaces: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: ownerFallbackProcedure.query(async ({ ctx }) => {
       return db.getWorkspacesByUser(ctx.user.id);
     }),
 
-    create: protectedProcedure
+    create: ownerFallbackProcedure
       .input(z.object({
         name: z.string(),
         color: z.string().optional(),
@@ -270,7 +309,7 @@ export const appRouter = router({
         });
       }),
 
-    update: protectedProcedure
+    update: ownerFallbackProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -291,7 +330,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: protectedProcedure
+    delete: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const ws = await db.getWorkspaceById(input.id);

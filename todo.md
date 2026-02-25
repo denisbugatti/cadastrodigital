@@ -37,3 +37,8 @@
 - [x] Update frontend to use tRPC API instead of localStorage
 - [x] Integrate S3 file storage for form file uploads
 - [x] Test full-stack integration (28 tests passing)
+
+## Remover Login
+- [x] Remover página de login e redirecionamentos de autenticação
+- [x] Fazer Dashboard e Editor funcionarem sem login obrigatório
+- [x] Remover botões/links de login da interface

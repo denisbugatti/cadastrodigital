@@ -1,0 +1,10 @@
+Login Removal Progress:
+1. Backend: routers.ts rewritten with ownerFallbackProcedure - DONE, no TS errors
+2. The Dashboard already shows without login page (owner fallback working)
+3. Still need to:
+   - Remove the login redirect in main.tsx (redirectToLoginIfUnauthorized)
+   - Remove auth check UI in Dashboard.tsx (lines 417-450 with login prompt)
+   - Remove getLoginUrl import from Dashboard.tsx
+   - Clean up Home.tsx auth imports
+   - Remove the unused Landing page route if it has login
+   - Update tests

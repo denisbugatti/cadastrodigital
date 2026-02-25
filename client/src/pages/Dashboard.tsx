@@ -52,8 +52,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
+
 import { exportFormAsJSON, importFormFromJSON } from "@/lib/formStorage";
 
 /* ─── Types ─── */
@@ -114,7 +113,7 @@ const FOLDER_COLORS = ["#0D8BD9", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#
 /* ─── Dashboard ─── */
 
 export default function Dashboard() {
-  const { user, loading: authLoading, isAuthenticated } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("updated");
@@ -131,13 +130,9 @@ export default function Dashboard() {
   const utils = trpc.useUtils();
 
   // ─── tRPC Queries ───
-  const formsQuery = trpc.forms.list.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  const formsQuery = trpc.forms.list.useQuery();
 
-  const workspacesQuery = trpc.workspaces.list.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
+  const workspacesQuery = trpc.workspaces.list.useQuery();
 
   // ─── tRPC Mutations ───
   const createFormMutation = trpc.forms.create.useMutation({
@@ -414,40 +409,7 @@ export default function Dashboard() {
     }
   };
 
-  // Show login prompt if not authenticated
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 size={32} className="animate-spin text-brand" />
-          <p className="text-muted-foreground font-body">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-6">
-          <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mx-auto mb-6 brand-shadow">
-            <svg width="28" height="28" viewBox="0 0 18 18" fill="none">
-              <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
-            </svg>
-          </div>
-          <h1 className="font-display text-2xl font-bold text-foreground mb-3">Bem-vindo ao FormFlow</h1>
-          <p className="text-muted-foreground font-body mb-6">Faça login para acessar seus formulários e criar novos.</p>
-          <a
-            href={getLoginUrl()}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark transition-all duration-200"
-          >
-            Entrar
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   const isLoading = formsQuery.isLoading || workspacesQuery.isLoading;
 

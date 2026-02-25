@@ -5,6 +5,9 @@ import type { TrpcContext } from "./_core/context";
 /**
  * Tests for the full-stack tRPC routes: forms, responses, versions, workspaces, files.
  * We mock the database layer (server/db.ts) to test route logic in isolation.
+ * 
+ * ownerFallbackProcedure: when no user is authenticated, routes fall back to the owner user.
+ * This means unauthenticated calls to forms.list, forms.create, etc. now succeed using owner identity.
  */
 
 // ─── Mock db module ───
@@ -32,6 +35,8 @@ vi.mock("./db", () => ({
   getWorkspaceById: vi.fn(),
   updateWorkspace: vi.fn(),
   deleteWorkspace: vi.fn(),
+  getUserByOpenId: vi.fn(),
+  upsertUser: vi.fn(),
 }));
 
 // ─── Mock storage module ───
@@ -39,11 +44,37 @@ vi.mock("./storage", () => ({
   storagePut: vi.fn().mockResolvedValue({ url: "https://s3.example.com/file.png" }),
 }));
 
+// ─── Mock env module ───
+vi.mock("./_core/env", () => ({
+  ENV: {
+    appId: "test-app",
+    cookieSecret: "test-secret",
+    databaseUrl: "",
+    oAuthServerUrl: "",
+    ownerOpenId: "owner-open-id",
+    isProduction: false,
+    forgeApiUrl: "",
+    forgeApiKey: "",
+  },
+}));
+
 import * as db from "./db";
 
 // ─── Helpers ───
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+
+const ownerUser: AuthenticatedUser = {
+  id: 100,
+  openId: "owner-open-id",
+  email: "owner@example.com",
+  name: "Owner",
+  loginMethod: "manus",
+  role: "admin",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSignedIn: new Date(),
+};
 
 function createAuthContext(userId = 1): TrpcContext {
   const user: AuthenticatedUser = {
@@ -103,8 +134,15 @@ const sampleForm = {
   updatedAt: new Date(),
 };
 
+const sampleOwnerForm = {
+  ...sampleForm,
+  userId: 100, // owner's id
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: owner user exists in DB
+  vi.mocked(db.getUserByOpenId).mockResolvedValue(ownerUser as any);
 });
 
 // ─── Forms ───
@@ -122,11 +160,16 @@ describe("forms.list", () => {
     expect(result[0].title).toBe("Test Form");
   });
 
-  it("rejects unauthenticated users", async () => {
+  it("falls back to owner when unauthenticated", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleOwnerForm as any]);
 
-    await expect(caller.forms.list()).rejects.toThrow();
+    const result = await caller.forms.list();
+
+    expect(db.getUserByOpenId).toHaveBeenCalledWith("owner-open-id");
+    expect(db.getFormsByUser).toHaveBeenCalledWith(100);
+    expect(result).toHaveLength(1);
   });
 });
 
@@ -189,10 +232,30 @@ describe("forms.create", () => {
     );
   });
 
+  it("creates a form as owner when unauthenticated", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.createForm).mockResolvedValue({ id: 43 });
+
+    const result = await caller.forms.create({
+      title: "Owner Form",
+      questions: [],
+      design: {},
+    });
+
+    expect(result.id).toBe(43);
+    expect(db.createForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Owner Form",
+        userId: 100, // owner id
+      })
+    );
+  });
+
   it("generates a slug if not provided", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.createForm).mockResolvedValue({ id: 43 });
+    vi.mocked(db.createForm).mockResolvedValue({ id: 44 });
 
     await caller.forms.create({
       title: "No Slug Form",
@@ -205,15 +268,6 @@ describe("forms.create", () => {
         slug: expect.stringContaining("form_"),
       })
     );
-  });
-
-  it("rejects unauthenticated users", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(
-      caller.forms.create({ title: "Test", questions: [], design: {} })
-    ).rejects.toThrow();
   });
 });
 
@@ -241,6 +295,20 @@ describe("forms.update", () => {
     await expect(
       caller.forms.update({ id: 1, title: "Hacked" })
     ).rejects.toThrow("Form not found or access denied");
+  });
+
+  it("allows owner to update their forms when unauthenticated", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleOwnerForm as any);
+    vi.mocked(db.updateForm).mockResolvedValue(undefined);
+
+    const result = await caller.forms.update({
+      id: 1,
+      title: "Updated by Owner",
+    });
+
+    expect(result.success).toBe(true);
   });
 });
 
@@ -338,6 +406,18 @@ describe("responses.listByForm", () => {
       caller.responses.listByForm({ formId: 1 })
     ).rejects.toThrow("Form not found or access denied");
   });
+
+  it("allows owner to list responses when unauthenticated", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleOwnerForm as any);
+    vi.mocked(db.getResponsesByForm).mockResolvedValue([
+      { id: 10, formId: 1, answers: { q1: "John" }, createdAt: new Date() } as any,
+    ]);
+
+    const result = await caller.responses.listByForm({ formId: 1 });
+    expect(result).toHaveLength(1);
+  });
 });
 
 // ─── Versions ───
@@ -406,6 +486,17 @@ describe("workspaces.list", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("My Folder");
+  });
+
+  it("returns owner workspaces when unauthenticated", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getWorkspacesByUser).mockResolvedValue([]);
+
+    const result = await caller.workspaces.list();
+
+    expect(db.getWorkspacesByUser).toHaveBeenCalledWith(100);
+    expect(result).toHaveLength(0);
   });
 });
 
@@ -507,6 +598,25 @@ describe("files.upload", () => {
         mimeType: "image/png",
         uploadedBy: 1,
         formId: 1,
+      })
+    );
+  });
+
+  it("uploads a file as owner when unauthenticated", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.createFileRecord).mockResolvedValue({ id: 21 });
+
+    const result = await caller.files.upload({
+      filename: "owner-file.png",
+      contentBase64: Buffer.from("fake-data").toString("base64"),
+      mimeType: "image/png",
+    });
+
+    expect(result.id).toBe(21);
+    expect(db.createFileRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uploadedBy: 100, // owner id
       })
     );
   });
