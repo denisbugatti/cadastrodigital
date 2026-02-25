@@ -10,7 +10,7 @@ interface NPSInputProps {
   value: number;
   onChange: (value: number) => void;
   labels?: { low: string; high: string };
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 function getNPSColor(score: number): string {
@@ -41,7 +41,7 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
           return (
             <motion.button
               key={i}
-              onClick={() => { onChange(i); if (onAutoAdvance) setTimeout(onAutoAdvance, 500); }}
+              onClick={() => { onChange(i); if (onAutoAdvance) setTimeout(() => onAutoAdvance(i), 500); }}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
               className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg font-body font-semibold text-sm sm:text-base transition-all duration-200 flex items-center justify-center border touch-manipulation"

@@ -9,7 +9,7 @@ interface LegalInputProps {
   value: boolean | null;
   onChange: (value: boolean) => void;
   legalText?: string;
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 export function LegalInput({ value, onChange, legalText, onAutoAdvance }: LegalInputProps) {
@@ -25,7 +25,7 @@ export function LegalInput({ value, onChange, legalText, onAutoAdvance }: LegalI
         </div>
       )}
       <motion.button
-        onClick={() => { onChange(!value); if (!value && onAutoAdvance) setTimeout(onAutoAdvance, 400); }}
+        onClick={() => { onChange(!value); if (!value && onAutoAdvance) setTimeout(() => onAutoAdvance(true), 400); }}
         className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 ${
           value ? "bg-emerald-50 border-emerald-400" : "bg-white border-border hover:border-brand/30"
         }`}

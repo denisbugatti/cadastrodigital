@@ -11,7 +11,7 @@ interface SatisfactionInputProps {
   onChange: (value: number) => void;
   maxRating?: number;
   labels?: { low: string; high: string };
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 const FACES = [
@@ -45,7 +45,7 @@ export function SatisfactionInput({
               key={rating}
               onClick={() => {
                 onChange(rating);
-                if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+                if (onAutoAdvance) setTimeout(() => onAutoAdvance(rating), 500);
               }}
               onMouseEnter={() => setHovered(rating)}
               onMouseLeave={() => setHovered(0)}

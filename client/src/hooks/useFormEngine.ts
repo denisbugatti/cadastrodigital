@@ -27,6 +27,7 @@ interface UseFormEngineReturn {
   isStatement: boolean;
   canGoNext: boolean;
   goNext: () => void;
+  goNextWithValue: (value: FormResponse["value"]) => void;
   goPrev: () => void;
   goToIndex: (index: number) => void;
   setResponse: (questionId: string, value: FormResponse["value"]) => void;
@@ -194,6 +195,41 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     }
   }, [getNextIndex, totalQuestions]);
 
+  /**
+   * Go to next question using a freshly-selected value for conditional logic.
+   * This is needed for auto-advance because React state hasn't updated yet
+   * when the auto-advance timer fires.
+   */
+  const goNextWithValue = useCallback(
+    (value: FormResponse["value"]) => {
+      const q = currentQuestion;
+      let nextIdx = currentIndex + 1;
+
+      if (q?.conditionalLogic?.enabled && q.conditionalLogic.rules && value !== null && value !== undefined) {
+        let matchedRule;
+        if (typeof value === "string") {
+          matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === value);
+        } else if (typeof value === "boolean") {
+          const boolId = value ? "yes" : "no";
+          matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === boolId);
+        }
+        if (matchedRule && matchedRule.goToQuestionId !== "next") {
+          const targetIdx = questions.findIndex((q2) => q2.id === matchedRule.goToQuestionId);
+          if (targetIdx !== -1) {
+            nextIdx = targetIdx;
+          }
+        }
+      }
+
+      if (nextIdx < totalQuestions) {
+        setDirection("forward");
+        setCurrentIndex(nextIdx);
+        setNavHistory((prev) => [...prev, nextIdx]);
+      }
+    },
+    [currentQuestion, currentIndex, questions, totalQuestions]
+  );
+
   const goPrev = useCallback(() => {
     // Use navigation history to go back correctly even with branching
     setNavHistory((prev) => {
@@ -232,6 +268,7 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     isStatement,
     canGoNext,
     goNext,
+    goNextWithValue,
     goPrev,
     goToIndex,
     setResponse,

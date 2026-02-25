@@ -11,7 +11,7 @@ import { useEffect } from "react";
 interface YesNoInputProps {
   value: boolean | null;
   onChange: (value: boolean) => void;
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) {
@@ -20,12 +20,12 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
       if (e.key.toLowerCase() === "y" || e.key.toLowerCase() === "s") {
         e.preventDefault();
         onChange(true);
-        if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+        if (onAutoAdvance) setTimeout(() => onAutoAdvance(true), 500);
       }
       if (e.key.toLowerCase() === "n") {
         e.preventDefault();
         onChange(false);
-        if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+        if (onAutoAdvance) setTimeout(() => onAutoAdvance(false), 500);
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -52,7 +52,7 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
             key={opt.label}
             onClick={() => {
               onChange(opt.val);
-              if (onAutoAdvance) setTimeout(onAutoAdvance, 500);
+              if (onAutoAdvance) setTimeout(() => onAutoAdvance(opt.val), 500);
             }}
             className="flex-1 flex items-center justify-center gap-3 py-4 sm:py-5 rounded-lg text-base sm:text-lg font-medium transition-all duration-200 border"
             style={{

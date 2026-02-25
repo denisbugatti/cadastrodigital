@@ -105,10 +105,15 @@ export function FormContainer({ form }: FormContainerProps) {
     engine.goNext();
   }, [engine]);
 
-  // Auto-advance bypasses validation (user just selected a value)
-  const handleAutoAdvance = useCallback(() => {
+  // Auto-advance bypasses validation and uses the freshly-selected value
+  // for conditional logic (React state hasn't updated yet)
+  const handleAutoAdvance = useCallback((value?: unknown) => {
     setValidationError(undefined);
-    engine.goNext();
+    if (value !== undefined) {
+      engine.goNextWithValue(value as any);
+    } else {
+      engine.goNext();
+    }
   }, [engine]);
 
   const handlePrev = useCallback(() => {

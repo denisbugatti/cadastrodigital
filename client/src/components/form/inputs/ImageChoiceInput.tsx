@@ -10,7 +10,7 @@ interface ImageChoiceInputProps {
   choices: Choice[];
   value: string;
   onChange: (value: string) => void;
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 export function ImageChoiceInput({ choices, value, onChange, onAutoAdvance }: ImageChoiceInputProps) {
@@ -21,7 +21,7 @@ export function ImageChoiceInput({ choices, value, onChange, onAutoAdvance }: Im
         return (
           <motion.button
             key={choice.id}
-            onClick={() => { onChange(choice.id); if (onAutoAdvance) setTimeout(onAutoAdvance, 400); }}
+            onClick={() => { onChange(choice.id); if (onAutoAdvance) setTimeout(() => onAutoAdvance(choice.id), 400); }}
             className={`relative rounded-xl overflow-hidden text-left transition-all duration-300 border ${
               isSelected ? "border-brand shadow-md" : "border-border hover:border-brand/30 hover:shadow-sm"
             }`}

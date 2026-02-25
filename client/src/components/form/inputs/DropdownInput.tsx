@@ -12,7 +12,7 @@ interface DropdownInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 export function DropdownInput({ choices, value, onChange, placeholder, onAutoAdvance }: DropdownInputProps) {
@@ -58,7 +58,7 @@ export function DropdownInput({ choices, value, onChange, placeholder, onAutoAdv
               return (
                 <button
                   key={choice.id}
-                  onClick={() => { onChange(choice.id); setOpen(false); setSearch(""); if (onAutoAdvance) setTimeout(onAutoAdvance, 400); }}
+                  onClick={() => { onChange(choice.id); setOpen(false); setSearch(""); if (onAutoAdvance) setTimeout(() => onAutoAdvance(choice.id), 400); }}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-left font-body text-base transition-colors duration-150 hover:bg-secondary ${isSelected ? "bg-brand/5" : ""}`}
                 >
                   <span className={isSelected ? "text-foreground font-medium" : "text-foreground/70"}>{choice.label}</span>

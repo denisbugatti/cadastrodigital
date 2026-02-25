@@ -36,7 +36,7 @@ interface QuestionRendererProps {
   value: FormResponse["value"] | undefined;
   onChange: (value: FormResponse["value"]) => void;
   onNext: () => void;
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
   validationError?: string;
   design?: {
     backgroundColor?: string;
@@ -321,7 +321,7 @@ export function QuestionRenderer({
           />
         );
 
-      // Legal:
+      default:
         return (
           <TextInput
             value={(value as string) || ""}

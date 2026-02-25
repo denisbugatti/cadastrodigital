@@ -13,7 +13,7 @@ interface MultipleChoiceInputProps {
   choices: Choice[];
   value: string;
   onChange: (value: string) => void;
-  onAutoAdvance?: () => void;
+  onAutoAdvance?: (value?: unknown) => void;
 }
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -30,9 +30,10 @@ export function MultipleChoiceInput({
     (choiceId: string) => {
       setJustSelected(choiceId);
       onChange(choiceId);
-      // Auto-advance after brief animation delay
+      // Auto-advance after brief animation delay, passing the selected value
+      // for conditional logic (React state hasn't updated yet)
       if (onAutoAdvance) {
-        setTimeout(() => onAutoAdvance(), 600);
+        setTimeout(() => onAutoAdvance(choiceId), 600);
       }
       setTimeout(() => setJustSelected(null), 700);
     },
