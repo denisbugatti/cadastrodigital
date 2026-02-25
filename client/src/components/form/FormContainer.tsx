@@ -2,16 +2,13 @@
  * FormFlow — Typeform/Respondi-style Form Container
  * Full-screen immersive experience with:
  * - Logo loading animation on start
- * - Logo fixed top-left (LARGE on desktop)
+ * - Logo fixed top-left
  * - Thin progress bar
  * - Vertical slide transitions with spring physics
- * - Bottom action bar with OK + Back buttons (you,inc style)
- *   First question: single wide OK button
- *   After first: back arrow appears with split animation
+ * - Navigation arrows (↑ back / ↓ next) on the RIGHT side
+ * - Questions centered vertically on screen
  * - Auto-save partial responses to localStorage
  * - Resume from where user left off
- * - Mobile-responsive with safe-area support
- * - Scrollable question area for long content (estado civil 8 options)
  */
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
@@ -20,7 +17,7 @@ import type { FormData } from "@/lib/formTypes";
 import { useFormEngine } from "@/hooks/useFormEngine";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { QuestionRenderer } from "./QuestionRenderer";
-import { ChevronLeft } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface FormContainerProps {
   form: FormData;
@@ -111,6 +108,9 @@ export function FormContainer({ form }: FormContainerProps) {
   const textColor = isLightBg ? questionColor : "#FFFFFF";
   const subtextColor = isLightBg ? `${questionColor}99` : "rgba(255,255,255,0.6)";
   const progressBg = isLightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)";
+  const arrowBg = isLightBg ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)";
+  const arrowHoverBg = isLightBg ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.25)";
+  const arrowColor = isLightBg ? questionColor : "#FFFFFF";
 
   // ─── Restore saved responses on mount ───
   useEffect(() => {
@@ -280,7 +280,7 @@ export function FormContainer({ form }: FormContainerProps) {
         />
       )}
 
-      {/* ─── Fixed Logo (top-left, LARGE on desktop) ─── */}
+      {/* ─── Fixed Logo (top-left) ─── */}
       {logoUrl && !isSpecialScreen && (
         <motion.div
           className="absolute top-4 left-4 sm:top-6 sm:left-8 z-30"
@@ -307,7 +307,9 @@ export function FormContainer({ form }: FormContainerProps) {
         >
           <motion.div
             className="h-full origin-left"
-            style={{ backgroundColor: buttonColor }}
+            style={{
+              backgroundColor: isLightBg ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.5)",
+            }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: progress / 100 }}
             transition={{ type: "spring", stiffness: 200, damping: 30 }}
@@ -315,7 +317,46 @@ export function FormContainer({ form }: FormContainerProps) {
         </div>
       )}
 
-      {/* ─── Question Area with vertical slide — SCROLLABLE ─── */}
+      {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered) ─── */}
+      {showNav && (
+        <motion.div
+          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          {/* Up arrow = go back (previous question) */}
+          <motion.button
+            onClick={handlePrev}
+            disabled={engine.isFirst}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: arrowBg,
+              color: arrowColor,
+            }}
+            whileHover={!engine.isFirst ? { backgroundColor: arrowHoverBg, scale: 1.1 } : {}}
+            whileTap={!engine.isFirst ? { scale: 0.9 } : {}}
+          >
+            <ChevronUp size={22} />
+          </motion.button>
+
+          {/* Down arrow = go next (next question) */}
+          <motion.button
+            onClick={handleNext}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            style={{
+              backgroundColor: arrowBg,
+              color: arrowColor,
+            }}
+            whileHover={{ backgroundColor: arrowHoverBg, scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <ChevronDown size={22} />
+          </motion.button>
+        </motion.div>
+      )}
+
+      {/* ─── Question Area — CENTERED VERTICALLY ─── */}
       <div className="flex-1 relative overflow-hidden min-h-0">
         <AnimatePresence mode="wait" custom={engine.direction}>
           <motion.div
@@ -352,18 +393,21 @@ export function FormContainer({ form }: FormContainerProps) {
                 />
               </div>
             ) : (
-              /* Regular questions — scrollable for long content */
+              /* Regular questions — scrollable, vertically centered */
               <div
                 ref={scrollRef}
                 className="w-full h-full overflow-y-auto"
                 style={{
-                  paddingTop: logoUrl ? "5rem" : "2rem",
-                  paddingBottom: "8rem",
+                  paddingTop: "2rem",
+                  paddingBottom: "4rem",
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
+                <div className="flex-1" />
                 <motion.div
                   key={`shake-${shakeKey}`}
-                  className="max-w-2xl mx-auto px-5 flex items-start justify-center"
+                  className="max-w-2xl mx-auto px-5 pr-16 w-full"
                   animate={
                     shakeKey > 0
                       ? {
@@ -373,7 +417,7 @@ export function FormContainer({ form }: FormContainerProps) {
                   }
                   transition={{ duration: 0.5, ease: "easeInOut" }}
                 >
-                  <div className="w-full py-4">
+                  <div className="w-full">
                     <QuestionRenderer
                       question={engine.currentQuestion}
                       questionNumber={questionNumber}
@@ -412,13 +456,14 @@ export function FormContainer({ form }: FormContainerProps) {
                     </AnimatePresence>
                   </div>
                 </motion.div>
+                <div className="flex-1" />
               </div>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* ─── Bottom Action Bar (you,inc style) — FIXED at bottom ─── */}
+      {/* ─── Bottom Bar: OK button + question counter ─── */}
       {showNav && (
         <div
           className="shrink-0 z-30"
@@ -439,16 +484,16 @@ export function FormContainer({ form }: FormContainerProps) {
                   <motion.button
                     onClick={handlePrev}
                     initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 56, opacity: 1 }}
+                    animate={{ width: 48, opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className="shrink-0 h-12 rounded-xl flex items-center justify-center overflow-hidden"
+                    className="shrink-0 h-11 rounded-xl flex items-center justify-center overflow-hidden"
                     style={{
                       backgroundColor: buttonColor,
                       color: buttonTextColor,
                     }}
                   >
-                    <ChevronLeft size={22} />
+                    <ChevronUp size={20} />
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -458,7 +503,7 @@ export function FormContainer({ form }: FormContainerProps) {
                 onClick={handleNext}
                 disabled={!engine.canGoNext}
                 layout
-                className="flex-1 h-12 rounded-xl font-semibold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 h-11 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: buttonColor,
                   color: buttonTextColor,
@@ -471,7 +516,7 @@ export function FormContainer({ form }: FormContainerProps) {
             </div>
 
             {/* Question counter below buttons */}
-            <div className="max-w-2xl mx-auto mt-2.5 flex items-center justify-center gap-1.5 text-xs" style={{ color: subtextColor }}>
+            <div className="max-w-2xl mx-auto mt-2 flex items-center justify-center gap-1.5 text-xs" style={{ color: subtextColor }}>
               <span className="font-bold" style={{ color: buttonColor }}>{questionNumber}</span>
               <span className="opacity-60">/</span>
               <span className="opacity-60">{totalActualQuestions}</span>

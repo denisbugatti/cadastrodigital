@@ -6,6 +6,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { FormData, FormResponse, Question } from "@/lib/formTypes";
+import { validateCPF, validateCNPJ } from "@/lib/validators";
 
 export type Direction = "forward" | "backward";
 
@@ -118,6 +119,28 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
       }
       if (Array.isArray(value) && value.length === 0) {
         return { valid: false, message: "Selecione pelo menos uma opção" };
+      }
+    }
+
+    // CPF validation
+    if (q.type === "cpf" && typeof value === "string" && value) {
+      const cleaned = value.replace(/\D/g, "");
+      if (cleaned.length === 11 && !validateCPF(cleaned)) {
+        return { valid: false, message: "CPF inválido. Verifique os números digitados." };
+      }
+      if (cleaned.length > 0 && cleaned.length < 11) {
+        return { valid: false, message: "CPF incompleto. Digite todos os 11 dígitos." };
+      }
+    }
+
+    // CNPJ validation
+    if (q.type === "cnpj" && typeof value === "string" && value) {
+      const cleaned = value.replace(/\D/g, "");
+      if (cleaned.length === 14 && !validateCNPJ(cleaned)) {
+        return { valid: false, message: "CNPJ inválido. Verifique os números digitados." };
+      }
+      if (cleaned.length > 0 && cleaned.length < 14) {
+        return { valid: false, message: "CNPJ incompleto. Digite todos os 14 dígitos." };
       }
     }
 
