@@ -46,3 +46,6 @@
 ## Galeria de Templates
 - [x] Criar galeria de templates no Dashboard com o formulário One Innovation como template pré-configurado
 - [x] Permitir clonar template para o banco de dados com um clique
+
+## Remover Rodapé do Formulário
+- [x] Remover rodapé com botões de voltar e OK/Continuar do FormContainer

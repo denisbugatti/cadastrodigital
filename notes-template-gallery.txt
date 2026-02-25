@@ -1,7 +1,0 @@
-Template Gallery UI is working correctly:
-- "Galeria de Templates" button toggles the gallery open/closed
-- Two template cards are shown: "Cadastro Online" (blue gradient) and "Pesquisa de Satisfação" (purple gradient)
-- Each card has gradient header with icon, tags, title, description, and "Usar template" button
-- "Criar novo formulário" card still appears below the templates
-- Empty state shows "Ver templates disponíveis" button
-- No TypeScript errors

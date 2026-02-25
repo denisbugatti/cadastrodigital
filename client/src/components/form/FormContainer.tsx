@@ -496,67 +496,7 @@ export function FormContainer({ form }: FormContainerProps) {
         </AnimatePresence>
       </div>
 
-      {/* ─── Bottom Bar: OK button + question counter ─── */}
-      {showNav && (
-        <div
-          className="shrink-0 z-30"
-          style={{
-            paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)",
-          }}
-        >
-          <motion.div
-            className="px-4 pb-3 pt-2"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="max-w-2xl mx-auto flex items-center gap-2">
-              {/* Back button — appears with split animation after first question */}
-              <AnimatePresence>
-                {showBackButton && (
-                  <motion.button
-                    onClick={handlePrev}
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 48, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className="shrink-0 h-11 rounded-xl flex items-center justify-center overflow-hidden"
-                    style={{
-                      backgroundColor: buttonColor,
-                      color: buttonTextColor,
-                    }}
-                  >
-                    <ChevronUp size={20} />
-                  </motion.button>
-                )}
-              </AnimatePresence>
 
-              {/* OK / Continue button — full width */}
-              <motion.button
-                onClick={handleNext}
-                disabled={!engine.canGoNext}
-                layout
-                className="flex-1 h-11 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: buttonColor,
-                  color: buttonTextColor,
-                }}
-                whileHover={{ filter: "brightness(1.1)" }}
-                whileTap={{ scale: 0.98 }}
-              >
-                OK
-              </motion.button>
-            </div>
-
-            {/* Question counter below buttons */}
-            <div className="max-w-2xl mx-auto mt-2 flex items-center justify-center gap-1.5 text-xs" style={{ color: subtextColor }}>
-              <span className="font-bold" style={{ color: buttonColor }}>{questionNumber}</span>
-              <span className="opacity-60">/</span>
-              <span className="opacity-60">{totalActualQuestions}</span>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
