@@ -21,11 +21,15 @@ import { WebhookPanel } from "@/components/builder/WebhookPanel";
 import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { WorkspaceManager } from "@/components/builder/WorkspaceManager";
 import { useBuilder } from "@/hooks/useBuilder";
-import { sampleWorkspaces } from "@/lib/builderTypes";
+import { sampleWorkspaces, type BuilderForm } from "@/lib/builderTypes";
 
 type BuilderTab = "editor" | "opcoes" | "compartilhar" | "respostas";
 
-export default function Builder() {
+interface BuilderProps {
+  initialForm?: BuilderForm;
+}
+
+export default function Builder({ initialForm }: BuilderProps = {}) {
   const {
     form,
     selectedQuestion,
@@ -45,7 +49,7 @@ export default function Builder() {
     updateChoice,
     removeChoice,
     getConditionalTargets,
-  } = useBuilder();
+  } = useBuilder(initialForm);
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("editor");
   const [showPreview, setShowPreview] = useState(false);
