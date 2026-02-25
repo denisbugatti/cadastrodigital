@@ -6,7 +6,7 @@
  * Top: Tab bar (Content, Design, Share, Responses)
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -24,6 +24,15 @@ import { BuilderLivePreview } from "@/components/builder/BuilderLivePreview";
 import { WebhookPanel } from "@/components/builder/WebhookPanel";
 
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 type BuilderTab = "content" | "design" | "compartilhar" | "respostas";
 
@@ -60,6 +69,27 @@ export default function Builder({ initialForm }: BuilderProps) {
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
   const [showPreview, setShowPreview] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+
+  // Handle back navigation with unsaved changes guard
+  const handleBack = useCallback(() => {
+    if (!isSaved) {
+      setShowUnsavedDialog(true);
+    } else {
+      navigate("/form");
+    }
+  }, [isSaved, navigate]);
+
+  const handleDiscardAndLeave = useCallback(() => {
+    setShowUnsavedDialog(false);
+    navigate("/form");
+  }, [navigate]);
+
+  const handleSaveAndLeave = useCallback(() => {
+    saveNow();
+    setShowUnsavedDialog(false);
+    navigate("/form");
+  }, [saveNow, navigate]);
 
 
   const conditionalTargets = useMemo(
@@ -80,11 +110,12 @@ export default function Builder({ initialForm }: BuilderProps) {
       <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 shrink-0 z-50">
         {/* Left: Back + Form name */}
         <div className="flex items-center gap-3">
-          <Link href="/form">
-            <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-              <ArrowLeft size={18} />
-            </button>
-          </Link>
+          <button
+            onClick={handleBack}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ArrowLeft size={18} />
+          </button>
           <div className="h-5 w-px bg-border" />
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
@@ -417,6 +448,35 @@ export default function Builder({ initialForm }: BuilderProps) {
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
       />
+
+      {/* Unsaved Changes Dialog */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações que ainda não foram salvas. O que deseja fazer?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowUnsavedDialog(false)}>
+              Continuar editando
+            </AlertDialogCancel>
+            <button
+              onClick={handleDiscardAndLeave}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+            >
+              Descartar e sair
+            </button>
+            <button
+              onClick={handleSaveAndLeave}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-brand text-white hover:bg-brand-dark transition-colors"
+            >
+              Salvar e sair
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

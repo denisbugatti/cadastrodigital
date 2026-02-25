@@ -40,9 +40,16 @@ export function useBuilder(initialForm?: BuilderForm) {
   const [isSaved, setIsSaved] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMount = useRef(true);
 
   // Auto-save with debounce (500ms after last change)
   useEffect(() => {
+    // Skip the initial mount to avoid marking as unsaved on load
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -61,6 +68,21 @@ export function useBuilder(initialForm?: BuilderForm) {
       }
     };
   }, [form]);
+
+  // Warn user before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isSaved) {
+        e.preventDefault();
+        // Modern browsers show a generic message, but we set returnValue for compatibility
+        e.returnValue = "Voc\u00ea tem altera\u00e7\u00f5es n\u00e3o salvas. Deseja sair?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isSaved]);
 
   // Manual save function
   const saveNow = useCallback(() => {
