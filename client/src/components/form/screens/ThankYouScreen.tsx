@@ -51,7 +51,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
 
   return (
     <div
-      className="w-full h-screen flex items-center justify-center relative overflow-hidden"
+      className="w-full h-full flex items-center justify-center relative overflow-hidden"
       style={{ backgroundColor: bgColor, fontFamily }}
     >
       {/* Logo top-left */}
@@ -65,7 +65,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-7 sm:h-9 md:h-10 object-contain"
+            className="h-12 sm:h-16 md:h-24 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}

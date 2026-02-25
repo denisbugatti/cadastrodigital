@@ -43,6 +43,7 @@ interface QuestionRendererProps {
     questionColor?: string;
     answerColor?: string;
     buttonColor?: string;
+    buttonTextColor?: string;
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;
@@ -196,6 +197,7 @@ export function QuestionRenderer({
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
             onAutoAdvance={onAutoAdvance || onNext}
+            design={design}
           />
         ) : null;
 

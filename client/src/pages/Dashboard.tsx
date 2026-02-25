@@ -1,7 +1,7 @@
 /**
- * FormFlow Dashboard — Light Clean Design
+ * FormFlow Dashboard — Light Clean Design with Folders
  * Fontes: Plus Jakarta Sans (display) + Inter (body)
- * Features: busca, filtros por status, ordenação, confirmação de exclusão
+ * Features: pastas, busca, filtros por status, ordenação, duplicar, excluir
  */
 
 import { useState, useMemo } from "react";
@@ -21,10 +21,16 @@ import {
   ArrowUpDown,
   SlidersHorizontal,
   AlertTriangle,
+  FolderOpen,
+  FolderPlus,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import {
   userForms as initialForms,
+  defaultFolders,
   type UserForm,
+  type Folder,
 } from "@/lib/dashboardData";
 import {
   DropdownMenu,
@@ -32,6 +38,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -55,15 +64,15 @@ type SortOption = "updated" | "name" | "responses" | "created";
 function getStatusConfig(status: UserForm["status"]) {
   switch (status) {
     case "published":
-      return { label: "Publicado", dotColor: "#22c55e", textClass: "text-green-600", bgClass: "bg-green-50 border-green-200 text-green-700", activeBg: "bg-green-100 border-green-300" };
+      return { label: "Publicado", dotColor: "#22c55e", textClass: "text-green-600", bgClass: "bg-green-50 border-green-200 text-green-700" };
     case "draft":
-      return { label: "Rascunho", dotColor: "#f59e0b", textClass: "text-amber-600", bgClass: "bg-amber-50 border-amber-200 text-amber-700", activeBg: "bg-amber-100 border-amber-300" };
+      return { label: "Rascunho", dotColor: "#f59e0b", textClass: "text-amber-600", bgClass: "bg-amber-50 border-amber-200 text-amber-700" };
     case "closed":
-      return { label: "Encerrado", dotColor: "#94a3b8", textClass: "text-slate-400", bgClass: "bg-slate-50 border-slate-200 text-slate-600", activeBg: "bg-slate-100 border-slate-300" };
+      return { label: "Encerrado", dotColor: "#94a3b8", textClass: "text-slate-400", bgClass: "bg-slate-50 border-slate-200 text-slate-600" };
   }
 }
 
-const statusFilters: { id: StatusFilter; label: string; icon?: string }[] = [
+const statusFilters: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "Todos" },
   { id: "published", label: "Publicados" },
   { id: "draft", label: "Rascunhos" },
@@ -77,6 +86,8 @@ const sortOptions: { id: SortOption; label: string }[] = [
   { id: "created", label: "Data de criação" },
 ];
 
+const FOLDER_COLORS = ["#0D8BD9", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+
 /* ─── Dashboard ─── */
 
 export default function Dashboard() {
@@ -84,11 +95,23 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("updated");
   const [forms, setForms] = useState<UserForm[]>(initialForms);
+  const [folders, setFolders] = useState<Folder[]>(defaultFolders);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserForm | null>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
   const [, navigate] = useLocation();
 
   const filteredAndSortedForms = useMemo(() => {
     let result = [...forms];
+
+    // Filter by folder
+    if (selectedFolderId) {
+      result = result.filter((f) => f.folderId === selectedFolderId);
+    }
 
     // Filter by status
     if (statusFilter !== "all") {
@@ -122,13 +145,21 @@ export default function Dashboard() {
     }
 
     return result;
-  }, [forms, searchQuery, statusFilter, sortBy]);
+  }, [forms, searchQuery, statusFilter, sortBy, selectedFolderId]);
 
   const statusCounts = useMemo(() => {
-    const counts = { all: forms.length, published: 0, draft: 0, closed: 0 };
-    forms.forEach((f) => { counts[f.status]++; });
+    const base = selectedFolderId ? forms.filter((f) => f.folderId === selectedFolderId) : forms;
+    const counts = { all: base.length, published: 0, draft: 0, closed: 0 };
+    base.forEach((f) => { counts[f.status]++; });
     return counts;
-  }, [forms]);
+  }, [forms, selectedFolderId]);
+
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    folders.forEach((f) => { counts[f.id] = forms.filter((form) => form.folderId === f.id).length; });
+    counts["__none__"] = forms.filter((f) => !f.folderId).length;
+    return counts;
+  }, [forms, folders]);
 
   const handleDelete = (form: UserForm) => {
     setForms((prev) => prev.filter((f) => f.id !== form.id));
@@ -136,10 +167,6 @@ export default function Dashboard() {
     toast.success("Formulário excluído", {
       description: `"${form.title}" foi removido com sucesso.`,
     });
-  };
-
-  const handleRequestDelete = (form: UserForm) => {
-    setDeleteTarget(form);
   };
 
   const handleDuplicate = (form: UserForm) => {
@@ -158,36 +185,58 @@ export default function Dashboard() {
     });
   };
 
+  const handleMoveToFolder = (formId: string, folderId: string | undefined) => {
+    setForms((prev) => prev.map((f) => f.id === formId ? { ...f, folderId } : f));
+    const folderName = folderId ? folders.find((f) => f.id === folderId)?.name : "Sem pasta";
+    toast.success("Formulário movido", { description: `Movido para "${folderName}"` });
+  };
+
+  const handleCreateFolder = () => {
+    if (!newFolderName.trim()) return;
+    const newFolder: Folder = {
+      id: `folder-${Date.now()}`,
+      name: newFolderName.trim(),
+      color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
+      createdAt: new Date().toISOString(),
+    };
+    setFolders((prev) => [...prev, newFolder]);
+    setNewFolderName("");
+    setCreatingFolder(false);
+    toast.success("Pasta criada!", { description: `"${newFolder.name}" foi criada.` });
+  };
+
+  const handleRenameFolder = (folderId: string) => {
+    if (!editingFolderName.trim()) return;
+    setFolders((prev) => prev.map((f) => f.id === folderId ? { ...f, name: editingFolderName.trim() } : f));
+    setEditingFolderId(null);
+    setEditingFolderName("");
+    toast.success("Pasta renomeada!");
+  };
+
+  const handleDeleteFolder = (folder: Folder) => {
+    // Move forms out of folder
+    setForms((prev) => prev.map((f) => f.folderId === folder.id ? { ...f, folderId: undefined } : f));
+    setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+    if (selectedFolderId === folder.id) setSelectedFolderId(null);
+    setDeleteFolderTarget(null);
+    toast.success("Pasta excluída", { description: `Os formulários foram movidos para "Sem pasta".` });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
-          {/* Logo */}
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center brand-shadow">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path
-                  d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M6 7.5H12M6 10.5H9.5"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeOpacity="0.8"
-                />
+                <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
               </svg>
             </div>
-            <span className="font-display text-xl font-bold text-foreground tracking-tight">
-              FormFlow
-            </span>
+            <span className="font-display text-xl font-bold text-foreground tracking-tight">FormFlow</span>
           </Link>
 
-          {/* Search bar */}
           <div className="flex-1 max-w-lg relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -199,7 +248,6 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Create new button */}
           <Link href="/editor">
             <motion.button
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
@@ -212,22 +260,174 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        <section>
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+        {/* ─── Folder Sidebar ─── */}
+        <aside className="w-60 shrink-0">
+          <div className="sticky top-24">
+            <h3 className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Pastas</h3>
+
+            <div className="space-y-1">
+              {/* All forms */}
+              <button
+                onClick={() => setSelectedFolderId(null)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
+                  !selectedFolderId
+                    ? "bg-brand/10 text-brand border border-brand/20"
+                    : "text-foreground hover:bg-secondary border border-transparent"
+                }`}
+              >
+                <FileText size={16} className={!selectedFolderId ? "text-brand" : "text-muted-foreground"} />
+                <span className="flex-1 text-left">Todos</span>
+                <span className="text-xs text-muted-foreground">{forms.length}</span>
+              </button>
+
+              {/* Folders */}
+              {folders.map((folder) => (
+                <div key={folder.id} className="group relative">
+                  {editingFolderId === folder.id ? (
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <div className="w-4 h-4 rounded shrink-0" style={{ backgroundColor: folder.color }} />
+                      <input
+                        autoFocus
+                        value={editingFolderName}
+                        onChange={(e) => setEditingFolderName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameFolder(folder.id);
+                          if (e.key === "Escape") setEditingFolderId(null);
+                        }}
+                        onBlur={() => handleRenameFolder(folder.id)}
+                        className="flex-1 text-sm font-body bg-transparent border-b border-brand focus:outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedFolderId(selectedFolderId === folder.id ? null : folder.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
+                        selectedFolderId === folder.id
+                          ? "bg-brand/10 text-brand border border-brand/20"
+                          : "text-foreground hover:bg-secondary border border-transparent"
+                      }`}
+                    >
+                      <FolderOpen size={16} style={{ color: folder.color }} />
+                      <span className="flex-1 text-left truncate">{folder.name}</span>
+                      <span className="text-xs text-muted-foreground">{folderCounts[folder.id] || 0}</span>
+                    </button>
+                  )}
+
+                  {/* Folder actions on hover */}
+                  {editingFolderId !== folder.id && (
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingFolderId(folder.id);
+                          setEditingFolderName(folder.name);
+                        }}
+                        className="p-1 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
+                        title="Renomear"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteFolderTarget(folder);
+                        }}
+                        className="p-1 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500"
+                        title="Excluir"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Sem pasta */}
+              {folderCounts["__none__"] > 0 && (
+                <button
+                  onClick={() => setSelectedFolderId("__none__")}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
+                    selectedFolderId === "__none__"
+                      ? "bg-brand/10 text-brand border border-brand/20"
+                      : "text-muted-foreground hover:bg-secondary border border-transparent"
+                  }`}
+                >
+                  <FileText size={16} />
+                  <span className="flex-1 text-left">Sem pasta</span>
+                  <span className="text-xs text-muted-foreground">{folderCounts["__none__"]}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Create folder */}
+            {creatingFolder ? (
+              <div className="mt-3 flex items-center gap-2 px-3">
+                <FolderPlus size={16} className="text-brand shrink-0" />
+                <input
+                  autoFocus
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateFolder();
+                    if (e.key === "Escape") { setCreatingFolder(false); setNewFolderName(""); }
+                  }}
+                  placeholder="Nome da pasta"
+                  className="flex-1 text-sm font-body bg-transparent border-b border-brand focus:outline-none placeholder:text-muted-foreground/50"
+                />
+                <button onClick={() => { setCreatingFolder(false); setNewFolderName(""); }} className="text-muted-foreground hover:text-foreground">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setCreatingFolder(true)}
+                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-brand hover:bg-brand/5 transition-all duration-150 border border-dashed border-border hover:border-brand/30"
+              >
+                <FolderPlus size={16} />
+                Nova pasta
+              </button>
+            )}
+          </div>
+        </aside>
+
+        {/* ─── Main Content ─── */}
+        <main className="flex-1 min-w-0">
           {/* Title row */}
           <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground font-body mb-1">
+              <button onClick={() => setSelectedFolderId(null)} className="hover:text-foreground transition-colors">
+                Formulários
+              </button>
+              {selectedFolderId && selectedFolderId !== "__none__" && (
+                <>
+                  <ChevronRight size={14} />
+                  <span className="text-foreground font-medium">
+                    {folders.find((f) => f.id === selectedFolderId)?.name}
+                  </span>
+                </>
+              )}
+              {selectedFolderId === "__none__" && (
+                <>
+                  <ChevronRight size={14} />
+                  <span className="text-foreground font-medium">Sem pasta</span>
+                </>
+              )}
+            </div>
             <h2 className="font-display text-3xl font-bold text-foreground tracking-tight">
-              Meus formulários
+              {selectedFolderId && selectedFolderId !== "__none__"
+                ? folders.find((f) => f.id === selectedFolderId)?.name || "Meus formulários"
+                : selectedFolderId === "__none__"
+                ? "Sem pasta"
+                : "Meus formulários"}
             </h2>
             <p className="mt-2 text-base text-muted-foreground font-body">
               {filteredAndSortedForms.length} formulário{filteredAndSortedForms.length !== 1 ? "s" : ""} encontrado{filteredAndSortedForms.length !== 1 ? "s" : ""}
             </p>
           </div>
 
-          {/* ─── Filters & Sort Bar ─── */}
+          {/* Filters & Sort Bar */}
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            {/* Status filter pills */}
             <div className="flex items-center gap-2">
               <SlidersHorizontal size={15} className="text-muted-foreground mr-1" />
               {statusFilters.map((filter) => {
@@ -258,7 +458,6 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* Sort dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:text-foreground hover:border-brand/20 hover:bg-secondary/50 transition-all duration-200">
@@ -273,9 +472,7 @@ export default function Dashboard() {
                     onClick={() => setSortBy(option.id)}
                     className={sortBy === option.id ? "bg-brand/5 text-brand font-semibold" : ""}
                   >
-                    {sortBy === option.id && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand mr-2 shrink-0" />
-                    )}
+                    {sortBy === option.id && <div className="w-1.5 h-1.5 rounded-full bg-brand mr-2 shrink-0" />}
                     {option.label}
                   </DropdownMenuItem>
                 ))}
@@ -283,9 +480,8 @@ export default function Dashboard() {
             </DropdownMenu>
           </div>
 
-          {/* ─── Cards Grid ─── */}
+          {/* Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {/* Create new card */}
             <Link href="/editor">
               <motion.div
                 className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
@@ -299,55 +495,49 @@ export default function Dashboard() {
                   <p className="font-display text-base font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
                     Criar novo formulário
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Comece do zero
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">Comece do zero</p>
                 </div>
               </motion.div>
             </Link>
 
-            {/* User form cards */}
             <AnimatePresence mode="popLayout">
               {filteredAndSortedForms.map((form, i) => (
                 <FormCard
                   key={form.id}
                   form={form}
                   index={i}
+                  folders={folders}
                   onNavigate={navigate}
-                  onRequestDelete={handleRequestDelete}
+                  onRequestDelete={(f) => setDeleteTarget(f)}
                   onDuplicate={handleDuplicate}
+                  onMoveToFolder={handleMoveToFolder}
                 />
               ))}
             </AnimatePresence>
           </div>
 
-          {/* Empty state */}
           {filteredAndSortedForms.length === 0 && (
-            <motion.div
-              className="text-center py-20"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
+            <motion.div className="text-center py-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Search size={48} className="mx-auto text-muted-foreground/30 mb-4" />
               <p className="text-lg text-muted-foreground font-body">
                 {searchQuery
                   ? `Nenhum formulário encontrado para "${searchQuery}"`
-                  : `Nenhum formulário ${statusFilter !== "all" ? statusFilters.find(f => f.id === statusFilter)?.label.toLowerCase() : ""}`}
+                  : "Nenhum formulário nesta pasta"}
               </p>
-              {statusFilter !== "all" && (
+              {(statusFilter !== "all" || selectedFolderId) && (
                 <button
-                  onClick={() => setStatusFilter("all")}
+                  onClick={() => { setStatusFilter("all"); setSelectedFolderId(null); }}
                   className="mt-4 text-sm font-body font-medium text-brand hover:underline"
                 >
-                  Limpar filtro
+                  Limpar filtros
                 </button>
               )}
             </motion.div>
           )}
-        </section>
-      </main>
+        </main>
+      </div>
 
-      {/* ─── Delete Confirmation Dialog ─── */}
+      {/* Delete Form Dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent className="bg-white border-border shadow-2xl max-w-md">
           <AlertDialogHeader>
@@ -364,24 +554,53 @@ export default function Dashboard() {
               <span className="font-semibold text-foreground">"{deleteTarget?.title}"</span>?
               {deleteTarget && deleteTarget.responsesCount > 0 && (
                 <span className="block mt-2 text-sm text-red-500 font-medium">
-                  Este formulário possui {deleteTarget.responsesCount} resposta{deleteTarget.responsesCount !== 1 ? "s" : ""} que também será{deleteTarget.responsesCount !== 1 ? "ão" : ""} removida{deleteTarget.responsesCount !== 1 ? "s" : ""}.
+                  Este formulário possui {deleteTarget.responsesCount} resposta{deleteTarget.responsesCount !== 1 ? "s" : ""}.
                 </span>
               )}
-              <span className="block mt-2 text-sm">
-                Esta ação não pode ser desfeita.
-              </span>
+              <span className="block mt-2 text-sm">Esta ação não pode ser desfeita.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-2">
-            <AlertDialogCancel className="font-body font-medium rounded-xl px-5">
-              Cancelar
-            </AlertDialogCancel>
+            <AlertDialogCancel className="font-body font-medium rounded-xl px-5">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
               className="bg-red-500 hover:bg-red-600 text-white font-body font-semibold rounded-xl px-5 shadow-sm"
             >
               <Trash2 size={15} className="mr-1.5" />
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Folder Dialog */}
+      <AlertDialog open={!!deleteFolderTarget} onOpenChange={(open) => !open && setDeleteFolderTarget(null)}>
+        <AlertDialogContent className="bg-white border-border shadow-2xl max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-red-500" />
+              </div>
+              <AlertDialogTitle className="font-display text-lg font-bold text-foreground">
+                Excluir pasta
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base text-muted-foreground font-body leading-relaxed">
+              Tem certeza que deseja excluir a pasta{" "}
+              <span className="font-semibold text-foreground">"{deleteFolderTarget?.name}"</span>?
+              <span className="block mt-2 text-sm">
+                Os formulários dentro dela serão movidos para "Sem pasta".
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogCancel className="font-body font-medium rounded-xl px-5">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteFolderTarget && handleDeleteFolder(deleteFolderTarget)}
+              className="bg-red-500 hover:bg-red-600 text-white font-body font-semibold rounded-xl px-5 shadow-sm"
+            >
+              <Trash2 size={15} className="mr-1.5" />
+              Excluir pasta
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -395,14 +614,17 @@ export default function Dashboard() {
 interface FormCardProps {
   form: UserForm;
   index: number;
+  folders: Folder[];
   onNavigate: (to: string) => void;
   onRequestDelete: (form: UserForm) => void;
   onDuplicate: (form: UserForm) => void;
+  onMoveToFolder: (formId: string, folderId: string | undefined) => void;
 }
 
-function FormCard({ form, index, onNavigate, onRequestDelete, onDuplicate }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onMoveToFolder }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const currentFolder = folders.find((f) => f.id === form.folderId);
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (dropdownOpen) {
@@ -423,27 +645,19 @@ function FormCard({ form, index, onNavigate, onRequestDelete, onDuplicate }: For
       onClick={handleCardClick}
       className="group relative clean-card rounded-2xl p-6 transition-all duration-200 cursor-pointer hover:shadow-lg"
     >
-      {/* Top accent line */}
       <div
         className="absolute top-0 left-8 right-8 h-[3px] rounded-b-full opacity-70 group-hover:opacity-100 transition-opacity"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${form.color}, transparent)`,
-        }}
+        style={{ background: `linear-gradient(90deg, transparent, ${form.color}, transparent)` }}
       />
 
-      {/* Header row */}
       <div className="flex items-start justify-between mb-4">
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{
-            background: `${form.color}15`,
-            border: `1px solid ${form.color}25`,
-          }}
+          style={{ background: `${form.color}15`, border: `1px solid ${form.color}25` }}
         >
           <FileText size={20} style={{ color: form.color }} />
         </div>
 
-        {/* Actions dropdown */}
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <button
@@ -453,78 +667,55 @@ function FormCard({ form, index, onNavigate, onRequestDelete, onDuplicate }: For
               <MoreHorizontal size={18} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-48">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setDropdownOpen(false);
-                onNavigate(`/editor/${form.id}`);
-              }}
-            >
+          <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
               <Pencil size={15} className="mr-2" /> Editar
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setDropdownOpen(false);
-                toast.info("Respostas", {
-                  description: `${form.responsesCount} respostas coletadas para "${form.title}"`,
-                });
-              }}
-            >
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); toast.info("Respostas", { description: `${form.responsesCount} respostas coletadas` }); }}>
               <BarChart3 size={15} className="mr-2" /> Ver respostas
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setDropdownOpen(false);
-                onDuplicate(form);
-              }}
-            >
+
+            {/* Move to folder submenu */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                <FolderOpen size={15} className="mr-2" /> Mover para pasta
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="bg-white border-border shadow-lg w-48">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, undefined); }}>
+                  <X size={14} className="mr-2 text-muted-foreground" /> Sem pasta
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {folders.map((folder) => (
+                  <DropdownMenuItem
+                    key={folder.id}
+                    onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, folder.id); }}
+                    className={form.folderId === folder.id ? "bg-brand/5 font-semibold" : ""}
+                  >
+                    <div className="w-3 h-3 rounded shrink-0 mr-2" style={{ backgroundColor: folder.color }} />
+                    {folder.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onDuplicate(form); }}>
               <Copy size={15} className="mr-2" /> Duplicar
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setDropdownOpen(false);
-                navigator.clipboard.writeText(`https://formflow.app/f/${form.id}`);
-                toast.success("Link copiado!", {
-                  description: `O link de "${form.title}" foi copiado para a área de transferência.`,
-                });
-              }}
-            >
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`https://formflow.app/f/${form.id}`); toast.success("Link copiado!"); }}>
               <Share2 size={15} className="mr-2" /> Compartilhar link
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setDropdownOpen(false);
-                onRequestDelete(form);
-              }}
-            >
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onRequestDelete(form); }}>
               <Trash2 size={15} className="mr-2" /> Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Title & description */}
-      <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">
-        {form.title}
-      </h3>
-      <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed">
-        {form.description}
-      </p>
+      <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
+      <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed">{form.description}</p>
 
-      {/* Stats row */}
       <div className="flex items-center gap-5 text-sm text-muted-foreground font-body">
         <span className="flex items-center gap-2">
           <FileText size={14} />
@@ -536,16 +727,18 @@ function FormCard({ form, index, onNavigate, onRequestDelete, onDuplicate }: For
         </span>
       </div>
 
-      {/* Footer: status + date */}
       <div className="flex items-center justify-between mt-5 pt-4 border-t border-border">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ background: statusConfig.dotColor }}
-          />
-          <span className={`text-sm font-body font-medium ${statusConfig.textClass}`}>
-            {statusConfig.label}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: statusConfig.dotColor }} />
+            <span className={`text-sm font-body font-medium ${statusConfig.textClass}`}>{statusConfig.label}</span>
+          </div>
+          {currentFolder && (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-body font-medium bg-secondary text-muted-foreground border border-border">
+              <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: currentFolder.color }} />
+              {currentFolder.name}
+            </span>
+          )}
         </div>
         <span className="text-sm text-muted-foreground font-body">
           {new Date(form.updatedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}

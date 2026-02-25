@@ -1,7 +1,7 @@
 /**
  * FormFlow Welcome Screen — Respondi/Typeform-style
  * Full-screen colored background with centered content.
- * Logo top-left (from design settings), button with Enter hint.
+ * Logo top-left (LARGE on desktop), button with Enter hint.
  * Adapts text color to background brightness.
  */
 
@@ -43,7 +43,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
 
   return (
     <div
-      className="w-full h-screen flex items-center justify-center relative overflow-hidden"
+      className="w-full h-full flex items-center justify-center relative overflow-hidden"
       style={{ backgroundColor: bgColor, fontFamily }}
     >
       {/* Background image overlay if set */}
@@ -59,10 +59,10 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
         />
       )}
 
-      {/* Logo top-left (like Respondi) */}
+      {/* Logo top-left — LARGE on desktop */}
       {logoUrl && (
         <motion.div
-          className="absolute top-5 left-5 sm:top-7 sm:left-8 z-10"
+          className="absolute top-4 left-4 sm:top-6 sm:left-8 z-10"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -70,7 +70,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-10 sm:h-14 md:h-16 object-contain"
+            className="h-12 sm:h-16 md:h-24 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -163,17 +163,6 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           </motion.div>
         )}
       </div>
-
-      {/* Question counter bottom-right (like Respondi: "7/24") */}
-      <motion.div
-        className="absolute bottom-5 right-6 sm:bottom-7 sm:right-8 text-xs sm:text-sm font-medium"
-        style={{ color: hintColor }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7 }}
-      >
-        {/* This is just decorative on welcome, actual counter is in FormContainer */}
-      </motion.div>
     </div>
   );
 }

@@ -2,11 +2,11 @@
  * FormFlow Multiple Choice — Typeform/Respondi-style
  * Letter prefix (A, B, C), animated selection with checkmark,
  * auto-advance after selection, adapts to form design colors.
- * White borders on dark backgrounds for better visibility.
+ * Accepts design prop for buttonTextColor customization.
  */
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Choice } from "@/lib/formTypes";
 import { Check } from "lucide-react";
 
@@ -15,6 +15,16 @@ interface MultipleChoiceInputProps {
   value: string;
   onChange: (value: string) => void;
   onAutoAdvance?: (value?: unknown) => void;
+  design?: {
+    backgroundColor?: string;
+    questionColor?: string;
+    answerColor?: string;
+    buttonColor?: string;
+    buttonTextColor?: string;
+    fontFamily?: string;
+    logoUrl?: string;
+    backgroundImage?: string;
+  };
 }
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -24,8 +34,33 @@ export function MultipleChoiceInput({
   value,
   onChange,
   onAutoAdvance,
+  design,
 }: MultipleChoiceInputProps) {
   const [justSelected, setJustSelected] = useState<string | null>(null);
+
+  // Determine if background is light or dark
+  const isLightBg = useMemo(() => {
+    const bg = design?.backgroundColor || "#FFFFFF";
+    const c = bg.replace("#", "");
+    if (c.length < 6) return true;
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+  }, [design?.backgroundColor]);
+
+  // Adaptive colors based on background
+  const borderDefault = isLightBg ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.3)";
+  const borderSelected = isLightBg ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.9)";
+  const borderHover = isLightBg ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.5)";
+  const bgSelected = isLightBg ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.12)";
+  const bgHover = isLightBg ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.06)";
+  const textColor = isLightBg ? "#1E293B" : "#FFFFFF";
+  const badgeBorder = isLightBg ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.4)";
+  const badgeSelectedBg = isLightBg ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)";
+  const badgeSelectedText = isLightBg ? "#FFFFFF" : "#1a1a2e";
+  const checkCircleBg = isLightBg ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)";
+  const checkCircleColor = isLightBg ? "#FFFFFF" : "#1a1a2e";
 
   const handleSelect = useCallback(
     (choiceId: string) => {
@@ -53,7 +88,7 @@ export function MultipleChoiceInput({
 
   return (
     <motion.div
-      className="flex flex-col gap-2.5 sm:gap-3"
+      className="flex flex-col gap-2 sm:gap-2.5"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2 }}
@@ -66,31 +101,24 @@ export function MultipleChoiceInput({
           <motion.button
             key={choice.id}
             onClick={() => handleSelect(choice.id)}
-            className="group w-full flex items-center gap-3 sm:gap-4 px-4 py-3 sm:py-3.5 rounded-lg text-left transition-all duration-200 border"
+            className="group w-full flex items-center gap-3 sm:gap-4 px-3.5 py-3 sm:px-4 sm:py-3.5 rounded-lg text-left transition-all duration-200 border"
             style={{
-              borderColor: isSelected
-                ? "rgba(255,255,255,0.9)"
-                : "rgba(255,255,255,0.3)",
-              backgroundColor: isSelected
-                ? "rgba(255,255,255,0.12)"
-                : "transparent",
+              borderColor: isSelected ? borderSelected : borderDefault,
+              backgroundColor: isSelected ? bgSelected : "transparent",
+              color: textColor,
             }}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              delay: 0.25 + i * 0.05,
+              delay: 0.25 + i * 0.04,
               duration: 0.3,
               type: "spring",
               stiffness: 300,
               damping: 25,
             }}
             whileHover={{
-              backgroundColor: isSelected
-                ? "rgba(255,255,255,0.15)"
-                : "rgba(255,255,255,0.06)",
-              borderColor: isSelected
-                ? "rgba(255,255,255,1)"
-                : "rgba(255,255,255,0.5)",
+              backgroundColor: isSelected ? bgSelected : bgHover,
+              borderColor: isSelected ? borderSelected : borderHover,
             }}
             whileTap={{ scale: 0.98 }}
           >
@@ -98,13 +126,9 @@ export function MultipleChoiceInput({
             <span
               className="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-md text-xs font-bold shrink-0 transition-all duration-300 border"
               style={{
-                borderColor: isSelected
-                  ? "rgba(255,255,255,0.9)"
-                  : "rgba(255,255,255,0.4)",
-                backgroundColor: isSelected
-                  ? "rgba(255,255,255,0.9)"
-                  : "transparent",
-                color: isSelected ? "#1a1a2e" : "inherit",
+                borderColor: isSelected ? borderSelected : badgeBorder,
+                backgroundColor: isSelected ? badgeSelectedBg : "transparent",
+                color: isSelected ? badgeSelectedText : textColor,
               }}
             >
               {isSelected ? (
@@ -121,7 +145,7 @@ export function MultipleChoiceInput({
             </span>
 
             {/* Label */}
-            <span className="flex-1 text-sm sm:text-base md:text-lg font-medium">
+            <span className="flex-1 text-sm sm:text-base font-semibold" style={{ color: textColor }}>
               {choice.icon && <span className="mr-2">{choice.icon}</span>}
               {choice.label}
             </span>
@@ -138,9 +162,9 @@ export function MultipleChoiceInput({
                 >
                   <div
                     className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "rgba(255,255,255,0.9)" }}
+                    style={{ backgroundColor: checkCircleBg }}
                   >
-                    <Check size={12} className="text-gray-900" strokeWidth={3} />
+                    <Check size={12} style={{ color: checkCircleColor }} strokeWidth={3} />
                   </div>
                 </motion.div>
               )}
@@ -150,7 +174,7 @@ export function MultipleChoiceInput({
             {!isSelected && (
               <span
                 className="hidden sm:flex items-center justify-center w-6 h-6 rounded border text-[10px] font-mono opacity-0 group-hover:opacity-40 transition-opacity"
-                style={{ borderColor: "rgba(255,255,255,0.3)" }}
+                style={{ borderColor: borderDefault, color: textColor }}
               >
                 {letter}
               </span>
@@ -161,7 +185,8 @@ export function MultipleChoiceInput({
 
       {/* Hint */}
       <motion.p
-        className="mt-2 text-xs sm:text-sm opacity-40"
+        className="mt-1.5 text-xs sm:text-sm opacity-40"
+        style={{ color: textColor }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.4 }}
         transition={{ delay: 0.5 }}

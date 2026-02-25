@@ -13,7 +13,20 @@ export interface UserForm {
   createdAt: string;
   updatedAt: string;
   color: string;
+  folderId?: string;
 }
+
+export interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+export const defaultFolders: Folder[] = [
+  { id: "folder-imobiliario", name: "Imobiliário", color: "#0D8BD9", createdAt: "2026-02-01" },
+  { id: "folder-pesquisas", name: "Pesquisas", color: "#22c55e", createdAt: "2026-02-05" },
+];
 
 export const userForms: UserForm[] = [
   {
@@ -26,6 +39,7 @@ export const userForms: UserForm[] = [
     createdAt: "2026-02-15",
     updatedAt: "2026-02-24",
     color: "#0D8BD9",
+    folderId: "folder-imobiliario",
   },
   {
     id: "form-1",
@@ -37,6 +51,7 @@ export const userForms: UserForm[] = [
     createdAt: "2026-02-10",
     updatedAt: "2026-02-22",
     color: "oklch(0.65 0.2 250)",
+    folderId: "folder-pesquisas",
   },
   {
     id: "form-2",
@@ -81,5 +96,6 @@ export const userForms: UserForm[] = [
     createdAt: "2026-02-01",
     updatedAt: "2026-02-18",
     color: "oklch(0.7 0.18 220)",
+    folderId: "folder-pesquisas",
   },
 ];

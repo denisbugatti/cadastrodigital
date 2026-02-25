@@ -21,6 +21,7 @@ import { DesignEditor as DesignPanel } from "@/components/builder/DesignEditor";
 import { SharingPanel } from "@/components/builder/SharingPanel";
 import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { BuilderLivePreview } from "@/components/builder/BuilderLivePreview";
+import { WebhookPanel } from "@/components/builder/WebhookPanel";
 
 import { toast } from "sonner";
 
@@ -283,13 +284,20 @@ export default function Builder({ initialForm }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex h-full"
             >
-              <div className="w-[420px] border-r border-border shrink-0 overflow-hidden bg-white">
+              <div className="w-[420px] border-r border-border shrink-0 overflow-hidden bg-white overflow-y-auto">
                 <SharingPanel
                   sharing={form.sharing}
                   formTitle={form.title}
                   workspaceDomain={undefined}
                   onUpdate={updateSharing}
                 />
+                <div className="border-t border-border">
+                  <WebhookPanel
+                    webhook={form.webhook}
+                    formTitle={form.title}
+                    onUpdate={updateWebhook}
+                  />
+                </div>
               </div>
 
               <div className="flex-1 flex items-center justify-center p-8 bg-secondary/30">

@@ -10,5 +10,9 @@ import { demoForm } from "@/lib/formTypes";
 export default function FormView() {
   // In a real app, we'd fetch the form by ID from the route params.
   // For now, we render the demo form for any route.
-  return <FormContainer form={demoForm} />;
+  return (
+    <div className="h-screen w-screen overflow-hidden">
+      <FormContainer form={demoForm} />
+    </div>
+  );
 }

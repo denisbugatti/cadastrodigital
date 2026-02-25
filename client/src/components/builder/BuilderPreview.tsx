@@ -1,12 +1,11 @@
 /**
  * FormFlow Builder — Preview Overlay
- * Full-screen preview with prominent close button, ESC support, mobile-friendly.
+ * Full-screen preview with desktop/mobile toggle, phone frame, ESC support.
  */
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Monitor, Smartphone } from "lucide-react";
-import { useState } from "react";
 import type { BuilderForm } from "@/lib/builderTypes";
 import { builderToFormData } from "@/lib/builderToForm";
 import { FormContainer } from "@/components/form/FormContainer";
@@ -63,19 +62,29 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
               </span>
             </div>
 
-            {/* View mode toggle (desktop only) */}
-            <div className="hidden sm:flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+            {/* View mode toggle */}
+            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("desktop")}
-                className={`p-1.5 rounded-md transition-all ${viewMode === "desktop" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-body font-medium transition-all ${
+                  viewMode === "desktop"
+                    ? "bg-gray-600 text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
               >
-                <Monitor size={16} />
+                <Monitor size={14} />
+                <span className="hidden sm:inline">Desktop</span>
               </button>
               <button
                 onClick={() => setViewMode("mobile")}
-                className={`p-1.5 rounded-md transition-all ${viewMode === "mobile" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-body font-medium transition-all ${
+                  viewMode === "mobile"
+                    ? "bg-gray-600 text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
               >
-                <Smartphone size={16} />
+                <Smartphone size={14} />
+                <span className="hidden sm:inline">Mobile</span>
               </button>
             </div>
 
@@ -93,21 +102,54 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
 
           {/* Preview container */}
           <motion.div
-            className="flex-1 overflow-hidden bg-gray-100 flex items-center justify-center"
+            className={`flex-1 overflow-hidden flex items-center justify-center transition-colors duration-300 ${
+              viewMode === "mobile" ? "bg-gray-200" : "bg-gray-100"
+            }`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div
-              className={`h-full bg-white transition-all duration-300 overflow-hidden ${
-                viewMode === "mobile"
-                  ? "w-[375px] rounded-2xl shadow-2xl my-4 max-h-[calc(100vh-80px)]"
-                  : "w-full"
-              }`}
-            >
-              <FormContainer form={formData} key={JSON.stringify(formData) + viewMode} />
-            </div>
+            <AnimatePresence mode="wait">
+              {viewMode === "desktop" ? (
+                <motion.div
+                  key="desktop"
+                  className="w-full h-full bg-white overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <FormContainer form={formData} key={JSON.stringify(formData) + "desktop"} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="mobile"
+                  className="relative"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                >
+                  {/* Phone frame */}
+                  <div className="relative w-[390px] h-[calc(100vh-120px)] max-h-[844px] bg-black rounded-[3rem] p-[12px] shadow-2xl">
+                    {/* Notch */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[30px] bg-black rounded-b-2xl z-10" />
+                    {/* Side buttons */}
+                    <div className="absolute -left-[3px] top-[120px] w-[3px] h-[30px] bg-gray-700 rounded-l-sm" />
+                    <div className="absolute -left-[3px] top-[170px] w-[3px] h-[55px] bg-gray-700 rounded-l-sm" />
+                    <div className="absolute -left-[3px] top-[235px] w-[3px] h-[55px] bg-gray-700 rounded-l-sm" />
+                    <div className="absolute -right-[3px] top-[160px] w-[3px] h-[70px] bg-gray-700 rounded-r-sm" />
+                    {/* Screen */}
+                    <div className="w-full h-full bg-white rounded-[2.4rem] overflow-hidden">
+                      <FormContainer form={formData} key={JSON.stringify(formData) + "mobile"} />
+                    </div>
+                    {/* Home indicator */}
+                    <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 w-[134px] h-[5px] bg-gray-600 rounded-full" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}

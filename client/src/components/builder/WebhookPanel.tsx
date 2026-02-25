@@ -13,10 +13,11 @@ import type { WebhookSettings } from "@/lib/builderTypes";
 
 interface WebhookPanelProps {
   webhook: WebhookSettings;
+  formTitle: string;
   onUpdate: (updates: Partial<WebhookSettings>) => void;
 }
 
-export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
+export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps) {
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [copied, setCopied] = useState(false);
 
@@ -60,7 +61,7 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
     {
       event: "form.completed",
       form_id: "form_abc123",
-      form_title: "Pesquisa de Satisfação",
+      form_title: formTitle || "Pesquisa de Satisfação",
       submitted_at: new Date().toISOString(),
       responses: [
         { question: "Qual seu nome?", type: "name", answer: "João Silva" },
@@ -118,9 +119,22 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
           </div>
 
           {!webhook.enabled && (
-            <p className="text-sm text-muted-foreground bg-secondary rounded-xl p-4 border border-border">
-              Ative o webhook para enviar os dados das respostas automaticamente para uma URL externa quando o formulário for preenchido.
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground bg-secondary rounded-xl p-4 border border-border">
+                Ative o webhook para enviar os dados das respostas automaticamente para uma URL externa quando o formulário for preenchido.
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-muted-foreground">Compatível com:</span>
+                {[
+                  { name: "n8n", color: "#EA4B71" },
+                  { name: "Make", color: "#6D3BF5" },
+                  { name: "Zapier", color: "#FF4A00" },
+                  { name: "Webhook.site", color: "#3B82F6" },
+                ].map((s) => (
+                  <span key={s.name} className="px-2 py-0.5 rounded-md text-xs font-semibold text-white" style={{ backgroundColor: s.color }}>{s.name}</span>
+                ))}
+              </div>
+            </div>
           )}
         </motion.div>
 
@@ -287,6 +301,21 @@ export function WebhookPanel({ webhook, onUpdate }: WebhookPanelProps) {
                 </>
               )}
             </button>
+
+            {/* Quick setup guides */}
+            <div className="space-y-2">
+              <label className="text-sm font-body font-semibold text-foreground">Guias rápidos</label>
+              {[
+                { name: "n8n", desc: "Crie um Webhook node e cole a URL", color: "#EA4B71", url: "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/" },
+                { name: "Make", desc: "Crie um cenário com trigger Webhook", color: "#6D3BF5", url: "https://www.make.com/en/help/tools/webhooks" },
+                { name: "Zapier", desc: "Use o trigger Webhooks by Zapier", color: "#FF4A00", url: "https://zapier.com/apps/webhook/integrations" },
+              ].map((g) => (
+                <a key={g.name} href={g.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-white hover:border-brand/30 hover:bg-secondary/30 transition-all group">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: g.color }}>{g.name[0]}</span>
+                  <div className="flex-1"><span className="text-sm font-semibold text-foreground block">{g.name}</span><span className="text-xs text-muted-foreground">{g.desc}</span></div>
+                </a>
+              ))}
+            </div>
 
             {/* Sample payload */}
             <div>

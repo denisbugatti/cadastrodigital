@@ -2,7 +2,7 @@
  * FormFlow — Typeform/Respondi-style Form Container
  * Full-screen immersive experience with:
  * - Logo loading animation on start
- * - Logo fixed top-left (bigger on desktop)
+ * - Logo fixed top-left (LARGE on desktop)
  * - Thin progress bar
  * - Vertical slide transitions with spring physics
  * - Bottom action bar with OK + Back buttons (you,inc style)
@@ -10,10 +10,11 @@
  *   After first: back arrow appears with split animation
  * - Auto-save partial responses to localStorage
  * - Resume from where user left off
- * - Mobile-responsive
+ * - Mobile-responsive with safe-area support
+ * - Scrollable question area for long content (estado civil 8 options)
  */
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { FormData } from "@/lib/formTypes";
 import { useFormEngine } from "@/hooks/useFormEngine";
@@ -85,6 +86,7 @@ export function FormContainer({ form }: FormContainerProps) {
   const [validationError, setValidationError] = useState<string | undefined>();
   const [showLoading, setShowLoading] = useState(true);
   const [hasRestoredFromSave, setHasRestoredFromSave] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const d = form.design;
   const bgColor = d?.backgroundColor || "#FFFFFF";
@@ -141,6 +143,13 @@ export function FormContainer({ form }: FormContainerProps) {
     }
     saveResponses(form.id, engine.responses, engine.currentIndex);
   }, [engine.responses, engine.currentIndex, engine.isThankYou, form.id, hasRestoredFromSave]);
+
+  // Scroll to top when question changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [engine.currentQuestion.id]);
 
   // Loading animation — show logo for 1.5s then fade out
   useEffect(() => {
@@ -209,7 +218,7 @@ export function FormContainer({ form }: FormContainerProps) {
   if (showLoading && logoUrl) {
     return (
       <div
-        className="w-full h-screen flex items-center justify-center overflow-hidden"
+        className="w-full h-full flex items-center justify-center overflow-hidden"
         style={{ backgroundColor: bgColor, fontFamily }}
       >
         <motion.div
@@ -222,7 +231,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <motion.img
             src={logoUrl}
             alt="Logo"
-            className="h-20 sm:h-28 md:h-32 object-contain"
+            className="h-24 sm:h-32 md:h-40 object-contain"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -249,11 +258,12 @@ export function FormContainer({ form }: FormContainerProps) {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden flex flex-col"
+      className="relative w-full overflow-hidden flex flex-col"
       style={{
         backgroundColor: bgColor,
         fontFamily,
         color: textColor,
+        height: "100%",
       }}
     >
       {/* Background image if set */}
@@ -268,10 +278,10 @@ export function FormContainer({ form }: FormContainerProps) {
         />
       )}
 
-      {/* ─── Fixed Logo (top-left, BIGGER) ─── */}
-      {logoUrl && (
+      {/* ─── Fixed Logo (top-left, LARGE on desktop) ─── */}
+      {logoUrl && !isSpecialScreen && (
         <motion.div
-          className="fixed top-4 left-5 sm:top-6 sm:left-8 z-30"
+          className="absolute top-4 left-4 sm:top-6 sm:left-8 z-30"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
@@ -279,7 +289,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-10 sm:h-14 md:h-16 object-contain"
+            className="h-12 sm:h-16 md:h-24 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -290,7 +300,7 @@ export function FormContainer({ form }: FormContainerProps) {
       {/* ─── Thin Progress Bar (very top) ─── */}
       {showNav && (
         <div
-          className="fixed top-0 left-0 right-0 z-40 h-[3px]"
+          className="absolute top-0 left-0 right-0 z-40 h-[3px]"
           style={{ backgroundColor: progressBg }}
         >
           <motion.div
@@ -303,93 +313,134 @@ export function FormContainer({ form }: FormContainerProps) {
         </div>
       )}
 
-      {/* ─── Question Area with vertical slide ─── */}
-      <div className="flex-1 relative overflow-hidden">
+      {/* ─── Question Area with vertical slide — SCROLLABLE ─── */}
+      <div className="flex-1 relative overflow-hidden min-h-0">
         <AnimatePresence mode="wait" custom={engine.direction}>
           <motion.div
             key={engine.currentQuestion.id}
             custom={engine.direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              y: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 },
-            }}
-            className="absolute inset-0 flex items-center justify-center"
+            variants={isSpecialScreen ? undefined : slideVariants}
+            initial={isSpecialScreen ? { opacity: 0 } : "enter"}
+            animate={isSpecialScreen ? { opacity: 1 } : "center"}
+            exit={isSpecialScreen ? { opacity: 0 } : "exit"}
+            transition={
+              isSpecialScreen
+                ? { duration: 0.3 }
+                : {
+                    y: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 },
+                  }
+            }
+            className="absolute inset-0"
           >
-            <div className={`w-full ${isSpecialScreen ? "" : "max-w-2xl mx-auto px-5 sm:px-8"}`}>
-              <QuestionRenderer
-                question={engine.currentQuestion}
-                questionNumber={questionNumber}
-                value={engine.getResponse(engine.currentQuestion.id)}
-                onChange={(value) =>
-                  engine.setResponse(engine.currentQuestion.id, value)
-                }
-                onNext={handleNext}
-                onAutoAdvance={handleAutoAdvance}
-                validationError={validationError}
-                design={form.design}
-              />
-            </div>
+            {isSpecialScreen ? (
+              /* Welcome / Thank You — full screen, no scroll needed */
+              <div className="w-full h-full">
+                <QuestionRenderer
+                  question={engine.currentQuestion}
+                  questionNumber={questionNumber}
+                  value={engine.getResponse(engine.currentQuestion.id)}
+                  onChange={(value) =>
+                    engine.setResponse(engine.currentQuestion.id, value)
+                  }
+                  onNext={handleNext}
+                  onAutoAdvance={handleAutoAdvance}
+                  validationError={validationError}
+                  design={form.design}
+                />
+              </div>
+            ) : (
+              /* Regular questions — scrollable for long content */
+              <div
+                ref={scrollRef}
+                className="w-full h-full overflow-y-auto"
+                style={{
+                  paddingTop: logoUrl ? "5rem" : "2rem",
+                  paddingBottom: "8rem",
+                }}
+              >
+                <div className="max-w-2xl mx-auto px-5 sm:px-8 flex items-start justify-center">
+                  <div className="w-full py-4 sm:py-8">
+                    <QuestionRenderer
+                      question={engine.currentQuestion}
+                      questionNumber={questionNumber}
+                      value={engine.getResponse(engine.currentQuestion.id)}
+                      onChange={(value) =>
+                        engine.setResponse(engine.currentQuestion.id, value)
+                      }
+                      onNext={handleNext}
+                      onAutoAdvance={handleAutoAdvance}
+                      validationError={validationError}
+                      design={form.design}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* ─── Bottom Action Bar (you,inc style) ─── */}
+      {/* ─── Bottom Action Bar (you,inc style) — FIXED at bottom ─── */}
       {showNav && (
-        <motion.div
-          className="shrink-0 z-30 px-4 sm:px-8 pb-4 sm:pb-6 pt-2"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        <div
+          className="shrink-0 z-30"
+          style={{
+            paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)",
+          }}
         >
-          <div className="max-w-2xl mx-auto flex items-center gap-2">
-            {/* Back button — appears with split animation after first question */}
-            <AnimatePresence>
-              {showBackButton && (
-                <motion.button
-                  onClick={handlePrev}
-                  initial={{ width: 0, opacity: 0, marginRight: 0 }}
-                  animate={{ width: 56, opacity: 1, marginRight: 0 }}
-                  exit={{ width: 0, opacity: 0, marginRight: 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  className="shrink-0 h-12 sm:h-14 rounded-xl flex items-center justify-center overflow-hidden"
-                  style={{
-                    backgroundColor: buttonColor,
-                    color: buttonTextColor,
-                  }}
-                >
-                  <ChevronLeft size={22} />
-                </motion.button>
-              )}
-            </AnimatePresence>
+          <motion.div
+            className="px-4 sm:px-8 pb-3 sm:pb-5 pt-2"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="max-w-2xl mx-auto flex items-center gap-2">
+              {/* Back button — appears with split animation after first question */}
+              <AnimatePresence>
+                {showBackButton && (
+                  <motion.button
+                    onClick={handlePrev}
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 56, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    className="shrink-0 h-12 sm:h-14 rounded-xl flex items-center justify-center overflow-hidden"
+                    style={{
+                      backgroundColor: buttonColor,
+                      color: buttonTextColor,
+                    }}
+                  >
+                    <ChevronLeft size={22} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
-            {/* OK / Continue button — full width */}
-            <motion.button
-              onClick={handleNext}
-              disabled={!engine.canGoNext}
-              layout
-              className="flex-1 h-12 sm:h-14 rounded-xl font-semibold text-base sm:text-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: buttonColor,
-                color: buttonTextColor,
-              }}
-              whileHover={{ filter: "brightness(1.1)" }}
-              whileTap={{ scale: 0.98 }}
-            >
-              OK
-            </motion.button>
-          </div>
+              {/* OK / Continue button — full width */}
+              <motion.button
+                onClick={handleNext}
+                disabled={!engine.canGoNext}
+                layout
+                className="flex-1 h-12 sm:h-14 rounded-xl font-semibold text-base sm:text-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: buttonColor,
+                  color: buttonTextColor,
+                }}
+                whileHover={{ filter: "brightness(1.1)" }}
+                whileTap={{ scale: 0.98 }}
+              >
+                OK
+              </motion.button>
+            </div>
 
-          {/* Question counter below buttons */}
-          <div className="max-w-2xl mx-auto mt-3 flex items-center justify-center gap-1.5 text-xs sm:text-sm" style={{ color: subtextColor }}>
-            <span className="font-bold" style={{ color: buttonColor }}>{questionNumber}</span>
-            <span className="opacity-60">/</span>
-            <span className="opacity-60">{totalActualQuestions}</span>
-          </div>
-        </motion.div>
+            {/* Question counter below buttons */}
+            <div className="max-w-2xl mx-auto mt-2.5 flex items-center justify-center gap-1.5 text-xs sm:text-sm" style={{ color: subtextColor }}>
+              <span className="font-bold" style={{ color: buttonColor }}>{questionNumber}</span>
+              <span className="opacity-60">/</span>
+              <span className="opacity-60">{totalActualQuestions}</span>
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );
