@@ -197,6 +197,7 @@ export function QuestionRenderer({
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
             onAutoAdvance={onAutoAdvance || onNext}
+            validationError={validationError}
             design={design}
           />
         ) : null;

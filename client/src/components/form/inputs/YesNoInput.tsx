@@ -39,7 +39,7 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
 
   return (
     <motion.div
-      className="flex flex-col sm:flex-row gap-3"
+      className="flex flex-col gap-3"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
@@ -54,7 +54,7 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
               onChange(opt.val);
               if (onAutoAdvance) setTimeout(() => onAutoAdvance(opt.val), 500);
             }}
-            className="flex-1 flex items-center justify-center gap-3 py-4 sm:py-5 rounded-lg text-base sm:text-lg font-medium transition-all duration-200 border"
+            className="flex-1 flex items-center justify-center gap-3 py-4 rounded-lg text-base font-medium transition-all duration-200 border"
             style={{
               borderColor: isSelected
                 ? "currentColor"

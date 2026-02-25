@@ -68,7 +68,7 @@ export function TextInput({
           }}
           onBlur={() => { if (value) setTouched(true); }}
           placeholder={placeholder || "Digite sua resposta aqui..."}
-          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-lg sm:text-xl md:text-2xl font-medium focus:outline-none transition-colors duration-300 pr-10"
+          className="w-full bg-transparent border-0 border-b-2 py-3 text-lg font-medium focus:outline-none transition-colors duration-300 pr-10"
           style={{
             color: "inherit",
             borderColor,
@@ -122,7 +122,7 @@ export function TextInput({
         </motion.p>
       )}
       <motion.p
-        className="mt-4 text-xs sm:text-sm opacity-30"
+        className="mt-4 text-xs opacity-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}

@@ -35,7 +35,7 @@ export function SatisfactionInput({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
     >
-      <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+      <div className="flex items-center justify-center gap-3 flex-wrap">
         {FACES.map((face, i) => {
           const rating = i + 1;
           const isActive = value === rating;
@@ -49,7 +49,7 @@ export function SatisfactionInput({
               }}
               onMouseEnter={() => setHovered(rating)}
               onMouseLeave={() => setHovered(0)}
-              className="relative flex flex-col items-center gap-2 p-2.5 sm:p-3 rounded-xl transition-all duration-200 border"
+              className="relative flex flex-col items-center gap-2 p-2.5 rounded-xl transition-all duration-200 border"
               style={{
                 borderColor: isActive
                   ? "currentColor"
@@ -72,7 +72,7 @@ export function SatisfactionInput({
               whileHover={{ scale: 1.1 }}
             >
               <span
-                className="text-3xl sm:text-4xl transition-transform duration-200"
+                className="text-3xl transition-transform duration-200"
                 style={{
                   transform:
                     isActive || isHovered ? "scale(1.15)" : "scale(1)",
@@ -82,7 +82,7 @@ export function SatisfactionInput({
               </span>
               {(isActive || isHovered) && (
                 <motion.span
-                  className="text-[10px] sm:text-xs whitespace-nowrap font-medium opacity-60"
+                  className="text-[10px] whitespace-nowrap font-medium opacity-60"
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 0.6, y: 0 }}
                 >

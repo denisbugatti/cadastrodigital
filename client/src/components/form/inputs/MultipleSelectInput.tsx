@@ -28,7 +28,7 @@ export function MultipleSelectInput({
 
   return (
     <motion.div
-      className="space-y-2.5 sm:space-y-3"
+      className="space-y-2.5"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.25 }}
@@ -39,7 +39,7 @@ export function MultipleSelectInput({
           <motion.button
             key={choice.id}
             onClick={() => toggleChoice(choice.id)}
-            className="w-full flex items-center gap-3 sm:gap-4 px-4 py-3 sm:py-3.5 rounded-lg text-left transition-colors duration-200 border"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors duration-200 border"
             style={{
               borderColor: isSelected
                 ? "currentColor"
@@ -64,7 +64,7 @@ export function MultipleSelectInput({
             }}
           >
             <span
-              className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-md shrink-0 transition-all duration-200 border-2"
+              className="inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0 transition-all duration-200 border-2"
               style={{
                 borderColor: isSelected
                   ? "currentColor"
@@ -89,14 +89,14 @@ export function MultipleSelectInput({
                 )}
               </AnimatePresence>
             </span>
-            <span className="flex-1 text-sm sm:text-base font-medium">
+            <span className="flex-1 text-sm font-medium">
               {choice.label}
             </span>
           </motion.button>
         );
       })}
       <motion.p
-        className="mt-2 text-xs sm:text-sm opacity-30"
+        className="mt-2 text-xs opacity-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}

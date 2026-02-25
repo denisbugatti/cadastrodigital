@@ -47,7 +47,7 @@ export function LongTextInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || "Escreva sua resposta aqui..."}
           rows={3}
-          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-base sm:text-lg md:text-xl font-medium focus:outline-none transition-colors duration-300 resize-none"
+          className="w-full bg-transparent border-0 border-b-2 py-3 text-base font-medium focus:outline-none transition-colors duration-300 resize-none"
           style={{
             color: "inherit",
             borderColor: error
@@ -74,7 +74,7 @@ export function LongTextInput({
         </motion.p>
       )}
       <motion.p
-        className="mt-4 text-xs sm:text-sm opacity-30"
+        className="mt-4 text-xs opacity-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}

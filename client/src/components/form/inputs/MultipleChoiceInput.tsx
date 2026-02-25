@@ -2,7 +2,7 @@
  * FormFlow Multiple Choice — Typeform/Respondi-style
  * Letter prefix (A, B, C), animated selection with checkmark,
  * auto-advance after selection, adapts to form design colors.
- * Accepts design prop for buttonTextColor customization.
+ * Sizes standardized across mobile and desktop.
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,7 @@ interface MultipleChoiceInputProps {
   value: string;
   onChange: (value: string) => void;
   onAutoAdvance?: (value?: unknown) => void;
+  validationError?: string;
   design?: {
     backgroundColor?: string;
     questionColor?: string;
@@ -34,6 +35,7 @@ export function MultipleChoiceInput({
   value,
   onChange,
   onAutoAdvance,
+  validationError,
   design,
 }: MultipleChoiceInputProps) {
   const [justSelected, setJustSelected] = useState<string | null>(null);
@@ -61,6 +63,7 @@ export function MultipleChoiceInput({
   const badgeSelectedText = isLightBg ? "#FFFFFF" : "#1a1a2e";
   const checkCircleBg = isLightBg ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)";
   const checkCircleColor = isLightBg ? "#FFFFFF" : "#1a1a2e";
+  const errorBorder = "rgba(239,68,68,0.8)";
 
   const handleSelect = useCallback(
     (choiceId: string) => {
@@ -88,7 +91,7 @@ export function MultipleChoiceInput({
 
   return (
     <motion.div
-      className="flex flex-col gap-2 sm:gap-2.5"
+      className="flex flex-col gap-2"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2 }}
@@ -101,14 +104,18 @@ export function MultipleChoiceInput({
           <motion.button
             key={choice.id}
             onClick={() => handleSelect(choice.id)}
-            className="group w-full flex items-center gap-3 sm:gap-4 px-3.5 py-3 sm:px-4 sm:py-3.5 rounded-lg text-left transition-all duration-200 border"
+            className="group w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-left transition-all duration-200 border"
             style={{
-              borderColor: isSelected ? borderSelected : borderDefault,
+              borderColor: validationError && !value ? errorBorder : (isSelected ? borderSelected : borderDefault),
               backgroundColor: isSelected ? bgSelected : "transparent",
               color: textColor,
             }}
             initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              x: validationError && !value ? [0, -4, 4, -4, 4, 0] : 0,
+            }}
             transition={{
               delay: 0.25 + i * 0.04,
               duration: 0.3,
@@ -124,7 +131,7 @@ export function MultipleChoiceInput({
           >
             {/* Letter badge */}
             <span
-              className="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-md text-xs font-bold shrink-0 transition-all duration-300 border"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-md text-xs font-bold shrink-0 transition-all duration-300 border"
               style={{
                 borderColor: isSelected ? borderSelected : badgeBorder,
                 backgroundColor: isSelected ? badgeSelectedBg : "transparent",
@@ -145,7 +152,7 @@ export function MultipleChoiceInput({
             </span>
 
             {/* Label */}
-            <span className="flex-1 text-sm sm:text-base font-semibold" style={{ color: textColor }}>
+            <span className="flex-1 text-sm font-semibold" style={{ color: textColor }}>
               {choice.icon && <span className="mr-2">{choice.icon}</span>}
               {choice.label}
             </span>
@@ -161,7 +168,7 @@ export function MultipleChoiceInput({
                   transition={{ type: "spring", stiffness: 500, damping: 20 }}
                 >
                   <div
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center"
+                    className="w-5 h-5 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: checkCircleBg }}
                   >
                     <Check size={12} style={{ color: checkCircleColor }} strokeWidth={3} />
@@ -170,7 +177,7 @@ export function MultipleChoiceInput({
               )}
             </AnimatePresence>
 
-            {/* Keyboard hint on hover */}
+            {/* Keyboard hint on hover (desktop only) */}
             {!isSelected && (
               <span
                 className="hidden sm:flex items-center justify-center w-6 h-6 rounded border text-[10px] font-mono opacity-0 group-hover:opacity-40 transition-opacity"
@@ -183,9 +190,23 @@ export function MultipleChoiceInput({
         );
       })}
 
+      {/* Validation error message */}
+      <AnimatePresence>
+        {validationError && !value && (
+          <motion.p
+            className="mt-1 text-xs font-medium text-red-400"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+          >
+            {validationError}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
       {/* Hint */}
       <motion.p
-        className="mt-1.5 text-xs sm:text-sm opacity-40"
+        className="mt-1.5 text-xs opacity-40"
         style={{ color: textColor }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.4 }}

@@ -57,7 +57,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
       {/* Logo top-left */}
       {logoUrl && (
         <motion.div
-          className="absolute top-5 left-5 sm:top-7 sm:left-8 z-10"
+          className="absolute top-4 left-4 z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -65,7 +65,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-12 sm:h-16 md:h-24 lg:h-28 object-contain"
+            className="h-16 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -77,7 +77,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
       <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
         {/* Checkmark animation */}
         <motion.div
-          className="mb-6 sm:mb-8 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto"
+          className="mb-6 w-16 h-16 rounded-full flex items-center justify-center mx-auto"
           style={{
             backgroundColor: isLightBg ? "rgba(16,185,129,0.1)" : "rgba(52,211,153,0.15)",
             border: `2px solid ${isLightBg ? "rgba(16,185,129,0.25)" : "rgba(52,211,153,0.3)"}`,
@@ -97,7 +97,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
 
         {/* Title */}
         <motion.h1
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight"
+          className="text-2xl font-bold leading-tight tracking-tight"
           style={{ color: textColor, fontFamily }}
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
@@ -109,7 +109,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
         {/* Subtitle */}
         {question.subtitle && (
           <motion.p
-            className="mt-3 sm:mt-5 text-sm sm:text-base md:text-lg leading-relaxed"
+            className="mt-3 text-sm leading-relaxed"
             style={{ color: subtitleColor, fontFamily }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -129,7 +129,7 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
           {showButton && (
             <motion.button
               onClick={() => window.location.reload()}
-              className="px-7 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg transition-all"
+              className="px-7 py-3 rounded-lg text-sm font-semibold shadow-lg transition-all"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,

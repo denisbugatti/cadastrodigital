@@ -3,6 +3,7 @@
  * Full-screen colored background with centered content.
  * Logo top-left (LARGE on desktop), button with Enter hint.
  * Adapts text color to background brightness.
+ * Sizes standardized across mobile and desktop.
  */
 
 import { motion } from "framer-motion";
@@ -62,7 +63,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
       {/* Logo top-left — LARGE on desktop */}
       {logoUrl && (
         <motion.div
-          className="absolute top-4 left-4 sm:top-6 sm:left-8 z-10"
+          className="absolute top-4 left-4 z-10"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -70,7 +71,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-12 sm:h-16 md:h-24 lg:h-28 object-contain"
+            className="h-16 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -79,7 +80,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
       )}
 
       {/* Centered content */}
-      <div className="relative z-10 text-center px-6 sm:px-8 max-w-2xl mx-auto">
+      <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
         {/* Motion icon or custom image */}
         {question.motionIconUrl && (
           <motion.div
@@ -91,14 +92,14 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
             <img
               src={question.motionIconUrl}
               alt=""
-              className="h-16 sm:h-20 mx-auto"
+              className="h-16 mx-auto"
             />
           </motion.div>
         )}
 
         {/* Title */}
         <motion.h1
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight"
+          className="text-2xl font-bold leading-tight tracking-tight"
           style={{ color: textColor, fontFamily }}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,7 +111,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
         {/* Subtitle */}
         {question.subtitle && (
           <motion.p
-            className="mt-3 sm:mt-5 text-sm sm:text-base md:text-lg leading-relaxed"
+            className="mt-3 text-sm leading-relaxed"
             style={{ color: subtitleColor, fontFamily }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -123,14 +124,14 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
         {/* CTA Button + Enter hint (Respondi-style) */}
         {showButton && (
           <motion.div
-            className="mt-7 sm:mt-9 flex items-center justify-center gap-3 sm:gap-4"
+            className="mt-7 flex items-center justify-center gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.button
               onClick={onStart}
-              className="px-7 sm:px-8 py-3 sm:py-3.5 rounded-lg text-sm sm:text-base font-semibold shadow-lg flex items-center gap-2.5 transition-all"
+              className="px-7 py-3 rounded-lg text-sm font-semibold shadow-lg flex items-center gap-2.5 transition-all"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,

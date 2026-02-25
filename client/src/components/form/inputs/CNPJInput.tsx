@@ -42,7 +42,7 @@ export function CNPJInput({ value, onChange, error }: CNPJInputProps) {
           onChange={(e) => handleChange(e.target.value)}
           placeholder="00.000.000/0000-00"
           maxLength={18}
-          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-lg sm:text-xl font-medium focus:outline-none transition-colors duration-300"
+          className="w-full bg-transparent border-0 border-b-2 py-3 text-lg font-medium focus:outline-none transition-colors duration-300"
           style={{
             color: "inherit",
             borderColor: error || isValid === false
@@ -93,7 +93,7 @@ export function CNPJInput({ value, onChange, error }: CNPJInputProps) {
           {error}
         </motion.p>
       )}
-      <p className="mt-4 text-xs sm:text-sm opacity-40">
+      <p className="mt-4 text-xs opacity-40">
         Pressione{" "}
         <kbd className="px-2 py-0.5 rounded-md text-xs font-mono border" style={{ borderColor: "rgba(128,128,128,0.3)" }}>
           Enter ↵

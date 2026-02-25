@@ -34,7 +34,7 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
     >
-      <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+      <div className="flex flex-wrap gap-1.5 justify-center">
         {Array.from({ length: 11 }, (_, i) => {
           const isActive = value === i;
           const isHovered = hovered === i;
@@ -44,7 +44,7 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
               onClick={() => { onChange(i); if (onAutoAdvance) setTimeout(() => onAutoAdvance(i), 500); }}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
-              className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg font-body font-semibold text-sm sm:text-base transition-all duration-200 flex items-center justify-center border touch-manipulation"
+              className="w-9 h-9 rounded-lg font-body font-semibold text-sm transition-all duration-200 flex items-center justify-center border touch-manipulation"
               style={{
                 background: isActive ? getNPSColor(i) : isHovered ? getNPSBg(i) : "transparent",
                 borderColor: isActive || isHovered ? getNPSColor(i) : "rgba(128,128,128,0.2)",
@@ -64,13 +64,13 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
           );
         })}
       </div>
-      <div className="flex justify-between mt-3 sm:mt-4 px-1">
-        <span className="text-xs sm:text-sm opacity-50 font-body">{labels?.low || "Nada provável"}</span>
-        <span className="text-xs sm:text-sm opacity-50 font-body">{labels?.high || "Muito provável"}</span>
+      <div className="flex justify-between mt-3 px-1">
+        <span className="text-xs opacity-50 font-body">{labels?.low || "Nada provável"}</span>
+        <span className="text-xs opacity-50 font-body">{labels?.high || "Muito provável"}</span>
       </div>
       {value >= 0 && (
         <motion.div className="mt-3 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <span className="text-xs sm:text-sm font-body font-medium" style={{ color: getNPSColor(value) }}>
+          <span className="text-xs font-body font-medium" style={{ color: getNPSColor(value) }}>
             {value <= 6 ? "Detrator" : value <= 8 ? "Neutro" : "Promotor"}
           </span>
         </motion.div>

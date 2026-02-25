@@ -84,6 +84,7 @@ function clearSavedResponses(formId: string) {
 export function FormContainer({ form }: FormContainerProps) {
   const engine = useFormEngine(form);
   const [validationError, setValidationError] = useState<string | undefined>();
+  const [shakeKey, setShakeKey] = useState(0);
   const [showLoading, setShowLoading] = useState(true);
   const [hasRestoredFromSave, setHasRestoredFromSave] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -181,6 +182,7 @@ export function FormContainer({ form }: FormContainerProps) {
     const validation = engine.validateCurrent();
     if (!validation.valid) {
       setValidationError(validation.message);
+      setShakeKey((k) => k + 1);
       return;
     }
     setValidationError(undefined);
@@ -231,13 +233,13 @@ export function FormContainer({ form }: FormContainerProps) {
           <motion.img
             src={logoUrl}
             alt="Logo"
-            className="h-24 sm:h-32 md:h-40 object-contain"
+            className="h-32 object-contain"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           />
           <motion.div
-            className="w-48 sm:w-56 h-1 rounded-full overflow-hidden"
+            className="w-56 h-1 rounded-full overflow-hidden"
             style={{ backgroundColor: isLightBg ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -289,7 +291,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-12 sm:h-16 md:h-24 lg:h-28 object-contain"
+            className="h-16 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -359,8 +361,19 @@ export function FormContainer({ form }: FormContainerProps) {
                   paddingBottom: "8rem",
                 }}
               >
-                <div className="max-w-2xl mx-auto px-5 sm:px-8 flex items-start justify-center">
-                  <div className="w-full py-4 sm:py-8">
+                <motion.div
+                  key={`shake-${shakeKey}`}
+                  className="max-w-2xl mx-auto px-5 flex items-start justify-center"
+                  animate={
+                    shakeKey > 0
+                      ? {
+                          x: [0, -8, 8, -6, 6, -3, 3, 0],
+                        }
+                      : {}
+                  }
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                >
+                  <div className="w-full py-4">
                     <QuestionRenderer
                       question={engine.currentQuestion}
                       questionNumber={questionNumber}
@@ -373,8 +386,32 @@ export function FormContainer({ form }: FormContainerProps) {
                       validationError={validationError}
                       design={form.design}
                     />
+                    {/* Validation error banner */}
+                    <AnimatePresence>
+                      {validationError && (
+                        <motion.div
+                          className="mt-4 px-4 py-3 rounded-lg flex items-center gap-2 text-sm font-medium"
+                          style={{
+                            backgroundColor: "rgba(239, 68, 68, 0.15)",
+                            color: "#fca5a5",
+                            border: "1px solid rgba(239, 68, 68, 0.3)",
+                          }}
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.25 }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                            <path d="M8 4.5V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                            <circle cx="8" cy="11.5" r="0.75" fill="currentColor"/>
+                          </svg>
+                          {validationError}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </div>
+                </motion.div>
               </div>
             )}
           </motion.div>
@@ -390,7 +427,7 @@ export function FormContainer({ form }: FormContainerProps) {
           }}
         >
           <motion.div
-            className="px-4 sm:px-8 pb-3 sm:pb-5 pt-2"
+            className="px-4 pb-3 pt-2"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -405,7 +442,7 @@ export function FormContainer({ form }: FormContainerProps) {
                     animate={{ width: 56, opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className="shrink-0 h-12 sm:h-14 rounded-xl flex items-center justify-center overflow-hidden"
+                    className="shrink-0 h-12 rounded-xl flex items-center justify-center overflow-hidden"
                     style={{
                       backgroundColor: buttonColor,
                       color: buttonTextColor,
@@ -421,7 +458,7 @@ export function FormContainer({ form }: FormContainerProps) {
                 onClick={handleNext}
                 disabled={!engine.canGoNext}
                 layout
-                className="flex-1 h-12 sm:h-14 rounded-xl font-semibold text-base sm:text-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 h-12 rounded-xl font-semibold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: buttonColor,
                   color: buttonTextColor,
@@ -434,7 +471,7 @@ export function FormContainer({ form }: FormContainerProps) {
             </div>
 
             {/* Question counter below buttons */}
-            <div className="max-w-2xl mx-auto mt-2.5 flex items-center justify-center gap-1.5 text-xs sm:text-sm" style={{ color: subtextColor }}>
+            <div className="max-w-2xl mx-auto mt-2.5 flex items-center justify-center gap-1.5 text-xs" style={{ color: subtextColor }}>
               <span className="font-bold" style={{ color: buttonColor }}>{questionNumber}</span>
               <span className="opacity-60">/</span>
               <span className="opacity-60">{totalActualQuestions}</span>
