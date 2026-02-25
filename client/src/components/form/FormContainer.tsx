@@ -353,7 +353,7 @@ export function FormContainer({ form }: FormContainerProps) {
       {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered) ─── */}
       {showNav && (
         <motion.div
-          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2"
+          className="absolute right-3 sm:right-6 bottom-6 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-30 flex flex-col gap-2"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}

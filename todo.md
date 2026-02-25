@@ -49,3 +49,6 @@
 
 ## Remover Rodapé do Formulário
 - [x] Remover rodapé com botões de voltar e OK/Continuar do FormContainer
+
+## Posicionamento dos Ícones no Mobile
+- [x] Ajustar posição dos ícones de navegação no mobile (estão muito pra cima)
