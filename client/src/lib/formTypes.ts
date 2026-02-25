@@ -107,6 +107,7 @@ export interface FormData {
     questionColor?: string;
     answerColor?: string;
     buttonColor?: string;
+    buttonTextColor?: string;
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;

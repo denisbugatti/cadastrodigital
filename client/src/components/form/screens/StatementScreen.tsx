@@ -17,6 +17,7 @@ interface StatementScreenProps {
     questionColor?: string;
     answerColor?: string;
     buttonColor?: string;
+    buttonTextColor?: string;
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;
@@ -87,44 +88,15 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
         </motion.p>
       )}
 
-      {/* Continue button */}
-      <motion.button
-        onClick={onNext}
-        className="mt-8 px-8 py-3.5 rounded-xl font-semibold text-base transition-all duration-300 shadow-lg flex items-center gap-2.5"
-        style={{
-          backgroundColor: buttonColor,
-          color: "#FFFFFF",
-          fontFamily,
-          boxShadow: `0 4px 20px ${buttonColor}40`,
-        }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55, duration: 0.5 }}
-        whileHover={{ scale: 1.03, boxShadow: `0 6px 25px ${buttonColor}50` }}
-        whileTap={{ scale: 0.97 }}
-      >
-        {question.buttonText || "Continuar"}
-        <ArrowRight size={16} />
-      </motion.button>
-
+      {/* Hint — the OK button at the bottom handles navigation */}
       <motion.p
-        className="mt-5 text-sm opacity-30"
+        className="mt-8 text-sm opacity-40"
         style={{ fontFamily }}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
-        transition={{ delay: 0.7 }}
+        animate={{ opacity: 0.4 }}
+        transition={{ delay: 0.6 }}
       >
-        Pressione{" "}
-        <kbd
-          className="px-2 py-0.5 rounded-md text-xs font-mono"
-          style={{
-            backgroundColor: "rgba(128,128,128,0.1)",
-            border: "1px solid rgba(128,128,128,0.2)",
-          }}
-        >
-          Enter ↵
-        </kbd>{" "}
-        para continuar
+        Clique em <strong>OK</strong> para continuar
       </motion.p>
     </div>
   );

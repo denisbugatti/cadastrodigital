@@ -29,14 +29,14 @@ const fontOptions = [
 ];
 
 const presetPalettes = [
-  { name: "Azul Moderno", buttonColor: "#3B82F6", questionColor: "#1E293B", answerColor: "#3B82F6", backgroundColor: "#FFFFFF" },
-  { name: "Esmeralda", buttonColor: "#10B981", questionColor: "#1E293B", answerColor: "#10B981", backgroundColor: "#F0FDF4" },
-  { name: "Sunset", buttonColor: "#F59E0B", questionColor: "#292524", answerColor: "#D97706", backgroundColor: "#FFFBEB" },
-  { name: "Rosa", buttonColor: "#F43F5E", questionColor: "#1E293B", answerColor: "#F43F5E", backgroundColor: "#FFF1F2" },
-  { name: "Roxo", buttonColor: "#8B5CF6", questionColor: "#1E293B", answerColor: "#7C3AED", backgroundColor: "#FAF5FF" },
-  { name: "Oceano", buttonColor: "#06B6D4", questionColor: "#1E293B", answerColor: "#0891B2", backgroundColor: "#ECFEFF" },
-  { name: "Dark Elegante", buttonColor: "#3B82F6", questionColor: "#FFFFFF", answerColor: "#60A5FA", backgroundColor: "#0F172A" },
-  { name: "Dark Neon", buttonColor: "#06B6D4", questionColor: "#E2E8F0", answerColor: "#22D3EE", backgroundColor: "#0A0E1A" },
+  { name: "Azul Moderno", buttonColor: "#3B82F6", buttonTextColor: "#FFFFFF", questionColor: "#1E293B", answerColor: "#3B82F6", backgroundColor: "#FFFFFF" },
+  { name: "Esmeralda", buttonColor: "#10B981", buttonTextColor: "#FFFFFF", questionColor: "#1E293B", answerColor: "#10B981", backgroundColor: "#F0FDF4" },
+  { name: "Sunset", buttonColor: "#F59E0B", buttonTextColor: "#FFFFFF", questionColor: "#292524", answerColor: "#D97706", backgroundColor: "#FFFBEB" },
+  { name: "Rosa", buttonColor: "#F43F5E", buttonTextColor: "#FFFFFF", questionColor: "#1E293B", answerColor: "#F43F5E", backgroundColor: "#FFF1F2" },
+  { name: "Roxo", buttonColor: "#8B5CF6", buttonTextColor: "#FFFFFF", questionColor: "#1E293B", answerColor: "#7C3AED", backgroundColor: "#FAF5FF" },
+  { name: "Oceano", buttonColor: "#06B6D4", buttonTextColor: "#FFFFFF", questionColor: "#1E293B", answerColor: "#0891B2", backgroundColor: "#ECFEFF" },
+  { name: "Dark Elegante", buttonColor: "#3B82F6", buttonTextColor: "#FFFFFF", questionColor: "#FFFFFF", answerColor: "#60A5FA", backgroundColor: "#0F172A" },
+  { name: "Dark Neon", buttonColor: "#06B6D4", buttonTextColor: "#FFFFFF", questionColor: "#E2E8F0", answerColor: "#22D3EE", backgroundColor: "#0A0E1A" },
 ];
 
 function ColorInput({
@@ -126,6 +126,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                     onClick={() =>
                       onUpdate({
                         buttonColor: p.buttonColor,
+                        buttonTextColor: p.buttonTextColor,
                         questionColor: p.questionColor,
                         answerColor: p.answerColor,
                         backgroundColor: p.backgroundColor,
@@ -165,6 +166,11 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                   label="Cor do botão"
                   value={design.buttonColor}
                   onChange={(v) => onUpdate({ buttonColor: v })}
+                />
+                <ColorInput
+                  label="Texto do botão"
+                  value={design.buttonTextColor}
+                  onChange={(v) => onUpdate({ buttonTextColor: v })}
                 />
                 <ColorInput
                   label="Cor da pergunta"

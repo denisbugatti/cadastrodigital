@@ -147,6 +147,7 @@ export interface BuilderChoice {
 export interface FormDesignSettings {
   // Colors
   buttonColor: string;
+  buttonTextColor: string;
   questionColor: string;
   answerColor: string;
   backgroundColor: string;
@@ -453,6 +454,7 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
 
 export const defaultDesignSettings: FormDesignSettings = {
   buttonColor: "#3B82F6",
+  buttonTextColor: "#FFFFFF",
   questionColor: "#1E293B",
   answerColor: "#3B82F6",
   backgroundColor: "#FFFFFF",

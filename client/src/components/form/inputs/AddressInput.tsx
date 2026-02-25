@@ -1,6 +1,7 @@
 /**
- * FormFlow Address Input (Light Theme)
- * Auto-fills via ViaCEP API. User only enters number + complement.
+ * FormFlow Address Input
+ * Auto-fills via ViaCEP API. Adaptive colors for any background.
+ * Clean, visible labels and values.
  */
 
 import { motion } from "framer-motion";
@@ -62,24 +63,35 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
     } else { setFound(false); }
   };
 
+  // Adaptive styles — uses currentColor which inherits from parent (set by FormContainer)
   const inputClass = (val: string, readOnly?: boolean) =>
-    `w-full bg-transparent border-0 border-b-2 py-3 text-base font-body text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-colors duration-300 ${
-      readOnly ? "text-muted-foreground" : ""
-    } ${val ? "border-brand/30" : "border-border"}`;
+    `w-full bg-transparent border-0 border-b-2 py-3 text-lg font-body focus:outline-none transition-colors duration-300 ${
+      readOnly ? "opacity-80" : ""
+    } ${val ? "border-current/30" : "border-current/15"}`;
 
-  const labelClass = "text-xs font-body text-muted-foreground uppercase tracking-wider mb-1.5 font-medium";
+  const labelClass = "text-xs font-body uppercase tracking-wider mb-1.5 font-semibold opacity-60";
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }} className="space-y-5">
       <div>
         <div className={labelClass}>CEP</div>
         <div className="relative">
-          <input ref={cepRef} type="text" value={address.cep} onChange={(e) => handleCEPChange(e.target.value)} placeholder="00000-000" maxLength={9} className={inputClass(address.cep)} autoComplete="off" />
+          <input
+            ref={cepRef}
+            type="text"
+            value={address.cep}
+            onChange={(e) => handleCEPChange(e.target.value)}
+            placeholder="00000-000"
+            maxLength={9}
+            className={`${inputClass(address.cep)} placeholder:opacity-30`}
+            style={{ color: "inherit" }}
+            autoComplete="off"
+          />
           <div className="absolute right-0 top-1/2 -translate-y-1/2">
-            {loading && <Loader2 size={18} className="animate-spin text-brand" />}
+            {loading && <Loader2 size={20} className="animate-spin opacity-60" />}
             {found && !loading && (
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400 }}>
-                <CheckCircle2 size={18} className="text-emerald-500" />
+                <CheckCircle2 size={20} className="text-emerald-400" />
               </motion.div>
             )}
           </div>
@@ -91,39 +103,80 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
           <div>
             <div className={labelClass}>Rua</div>
             <div className="flex items-center gap-2">
-              <MapPin size={14} className="text-brand shrink-0" />
-              <input type="text" value={address.street} readOnly className={inputClass(address.street, true)} />
+              <MapPin size={16} className="opacity-50 shrink-0" />
+              <input
+                type="text"
+                value={address.street}
+                readOnly
+                className={inputClass(address.street, true)}
+                style={{ color: "inherit" }}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className={labelClass}>Número</div>
-              <input ref={numberRef} type="text" value={address.number} onChange={(e) => updateValue({ ...address, number: e.target.value })} placeholder="Nº" className={inputClass(address.number)} autoComplete="off" />
+              <input
+                ref={numberRef}
+                type="text"
+                value={address.number}
+                onChange={(e) => updateValue({ ...address, number: e.target.value })}
+                placeholder="Nº"
+                className={`${inputClass(address.number)} placeholder:opacity-30`}
+                style={{ color: "inherit" }}
+                autoComplete="off"
+              />
             </div>
             <div>
               <div className={labelClass}>Complemento</div>
-              <input type="text" value={address.complement} onChange={(e) => updateValue({ ...address, complement: e.target.value })} placeholder="Apto, Bloco..." className={inputClass(address.complement)} autoComplete="off" />
+              <input
+                type="text"
+                value={address.complement}
+                onChange={(e) => updateValue({ ...address, complement: e.target.value })}
+                placeholder="Apto, Bloco..."
+                className={`${inputClass(address.complement)} placeholder:opacity-30`}
+                style={{ color: "inherit" }}
+                autoComplete="off"
+              />
             </div>
           </div>
           <div>
             <div className={labelClass}>Bairro</div>
-            <input type="text" value={address.neighborhood} readOnly className={inputClass(address.neighborhood, true)} />
+            <input
+              type="text"
+              value={address.neighborhood}
+              readOnly
+              className={inputClass(address.neighborhood, true)}
+              style={{ color: "inherit" }}
+            />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
               <div className={labelClass}>Cidade</div>
-              <input type="text" value={address.city} readOnly className={inputClass(address.city, true)} />
+              <input
+                type="text"
+                value={address.city}
+                readOnly
+                className={inputClass(address.city, true)}
+                style={{ color: "inherit" }}
+              />
             </div>
             <div>
               <div className={labelClass}>Estado</div>
-              <input type="text" value={address.state} readOnly className={inputClass(address.state, true)} />
+              <input
+                type="text"
+                value={address.state}
+                readOnly
+                className={inputClass(address.state, true)}
+                style={{ color: "inherit" }}
+              />
             </div>
           </div>
         </motion.div>
       )}
 
-      {error && <motion.p className="text-sm font-body text-red-500" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{error}</motion.p>}
-      <p className="text-sm text-muted-foreground font-body">Digite o CEP e o endereço será preenchido automaticamente</p>
+      {error && <motion.p className="text-sm font-body text-red-400" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{error}</motion.p>}
+      <p className="text-sm font-body opacity-50">Digite o CEP e o endereço será preenchido automaticamente</p>
     </motion.div>
   );
 }

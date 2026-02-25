@@ -14,6 +14,7 @@ interface DesignProps {
   questionColor?: string;
   answerColor?: string;
   buttonColor?: string;
+  buttonTextColor?: string;
   fontFamily?: string;
   logoUrl?: string;
   backgroundImage?: string;
@@ -37,7 +38,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
   const isLightBg = isLightColor(bgColor);
   const textColor = isLightBg ? "#1E293B" : "#FFFFFF";
   const subtitleColor = isLightBg ? "rgba(30,41,59,0.65)" : "rgba(255,255,255,0.7)";
-  const btnTextColor = isLightColor(buttonColor) ? "#1E293B" : "#FFFFFF";
+  const btnTextColor = design?.buttonTextColor || (isLightColor(buttonColor) ? "#1E293B" : "#FFFFFF");
   const hintColor = isLightBg ? "rgba(30,41,59,0.4)" : "rgba(255,255,255,0.45)";
 
   return (
@@ -69,7 +70,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-7 sm:h-9 md:h-10 object-contain"
+            className="h-10 sm:h-14 md:h-16 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}

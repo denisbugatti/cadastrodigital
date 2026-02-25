@@ -351,6 +351,7 @@ export function createOneInnovationForm(): BuilderForm {
     questions,
     design: {
       buttonColor: "#FFFFFF",
+      buttonTextColor: "#0D8BD9",
       questionColor: "#FFFFFF",
       answerColor: "#FFFFFF",
       backgroundColor: "#0D8BD9",

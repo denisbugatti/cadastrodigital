@@ -14,8 +14,9 @@ import FormView from "./pages/FormView";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Landing} />
+      <Route path={"/"} component={Dashboard} />
       <Route path={"/form"} component={Dashboard} />
+      <Route path={"/landing"} component={Landing} />
       <Route path={"/editor"} component={Editor} />
       <Route path={"/editor/:id"} component={Editor} />
       <Route path={"/form-preview"} component={FormPreviewPage} />
