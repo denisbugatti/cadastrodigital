@@ -42,3 +42,7 @@
 - [x] Remover página de login e redirecionamentos de autenticação
 - [x] Fazer Dashboard e Editor funcionarem sem login obrigatório
 - [x] Remover botões/links de login da interface
+
+## Galeria de Templates
+- [x] Criar galeria de templates no Dashboard com o formulário One Innovation como template pré-configurado
+- [x] Permitir clonar template para o banco de dados com um clique

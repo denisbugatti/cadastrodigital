@@ -5,7 +5,7 @@
  * Now uses tRPC API for all data operations (database persistence).
  */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
@@ -29,6 +29,10 @@ import {
   Download,
   Upload,
   Loader2,
+  Sparkles,
+  LayoutTemplate,
+  Building2,
+  ClipboardList,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -54,6 +58,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
 import { exportFormAsJSON, importFormFromJSON } from "@/lib/formStorage";
+import { createOneInnovationForm } from "@/lib/oneInnovationForm";
 
 /* ─── Types ─── */
 
@@ -110,6 +115,60 @@ const sortOptions: { id: SortOption; label: string }[] = [
 
 const FOLDER_COLORS = ["#0D8BD9", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
+/* ─── Template Gallery ─── */
+
+interface FormTemplate {
+  id: string;
+  title: string;
+  description: string;
+  icon: typeof Building2;
+  color: string;
+  gradient: string;
+  tags: string[];
+  factory: () => ReturnType<typeof createOneInnovationForm>;
+}
+
+const FORM_TEMPLATES: FormTemplate[] = [
+  {
+    id: "one-innovation",
+    title: "Cadastro Online",
+    description: "Cadastro imobiliário com fluxo PF/PJ, validação de CPF/CNPJ e upload de documentos.",
+    icon: Building2,
+    color: "#0D8BD9",
+    gradient: "from-blue-500 to-cyan-400",
+    tags: ["Imobiliário", "PF/PJ", "Documentos"],
+    factory: createOneInnovationForm,
+  },
+  {
+    id: "satisfaction-survey",
+    title: "Pesquisa de Satisfação",
+    description: "NPS, rating por estrelas, múltipla escolha e campo aberto para feedback.",
+    icon: ClipboardList,
+    color: "#8b5cf6",
+    gradient: "from-violet-500 to-purple-400",
+    tags: ["NPS", "Feedback", "Rating"],
+    factory: () => {
+      // Simple satisfaction survey template
+      const form = createOneInnovationForm();
+      return {
+        ...form,
+        id: `template_satisfaction_${Date.now()}`,
+        title: "Pesquisa de Satisfação",
+        description: "Queremos ouvir você! Sua opinião nos ajuda a melhorar.",
+        design: {
+          ...form.design,
+          backgroundColor: "#7C3AED",
+          buttonColor: "#FFFFFF",
+          buttonTextColor: "#7C3AED",
+          questionColor: "#FFFFFF",
+          answerColor: "#FFFFFF",
+          logoUrl: "",
+        },
+      };
+    },
+  },
+];
+
 /* ─── Dashboard ─── */
 
 export default function Dashboard() {
@@ -125,6 +184,8 @@ export default function Dashboard() {
   const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [, navigate] = useLocation();
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [cloningTemplate, setCloningTemplate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
@@ -409,7 +470,33 @@ export default function Dashboard() {
     }
   };
 
-
+  const handleUseTemplate = async (template: FormTemplate) => {
+    setCloningTemplate(template.id);
+    try {
+      const formData = template.factory();
+      const result = await createFormMutation.mutateAsync({
+        title: formData.title,
+        description: formData.description,
+        questions: formData.questions,
+        design: formData.design,
+        webhook: formData.webhook,
+        sharing: formData.sharing,
+        status: "draft",
+        color: template.color,
+      });
+      toast.success("Template clonado!", {
+        description: `"${formData.title}" foi adicionado ao seu dashboard.`,
+      });
+      setShowTemplates(false);
+      navigate(`/editor/${result.id}`);
+    } catch (err) {
+      toast.error("Erro ao clonar template", {
+        description: "Tente novamente.",
+      });
+    } finally {
+      setCloningTemplate(null);
+    }
+  };
 
   const isLoading = formsQuery.isLoading || workspacesQuery.isLoading;
 
@@ -696,6 +783,83 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Template Gallery Toggle */}
+          {!isLoading && (
+            <div className="mb-6">
+              <button
+                onClick={() => setShowTemplates(!showTemplates)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-body font-medium border transition-all duration-200 ${
+                  showTemplates
+                    ? "bg-brand/10 border-brand/30 text-brand shadow-sm"
+                    : "bg-white border-border text-muted-foreground hover:text-foreground hover:border-brand/20 hover:bg-secondary/50"
+                }`}
+              >
+                <LayoutTemplate size={16} />
+                Galeria de Templates
+                <ChevronRight size={14} className={`transition-transform duration-200 ${showTemplates ? "rotate-90" : ""}`} />
+              </button>
+            </div>
+          )}
+
+          {/* Template Gallery */}
+          <AnimatePresence>
+            {showTemplates && !isLoading && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden mb-8"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {FORM_TEMPLATES.map((template) => {
+                    const Icon = template.icon;
+                    const isCloning = cloningTemplate === template.id;
+                    return (
+                      <motion.div
+                        key={template.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="group relative rounded-2xl border border-border bg-white overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
+                        onClick={() => !isCloning && handleUseTemplate(template)}
+                      >
+                        {/* Gradient header */}
+                        <div className={`h-20 bg-gradient-to-r ${template.gradient} flex items-center justify-center relative`}>
+                          <div className="absolute inset-0 bg-black/5" />
+                          <Icon size={32} className="text-white relative z-10 drop-shadow-md" />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            {template.tags.map((tag) => (
+                              <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/20 text-white backdrop-blur-sm">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Content */}
+                        <div className="p-4">
+                          <h4 className="font-display text-base font-bold text-foreground mb-1">{template.title}</h4>
+                          <p className="text-sm text-muted-foreground font-body leading-relaxed line-clamp-2">{template.description}</p>
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              disabled={isCloning}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-semibold bg-brand/10 text-brand hover:bg-brand/20 transition-colors disabled:opacity-50"
+                            >
+                              {isCloning ? (
+                                <><Loader2 size={12} className="animate-spin" /> Clonando...</>
+                              ) : (
+                                <><Sparkles size={12} /> Usar template</>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Cards Grid */}
           {!isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -742,9 +906,18 @@ export default function Dashboard() {
                 {searchQuery
                   ? `Nenhum formulário encontrado para "${searchQuery}"`
                   : forms.length === 0
-                  ? "Nenhum formulário criado ainda. Crie seu primeiro!"
+                  ? "Nenhum formulário criado ainda. Use um template ou crie do zero!"
                   : "Nenhum formulário nesta pasta"}
               </p>
+              {forms.length === 0 && !searchQuery && (
+                <button
+                  onClick={() => setShowTemplates(true)}
+                  className="mt-4 flex items-center gap-2 mx-auto px-5 py-2.5 rounded-xl text-sm font-body font-semibold bg-brand/10 text-brand hover:bg-brand/20 transition-colors"
+                >
+                  <LayoutTemplate size={16} />
+                  Ver templates disponíveis
+                </button>
+              )}
               {(statusFilter !== "all" || selectedFolderId !== null) && (
                 <button
                   onClick={() => { setStatusFilter("all"); setSelectedFolderId(null); }}
