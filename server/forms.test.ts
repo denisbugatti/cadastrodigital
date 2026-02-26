@@ -508,7 +508,7 @@ describe("workspaces.create", () => {
 
     const result = await caller.workspaces.create({
       name: "New Folder",
-      color: "#22c55e",
+      designDefaults: { color: "#22c55e" },
     });
 
     expect(result.id).toBe(2);

@@ -11,12 +11,17 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
+/* ─── Connection Management ─── */
+
 let _pool: mysql.Pool | null = null;
 let _db: any = null;
+let _poolCreatedAt = 0;
+
+// Max pool age: 5 minutes. After this, recreate the pool to avoid stale connections.
+const MAX_POOL_AGE_MS = 5 * 60 * 1000;
 
 /**
- * Create a MySQL2 connection pool with keepalive and auto-reconnect.
- * This prevents ECONNRESET errors from TiDB serverless idle timeouts.
+ * Create a MySQL2 connection pool with aggressive keepalive and reconnect settings.
  */
 function createPool(): mysql.Pool {
   const dbUrl = process.env.DATABASE_URL;
@@ -25,15 +30,14 @@ function createPool(): mysql.Pool {
   const pool = mysql.createPool({
     uri: dbUrl,
     waitForConnections: true,
-    connectionLimit: 5,
-    maxIdle: 2,
-    idleTimeout: 30000,       // Close idle connections after 30s
+    connectionLimit: 3,          // Small pool for serverless DB
+    maxIdle: 1,
+    idleTimeout: 20000,          // 20s idle timeout
     enableKeepAlive: true,
-    keepAliveInitialDelay: 10000, // Send keepalive every 10s
-    connectTimeout: 10000,    // 10s connection timeout
+    keepAliveInitialDelay: 5000, // Keepalive every 5s
+    connectTimeout: 15000,       // 15s connection timeout
   });
 
-  // Log pool errors but don't crash
   pool.on('connection', () => {
     console.log("[Database] New pool connection established");
   });
@@ -42,65 +46,75 @@ function createPool(): mysql.Pool {
 }
 
 /**
- * Get the drizzle database instance backed by a connection pool.
- * Automatically recreates the pool if the previous one was destroyed.
+ * Get or create the database instance.
+ * Recreates the pool if it's too old to prevent stale connections.
  */
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _pool = createPool();
-      _db = drizzle(_pool);
-      console.log("[Database] Connection pool initialized");
-    } catch (error) {
-      console.warn("[Database] Failed to create pool:", error);
-      _pool = null;
-      _db = null;
-    }
+function getDb(): any {
+  const now = Date.now();
+
+  // Recreate pool if it's too old
+  if (_pool && (now - _poolCreatedAt > MAX_POOL_AGE_MS)) {
+    console.log("[Database] Pool expired, recreating...");
+    const oldPool = _pool;
+    _pool = null;
+    _db = null;
+    // End old pool in background (don't await)
+    oldPool.end().catch(() => {});
   }
+
+  if (!_db) {
+    _pool = createPool();
+    _db = drizzle(_pool);
+    _poolCreatedAt = now;
+    console.log("[Database] Connection pool initialized");
+  }
+
   return _db;
 }
 
 /**
- * Reset the database connection pool. Call this when queries fail
- * with connection errors so the next getDb() creates a fresh pool.
+ * Force-reset the connection pool. Called after connection errors.
  */
-export async function resetDbConnection() {
+function resetPool() {
   if (_pool) {
-    try {
-      await _pool.end();
-    } catch (e) {
-      // Ignore errors when closing stale pool
-    }
+    const oldPool = _pool;
+    _pool = null;
+    _db = null;
+    // End old pool in background
+    oldPool.end().catch(() => {});
+    console.log("[Database] Pool reset due to connection error");
   }
-  _pool = null;
-  _db = null;
 }
 
 /**
  * Execute a database operation with automatic retry on connection errors.
- * Resets the connection pool on failure and retries with a fresh connection.
+ * On failure, resets the pool and retries with a fresh connection.
  */
-async function withDbRetry<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+async function withDbRetry<T>(operation: (db: any) => Promise<T>, maxRetries = 3): Promise<T> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await operation();
+      const db = getDb();
+      return await operation(db);
     } catch (err: any) {
+      const msg = err?.message ?? '';
+      const code = err?.code ?? '';
       const isConnectionError =
-        err?.code === 'ECONNRESET' ||
-        err?.code === 'ECONNREFUSED' ||
-        err?.code === 'ETIMEDOUT' ||
-        err?.code === 'PROTOCOL_CONNECTION_LOST' ||
-        err?.message?.includes('ECONNRESET') ||
-        err?.message?.includes('Connection lost') ||
-        err?.message?.includes('Failed query') ||
-        err?.message?.includes('read ECONNRESET');
+        code === 'ECONNRESET' ||
+        code === 'ECONNREFUSED' ||
+        code === 'ETIMEDOUT' ||
+        code === 'PROTOCOL_CONNECTION_LOST' ||
+        code === 'ER_CON_COUNT_ERROR' ||
+        msg.includes('ECONNRESET') ||
+        msg.includes('Connection lost') ||
+        msg.includes('read ECONNRESET') ||
+        msg.includes('connect ETIMEDOUT') ||
+        msg.includes('Failed query');
 
       if (isConnectionError && attempt < maxRetries - 1) {
-        console.warn(`[Database] Connection error (attempt ${attempt + 1}/${maxRetries}), reconnecting...`, err?.message);
-        await resetDbConnection();
-        // Force re-init on next getDb() call
-        await getDb();
-        const delay = 300 * Math.pow(2, attempt);
+        console.warn(`[Database] Connection error (attempt ${attempt + 1}/${maxRetries}): ${msg.substring(0, 100)}`);
+        resetPool();
+        // Wait with exponential backoff: 500ms, 1500ms, 3500ms
+        const delay = 500 * Math.pow(2, attempt) + Math.random() * 500;
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
@@ -110,18 +124,31 @@ async function withDbRetry<T>(operation: () => Promise<T>, maxRetries = 3): Prom
   throw new Error("withDbRetry: unreachable");
 }
 
+/**
+ * Warm up the database connection. Call this at server startup.
+ * Returns true if the connection is healthy.
+ */
+export async function warmUpDb(): Promise<boolean> {
+  try {
+    const db = getDb();
+    await db.execute(sql`SELECT 1`);
+    console.log("[Database] Warm-up successful");
+    return true;
+  } catch (err: any) {
+    console.warn("[Database] Warm-up failed:", err?.message?.substring(0, 100));
+    resetPool();
+    return false;
+  }
+}
+
+/* ─── Users ─── */
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
 
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) {
-      console.warn("[Database] Cannot upsert user: database not available");
-      return;
-    }
-
+  return withDbRetry(async (db) => {
     const values: InsertUser = {
       openId: user.openId,
     };
@@ -167,66 +194,49 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) {
-      console.warn("[Database] Cannot get user: database not available");
-      return undefined;
-    }
+  return withDbRetry(async (db) => {
     const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
     return result.length > 0 ? result[0] : undefined;
   });
 }
 
-// ─── Forms ───
+/* ─── Forms ─── */
 
 export async function createForm(data: InsertForm) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.insert(forms).values(data);
     return { id: result[0].insertId };
   });
 }
 
 export async function getFormsByUser(userId: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     return db.select().from(forms).where(eq(forms.userId, userId)).orderBy(desc(forms.updatedAt));
   });
 }
 
 export async function getFormBySlug(slug: string) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.select().from(forms).where(eq(forms.slug, slug)).limit(1);
     return result[0] ?? null;
   });
 }
 
 export async function getFormById(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
     return result[0] ?? null;
   });
 }
 
 export async function updateForm(id: number, data: Partial<InsertForm>) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     await db.update(forms).set(data).where(eq(forms.id, id));
   });
 }
 
 export async function deleteForm(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     await db.delete(formVersions).where(eq(formVersions.formId, id));
     await db.delete(formResponses).where(eq(formResponses.formId, id));
     await db.delete(files).where(eq(files.formId, id));
@@ -235,35 +245,32 @@ export async function deleteForm(id: number) {
 }
 
 export async function duplicateForm(id: number, userId: number, newSlug: string) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const original = await getFormById(id);
-    if (!original) throw new Error("Form not found");
+  return withDbRetry(async (db) => {
+    const original = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
+    if (!original[0]) throw new Error("Form not found");
+    const o = original[0];
     const result = await db.insert(forms).values({
       slug: newSlug,
       userId,
-      title: `${original.title} (cópia)`,
-      description: original.description,
-      questions: original.questions,
-      design: original.design,
-      webhook: original.webhook,
-      sharing: original.sharing,
-      workspaceId: original.workspaceId,
+      title: `${o.title} (cópia)`,
+      description: o.description,
+      questions: o.questions,
+      design: o.design,
+      webhook: o.webhook,
+      sharing: o.sharing,
+      workspaceId: o.workspaceId,
       status: "draft",
-      color: original.color,
+      color: o.color,
       responseCount: 0,
     });
     return { id: result[0].insertId };
   });
 }
 
-// ─── Form Responses ───
+/* ─── Form Responses ─── */
 
 export async function createResponse(data: InsertFormResponse) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.insert(formResponses).values(data);
     await db.update(forms).set({ responseCount: sql`${forms.responseCount} + 1` }).where(eq(forms.id, data.formId));
     return { id: result[0].insertId };
@@ -271,36 +278,28 @@ export async function createResponse(data: InsertFormResponse) {
 }
 
 export async function getResponsesByForm(formId: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     return db.select().from(formResponses).where(eq(formResponses.formId, formId)).orderBy(desc(formResponses.createdAt));
   });
 }
 
 export async function getResponseById(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.select().from(formResponses).where(eq(formResponses.id, id)).limit(1);
     return result[0] ?? null;
   });
 }
 
 export async function updateResponse(id: number, data: Partial<InsertFormResponse>) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     await db.update(formResponses).set(data).where(eq(formResponses.id, id));
   });
 }
 
-// ─── Form Versions ───
+/* ─── Form Versions ─── */
 
 export async function createVersion(data: InsertFormVersion) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.insert(formVersions).values(data);
     const allVersions = await db.select({ id: formVersions.id })
       .from(formVersions)
@@ -317,106 +316,82 @@ export async function createVersion(data: InsertFormVersion) {
 }
 
 export async function getVersionsByForm(formId: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     return db.select().from(formVersions).where(eq(formVersions.formId, formId)).orderBy(desc(formVersions.createdAt));
   });
 }
 
 export async function getVersionById(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.select().from(formVersions).where(eq(formVersions.id, id)).limit(1);
     return result[0] ?? null;
   });
 }
 
 export async function deleteVersion(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     await db.delete(formVersions).where(eq(formVersions.id, id));
   });
 }
 
-// ─── Files ───
+/* ─── Files ─── */
 
 export async function createFileRecord(data: InsertFileRecord) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.insert(files).values(data);
     return { id: result[0].insertId };
   });
 }
 
 export async function getFilesByForm(formId: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     return db.select().from(files).where(eq(files.formId, formId)).orderBy(desc(files.createdAt));
   });
 }
 
 export async function getFilesByResponse(responseId: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     return db.select().from(files).where(eq(files.responseId, responseId));
   });
 }
 
 export async function deleteFileRecord(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     await db.delete(files).where(eq(files.id, id));
   });
 }
 
-// ─── Workspaces ───
+/* ─── Workspaces ─── */
 
 export async function createWorkspace(data: InsertWorkspace) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.insert(workspaces).values(data);
     return { id: result[0].insertId };
   });
 }
 
 export async function getWorkspacesByUser(userId: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     return db.select().from(workspaces).where(eq(workspaces.userId, userId)).orderBy(desc(workspaces.createdAt));
   });
 }
 
 export async function getWorkspaceById(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     const result = await db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
     return result[0] ?? null;
   });
 }
 
 export async function updateWorkspace(id: number, data: Partial<InsertWorkspace>) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  return withDbRetry(async (db) => {
     await db.update(workspaces).set(data).where(eq(workspaces.id, id));
   });
 }
 
 export async function deleteWorkspace(id: number) {
-  return withDbRetry(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    // Clear workspaceId from forms in this workspace
+  return withDbRetry(async (db) => {
+    // Move forms in this workspace to no workspace
     await db.update(forms).set({ workspaceId: null }).where(eq(forms.workspaceId, String(id)));
     await db.delete(workspaces).where(eq(workspaces.id, id));
   });

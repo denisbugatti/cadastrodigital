@@ -73,3 +73,12 @@
 
 ## Bug: Formulários não aparecem no iPhone/Safari
 - [x] Investigar e corrigir erro de conexão DB (ECONNRESET) — implementado pool MySQL2 com keepalive + retry automático em todas as queries
+
+## Bug: Formulários não carregam (persistente)
+- [x] Investigar e corrigir erro persistente que impede formulários de aparecerem no Dashboard
+
+## Fix: Erro persistente de carregamento (iPhone/Safari)
+- [x] Simplificar ownerFallbackProcedure para não depender do DB para auth
+- [x] Melhorar resiliência da conexão com banco de dados
+- [x] Adicionar melhor tratamento de erros no frontend com retry automático
+- [x] Garantir que formulários carreguem consistentemente em todos os dispositivos

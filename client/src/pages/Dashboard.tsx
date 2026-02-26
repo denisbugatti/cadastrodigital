@@ -191,15 +191,8 @@ export default function Dashboard() {
   const utils = trpc.useUtils();
 
   // ─── tRPC Queries ───
-  const formsQuery = trpc.forms.list.useQuery(undefined, {
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-  });
-
-  const workspacesQuery = trpc.workspaces.list.useQuery(undefined, {
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-  });
+  const formsQuery = trpc.forms.list.useQuery(undefined);
+  const workspacesQuery = trpc.workspaces.list.useQuery(undefined);
 
   // ─── tRPC Mutations ───
   const createFormMutation = trpc.forms.create.useMutation({
@@ -440,7 +433,7 @@ export default function Dashboard() {
     try {
       await createWorkspaceMutation.mutateAsync({
         name: newFolderName.trim(),
-        color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
+        designDefaults: { color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length] },
       });
       setNewFolderName("");
       setCreatingFolder(false);

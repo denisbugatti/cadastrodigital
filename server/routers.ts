@@ -1,4 +1,3 @@
-import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -9,61 +8,78 @@ import { storagePut } from "./storage";
 import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
 import { t } from "./_core/trpc";
+import { COOKIE_NAME } from "../shared/const";
 
 /**
- * ownerFallbackProcedure:
- * If the user is authenticated, use their id.
- * If not authenticated, fall back to the owner user (OWNER_OPEN_ID).
- * This allows the app to work without login — all data belongs to the owner.
+ * In-memory cache for the owner user.
+ * Once resolved, we never need to query the DB again for auth.
+ * This eliminates the #1 cause of intermittent failures:
+ * every single request was hitting the DB just to resolve the owner.
  */
-/**
- * Helper: retry an async function with exponential backoff.
- * Useful for transient database connection failures (TiDB cold starts).
- */
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 200): Promise<T> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (attempt === maxRetries - 1) throw err;
-      const delay = baseDelayMs * Math.pow(2, attempt);
-      await new Promise(r => setTimeout(r, delay));
-    }
-  }
-  throw new Error("withRetry: unreachable");
-}
+let _cachedOwnerUser: any = null;
+let _ownerCacheExpiry = 0;
+const OWNER_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  if (ctx.user) {
-    return next({ ctx: { ...ctx, user: ctx.user } });
+async function getOrCreateOwnerUser(): Promise<any> {
+  const now = Date.now();
+
+  // Return cached owner if still valid
+  if (_cachedOwnerUser && now < _ownerCacheExpiry) {
+    return _cachedOwnerUser;
   }
 
-  // Fall back to owner
   const ownerOpenId = ENV.ownerOpenId;
   if (!ownerOpenId) {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner not configured" });
   }
 
   try {
-    let ownerUser = await withRetry(() => db.getUserByOpenId(ownerOpenId));
+    let ownerUser = await db.getUserByOpenId(ownerOpenId);
     if (!ownerUser) {
       // Auto-create owner user
-      await withRetry(() => db.upsertUser({
+      await db.upsertUser({
         openId: ownerOpenId,
         name: process.env.OWNER_NAME ?? "Owner",
         role: "admin",
         lastSignedIn: new Date(),
-      }));
-      ownerUser = await withRetry(() => db.getUserByOpenId(ownerOpenId));
+      });
+      ownerUser = await db.getUserByOpenId(ownerOpenId);
     }
 
-    if (!ownerUser) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not resolve owner user" });
+    if (ownerUser) {
+      _cachedOwnerUser = ownerUser;
+      _ownerCacheExpiry = now + OWNER_CACHE_TTL;
+      return ownerUser;
     }
 
+    throw new Error("Could not resolve owner user after creation");
+  } catch (err: any) {
+    // If cache exists but expired, use stale cache as fallback
+    if (_cachedOwnerUser) {
+      console.warn("[ownerFallback] DB error, using stale cache:", err?.message?.substring(0, 80));
+      _ownerCacheExpiry = now + 30000; // Extend stale cache for 30s
+      return _cachedOwnerUser;
+    }
+    throw err;
+  }
+}
+
+/**
+ * ownerFallbackProcedure:
+ * If the user is authenticated, use their id.
+ * If not authenticated, fall back to the cached owner user.
+ * This allows the app to work without login — all data belongs to the owner.
+ */
+const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user) {
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  try {
+    const ownerUser = await getOrCreateOwnerUser();
     return next({ ctx: { ...ctx, user: ownerUser } });
-  } catch (err) {
-    console.error("[ownerFallback] Failed after retries:", err);
+  } catch (err: any) {
+    console.error("[ownerFallback] Failed:", err?.message?.substring(0, 100));
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Erro temporário de conexão. Tente novamente em alguns segundos.",
@@ -264,38 +280,49 @@ export const appRouter = router({
         await db.deleteVersion(input.id);
         return { success: true };
       }),
+
+    restore: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const version = await db.getVersionById(input.id);
+        if (!version) throw new Error("Version not found");
+        const snapshot = version.snapshot as any;
+        await db.updateForm(version.formId, {
+          title: snapshot.title,
+          description: snapshot.description,
+          questions: snapshot.questions,
+          design: snapshot.design,
+        });
+        return { success: true };
+      }),
   }),
 
-  // ─── File Upload ───
+  // ─── Files ───
   files: router({
     upload: ownerFallbackProcedure
       .input(z.object({
-        filename: z.string(),
-        contentBase64: z.string(),
-        mimeType: z.string(),
         formId: z.number().optional(),
         responseId: z.number().optional(),
         context: z.string().optional(),
+        filename: z.string(),
+        contentBase64: z.string(),
+        mimeType: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
         const buffer = Buffer.from(input.contentBase64, "base64");
-        const suffix = nanoid(8);
-        const fileKey = `formflow/${ctx.user.id}/${input.filename}-${suffix}`;
-        
+        const fileKey = `uploads/${nanoid(8)}-${input.filename}`;
         const { url } = await storagePut(fileKey, buffer, input.mimeType);
-        
         const record = await db.createFileRecord({
-          fileKey,
+          formId: input.formId ?? null,
+          responseId: input.responseId ?? null,
+          context: input.context ?? null,
           url,
+          fileKey,
           filename: input.filename,
           mimeType: input.mimeType,
           sizeBytes: buffer.length,
           uploadedBy: ctx.user.id,
-          formId: input.formId ?? null,
-          responseId: input.responseId ?? null,
-          context: input.context ?? null,
         });
-
         return { id: record.id, url, fileKey };
       }),
 
@@ -303,6 +330,12 @@ export const appRouter = router({
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getFilesByForm(input.formId);
+      }),
+
+    listByResponse: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getFilesByResponse(input.responseId);
       }),
 
     delete: ownerFallbackProcedure
@@ -322,15 +355,13 @@ export const appRouter = router({
     create: ownerFallbackProcedure
       .input(z.object({
         name: z.string(),
-        color: z.string().optional(),
-        description: z.string().optional(),
+        designDefaults: z.any().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         return db.createWorkspace({
-          userId: ctx.user.id,
           name: input.name,
-          description: input.description ?? null,
-          designDefaults: { color: input.color ?? "#0D8BD9" },
+          userId: ctx.user.id,
+          designDefaults: input.designDefaults ?? {},
         });
       }),
 
@@ -338,28 +369,23 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
-        color: z.string().optional(),
-        description: z.string().optional(),
+        designDefaults: z.any().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, ...data } = input;
-        const ws = await db.getWorkspaceById(id);
-        if (!ws || ws.userId !== ctx.user.id) {
+        const workspace = await db.getWorkspaceById(input.id);
+        if (!workspace || workspace.userId !== ctx.user.id) {
           throw new Error("Workspace not found or access denied");
         }
-        const updateData: Record<string, any> = {};
-        if (data.name) updateData.name = data.name;
-        if (data.description !== undefined) updateData.description = data.description;
-        if (data.color) updateData.designDefaults = { color: data.color };
-        await db.updateWorkspace(id, updateData);
+        const { id, ...data } = input;
+        await db.updateWorkspace(id, data);
         return { success: true };
       }),
 
     delete: ownerFallbackProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const ws = await db.getWorkspaceById(input.id);
-        if (!ws || ws.userId !== ctx.user.id) {
+        const workspace = await db.getWorkspaceById(input.id);
+        if (!workspace || workspace.userId !== ctx.user.id) {
           throw new Error("Workspace not found or access denied");
         }
         await db.deleteWorkspace(input.id);
@@ -369,3 +395,5 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
+
