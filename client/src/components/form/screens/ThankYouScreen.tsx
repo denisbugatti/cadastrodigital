@@ -97,8 +97,8 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
 
         {/* Title */}
         <motion.h1
-          className="text-2xl font-bold leading-tight tracking-tight"
-          style={{ color: textColor, fontFamily }}
+          className="leading-tight tracking-tight"
+          style={{ color: textColor, fontFamily, fontSize: "32px", fontWeight: 400 }}
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -109,8 +109,8 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
         {/* Subtitle */}
         {question.subtitle && (
           <motion.p
-            className="mt-3 text-sm leading-relaxed"
-            style={{ color: subtitleColor, fontFamily }}
+            className="mt-3 leading-relaxed"
+            style={{ color: subtitleColor, fontFamily, fontSize: "20px", fontWeight: 400 }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -129,11 +129,13 @@ export function ThankYouScreen({ question, design }: ThankYouScreenProps) {
           {showButton && (
             <motion.button
               onClick={() => window.location.reload()}
-              className="px-7 py-3 rounded-lg text-sm font-semibold shadow-lg transition-all"
+              className="px-7 py-3 rounded-lg font-medium shadow-lg transition-all"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,
                 fontFamily,
+                fontSize: "16px",
+                fontWeight: 400,
               }}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}

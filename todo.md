@@ -60,3 +60,10 @@
 - [x] Adicionar botão visível de clonar nos cards dos formulários
 - [x] Adicionar botão visível de excluir nos cards dos formulários
 - [x] Permitir renomear o formulário diretamente no card do Dashboard
+
+## Recriar Formulário One Innovation do Respondi
+- [x] Acessar Respondi e extrair todas as perguntas e lógica condicional
+- [x] Criar formulário idêntico no FormFlow com mesmas perguntas e lógica (52 perguntas)
+- [x] Usar mesma fonte e tamanhos do Respondi (Montserrat, 32/24/16px)
+- [x] Preview mobile já existia no editor (toggle Desktop/Mobile com frame iPhone)
+- [x] Verificar que o formulário funciona corretamente (welcome → PF/PJ → lógica condicional OK)

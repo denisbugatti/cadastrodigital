@@ -2,7 +2,7 @@
  * FormFlow Statement / Cover Screen
  * Beautiful cover-style screen that acts as a section divider.
  * Adapts to form design colors — works on both light and dark backgrounds.
- * Used for "Check List de documentos", section headers, etc.
+ * Font sizes match Respondi: title 24px, subtitle 16px, button 16px.
  */
 
 import { motion } from "framer-motion";
@@ -64,10 +64,15 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
         </motion.div>
       )}
 
-      {/* Title */}
+      {/* Title — 24px matching Respondi */}
       <motion.h2
-        className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-tight"
-        style={{ fontFamily }}
+        className="font-display tracking-tight leading-tight"
+        style={{
+          fontFamily,
+          fontSize: "24px",
+          fontWeight: 400,
+          lineHeight: "28.8px",
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -75,11 +80,15 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
         {question.title}
       </motion.h2>
 
-      {/* Subtitle / Description */}
+      {/* Subtitle / Description — 16px */}
       {question.subtitle && (
         <motion.p
-          className="mt-4 text-base sm:text-lg leading-relaxed opacity-60 max-w-md"
-          style={{ fontFamily }}
+          className="mt-4 leading-relaxed opacity-60 max-w-md"
+          style={{
+            fontFamily,
+            fontSize: "16px",
+            fontWeight: 400,
+          }}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 0.6, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
@@ -88,16 +97,45 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
         </motion.p>
       )}
 
-      {/* Hint — the OK button at the bottom handles navigation */}
-      <motion.p
-        className="mt-8 text-sm opacity-40"
-        style={{ fontFamily }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.4 }}
-        transition={{ delay: 0.6 }}
-      >
-        Clique em <strong>OK</strong> para continuar
-      </motion.p>
+      {/* Button if showButton is true */}
+      {question.showButton !== false && question.buttonText && (
+        <motion.div
+          className="mt-7 flex items-center justify-center gap-3"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <motion.button
+            onClick={onNext}
+            className="px-7 py-3 rounded-lg font-medium shadow-lg flex items-center gap-2.5 transition-all"
+            style={{
+              backgroundColor: buttonColor,
+              color: "#FFFFFF",
+              fontFamily,
+              fontSize: "16px",
+              fontWeight: 400,
+            }}
+            whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}
+            whileTap={{ scale: 0.96 }}
+          >
+            {question.buttonText}
+            <ArrowRight size={16} />
+          </motion.button>
+        </motion.div>
+      )}
+
+      {/* Hint — OK to continue */}
+      {(!question.showButton || !question.buttonText) && (
+        <motion.p
+          className="mt-8 opacity-40"
+          style={{ fontFamily, fontSize: "14px" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ delay: 0.6 }}
+        >
+          Clique em <strong>OK</strong> para continuar
+        </motion.p>
+      )}
     </div>
   );
 }

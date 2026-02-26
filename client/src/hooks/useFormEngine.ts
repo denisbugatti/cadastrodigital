@@ -34,6 +34,7 @@ interface UseFormEngineReturn {
   setResponse: (questionId: string, value: FormResponse["value"]) => void;
   getResponse: (questionId: string) => FormResponse["value"] | undefined;
   validateCurrent: () => { valid: boolean; message?: string };
+  visitedQuestionNumber: number;
 }
 
 export function useFormEngine(form: FormData): UseFormEngineReturn {
@@ -294,6 +295,21 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     [currentIndex, totalQuestions]
   );
 
+  // Compute a sequential question number based on navigation history
+  // This counts only actual questions (not screens) visited so far
+  const visitedQuestionNumber = useMemo(() => {
+    // Count how many actual questions (non-screen types) are in the navHistory up to current
+    let count = 0;
+    for (const idx of navHistory) {
+      const q = questions[idx];
+      if (q && !SCREEN_TYPES.has(q.type)) {
+        count++;
+      }
+      if (idx === currentIndex) break;
+    }
+    return count;
+  }, [navHistory, currentIndex, questions]);
+
   return {
     currentIndex,
     currentQuestion,
@@ -315,5 +331,6 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     setResponse,
     getResponse,
     validateCurrent,
+    visitedQuestionNumber,
   };
 }

@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, title, slug, LEFT(JSON_EXTRACT(questions, '$[0].type'), 50) as q0_type, LEFT(JSON_EXTRACT(questions, '$[0].title'), 80) as q0_title, LEFT(JSON_EXTRACT(questions, '$[1].type'), 50) as q1_type, LEFT(JSON_EXTRACT(questions, '$[1].title'), 80) as q1_title FROM forms ORDER BY id DESC LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, slug, LEFT(JSON_EXTRACT(questions, '$[0].type'), 50) as q0_type, LEFT(JSON_EXTRACT(questions, '$[0].title'), 80) as q0_title, LEFT(JSON_EXTRACT(questions, '$[1].type'), 50) as q1_type, LEFT(JSON_EXTRACT(questions, '$[1].title'), 80) as q1_title FROM forms ORDER BY id DESC LIMIT 1;",
+  "rows": [
+    {
+      "id": "60001",
+      "title": "Cadastro Online - One Innovation",
+      "slug": "one-innovation-cadastro",
+      "q0_type": "\"welcome\"",
+      "q0_title": "\"Bem vindos ao cadastro online\"",
+      "q1_type": "\"multiple-choice\"",
+      "q1_title": "\"Você pretende fazer essa aquisição como:\""
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tslug\tq0_type\tq0_title\tq1_type\tq1_title\n60001\tCadastro Online - One Innovation\tone-innovation-cadastro\t\"welcome\"\t\"Bem vindos ao cadastro online\"\t\"multiple-choice\"\t\"Você pretende fazer essa aquisição como:\"\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

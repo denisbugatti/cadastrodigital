@@ -3,7 +3,7 @@
  * Full-screen colored background with centered content.
  * Logo top-left (LARGE on desktop), button with Enter hint.
  * Adapts text color to background brightness.
- * Sizes standardized across mobile and desktop.
+ * Font sizes match Respondi: title 32px, subtitle 24px, button 16px.
  */
 
 import { motion } from "framer-motion";
@@ -97,10 +97,15 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           </motion.div>
         )}
 
-        {/* Title */}
+        {/* Title — 32px matching Respondi */}
         <motion.h1
-          className="text-2xl font-bold leading-tight tracking-tight"
-          style={{ color: textColor, fontFamily }}
+          className="leading-tight tracking-tight"
+          style={{
+            color: textColor,
+            fontFamily,
+            fontSize: "32px",
+            fontWeight: 400,
+          }}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -108,11 +113,16 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           {question.title}
         </motion.h1>
 
-        {/* Subtitle */}
+        {/* Subtitle — 24px matching Respondi */}
         {question.subtitle && (
           <motion.p
-            className="mt-3 text-sm leading-relaxed"
-            style={{ color: subtitleColor, fontFamily }}
+            className="mt-3 leading-relaxed"
+            style={{
+              color: subtitleColor,
+              fontFamily,
+              fontSize: "20px",
+              fontWeight: 400,
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -121,7 +131,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           </motion.p>
         )}
 
-        {/* CTA Button + Enter hint (Respondi-style) */}
+        {/* CTA Button + Enter hint (Respondi-style) — 16px button text */}
         {showButton && (
           <motion.div
             className="mt-7 flex items-center justify-center gap-3"
@@ -131,11 +141,13 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           >
             <motion.button
               onClick={onStart}
-              className="px-7 py-3 rounded-lg text-sm font-semibold shadow-lg flex items-center gap-2.5 transition-all"
+              className="px-7 py-3 rounded-lg font-medium shadow-lg flex items-center gap-2.5 transition-all"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,
                 fontFamily,
+                fontSize: "16px",
+                fontWeight: 400,
               }}
               whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}
               whileTap={{ scale: 0.96 }}

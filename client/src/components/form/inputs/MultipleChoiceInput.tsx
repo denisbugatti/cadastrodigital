@@ -152,7 +152,7 @@ export function MultipleChoiceInput({
             </span>
 
             {/* Label */}
-            <span className="flex-1 text-sm font-semibold" style={{ color: textColor }}>
+            <span className="flex-1 font-medium" style={{ color: textColor, fontSize: "16px" }}>
               {choice.icon && <span className="mr-2">{choice.icon}</span>}
               {choice.label}
             </span>

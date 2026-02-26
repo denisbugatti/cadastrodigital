@@ -2,7 +2,7 @@
  * FormFlow Question Header — Typeform/Respondi-style
  * "1 →" prefix with large title and subtitle.
  * Inherits text color from parent container (adapts to any background).
- * Sizes are standardized across mobile and desktop.
+ * Font sizes match Respondi: title 24px, subtitle 16px.
  */
 
 import { motion } from "framer-motion";
@@ -22,9 +22,14 @@ export function QuestionHeader({
 }: QuestionHeaderProps) {
   return (
     <div className="mb-6">
-      {/* Title with inline number → */}
+      {/* Title with inline number → — 24px matching Respondi */}
       <motion.h2
-        className="font-display text-xl font-bold leading-snug tracking-tight"
+        className="font-display leading-snug tracking-tight"
+        style={{
+          fontSize: "24px",
+          fontWeight: 400,
+          lineHeight: "28.8px",
+        }}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -38,10 +43,14 @@ export function QuestionHeader({
         {title}
       </motion.h2>
 
-      {/* Subtitle */}
+      {/* Subtitle — 16px */}
       {subtitle && (
         <motion.p
-          className="mt-2.5 text-sm leading-relaxed opacity-55"
+          className="mt-2.5 leading-relaxed opacity-55"
+          style={{
+            fontSize: "16px",
+            fontWeight: 400,
+          }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 0.55, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}

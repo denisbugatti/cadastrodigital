@@ -195,13 +195,7 @@ export function FormContainer({ form }: FormContainerProps) {
     return () => clearTimeout(timer);
   }, [logoUrl]);
 
-  const questionNumber = useMemo(() => {
-    const actual = form.questions.filter(
-      (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
-    );
-    const idx = actual.findIndex((q) => q.id === engine.currentQuestion.id);
-    return idx + 1;
-  }, [form.questions, engine.currentQuestion]);
+  const questionNumber = engine.visitedQuestionNumber;
 
   const totalActualQuestions = useMemo(
     () =>

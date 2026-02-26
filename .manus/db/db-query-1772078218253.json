@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM forms WHERE slug = 'one-innovation-cadastro';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute DELETE FROM forms WHERE slug = 'one-innovation-cadastro';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 70
+}

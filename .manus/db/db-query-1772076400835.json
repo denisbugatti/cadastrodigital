@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, title, slug, status FROM forms;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, slug, status FROM forms;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "Cadastro Online - One Innovation",
+      "slug": "form_Oln-vt7v1e",
+      "status": "draft"
+    },
+    {
+      "id": "30001",
+      "title": "Cadastro Online - One Innovation (cópia)",
+      "slug": "form_WsFT140H7t",
+      "status": "draft"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tslug\tstatus\n1\tCadastro Online - One Innovation\tform_Oln-vt7v1e\tdraft\n30001\tCadastro Online - One Innovation (cópia)\tform_WsFT140H7t\tdraft\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}
