@@ -70,3 +70,6 @@
 
 ## Bug: Erro Intermitente no Dashboard
 - [x] Investigar e corrigir erro intermitente que faz formulários não aparecerem às vezes (retry + reset conexão DB + UI de erro)
+
+## Bug: Formulários não aparecem no iPhone/Safari
+- [x] Investigar e corrigir erro de conexão DB (ECONNRESET) — implementado pool MySQL2 com keepalive + retry automático em todas as queries
