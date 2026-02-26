@@ -52,3 +52,11 @@
 
 ## Posicionamento dos Ícones no Mobile
 - [x] Ajustar posição dos ícones de navegação no mobile (estão muito pra cima)
+
+## Bug: Clonar Formulário
+- [x] Corrigir funcionalidade de clonar formulário que está com erro (estava funcionando, botão agora visível)
+
+## Botões Visíveis nos Cards
+- [x] Adicionar botão visível de clonar nos cards dos formulários
+- [x] Adicionar botão visível de excluir nos cards dos formulários
+- [x] Permitir renomear o formulário diretamente no card do Dashboard

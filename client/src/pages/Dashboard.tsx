@@ -470,6 +470,15 @@ export default function Dashboard() {
     }
   };
 
+  const handleRenameForm = async (formId: number, newTitle: string) => {
+    try {
+      await updateFormMutation.mutateAsync({ id: formId, title: newTitle });
+      toast.success("Formulário renomeado!", { description: `Novo nome: "${newTitle}"` });
+    } catch (err) {
+      toast.error("Erro ao renomear formulário");
+    }
+  };
+
   const handleUseTemplate = async (template: FormTemplate) => {
     setCloningTemplate(template.id);
     try {
@@ -891,6 +900,7 @@ export default function Dashboard() {
                     onNavigate={navigate}
                     onRequestDelete={(f) => setDeleteTarget(f)}
                     onDuplicate={handleDuplicate}
+                    onRename={handleRenameForm}
                     onMoveToFolder={handleMoveToFolder}
                     onExport={handleExportForm}
                   />
@@ -1012,23 +1022,52 @@ interface FormCardProps {
   onNavigate: (to: string) => void;
   onRequestDelete: (form: DashboardForm) => void;
   onDuplicate: (form: DashboardForm) => void;
+  onRename: (formId: number, newTitle: string) => void;
   onMoveToFolder: (formId: number, folderId: number | undefined) => void;
   onExport: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onMoveToFolder, onExport }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(form.title);
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const currentFolder = folders.find((f) => String(f.id) === form.workspaceId);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    if (dropdownOpen) {
+    if (dropdownOpen || isRenaming) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-    // Navigate to editor using database ID
     onNavigate(`/editor/${form.id}`);
+  };
+
+  const handleStartRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setRenameValue(form.title);
+    setIsRenaming(true);
+    setTimeout(() => renameInputRef.current?.focus(), 50);
+  };
+
+  const handleConfirmRename = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== form.title) {
+      onRename(form.id, trimmed);
+    }
+    setIsRenaming(false);
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      handleConfirmRename();
+    } else if (e.key === "Escape") {
+      setIsRenaming(false);
+      setRenameValue(form.title);
+    }
   };
 
   return (
@@ -1054,65 +1093,96 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
           <FileText size={20} style={{ color: form.color ?? "#0D8BD9" }} />
         </div>
 
-        <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-          <DropdownMenuTrigger asChild>
-            <button
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-            >
-              <MoreHorizontal size={18} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
-              <Pencil size={15} className="mr-2" /> Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); toast.info("Respostas", { description: `${form.responseCount} respostas coletadas` }); }}>
-              <BarChart3 size={15} className="mr-2" /> Ver respostas
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+        {/* Visible action buttons */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
+            className="p-2 rounded-lg text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            title="Duplicar"
+          >
+            <Copy size={16} />
+          </button>
+          <button
+            onClick={handleStartRename}
+            className="p-2 rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            title="Renomear"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
+            className="p-2 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="Excluir"
+          >
+            <Trash2 size={16} />
+          </button>
 
-            {/* Move to folder submenu */}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
-                <FolderOpen size={15} className="mr-2" /> Mover para pasta
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="bg-white border-border shadow-lg w-48">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, undefined); }}>
-                  <X size={14} className="mr-2 text-muted-foreground" /> Sem pasta
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {folders.map((folder) => (
-                  <DropdownMenuItem
-                    key={folder.id}
-                    onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, folder.id); }}
-                    className={form.workspaceId === String(folder.id) ? "bg-brand/5 font-semibold" : ""}
-                  >
-                    <div className="w-3 h-3 rounded shrink-0 mr-2" style={{ backgroundColor: folder.color }} />
-                    {folder.name}
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
+                <Pencil size={15} className="mr-2" /> Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); toast.info("Respostas", { description: `${form.responseCount} respostas coletadas` }); }}>
+                <BarChart3 size={15} className="mr-2" /> Ver respostas
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                  <FolderOpen size={15} className="mr-2" /> Mover para pasta
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="bg-white border-border shadow-lg w-48">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, undefined); }}>
+                    <X size={14} className="mr-2 text-muted-foreground" /> Sem pasta
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  {folders.map((folder) => (
+                    <DropdownMenuItem
+                      key={folder.id}
+                      onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, folder.id); }}
+                      className={form.workspaceId === String(folder.id) ? "bg-brand/5 font-semibold" : ""}
+                    >
+                      <div className="w-3 h-3 rounded shrink-0 mr-2" style={{ backgroundColor: folder.color }} />
+                      {folder.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onDuplicate(form); }}>
-              <Copy size={15} className="mr-2" /> Duplicar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
-              <Share2 size={15} className="mr-2" /> Compartilhar link
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
-              <Download size={15} className="mr-2" /> Exportar JSON
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onRequestDelete(form); }}>
-              <Trash2 size={15} className="mr-2" /> Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
+                <Share2 size={15} className="mr-2" /> Compartilhar link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
+                <Download size={15} className="mr-2" /> Exportar JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
+      {/* Inline rename input */}
+      {isRenaming ? (
+        <input
+          ref={renameInputRef}
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onBlur={handleConfirmRename}
+          onKeyDown={handleRenameKeyDown}
+          onClick={(e) => { e.stopPropagation(); }}
+          className="font-display text-lg font-bold text-foreground mb-1.5 w-full bg-secondary/50 border border-border rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-brand/30"
+          autoFocus
+        />
+      ) : (
+        <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
+      )}
       <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed">{form.description}</p>
 
       <div className="flex items-center gap-5 text-sm text-muted-foreground font-body">
