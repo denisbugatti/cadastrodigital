@@ -67,3 +67,6 @@
 - [x] Usar mesma fonte e tamanhos do Respondi (Montserrat, 32/24/16px)
 - [x] Preview mobile já existia no editor (toggle Desktop/Mobile com frame iPhone)
 - [x] Verificar que o formulário funciona corretamente (welcome → PF/PJ → lógica condicional OK)
+
+## Bug: Erro Intermitente no Dashboard
+- [x] Investigar e corrigir erro intermitente que faz formulários não aparecerem às vezes (retry + reset conexão DB + UI de erro)

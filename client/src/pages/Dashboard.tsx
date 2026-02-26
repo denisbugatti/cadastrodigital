@@ -191,9 +191,15 @@ export default function Dashboard() {
   const utils = trpc.useUtils();
 
   // ─── tRPC Queries ───
-  const formsQuery = trpc.forms.list.useQuery();
+  const formsQuery = trpc.forms.list.useQuery(undefined, {
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+  });
 
-  const workspacesQuery = trpc.workspaces.list.useQuery();
+  const workspacesQuery = trpc.workspaces.list.useQuery(undefined, {
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+  });
 
   // ─── tRPC Mutations ───
   const createFormMutation = trpc.forms.create.useMutation({
@@ -792,8 +798,27 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Error state with retry */}
+          {!isLoading && (formsQuery.isError || workspacesQuery.isError) && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <AlertTriangle size={40} className="text-amber-500" />
+              <p className="font-body text-muted-foreground text-center">
+                Erro ao carregar formulários. A conexão pode estar instável.
+              </p>
+              <button
+                onClick={() => {
+                  formsQuery.refetch();
+                  workspacesQuery.refetch();
+                }}
+                className="px-5 py-2.5 rounded-xl bg-brand text-white font-body text-sm font-semibold hover:bg-brand/90 transition-all duration-200 active:scale-[0.97]"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
           {/* Template Gallery Toggle */}
-          {!isLoading && (
+          {!isLoading && !formsQuery.isError && (
             <div className="mb-6">
               <button
                 onClick={() => setShowTemplates(!showTemplates)}

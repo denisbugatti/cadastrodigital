@@ -13,6 +13,7 @@ import { ENV } from './_core/env';
 let _db: ReturnType<typeof drizzle> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
+// Resets the connection on failure to allow reconnection on next attempt.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -23,6 +24,14 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+/**
+ * Reset the database connection. Call this when a query fails
+ * so the next getDb() creates a fresh connection.
+ */
+export function resetDbConnection() {
+  _db = null;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -91,9 +100,14 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (err) {
+    console.error("[Database] getUserByOpenId failed, resetting connection:", err);
+    resetDbConnection();
+    throw err;
+  }
 }
 
 // ─── Forms ───

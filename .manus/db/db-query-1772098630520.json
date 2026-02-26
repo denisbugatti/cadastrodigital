@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, title, slug, status, JSON_LENGTH(questions) as qcount, userId FROM forms ORDER BY id DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, slug, status, JSON_LENGTH(questions) as qcount, userId FROM forms ORDER BY id DESC;",
+  "rows": [
+    {
+      "id": "60002",
+      "title": "Cadastro Online - One Innovation",
+      "slug": "one-innovation-cadastro",
+      "status": "published",
+      "qcount": "52",
+      "userId": "1"
+    },
+    {
+      "id": "30001",
+      "title": "Cadastro Online - One Innovation (cópia)",
+      "slug": "form_WsFT140H7t",
+      "status": "draft",
+      "qcount": "28",
+      "userId": "1"
+    },
+    {
+      "id": "1",
+      "title": "Cadastro Online - One Innovation",
+      "slug": "form_Oln-vt7v1e",
+      "status": "draft",
+      "qcount": "28",
+      "userId": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tslug\tstatus\tqcount\tuserId\n60002\tCadastro Online - One Innovation\tone-innovation-cadastro\tpublished\t52\t1\n30001\tCadastro Online - One Innovation (cópia)\tform_WsFT140H7t\tdraft\t28\t1\n1\tCadastro Online - One Innovation\tform_Oln-vt7v1e\tdraft\t28\t1\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

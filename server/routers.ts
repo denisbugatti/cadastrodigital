@@ -16,6 +16,23 @@ import { t } from "./_core/trpc";
  * If not authenticated, fall back to the owner user (OWNER_OPEN_ID).
  * This allows the app to work without login — all data belongs to the owner.
  */
+/**
+ * Helper: retry an async function with exponential backoff.
+ * Useful for transient database connection failures (TiDB cold starts).
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 200): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxRetries - 1) throw err;
+      const delay = baseDelayMs * Math.pow(2, attempt);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw new Error("withRetry: unreachable");
+}
+
 const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (ctx.user) {
     return next({ ctx: { ...ctx, user: ctx.user } });
@@ -27,23 +44,31 @@ const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner not configured" });
   }
 
-  let ownerUser = await db.getUserByOpenId(ownerOpenId);
-  if (!ownerUser) {
-    // Auto-create owner user
-    await db.upsertUser({
-      openId: ownerOpenId,
-      name: process.env.OWNER_NAME ?? "Owner",
-      role: "admin",
-      lastSignedIn: new Date(),
+  try {
+    let ownerUser = await withRetry(() => db.getUserByOpenId(ownerOpenId));
+    if (!ownerUser) {
+      // Auto-create owner user
+      await withRetry(() => db.upsertUser({
+        openId: ownerOpenId,
+        name: process.env.OWNER_NAME ?? "Owner",
+        role: "admin",
+        lastSignedIn: new Date(),
+      }));
+      ownerUser = await withRetry(() => db.getUserByOpenId(ownerOpenId));
+    }
+
+    if (!ownerUser) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not resolve owner user" });
+    }
+
+    return next({ ctx: { ...ctx, user: ownerUser } });
+  } catch (err) {
+    console.error("[ownerFallback] Failed after retries:", err);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro temporário de conexão. Tente novamente em alguns segundos.",
     });
-    ownerUser = await db.getUserByOpenId(ownerOpenId);
   }
-
-  if (!ownerUser) {
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not resolve owner user" });
-  }
-
-  return next({ ctx: { ...ctx, user: ownerUser } });
 });
 
 export const appRouter = router({
