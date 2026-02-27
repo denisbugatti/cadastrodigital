@@ -122,3 +122,12 @@
 - [x] Botão de editar em cada card de formulário
 - [x] Botão de duplicar em cada card de formulário
 - [x] Botão de excluir em cada card de formulário
+
+## Feature: Geração automática de PDF (Cadastro de Interesse) a partir das respostas
+- [x] Backend: instalar biblioteca PDF e criar endpoint de geração
+- [x] Backend: implementar layout do Cadastro de Interesse PF (editável)
+- [x] Backend: implementar layout do Cadastro de Interesse PJ (editável)
+- [x] Backend: mesclar arquivos anexados (CNH, comprovantes) no PDF final
+- [x] Backend: aplicar regras de negócio (PF casado = cônjuge como Proponente 2, PJ sem estado civil)
+- [x] Frontend: adicionar botão "Gerar Ficha" nas respostas do formulário (página /responses/:formId)
+- [x] Garantir que funciona em formulários duplicados (baseado em perguntas, não ID fixo)

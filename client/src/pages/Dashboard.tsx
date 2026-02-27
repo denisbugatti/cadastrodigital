@@ -1172,7 +1172,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
                 <Pencil size={15} className="mr-2" /> Editar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); toast.info("Respostas", { description: `${form.responseCount} respostas coletadas` }); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/responses/${form.id}`); }}>
                 <BarChart3 size={15} className="mr-2" /> Ver respostas
               </DropdownMenuItem>
               <DropdownMenuSeparator />
