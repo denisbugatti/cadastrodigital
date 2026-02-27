@@ -85,3 +85,8 @@
 
 ## Bug: TypeError in SortableQuestionItem (conditionalLogic.branches.length)
 - [x] Fix null access on question.conditionalLogic.branches when conditionalLogic is undefined
+
+## Visual: DatePickerInput white text colors
+- [x] Change calendar icon color to white
+- [x] Change input font color to white
+- [x] Change date display paragraph color to white

@@ -23,19 +23,19 @@ export function DatePickerInput({ value, onChange, error }: DatePickerInputProps
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
       <div className="flex items-center gap-3">
-        <Calendar size={20} className="text-brand shrink-0" />
+        <Calendar size={20} className="text-white shrink-0" />
         <input
           ref={inputRef}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full bg-transparent border-0 border-b-2 py-4 text-xl font-body text-foreground focus:outline-none transition-colors duration-300 ${
+          className={`w-full bg-transparent border-0 border-b-2 py-4 text-xl font-body text-white focus:outline-none transition-colors duration-300 ${
             error ? "border-red-400" : value ? "border-brand" : "border-border"
           }`}
         />
       </div>
       {displayDate && (
-        <motion.p className="mt-2 text-sm font-body text-brand" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{displayDate}</motion.p>
+        <motion.p className="mt-2 text-sm font-body text-white" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{displayDate}</motion.p>
       )}
       {error && <motion.p className="mt-3 text-sm font-body text-red-500" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{error}</motion.p>}
       <p className="mt-4 text-sm text-muted-foreground font-body">
