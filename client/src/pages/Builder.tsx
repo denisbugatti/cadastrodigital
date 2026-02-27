@@ -7,13 +7,13 @@
  * Features: Version history, export/import JSON
  */
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
   FileText, Save, Cloud, Download, Upload, History,
-  RotateCcw, Trash2, X, Clock, MoreVertical,
+  RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle,
 } from "lucide-react";
 import { useBuilder } from "@/hooks/useBuilder";
 import { BuilderSidebar } from "@/components/builder/BuilderSidebar";
@@ -25,6 +25,7 @@ import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { BuilderLivePreview } from "@/components/builder/BuilderLivePreview";
 import { WebhookPanel } from "@/components/builder/WebhookPanel";
 import { importFormFromJSON, type FormVersion } from "@/lib/formStorage";
+import { trpc } from "@/lib/trpc";
 
 import { toast } from "sonner";
 import {
@@ -82,6 +83,9 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     restoreFromVersion,
     removeVersion,
     exportForm,
+    publishForm,
+    unpublishForm,
+    dbFormId: currentDbFormId,
   } = useBuilder(initialForm, { dbFormId });
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
@@ -90,6 +94,47 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [versionHistory, setVersionHistory] = useState<FormVersion[]>([]);
   const [restoreTarget, setRestoreTarget] = useState<FormVersion | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+
+  // Check publish status from form data
+  const formStatusQuery = trpc.forms.getById.useQuery(
+    { id: currentDbFormId! },
+    { enabled: !!currentDbFormId, staleTime: 10000 }
+  );
+
+  useEffect(() => {
+    if (formStatusQuery.data) {
+      setIsPublished(formStatusQuery.data.status === "published");
+    }
+  }, [formStatusQuery.data]);
+
+  const handlePublish = useCallback(async () => {
+    setIsPublishing(true);
+    try {
+      if (isPublished) {
+        const success = await unpublishForm();
+        if (success) {
+          setIsPublished(false);
+          toast.success("Formulário despublicado", { description: "O formulário voltou para rascunho." });
+        } else {
+          toast.error("Erro ao despublicar", { description: "Salve o formulário primeiro." });
+        }
+      } else {
+        // Save first, then publish
+        saveNow();
+        const success = await publishForm();
+        if (success) {
+          setIsPublished(true);
+          toast.success("Formulário publicado!", { description: "Seu formulário está ativo e recebendo respostas." });
+        } else {
+          toast.error("Erro ao publicar", { description: "Salve o formulário primeiro e tente novamente." });
+        }
+      }
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [isPublished, publishForm, unpublishForm, saveNow]);
 
   // Handle back navigation with unsaved changes guard
   const handleBack = useCallback(() => {
@@ -296,10 +341,21 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
             Visualizar
           </button>
           <button
-            onClick={() => toast.info("Publicação", { description: "Use o botão Publish na interface de gerenciamento." })}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all brand-shadow"
+            onClick={handlePublish}
+            disabled={isPublishing}
+            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-body font-semibold transition-all ${
+              isPublished
+                ? "text-green-700 bg-green-100 hover:bg-green-200 border border-green-300"
+                : "text-white bg-brand hover:bg-brand-dark brand-shadow"
+            } ${isPublishing ? "opacity-60 cursor-not-allowed" : ""}`}
           >
-            Publicar
+            {isPublishing ? (
+              <><Loader2 size={15} className="animate-spin" /> {isPublished ? "Despublicando..." : "Publicando..."}</>
+            ) : isPublished ? (
+              <><CheckCircle size={15} /> Publicado</>
+            ) : (
+              "Publicar"
+            )}
           </button>
         </div>
       </header>

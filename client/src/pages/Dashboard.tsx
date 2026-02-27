@@ -1258,6 +1258,28 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
           {form.updatedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
         </span>
       </div>
+
+      {/* ─── Always-visible action buttons ─── */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+        <button
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-semibold text-brand bg-brand/5 hover:bg-brand/10 border border-brand/20 transition-all"
+        >
+          <Pencil size={13} /> Editar
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all"
+        >
+          <Copy size={13} /> Duplicar
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all"
+        >
+          <Trash2 size={13} /> Excluir
+        </button>
+      </div>
     </motion.div>
   );
 }

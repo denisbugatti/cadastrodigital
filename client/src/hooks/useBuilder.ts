@@ -521,5 +521,36 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
     exportForm,
     // Database info
     dbFormId,
+    // Publish
+    publishForm: useCallback(async () => {
+      if (!dbFormId) {
+        // Save first, then publish
+        saveToDb(form);
+        return false;
+      }
+      try {
+        await updateFormMutation.mutateAsync({
+          id: dbFormId,
+          status: "published",
+        });
+        return true;
+      } catch (err) {
+        console.error("Failed to publish form:", err);
+        return false;
+      }
+    }, [dbFormId, form, saveToDb, updateFormMutation]),
+    unpublishForm: useCallback(async () => {
+      if (!dbFormId) return false;
+      try {
+        await updateFormMutation.mutateAsync({
+          id: dbFormId,
+          status: "draft",
+        });
+        return true;
+      } catch (err) {
+        console.error("Failed to unpublish form:", err);
+        return false;
+      }
+    }, [dbFormId, updateFormMutation]),
   };
 }

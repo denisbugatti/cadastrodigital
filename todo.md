@@ -107,3 +107,18 @@
 
 ## Bug: ConditionalLogicEditor crash (logic.branches.find undefined)
 - [x] Fix null access on logic.branches in ConditionalLogicEditor component
+
+## Bug: Botão de publicar formulário com erro
+- [x] Investigar e corrigir o botão de publicar formulário
+- [x] Verificar se o salvamento de alterações está funcionando corretamente
+
+## Feature: Integrações de respostas
+- [x] Webhook genérico — conectar respostas via webhook customizável
+- [x] RD Station — integração para enviar respostas ao RD Station
+- [x] WhatsApp — enviar arquivo com respostas via WhatsApp
+- [x] Email — enviar respostas por email
+
+## Feature: Botões de ação em cada formulário
+- [x] Botão de editar em cada card de formulário
+- [x] Botão de duplicar em cada card de formulário
+- [x] Botão de excluir em cada card de formulário

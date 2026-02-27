@@ -171,6 +171,24 @@ export interface WebhookSettings {
   headers: { key: string; value: string }[];
   sendOnComplete: boolean;
   sendOnPartial: boolean;
+  // Integrations
+  integrations?: {
+    rdStation?: {
+      enabled: boolean;
+      apiToken: string;
+      conversionIdentifier: string;
+    };
+    whatsapp?: {
+      enabled: boolean;
+      phoneNumber: string;
+      message: string;
+    };
+    email?: {
+      enabled: boolean;
+      recipients: string;
+      subject: string;
+    };
+  };
 }
 
 // ─── Sharing / Embed Settings ───
@@ -473,6 +491,11 @@ export const defaultWebhookSettings: WebhookSettings = {
   headers: [],
   sendOnComplete: true,
   sendOnPartial: false,
+  integrations: {
+    rdStation: { enabled: false, apiToken: "", conversionIdentifier: "" },
+    whatsapp: { enabled: false, phoneNumber: "", message: "Nova resposta recebida no formulário!" },
+    email: { enabled: false, recipients: "", subject: "Nova resposta no formulário" },
+  },
 };
 
 export const defaultSharingSettings: SharingSettings = {
