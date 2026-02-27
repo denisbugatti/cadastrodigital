@@ -131,3 +131,6 @@
 - [x] Backend: aplicar regras de negócio (PF casado = cônjuge como Proponente 2, PJ sem estado civil)
 - [x] Frontend: adicionar botão "Gerar Ficha" nas respostas do formulário (página /responses/:formId)
 - [x] Garantir que funciona em formulários duplicados (baseado em perguntas, não ID fixo)
+
+## Bug: Uncontrolled-to-controlled input warning on /editor (recorrente)
+- [x] Fix undefined input values via deep merge in dbFormToBuilderForm (webhook integrations, design, sharing)

@@ -61,17 +61,62 @@ function ensureQuestionDefaults(q: any): any {
 
 function dbFormToBuilderForm(dbForm: any): BuilderForm {
   const rawQuestions = dbForm.questions ?? [];
+  const dbWebhook = dbForm.webhook ?? {};
+  const dbDesign = dbForm.design ?? {};
+  const dbSharing = dbForm.sharing ?? {};
+
+  // Deep merge webhook integrations so nested fields never become undefined
+  const mergedIntegrations = {
+    rdStation: {
+      ...defaultWebhookSettings.integrations!.rdStation!,
+      ...(dbWebhook.integrations?.rdStation ?? {}),
+    },
+    whatsapp: {
+      ...defaultWebhookSettings.integrations!.whatsapp!,
+      ...(dbWebhook.integrations?.whatsapp ?? {}),
+    },
+    email: {
+      ...defaultWebhookSettings.integrations!.email!,
+      ...(dbWebhook.integrations?.email ?? {}),
+    },
+  };
+
   return {
     id: String(dbForm.id),
     title: dbForm.title ?? "Sem título",
     description: dbForm.description ?? "",
     questions: rawQuestions.map(ensureQuestionDefaults),
-    design: { ...defaultDesignSettings, ...(dbForm.design ?? {}) },
-    webhook: { ...defaultWebhookSettings, ...(dbForm.webhook ?? {}) },
+    design: {
+      ...defaultDesignSettings,
+      ...dbDesign,
+      // Ensure all string fields have defaults
+      buttonColor: dbDesign.buttonColor ?? defaultDesignSettings.buttonColor,
+      buttonTextColor: dbDesign.buttonTextColor ?? defaultDesignSettings.buttonTextColor,
+      questionColor: dbDesign.questionColor ?? defaultDesignSettings.questionColor,
+      answerColor: dbDesign.answerColor ?? defaultDesignSettings.answerColor,
+      backgroundColor: dbDesign.backgroundColor ?? defaultDesignSettings.backgroundColor,
+      backgroundImage: dbDesign.backgroundImage ?? defaultDesignSettings.backgroundImage,
+      logoUrl: dbDesign.logoUrl ?? defaultDesignSettings.logoUrl,
+      ogTitle: dbDesign.ogTitle ?? defaultDesignSettings.ogTitle,
+      ogDescription: dbDesign.ogDescription ?? defaultDesignSettings.ogDescription,
+      ogImage: dbDesign.ogImage ?? defaultDesignSettings.ogImage,
+      fontFamily: dbDesign.fontFamily ?? defaultDesignSettings.fontFamily,
+    },
+    webhook: {
+      ...defaultWebhookSettings,
+      ...dbWebhook,
+      url: dbWebhook.url ?? defaultWebhookSettings.url,
+      headers: dbWebhook.headers ?? defaultWebhookSettings.headers,
+      integrations: mergedIntegrations,
+    },
     sharing: {
       ...defaultSharingSettings,
-      slug: dbForm.slug ?? "",
-      ...(dbForm.sharing ?? {}),
+      ...dbSharing,
+      slug: dbSharing.slug ?? dbForm.slug ?? "",
+      embedWidth: dbSharing.embedWidth ?? defaultSharingSettings.embedWidth,
+      embedHeight: dbSharing.embedHeight ?? defaultSharingSettings.embedHeight,
+      embedButtonText: dbSharing.embedButtonText ?? defaultSharingSettings.embedButtonText,
+      embedButtonColor: dbSharing.embedButtonColor ?? defaultSharingSettings.embedButtonColor,
     },
     workspaceId: dbForm.workspaceId ?? null,
     createdAt: dbForm.createdAt ? new Date(dbForm.createdAt).toISOString() : new Date().toISOString(),
