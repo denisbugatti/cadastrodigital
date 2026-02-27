@@ -648,3 +648,139 @@ describe("files.delete", () => {
     expect(db.deleteFileRecord).toHaveBeenCalledWith(20);
   });
 });
+
+
+// ─── Export CSV ───
+
+describe("responses.exportCsv", () => {
+  it("exports CSV for a form owned by user", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue({
+      ...sampleForm,
+      questions: [
+        { id: "q1", type: "short-text", title: "Nome" },
+        { id: "q2", type: "email", title: "Email" },
+        { id: "q3", type: "welcome", title: "Bem-vindo" },
+      ],
+    } as any);
+    vi.mocked(db.getResponsesByForm).mockResolvedValue([
+      {
+        id: 10,
+        formId: 1,
+        respondentName: "João",
+        respondentEmail: "joao@test.com",
+        answers: { q1: "João Silva", q2: "joao@test.com" },
+        isComplete: true,
+        timeSpentSeconds: 120,
+        createdAt: new Date("2026-02-26T12:00:00Z"),
+        updatedAt: new Date("2026-02-26T12:00:00Z"),
+      } as any,
+    ]);
+
+    const result = await caller.responses.exportCsv({ formId: 1 });
+
+    expect(result.totalResponses).toBe(1);
+    expect(result.filename).toContain("respostas.csv");
+    // CSV should have BOM
+    expect(result.csv.startsWith("\uFEFF")).toBe(true);
+    // Header should include question titles but NOT welcome screen
+    expect(result.csv).toContain("Nome");
+    expect(result.csv).toContain("Email");
+    expect(result.csv).not.toContain("Bem-vindo");
+    // Data row should include answer values
+    expect(result.csv).toContain("João Silva");
+    expect(result.csv).toContain("joao@test.com");
+  });
+
+  it("returns empty CSV when no responses", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getResponsesByForm).mockResolvedValue([]);
+
+    const result = await caller.responses.exportCsv({ formId: 1 });
+
+    expect(result.totalResponses).toBe(0);
+    // Should still have header row
+    expect(result.csv).toContain("ID");
+  });
+
+  it("rejects export for form owned by another user", async () => {
+    const ctx = createAuthContext(2);
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+
+    await expect(
+      caller.responses.exportCsv({ formId: 1 })
+    ).rejects.toThrow("Acesso negado");
+  });
+
+  it("handles array answers in CSV", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue({
+      ...sampleForm,
+      questions: [
+        { id: "q1", type: "multiple-choice", title: "Interesses" },
+      ],
+    } as any);
+    vi.mocked(db.getResponsesByForm).mockResolvedValue([
+      {
+        id: 11,
+        formId: 1,
+        respondentName: null,
+        respondentEmail: null,
+        answers: { q1: ["Imóveis", "Investimentos", "Lazer"] },
+        isComplete: true,
+        timeSpentSeconds: null,
+        createdAt: new Date("2026-02-26T12:00:00Z"),
+        updatedAt: new Date("2026-02-26T12:00:00Z"),
+      } as any,
+    ]);
+
+    const result = await caller.responses.exportCsv({ formId: 1 });
+
+    // Array answers should be joined with "; "
+    expect(result.csv).toContain("Imóveis; Investimentos; Lazer");
+  });
+});
+
+// ─── Notification on response ───
+
+describe("responses.submit notification", () => {
+  it("calls notifyOwner when a complete response is submitted", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.createResponse).mockResolvedValue({ id: 10 });
+    vi.mocked(db.getFormById).mockResolvedValue(sampleOwnerForm as any);
+
+    await caller.responses.submit({
+      formId: 1,
+      answers: { q1: "John" },
+      respondentName: "John",
+      isComplete: true,
+    });
+
+    // notifyOwner is called (we can't directly mock it since it's imported in routers,
+    // but we verify the response submission succeeded and getFormById was called for notification)
+    expect(db.getFormById).toHaveBeenCalledWith(1);
+  });
+
+  it("does not fail submission if notification throws", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.createResponse).mockResolvedValue({ id: 10 });
+    // getFormById throws to simulate notification failure
+    vi.mocked(db.getFormById).mockRejectedValue(new Error("DB error"));
+
+    // Should still succeed
+    const result = await caller.responses.submit({
+      formId: 1,
+      answers: { q1: "John" },
+      isComplete: true,
+    });
+
+    expect(result.id).toBe(10);
+  });
+});

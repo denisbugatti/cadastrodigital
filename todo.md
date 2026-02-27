@@ -93,3 +93,14 @@
 
 ## Bug: Uncontrolled-to-controlled input warning on /editor page
 - [x] Fix input values changing from undefined to defined (controlled/uncontrolled mismatch)
+
+## Feature: Exportar respostas para CSV/Excel
+- [x] Backend: criar procedimento tRPC para gerar CSV das respostas de um formulário
+- [x] Frontend: adicionar botão de exportar na aba de respostas do Dashboard
+
+## Feature: Notificação ao owner quando formulário for respondido
+- [x] Backend: chamar notifyOwner ao receber nova resposta completa
+
+## Feature: Duplicar formulário no Dashboard
+- [x] Backend: criar procedimento tRPC para duplicar formulário existente (já existia)
+- [x] Frontend: adicionar botão de duplicar no card do formulário no Dashboard (já existia)

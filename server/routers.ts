@@ -9,6 +9,7 @@ import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
 import { t } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
+import { notifyOwner } from "./_core/notification";
 
 /**
  * In-memory cache for the owner user.
@@ -202,7 +203,7 @@ export const appRouter = router({
         timeSpentSeconds: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        return db.createResponse({
+        const result = await db.createResponse({
           formId: input.formId,
           answers: input.answers,
           respondentName: input.respondentName ?? null,
@@ -212,6 +213,24 @@ export const appRouter = router({
           ipAddress: (ctx.req.headers["x-forwarded-for"] as string) ?? ctx.req.ip ?? null,
           userAgent: ctx.req.headers["user-agent"] ?? null,
         });
+
+        // Notify owner when a complete response is submitted
+        if (input.isComplete !== false) {
+          try {
+            const form = await db.getFormById(input.formId);
+            const formTitle = form?.title ?? "Formulário";
+            const respondent = input.respondentName || input.respondentEmail || "Anônimo";
+            await notifyOwner({
+              title: `Nova resposta: ${formTitle}`,
+              content: `O formulário "${formTitle}" recebeu uma nova resposta de ${respondent}.`,
+            });
+          } catch (err) {
+            // Don't fail the submission if notification fails
+            console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
+          }
+        }
+
+        return result;
       }),
 
     listByForm: ownerFallbackProcedure
@@ -241,7 +260,96 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
         await db.updateResponse(id, data);
+
+        // Notify owner when a partial response becomes complete
+        if (input.isComplete === true) {
+          try {
+            const response = await db.getResponseById(id);
+            if (response) {
+              const form = await db.getFormById(response.formId);
+              const formTitle = form?.title ?? "Formulário";
+              const respondent = response.respondentName || response.respondentEmail || "Anônimo";
+              await notifyOwner({
+                title: `Nova resposta: ${formTitle}`,
+                content: `O formulário "${formTitle}" recebeu uma nova resposta completa de ${respondent}.`,
+              });
+            }
+          } catch (err) {
+            console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
+          }
+        }
+
         return { success: true };
+      }),
+
+    exportCsv: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        // Verify ownership
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        const responses = await db.getResponsesByForm(input.formId);
+        const questions: any[] = form.questions ?? [];
+
+        // Build CSV header: fixed columns + one column per question
+        const fixedHeaders = ["ID", "Nome", "Email", "Completo", "Tempo (s)", "Data"];
+        const questionHeaders = questions
+          .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
+          .map((q: any) => q.title || q.id);
+
+        const questionIds = questions
+          .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
+          .map((q: any) => q.id);
+
+        // Escape CSV value
+        const esc = (val: any): string => {
+          if (val === null || val === undefined) return "";
+          const str = String(val);
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        };
+
+        // Format answer value for CSV
+        const formatAnswer = (answer: any): string => {
+          if (answer === null || answer === undefined) return "";
+          if (Array.isArray(answer)) return answer.join("; ");
+          if (typeof answer === "object") {
+            // Handle address objects, matrix responses, etc.
+            return Object.entries(answer)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join("; ");
+          }
+          return String(answer);
+        };
+
+        const rows: string[] = [];
+        // BOM for Excel UTF-8 compatibility
+        rows.push([...fixedHeaders, ...questionHeaders].map(esc).join(","));
+
+        for (const resp of responses) {
+          const answers = (resp.answers ?? {}) as Record<string, any>;
+          const fixedValues = [
+            resp.id,
+            resp.respondentName ?? "",
+            resp.respondentEmail ?? "",
+            resp.isComplete ? "Sim" : "Não",
+            resp.timeSpentSeconds ?? "",
+            resp.createdAt ? new Date(resp.createdAt).toLocaleString("pt-BR") : "",
+          ];
+          const answerValues = questionIds.map((qId: string) => formatAnswer(answers[qId]));
+          rows.push([...fixedValues, ...answerValues].map(esc).join(","));
+        }
+
+        return {
+          csv: "\uFEFF" + rows.join("\n"),
+          filename: `${form.title.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}_respostas.csv`,
+          totalResponses: responses.length,
+        };
       }),
   }),
 

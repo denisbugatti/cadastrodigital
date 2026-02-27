@@ -329,6 +329,28 @@ export default function Dashboard() {
     }
   }, [utils]);
 
+  const handleExportCsv = useCallback(async (form: DashboardForm) => {
+    try {
+      const result = await utils.responses.exportCsv.fetch({ formId: form.id });
+      if (result.totalResponses === 0) {
+        toast.info("Sem respostas", { description: "Este formulário ainda não tem respostas para exportar." });
+        return;
+      }
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Respostas exportadas!", { description: `${result.totalResponses} respostas baixadas como CSV.` });
+    } catch (err) {
+      toast.error("Erro ao exportar respostas", { description: "Falha ao gerar o arquivo CSV." });
+    }
+  }, [utils]);
+
   const filteredAndSortedForms = useMemo(() => {
     let result = [...forms];
 
@@ -921,6 +943,7 @@ export default function Dashboard() {
                     onRename={handleRenameForm}
                     onMoveToFolder={handleMoveToFolder}
                     onExport={handleExportForm}
+                    onExportCsv={handleExportCsv}
                   />
                 ))}
               </AnimatePresence>
@@ -1043,9 +1066,10 @@ interface FormCardProps {
   onRename: (formId: number, newTitle: string) => void;
   onMoveToFolder: (formId: number, folderId: number | undefined) => void;
   onExport: (form: DashboardForm) => void;
+  onExportCsv: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1177,6 +1201,9 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
 
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
                 <Share2 size={15} className="mr-2" /> Compartilhar link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExportCsv(form); }}>
+                <BarChart3 size={15} className="mr-2" /> Exportar respostas (CSV)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
                 <Download size={15} className="mr-2" /> Exportar JSON
