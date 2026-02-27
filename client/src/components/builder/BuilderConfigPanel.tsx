@@ -544,7 +544,7 @@ function ConditionalLogicEditor({
   onUpdate: (id: string, updates: Partial<BuilderQuestion>) => void;
   targets: { id: string; label: string; type: string }[];
 }) {
-  const logic = question.conditionalLogic;
+  const logic = question.conditionalLogic ?? { enabled: false, branches: [] };
   const isYesNo = question.type === "yes-no";
 
   const choices = isYesNo
@@ -570,7 +570,7 @@ function ConditionalLogicEditor({
   };
 
   const updateBranch = (choiceId: string, goToQuestionId: string) => {
-    const newBranches = logic.branches.map((b) =>
+    const newBranches = (logic.branches ?? []).map((b) =>
       b.choiceId === choiceId ? { ...b, goToQuestionId } : b
     );
     if (!newBranches.find((b) => b.choiceId === choiceId)) {
@@ -602,7 +602,7 @@ function ConditionalLogicEditor({
           </p>
 
           {choices.map((choice) => {
-            const branch = logic.branches.find((b) => b.choiceId === choice.id);
+            const branch = (logic.branches ?? []).find((b) => b.choiceId === choice.id);
             const currentTarget = branch?.goToQuestionId || "next";
 
             return (

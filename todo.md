@@ -104,3 +104,6 @@
 ## Feature: Duplicar formulário no Dashboard
 - [x] Backend: criar procedimento tRPC para duplicar formulário existente (já existia)
 - [x] Frontend: adicionar botão de duplicar no card do formulário no Dashboard (já existia)
+
+## Bug: ConditionalLogicEditor crash (logic.branches.find undefined)
+- [x] Fix null access on logic.branches in ConditionalLogicEditor component
