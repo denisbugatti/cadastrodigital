@@ -118,7 +118,7 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
               </span>
               <input
                 type="text"
-                value={sharing.slug}
+                value={sharing.slug ?? ""}
                 onChange={(e) =>
                   onUpdate({
                     slug: e.target.value
@@ -231,7 +231,7 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
                 <label className="text-sm font-body text-foreground w-16">Largura</label>
                 <input
                   type="text"
-                  value={sharing.embedWidth}
+                  value={sharing.embedWidth ?? ""}
                   onChange={(e) => onUpdate({ embedWidth: e.target.value })}
                   className="flex-1 px-3 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                 />
@@ -241,7 +241,7 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
                 <label className="text-sm font-body text-foreground w-16">Altura</label>
                 <input
                   type="text"
-                  value={sharing.embedHeight}
+                  value={sharing.embedHeight ?? ""}
                   onChange={(e) => onUpdate({ embedHeight: e.target.value })}
                   className="flex-1 px-3 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                 />
@@ -256,7 +256,7 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
                 <label className="text-sm font-body font-medium text-foreground mb-1.5 block">Texto</label>
                 <input
                   type="text"
-                  value={sharing.embedButtonText}
+                  value={sharing.embedButtonText ?? ""}
                   onChange={(e) => onUpdate({ embedButtonText: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                 />
@@ -266,13 +266,13 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={sharing.embedButtonColor}
+                    value={sharing.embedButtonColor ?? "#3B82F6"}
                     onChange={(e) => onUpdate({ embedButtonColor: e.target.value })}
                     className="w-10 h-10 rounded-xl border border-border cursor-pointer"
                   />
                   <input
                     type="text"
-                    value={sharing.embedButtonColor}
+                    value={sharing.embedButtonColor ?? ""}
                     onChange={(e) => onUpdate({ embedButtonColor: e.target.value })}
                     className="flex-1 px-3 py-2.5 rounded-xl text-sm font-mono bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                   />

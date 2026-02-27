@@ -90,3 +90,6 @@
 - [x] Change calendar icon color to white
 - [x] Change input font color to white
 - [x] Change date display paragraph color to white
+
+## Bug: Uncontrolled-to-controlled input warning on /editor page
+- [x] Fix input values changing from undefined to defined (controlled/uncontrolled mismatch)

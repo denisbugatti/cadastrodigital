@@ -151,7 +151,7 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
               </label>
               <input
                 type="text"
-                value={webhook.url}
+                value={webhook.url ?? ""}
                 onChange={(e) => onUpdate({ url: e.target.value })}
                 placeholder="https://seu-servidor.com/webhook"
                 className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all font-mono"

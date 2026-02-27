@@ -148,7 +148,7 @@ export function BuilderConfigPanel({
               <FieldGroup label="Título da pergunta" icon={<Type size={14} />}>
                 <input
                   type="text"
-                  value={question.title}
+                  value={question.title ?? ""}
                   onChange={(e) => onUpdate(question.id, { title: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   placeholder="Digite o título..."
@@ -159,7 +159,7 @@ export function BuilderConfigPanel({
               <FieldGroup label="Subtítulo (opcional)" icon={<AlignLeft size={14} />}>
                 <input
                   type="text"
-                  value={question.subtitle}
+                  value={question.subtitle ?? ""}
                   onChange={(e) => onUpdate(question.id, { subtitle: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   placeholder="Texto auxiliar..."
@@ -171,7 +171,7 @@ export function BuilderConfigPanel({
                 <FieldGroup label="Placeholder" icon={<Type size={14} />}>
                   <input
                     type="text"
-                    value={question.placeholder}
+                    value={question.placeholder ?? ""}
                     onChange={(e) => onUpdate(question.id, { placeholder: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                     placeholder="Texto do placeholder..."
@@ -200,7 +200,7 @@ export function BuilderConfigPanel({
                   <FieldGroup label="Texto do botão" icon={<MousePointerClick size={14} />}>
                     <input
                       type="text"
-                      value={question.buttonText}
+                      value={question.buttonText ?? ""}
                       onChange={(e) => onUpdate(question.id, { buttonText: e.target.value })}
                       className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                       placeholder={isWelcome ? "Começar" : "Enviar outra resposta"}
@@ -224,7 +224,7 @@ export function BuilderConfigPanel({
                     <FieldGroup label="Redirecionar após envio" icon={<ExternalLink size={14} />}>
                       <input
                         type="url"
-                        value={question.redirectUrl}
+                        value={question.redirectUrl ?? ""}
                         onChange={(e) => onUpdate(question.id, { redirectUrl: e.target.value })}
                         className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                         placeholder="https://seusite.com/obrigado"
@@ -345,7 +345,7 @@ export function BuilderConfigPanel({
               {question.type === "legal" && (
                 <FieldGroup label="Texto dos termos" icon={<AlignLeft size={14} />}>
                   <textarea
-                    value={question.legalText}
+                    value={question.legalText ?? ""}
                     onChange={(e) => onUpdate(question.id, { legalText: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all resize-none h-28"
                     placeholder="Texto dos termos de uso..."
@@ -368,7 +368,7 @@ export function BuilderConfigPanel({
               <FieldGroup label="Imagem ou vídeo" icon={<ImagePlus size={14} />}>
                 <input
                   type="url"
-                  value={question.imageUrl}
+                  value={question.imageUrl ?? ""}
                   onChange={(e) => onUpdate(question.id, { imageUrl: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   placeholder="Cole a URL da imagem..."
@@ -473,7 +473,7 @@ export function BuilderConfigPanel({
               <FieldGroup label="Motion Icon (animado)" icon={<RotateCcw size={14} />}>
                 <input
                   type="url"
-                  value={question.motionIconUrl}
+                  value={question.motionIconUrl ?? ""}
                   onChange={(e) => onUpdate(question.id, { motionIconUrl: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                   placeholder="URL do ícone animado..."

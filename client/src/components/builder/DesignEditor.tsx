@@ -289,7 +289,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               </p>
               <input
                 type="text"
-                value={design.logoUrl}
+                value={design.logoUrl ?? ""}
                 onChange={(e) => onUpdate({ logoUrl: e.target.value })}
                 placeholder="URL da imagem do logo..."
                 className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
@@ -318,7 +318,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               </p>
               <input
                 type="text"
-                value={design.backgroundImage}
+                value={design.backgroundImage ?? ""}
                 onChange={(e) => onUpdate({ backgroundImage: e.target.value })}
                 placeholder="URL da imagem de fundo..."
                 className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
@@ -389,7 +389,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                   </label>
                   <input
                     type="text"
-                    value={design.ogTitle}
+                    value={design.ogTitle ?? ""}
                     onChange={(e) => onUpdate({ ogTitle: e.target.value })}
                     placeholder="Título exibido ao compartilhar..."
                     className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
@@ -400,7 +400,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                     Descrição da página
                   </label>
                   <textarea
-                    value={design.ogDescription}
+                    value={design.ogDescription ?? ""}
                     onChange={(e) => onUpdate({ ogDescription: e.target.value })}
                     placeholder="Descrição exibida ao compartilhar..."
                     rows={2}
@@ -413,7 +413,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                   </label>
                   <input
                     type="text"
-                    value={design.ogImage}
+                    value={design.ogImage ?? ""}
                     onChange={(e) => onUpdate({ ogImage: e.target.value })}
                     placeholder="URL da imagem de capa..."
                     className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"

@@ -18,12 +18,54 @@ const preBuiltForms: Record<string, () => BuilderForm> = {
   one_innovation_form: createOneInnovationForm,
 };
 
+/**
+ * Default values for every BuilderQuestion field.
+ * When loading from DB, any missing field gets this default
+ * so React inputs always start as controlled (never undefined).
+ */
+const questionDefaults = {
+  title: "",
+  subtitle: "",
+  placeholder: "",
+  required: false,
+  choices: [],
+  maxRating: 5,
+  ratingLabels: { low: "Ruim", high: "Excelente" },
+  npsLabels: { low: "Nada provável", mid: "Neutro", high: "Muito provável" },
+  matrix: { rows: ["Item 1", "Item 2"], columns: ["Ruim", "Regular", "Bom", "Ótimo"] },
+  rankItems: ["Item 1", "Item 2", "Item 3"],
+  validation: {},
+  conditionalLogic: { enabled: false, branches: [], defaultGoTo: "next" },
+  image: "",
+  imageUrl: "",
+  iconName: "",
+  motionIconUrl: "",
+  buttonText: "Continuar",
+  showButton: true,
+  redirectUrl: "",
+  legalText: "",
+  addressFields: {
+    cep: true,
+    street: true,
+    number: true,
+    complement: true,
+    neighborhood: true,
+    city: true,
+    state: true,
+  },
+};
+
+function ensureQuestionDefaults(q: any): any {
+  return { ...questionDefaults, ...q };
+}
+
 function dbFormToBuilderForm(dbForm: any): BuilderForm {
+  const rawQuestions = dbForm.questions ?? [];
   return {
     id: String(dbForm.id),
     title: dbForm.title ?? "Sem título",
     description: dbForm.description ?? "",
-    questions: dbForm.questions ?? [],
+    questions: rawQuestions.map(ensureQuestionDefaults),
     design: { ...defaultDesignSettings, ...(dbForm.design ?? {}) },
     webhook: { ...defaultWebhookSettings, ...(dbForm.webhook ?? {}) },
     sharing: {
