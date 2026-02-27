@@ -263,17 +263,18 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
     (questionId: string) => {
       setForm((prev) => {
         const questions = prev.questions.filter((q) => q.id !== questionId);
+        const defaultCL = { enabled: false, branches: [], defaultGoTo: "next" };
         const cleaned = questions.map((q) => ({
           ...q,
           conditionalLogic: {
-            ...q.conditionalLogic,
-            branches: q.conditionalLogic.branches.filter(
+            ...(q.conditionalLogic ?? defaultCL),
+            branches: ((q.conditionalLogic ?? defaultCL).branches ?? []).filter(
               (b) => b.goToQuestionId !== questionId
             ),
             defaultGoTo:
-              q.conditionalLogic.defaultGoTo === questionId
+              (q.conditionalLogic ?? defaultCL).defaultGoTo === questionId
                 ? "next"
-                : q.conditionalLogic.defaultGoTo,
+                : (q.conditionalLogic ?? defaultCL).defaultGoTo,
           },
         }));
         return { ...prev, questions: cleaned, updatedAt: new Date().toISOString() };
@@ -439,8 +440,8 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
             ...q,
             choices: q.choices.filter((c) => c.id !== choiceId),
             conditionalLogic: {
-              ...q.conditionalLogic,
-              branches: q.conditionalLogic.branches.filter(
+              ...(q.conditionalLogic ?? { enabled: false, branches: [], defaultGoTo: "next" }),
+              branches: ((q.conditionalLogic?.branches) ?? []).filter(
                 (b) => b.choiceId !== choiceId
               ),
             },

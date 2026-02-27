@@ -82,3 +82,6 @@
 - [x] Melhorar resiliência da conexão com banco de dados
 - [x] Adicionar melhor tratamento de erros no frontend com retry automático
 - [x] Garantir que formulários carreguem consistentemente em todos os dispositivos
+
+## Bug: TypeError in SortableQuestionItem (conditionalLogic.branches.length)
+- [x] Fix null access on question.conditionalLogic.branches when conditionalLogic is undefined

@@ -77,16 +77,16 @@ function convertQuestion(bq: BuilderQuestion): Question {
 
   // Handle conditional logic
   if (bq.conditionalLogic?.enabled) {
-    const hasBranches = bq.conditionalLogic.branches.length > 0;
-    const hasDefaultGoTo = bq.conditionalLogic.defaultGoTo && bq.conditionalLogic.defaultGoTo !== "next";
+    const hasBranches = (bq.conditionalLogic?.branches?.length ?? 0) > 0;
+    const hasDefaultGoTo = bq.conditionalLogic?.defaultGoTo && bq.conditionalLogic.defaultGoTo !== "next";
     if (hasBranches || hasDefaultGoTo) {
       question.conditionalLogic = {
         enabled: true,
-        rules: bq.conditionalLogic.branches.map((b) => ({
+        rules: (bq.conditionalLogic?.branches ?? []).map((b) => ({
           choiceId: b.choiceId,
           goToQuestionId: b.goToQuestionId,
         })),
-        defaultGoTo: hasDefaultGoTo ? bq.conditionalLogic.defaultGoTo : undefined,
+        defaultGoTo: hasDefaultGoTo ? bq.conditionalLogic?.defaultGoTo : undefined,
       };
     }
   }

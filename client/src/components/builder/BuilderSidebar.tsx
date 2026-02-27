@@ -114,18 +114,18 @@ function SortableQuestionItem({
 
   // Check if this question has active conditional logic
   const hasBranches = question.conditionalLogic?.enabled &&
-    question.conditionalLogic.branches.length > 0;
+    (question.conditionalLogic?.branches?.length ?? 0) > 0;
   const hasDefaultGoTo = question.conditionalLogic?.enabled &&
-    question.conditionalLogic.defaultGoTo &&
-    question.conditionalLogic.defaultGoTo !== "next";
+    question.conditionalLogic?.defaultGoTo &&
+    question.conditionalLogic?.defaultGoTo !== "next";
   const hasConditional = hasBranches || hasDefaultGoTo;
 
   // Build branch info for tooltip
   const branchInfo = hasBranches
-    ? question.conditionalLogic.branches
+    ? (question.conditionalLogic?.branches ?? [])
         .filter(b => b.goToQuestionId && b.goToQuestionId !== "next")
         .map(branch => {
-          const choice = question.choices.find(c => c.id === branch.choiceId);
+          const choice = question.choices?.find(c => c.id === branch.choiceId);
           const targetQ = allQuestions.find(q => q.id === branch.goToQuestionId);
           return {
             choiceLabel: choice?.label || "Opção",
@@ -251,12 +251,12 @@ function SortableQuestionItem({
                   </div>
                 </div>
               ))}
-              {question.conditionalLogic.defaultGoTo && question.conditionalLogic.defaultGoTo !== "next" && (
+              {question.conditionalLogic?.defaultGoTo && question.conditionalLogic?.defaultGoTo !== "next" && (
                 <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
                   <span className="text-[10px] font-body text-muted-foreground italic">Padrão</span>
                   <ArrowRight size={9} className="text-muted-foreground/50 shrink-0" />
                   <span className="text-[10px] font-body text-muted-foreground truncate">
-                    {allQuestions.find(q => q.id === question.conditionalLogic.defaultGoTo)?.title || "Próxima"}
+                    {allQuestions.find(q => q.id === question.conditionalLogic?.defaultGoTo)?.title || "Próxima"}
                   </span>
                 </div>
               )}

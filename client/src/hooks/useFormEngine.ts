@@ -180,7 +180,7 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     const value = response?.value;
 
     // Check branch rules first
-    if (q.conditionalLogic.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
+    if (q.conditionalLogic?.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
       let matchedRule;
 
       if (typeof value === "string") {
@@ -205,9 +205,9 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     }
 
     // Check defaultGoTo (for non-choice questions like currency/text with skip logic)
-    if (q.conditionalLogic.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
+    if (q.conditionalLogic?.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
       const targetIdx = questions.findIndex(
-        (q2) => q2.id === q.conditionalLogic!.defaultGoTo
+        (q2) => q2.id === q.conditionalLogic?.defaultGoTo
       );
       if (targetIdx !== -1) {
         return targetIdx;
@@ -238,7 +238,7 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
 
       if (q?.conditionalLogic?.enabled) {
         // Check branch rules first
-        if (q.conditionalLogic.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
+        if (q.conditionalLogic?.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
           let matchedRule;
           if (typeof value === "string") {
             matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === value);
@@ -255,8 +255,8 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
         }
 
         // Check defaultGoTo (for non-choice questions like currency/text with skip logic)
-        if (nextIdx === currentIndex + 1 && q.conditionalLogic.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
-          const targetIdx = questions.findIndex((q2) => q2.id === q.conditionalLogic!.defaultGoTo);
+        if (nextIdx === currentIndex + 1 && q.conditionalLogic?.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
+          const targetIdx = questions.findIndex((q2) => q2.id === q.conditionalLogic?.defaultGoTo);
           if (targetIdx !== -1) {
             nextIdx = targetIdx;
           }
