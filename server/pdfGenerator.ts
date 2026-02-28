@@ -227,7 +227,7 @@ function drawCheckbox(page: PDFPage, y: number, label: string, checked: boolean,
     color: COLORS.white,
   });
   if (checked) {
-    page.drawText("✓", { x: x + 1.5, y: y - 9, size: 8, font, color: COLORS.black });
+    page.drawText("X", { x: x + 1.5, y: y - 9, size: 8, font, color: COLORS.black });
   }
   page.drawText(label, { x: x + 14, y: y - 8, size: 7.5, font, color: COLORS.black });
   return y - 16;

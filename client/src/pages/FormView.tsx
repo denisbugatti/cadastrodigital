@@ -48,6 +48,10 @@ function dbFormToFormData(dbForm: any): FormData {
         choiceId: r.choiceId,
         goToQuestionId: r.goToQuestionId,
       })),
+      branches: (q.conditionalLogic.branches ?? q.conditionalLogic.rules ?? []).map((r: any) => ({
+        choiceId: r.choiceId,
+        goToQuestionId: r.goToQuestionId,
+      })),
       defaultGoTo: q.conditionalLogic.defaultGoTo,
     } : undefined,
   }));

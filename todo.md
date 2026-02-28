@@ -175,3 +175,13 @@
 - [x] Esconder splash screen nas rotas de preenchimento de formulário (/f/, /form/, /form-preview)
 - [x] Aumentar logo da One Innovation no mobile (h-20 no mobile, h-32 no loading)
 - [x] Formulário de preenchimento: tela fixa (html fixed, form-viewport-lock, overflow-hidden), apenas perguntas rolam internamente
+
+## Bug: Editor não salva as alterações feitas (lógica condicional)
+- [x] Investigar fluxo de salvamento da lógica condicional (conditionalLogic)
+- [x] Causa raiz: BuilderConfigPanel escrevia em `branches`, FormEngine lia de `rules` — campos desconectados
+- [x] Fix: FormEngine agora usa `branches` com fallback para `rules` (backwards compatible)
+- [x] Fix: builderToForm e FormView agora exportam ambos `branches` e `rules`
+- [x] Fix: ensureQuestionDefaults faz deep-merge do conditionalLogic (branches ← rules)
+- [x] Fix: updateQuestion sincroniza `rules` automaticamente quando `branches` é atualizado
+- [x] Migração: dados existentes no DB sincronizados (branches ↔ rules)
+- [x] 45 testes passando, sem erros TypeScript

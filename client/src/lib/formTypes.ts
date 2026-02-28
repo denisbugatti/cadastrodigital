@@ -85,7 +85,11 @@ export interface Question {
   // Conditional logic
   conditionalLogic?: {
     enabled: boolean;
-    rules: Array<{
+    rules?: Array<{
+      choiceId: string;
+      goToQuestionId: string;
+    }>;
+    branches?: Array<{
       choiceId: string;
       goToQuestionId: string;
     }>;

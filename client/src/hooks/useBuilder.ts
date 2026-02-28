@@ -337,6 +337,18 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
   // Update a question's properties
   const updateQuestion = useCallback(
     (questionId: string, updates: Partial<BuilderQuestion>) => {
+      // If conditionalLogic is being updated, sync branches to rules for backwards compatibility
+      if (updates.conditionalLogic) {
+        const cl = updates.conditionalLogic;
+        updates = {
+          ...updates,
+          conditionalLogic: {
+            ...cl,
+            // Keep rules in sync with branches for the form engine
+            ...(cl.branches ? { rules: cl.branches } : {}),
+          } as any,
+        };
+      }
       setForm((prev) => ({
         ...prev,
         questions: prev.questions.map((q) =>

@@ -80,12 +80,14 @@ function convertQuestion(bq: BuilderQuestion): Question {
     const hasBranches = (bq.conditionalLogic?.branches?.length ?? 0) > 0;
     const hasDefaultGoTo = bq.conditionalLogic?.defaultGoTo && bq.conditionalLogic.defaultGoTo !== "next";
     if (hasBranches || hasDefaultGoTo) {
+      const mappedBranches = (bq.conditionalLogic?.branches ?? []).map((b) => ({
+        choiceId: b.choiceId,
+        goToQuestionId: b.goToQuestionId,
+      }));
       question.conditionalLogic = {
         enabled: true,
-        rules: (bq.conditionalLogic?.branches ?? []).map((b) => ({
-          choiceId: b.choiceId,
-          goToQuestionId: b.goToQuestionId,
-        })),
+        rules: mappedBranches,
+        branches: mappedBranches,
         defaultGoTo: hasDefaultGoTo ? bq.conditionalLogic?.defaultGoTo : undefined,
       };
     }

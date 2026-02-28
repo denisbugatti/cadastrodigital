@@ -56,7 +56,17 @@ const questionDefaults = {
 };
 
 function ensureQuestionDefaults(q: any): any {
-  return { ...questionDefaults, ...q };
+  const merged = { ...questionDefaults, ...q };
+  // Deep-merge conditionalLogic: ensure branches is populated from rules if missing
+  if (q.conditionalLogic) {
+    const cl = q.conditionalLogic;
+    merged.conditionalLogic = {
+      enabled: cl.enabled ?? false,
+      branches: cl.branches?.length ? cl.branches : (cl.rules ?? []),
+      defaultGoTo: cl.defaultGoTo ?? "next",
+    };
+  }
+  return merged;
 }
 
 function dbFormToBuilderForm(dbForm: any): BuilderForm {

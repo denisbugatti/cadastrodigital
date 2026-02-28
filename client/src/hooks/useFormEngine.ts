@@ -179,24 +179,25 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     const response = responses.get(q.id);
     const value = response?.value;
 
-    // Check branch rules first
-    if (q.conditionalLogic?.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
-      let matchedRule;
+    // Check branches (canonical field) with fallback to rules (legacy field)
+    const branchList = (q.conditionalLogic?.branches?.length ? q.conditionalLogic.branches : q.conditionalLogic?.rules) ?? [];
+    if (branchList.length > 0 && value !== null && value !== undefined) {
+      let matchedBranch;
 
       if (typeof value === "string") {
-        matchedRule = q.conditionalLogic.rules.find(
-          (r) => r.choiceId === value
+        matchedBranch = branchList.find(
+          (b: any) => b.choiceId === value
         );
       } else if (typeof value === "boolean") {
         const boolId = value ? "yes" : "no";
-        matchedRule = q.conditionalLogic.rules.find(
-          (r) => r.choiceId === boolId
+        matchedBranch = branchList.find(
+          (b: any) => b.choiceId === boolId
         );
       }
 
-      if (matchedRule && matchedRule.goToQuestionId !== "next") {
+      if (matchedBranch && matchedBranch.goToQuestionId !== "next") {
         const targetIdx = questions.findIndex(
-          (q2) => q2.id === matchedRule.goToQuestionId
+          (q2) => q2.id === matchedBranch.goToQuestionId
         );
         if (targetIdx !== -1) {
           return targetIdx;
@@ -237,17 +238,18 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
       let nextIdx = currentIndex + 1;
 
       if (q?.conditionalLogic?.enabled) {
-        // Check branch rules first
-        if (q.conditionalLogic?.rules && q.conditionalLogic.rules.length > 0 && value !== null && value !== undefined) {
-          let matchedRule;
+        // Check branches (canonical field) with fallback to rules (legacy field)
+        const branchList = (q.conditionalLogic?.branches?.length ? q.conditionalLogic.branches : q.conditionalLogic?.rules) ?? [];
+        if (branchList.length > 0 && value !== null && value !== undefined) {
+          let matchedBranch;
           if (typeof value === "string") {
-            matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === value);
+            matchedBranch = branchList.find((b: any) => b.choiceId === value);
           } else if (typeof value === "boolean") {
             const boolId = value ? "yes" : "no";
-            matchedRule = q.conditionalLogic.rules.find((r) => r.choiceId === boolId);
+            matchedBranch = branchList.find((b: any) => b.choiceId === boolId);
           }
-          if (matchedRule && matchedRule.goToQuestionId !== "next") {
-            const targetIdx = questions.findIndex((q2) => q2.id === matchedRule.goToQuestionId);
+          if (matchedBranch && matchedBranch.goToQuestionId !== "next") {
+            const targetIdx = questions.findIndex((q2) => q2.id === matchedBranch.goToQuestionId);
             if (targetIdx !== -1) {
               nextIdx = targetIdx;
             }
