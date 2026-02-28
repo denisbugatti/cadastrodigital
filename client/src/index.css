@@ -93,6 +93,23 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Ensure full viewport chain: html → body → #root */
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    /* Safe area insets for notch devices */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* Prevent iOS bounce/overscroll */
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
@@ -100,11 +117,13 @@
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Safe area insets for notch devices */
-  html {
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* Form-filling pages: lock the viewport completely, only inner content scrolls */
+  body:has(.form-viewport-lock) {
+    overflow: hidden;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

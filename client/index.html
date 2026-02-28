@@ -87,7 +87,7 @@
   </head>
 
   <body>
-    <!-- Splash Screen -->
+    <!-- Splash Screen: only shown on web app routes, not on form-filling (/f/) -->
     <div id="splash-screen">
       <img
         class="splash-logo"
@@ -109,9 +109,16 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // Hide splash screen once React has mounted
+      // Skip splash entirely on form-filling routes (/f/)
       (function() {
         var splash = document.getElementById('splash-screen');
         if (!splash) return;
+
+        var path = window.location.pathname;
+        if (path.startsWith('/f/') || path.startsWith('/form/') || path.startsWith('/form-preview')) {
+          splash.remove();
+          return;
+        }
 
         var observer = new MutationObserver(function(mutations) {
           var root = document.getElementById('root');

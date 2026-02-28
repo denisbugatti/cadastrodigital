@@ -260,7 +260,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <motion.img
             src={logoUrl}
             alt="Logo"
-            className="h-32 object-contain"
+            className="h-32 sm:h-32 object-contain"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -318,7 +318,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-16 lg:h-28 object-contain"
+            className="h-20 sm:h-16 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}

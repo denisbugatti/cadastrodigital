@@ -75,7 +75,7 @@ export default function Responses() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-screen bg-background flex items-center justify-center overflow-y-auto">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="animate-spin text-brand" size={32} />
           <p className="text-muted-foreground font-body">Carregando respostas...</p>
@@ -86,7 +86,7 @@ export default function Responses() {
 
   if (!form) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-screen bg-background flex items-center justify-center overflow-y-auto">
         <div className="text-center">
           <p className="text-lg text-muted-foreground font-body mb-4">Formulário não encontrado</p>
           <Link href="/">
@@ -102,7 +102,7 @@ export default function Responses() {
   const questions: any[] = (form as any).questions ?? [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-y-auto">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="container max-w-5xl py-3 sm:py-4 flex items-center justify-between">

@@ -105,7 +105,7 @@ function FormViewBySlug({ slug }: { slug: string }) {
 
   const formData = dbFormToFormData(dbForm);
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="form-viewport-lock h-screen w-screen overflow-hidden">
       <FormContainer form={formData} />
     </div>
   );
@@ -138,7 +138,7 @@ function FormViewById({ id }: { id: number }) {
 
   const formData = dbFormToFormData(dbForm);
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="form-viewport-lock h-screen w-screen overflow-hidden">
       <FormContainer form={formData} />
     </div>
   );
@@ -163,7 +163,7 @@ export default function FormView() {
 
   // Fallback: render demo form
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="form-viewport-lock h-screen w-screen overflow-hidden">
       <FormContainer form={demoForm} />
     </div>
   );

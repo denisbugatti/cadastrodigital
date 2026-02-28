@@ -160,3 +160,18 @@
 - [x] Criar splash screen com logo, nome e animação no index.html
 - [x] Esconder splash automaticamente quando o React montar (MutationObserver + fallback 8s)
 - [x] Garantir transição suave (fade-out 0.5s)
+
+## Feature: Notificações push via Service Worker
+- [ ] Backend: gerar VAPID keys e armazenar no env
+- [ ] Backend: criar tabela push_subscriptions no schema
+- [ ] Backend: criar endpoints tRPC para subscribe/unsubscribe
+- [ ] Backend: enviar push notification quando nova resposta for recebida
+- [ ] Frontend: solicitar permissão de notificação e registrar subscription
+- [ ] Frontend: UI para ativar/desativar notificações no Dashboard
+- [ ] Service Worker: handler de push event para exibir notificação
+- [ ] Testes unitários para o fluxo de push
+
+## Fix: Splash screen apenas no web app (não no formulário)
+- [x] Esconder splash screen nas rotas de preenchimento de formulário (/f/, /form/, /form-preview)
+- [x] Aumentar logo da One Innovation no mobile (h-20 no mobile, h-32 no loading)
+- [x] Formulário de preenchimento: tela fixa (html fixed, form-viewport-lock, overflow-hidden), apenas perguntas rolam internamente

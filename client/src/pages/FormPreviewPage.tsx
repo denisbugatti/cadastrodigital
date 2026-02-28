@@ -105,7 +105,7 @@ export default function FormPreviewPage() {
   const form = useMemo(() => getDemoForm(), []);
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="form-viewport-lock h-screen w-screen overflow-hidden">
       <FormContainer form={form} />
     </div>
   );
