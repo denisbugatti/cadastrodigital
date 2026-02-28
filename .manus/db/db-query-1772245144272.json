@@ -1,0 +1,21 @@
+{
+  "query": "SELECT * FROM users LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT * FROM users LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "e8LdUVBk6enpWCqy2EGCui",
+      "name": "Denis Bugatti",
+      "email": "denisbugatti@icloud.com",
+      "loginMethod": "apple",
+      "role": "admin",
+      "createdAt": "2026-02-25 05:43:23",
+      "updatedAt": "2026-02-28 02:16:15",
+      "lastSignedIn": "2026-02-28 02:16:15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\tloginMethod\trole\tcreatedAt\tupdatedAt\tlastSignedIn\n1\te8LdUVBk6enpWCqy2EGCui\tDenis Bugatti\tdenisbugatti@icloud.com\tapple\tadmin\t2026-02-25 05:43:23\t2026-02-28 02:16:15\t2026-02-28 02:16:15\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

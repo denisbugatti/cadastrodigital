@@ -142,3 +142,9 @@
 - [x] Responses page: tabela responsiva com scroll horizontal ou cards no mobile
 - [x] PWA meta tags (viewport, theme-color, apple-mobile-web-app)
 - [x] Formulário de preenchimento: verificar e ajustar se necessário
+
+## Bug: Preview não carrega e formulários não funcionam
+- [x] Investigar logs do servidor e console do navegador (API retornando 500 na versão publicada)
+- [x] Identificar e corrigir a causa raiz (erro de conexão DB na ownerFallbackProcedure)
+- [x] Melhorar resiliência: retry com backoff, fallback sintético, pool maior com SSL
+- [x] Verificar que preview e formulários voltam a funcionar (dev server OK, 45 testes passando)

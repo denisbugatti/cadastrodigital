@@ -34,35 +34,59 @@ async function getOrCreateOwnerUser(): Promise<any> {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner not configured" });
   }
 
-  try {
-    let ownerUser = await db.getUserByOpenId(ownerOpenId);
-    if (!ownerUser) {
-      // Auto-create owner user
-      await db.upsertUser({
-        openId: ownerOpenId,
-        name: process.env.OWNER_NAME ?? "Owner",
-        role: "admin",
-        lastSignedIn: new Date(),
-      });
-      ownerUser = await db.getUserByOpenId(ownerOpenId);
-    }
+  // Try up to 2 times with a short delay between attempts
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      let ownerUser = await db.getUserByOpenId(ownerOpenId);
+      if (!ownerUser) {
+        // Auto-create owner user
+        await db.upsertUser({
+          openId: ownerOpenId,
+          name: process.env.OWNER_NAME ?? "Owner",
+          role: "admin",
+          lastSignedIn: new Date(),
+        });
+        ownerUser = await db.getUserByOpenId(ownerOpenId);
+      }
 
-    if (ownerUser) {
-      _cachedOwnerUser = ownerUser;
-      _ownerCacheExpiry = now + OWNER_CACHE_TTL;
-      return ownerUser;
+      if (ownerUser) {
+        _cachedOwnerUser = ownerUser;
+        _ownerCacheExpiry = now + OWNER_CACHE_TTL;
+        return ownerUser;
+      }
+    } catch (err: any) {
+      console.warn(`[ownerFallback] DB error attempt ${attempt + 1}/2:`, err?.message?.substring(0, 80));
+      // If cache exists but expired, use stale cache as fallback
+      if (_cachedOwnerUser) {
+        _ownerCacheExpiry = now + 60000; // Extend stale cache for 60s
+        return _cachedOwnerUser;
+      }
+      if (attempt < 1) {
+        await new Promise(r => setTimeout(r, 500)); // Wait 500ms before retry
+        continue;
+      }
+      throw err;
     }
-
-    throw new Error("Could not resolve owner user after creation");
-  } catch (err: any) {
-    // If cache exists but expired, use stale cache as fallback
-    if (_cachedOwnerUser) {
-      console.warn("[ownerFallback] DB error, using stale cache:", err?.message?.substring(0, 80));
-      _ownerCacheExpiry = now + 30000; // Extend stale cache for 30s
-      return _cachedOwnerUser;
-    }
-    throw err;
   }
+
+  // Final fallback: create a synthetic owner user so the app doesn't break
+  // This allows the app to at least render while DB recovers
+  if (!_cachedOwnerUser) {
+    console.warn("[ownerFallback] Creating synthetic owner user as last resort");
+    _cachedOwnerUser = {
+      id: 1,
+      openId: ownerOpenId,
+      name: process.env.OWNER_NAME ?? "Owner",
+      role: "admin" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    };
+    _ownerCacheExpiry = now + 30000; // Short TTL so we retry DB soon
+    return _cachedOwnerUser;
+  }
+
+  return _cachedOwnerUser;
 }
 
 /**

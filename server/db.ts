@@ -30,16 +30,22 @@ function createPool(): mysql.Pool {
   const pool = mysql.createPool({
     uri: dbUrl,
     waitForConnections: true,
-    connectionLimit: 3,          // Small pool for serverless DB
-    maxIdle: 1,
-    idleTimeout: 20000,          // 20s idle timeout
+    connectionLimit: 5,          // Slightly larger pool for production
+    maxIdle: 2,
+    idleTimeout: 30000,          // 30s idle timeout
     enableKeepAlive: true,
-    keepAliveInitialDelay: 5000, // Keepalive every 5s
-    connectTimeout: 15000,       // 15s connection timeout
+    keepAliveInitialDelay: 10000, // Keepalive every 10s
+    connectTimeout: 20000,       // 20s connection timeout
+    ssl: dbUrl.includes('tidbcloud') || dbUrl.includes('ssl=true') ? { rejectUnauthorized: true } : undefined,
   });
 
   pool.on('connection', () => {
     console.log("[Database] New pool connection established");
+  });
+
+  // Handle pool-level errors to prevent crashes
+  (pool as any).pool?.on?.('error', (err: any) => {
+    console.error("[Database] Pool error:", err?.message?.substring(0, 100));
   });
 
   return pool;
