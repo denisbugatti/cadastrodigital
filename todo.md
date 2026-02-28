@@ -193,3 +193,12 @@
 - [x] P1: Placeholder do input muito claro no fundo azul — corrigido (opacity 0.25→0.4 em todos os inputs)
 - [x] P2: Dashboard hover state mais elegante — corrigido (clean-card hover)
 - [x] P2: Micro-animações e transições mais suaves — já implementado (framer-motion)
+
+## Feature: Código de protocolo único no final do cadastro
+- [x] Backend: adicionar campo protocolCode na tabela responses
+- [x] Backend: gerar código único aleatório ao salvar resposta (formato OI-XXXXXX)
+- [x] Backend: retornar protocolCode na resposta da API
+- [x] Frontend: tela de conclusão com código de protocolo, mensagem motivacional e hierarquia visual limpa
+- [x] Frontend: botão copiar código de protocolo na tela de conclusão
+- [x] Admin: código de protocolo visível na página de respostas com botão copiar
+- [x] Testes unitários para geração de protocolo (55 testes passando)

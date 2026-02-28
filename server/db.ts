@@ -276,11 +276,37 @@ export async function duplicateForm(id: number, userId: number, newSlug: string)
 
 /* ─── Form Responses ─── */
 
+/**
+ * Generate a unique protocol code: OI-XXXXXX (6 uppercase alphanumeric chars)
+ */
+function generateProtocolCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I, O, 0, 1 to avoid confusion
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `OI-${code}`;
+}
+
 export async function createResponse(data: InsertFormResponse) {
   return withDbRetry(async (db) => {
-    const result = await db.insert(formResponses).values(data);
+    // Generate a unique protocol code with retry for uniqueness
+    let protocolCode = generateProtocolCode();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const existing = await db.select({ id: formResponses.id })
+        .from(formResponses)
+        .where(eq(formResponses.protocolCode, protocolCode))
+        .limit(1);
+      if (existing.length === 0) break;
+      protocolCode = generateProtocolCode(); // Regenerate if collision
+    }
+
+    const result = await db.insert(formResponses).values({
+      ...data,
+      protocolCode,
+    });
     await db.update(forms).set({ responseCount: sql`${forms.responseCount} + 1` }).where(eq(forms.id, data.formId));
-    return { id: result[0].insertId };
+    return { id: result[0].insertId, protocolCode };
   });
 }
 

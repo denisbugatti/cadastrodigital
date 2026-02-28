@@ -19,6 +19,9 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
+  Hash,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +35,30 @@ export default function Responses() {
 
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [copiedProtocol, setCopiedProtocol] = useState<number | null>(null);
+
+  const handleCopyProtocol = useCallback((responseId: number, code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedProtocol(responseId);
+      setTimeout(() => setCopiedProtocol(null), 2000);
+    }).catch(() => {
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        setCopiedProtocol(responseId);
+        setTimeout(() => setCopiedProtocol(null), 2000);
+      } catch {
+        // Silently fail
+      }
+      document.body.removeChild(textArea);
+    });
+  }, []);
 
   const utils = trpc.useUtils();
 
@@ -193,6 +220,24 @@ export default function Responses() {
                           {response.timeSpentSeconds && (
                             <span className="text-[11px] sm:text-xs text-muted-foreground font-body">
                               {Math.floor(response.timeSpentSeconds / 60)}min {response.timeSpentSeconds % 60}s
+                            </span>
+                          )}
+                          {response.protocolCode && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-mono font-semibold text-brand cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyProtocol(response.id, response.protocolCode);
+                              }}
+                              title="Clique para copiar"
+                            >
+                              <Hash size={11} />
+                              {response.protocolCode}
+                              {copiedProtocol === response.id ? (
+                                <Check size={11} className="text-green-500" />
+                              ) : (
+                                <Copy size={11} className="opacity-50" />
+                              )}
                             </span>
                           )}
                         </div>

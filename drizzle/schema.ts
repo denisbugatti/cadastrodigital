@@ -74,6 +74,8 @@ export const formResponses = mysqlTable("form_responses", {
   ipAddress: varchar("ipAddress", { length: 45 }),
   /** User agent for analytics */
   userAgent: text("userAgent"),
+  /** Unique protocol code for this response */
+  protocolCode: varchar("protocolCode", { length: 20 }).unique(),
   /** Time spent filling the form (in seconds) */
   timeSpentSeconds: int("timeSpentSeconds"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

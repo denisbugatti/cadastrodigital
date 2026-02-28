@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, protocolCode, respondentName, createdAt FROM form_responses ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, protocolCode, respondentName, createdAt FROM form_responses ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "2",
+      "protocolCode": "NULL",
+      "respondentName": "Ricardo Almeida Santos",
+      "createdAt": "2026-02-28 13:41:40"
+    },
+    {
+      "id": "1",
+      "protocolCode": "NULL",
+      "respondentName": "Denis teste ",
+      "createdAt": "2026-02-28 13:17:55"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprotocolCode\trespondentName\tcreatedAt\n2\tNULL\tRicardo Almeida Santos\t2026-02-28 13:41:40\n1\tNULL\tDenis teste \t2026-02-28 13:17:55\n",
+  "stderr": "",
+  "execution_time_ms": 52
+}

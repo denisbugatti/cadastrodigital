@@ -1,0 +1,18 @@
+{
+  "query": "SHOW COLUMNS FROM form_responses LIKE 'protocolCode';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SHOW COLUMNS FROM form_responses LIKE 'protocolCode';",
+  "rows": [
+    {
+      "Field": "protocolCode",
+      "Type": "varchar(20)",
+      "Null": "YES",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nprotocolCode\tvarchar(20)\tYES\tUNI\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 66
+}

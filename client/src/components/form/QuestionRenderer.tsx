@@ -38,6 +38,7 @@ interface QuestionRendererProps {
   onNext: () => void;
   onAutoAdvance?: (value?: unknown) => void;
   validationError?: string;
+  protocolCode?: string | null;
   design?: {
     backgroundColor?: string;
     questionColor?: string;
@@ -58,6 +59,7 @@ export function QuestionRenderer({
   onNext,
   onAutoAdvance,
   validationError,
+  protocolCode,
   design,
 }: QuestionRendererProps) {
   // Special screens (no header)
@@ -65,7 +67,7 @@ export function QuestionRenderer({
     return <WelcomeScreen question={question} onStart={onNext} design={design} />;
   }
   if (question.type === "thank-you") {
-    return <ThankYouScreen question={question} design={design} />;
+    return <ThankYouScreen question={question} design={design} protocolCode={protocolCode} />;
   }
   if (question.type === "statement") {
     return <StatementScreen question={question} onNext={onNext} design={design} />;

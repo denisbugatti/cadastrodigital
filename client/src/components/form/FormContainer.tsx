@@ -140,6 +140,7 @@ export function FormContainer({ form }: FormContainerProps) {
   // Submit responses to database when form is completed
   const submitResponseMutation = trpc.responses.submit.useMutation();
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [protocolCode, setProtocolCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasRestoredFromSave) return;
@@ -170,6 +171,13 @@ export function FormContainer({ form }: FormContainerProps) {
           respondentName,
           respondentEmail,
           isComplete: true,
+        }, {
+          onSuccess: (data) => {
+            // Capture the protocol code from the server response
+            if (data?.protocolCode) {
+              setProtocolCode(data.protocolCode);
+            }
+          },
         });
         setHasSubmitted(true);
       }
@@ -416,6 +424,7 @@ export function FormContainer({ form }: FormContainerProps) {
                   onNext={handleNext}
                   onAutoAdvance={handleAutoAdvance}
                   validationError={validationError}
+                  protocolCode={protocolCode}
                   design={form.design}
                 />
               </div>
