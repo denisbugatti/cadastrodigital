@@ -148,3 +148,10 @@
 - [x] Identificar e corrigir a causa raiz (erro de conexão DB na ownerFallbackProcedure)
 - [x] Melhorar resiliência: retry com backoff, fallback sintético, pool maior com SSL
 - [x] Verificar que preview e formulários voltam a funcionar (dev server OK, 45 testes passando)
+
+## Feature: PWA — Instalar como app nativo no celular
+- [x] Gerar ícones PWA em múltiplos tamanhos (72, 96, 128, 144, 152, 192, 384, 512px)
+- [x] Criar manifest.json com nome, cores, ícones e configuração standalone
+- [x] Criar service worker básico para cache offline (cache-first para assets, network-first para API)
+- [x] Integrar manifest e SW no index.html (+ apple-touch-icon, favicon)
+- [x] Testar instalação como PWA (45 testes passando, dev server OK)
