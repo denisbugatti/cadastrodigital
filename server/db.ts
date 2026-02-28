@@ -8,6 +8,7 @@ import {
   formVersions, InsertFormVersion,
   files, InsertFileRecord,
   workspaces, InsertWorkspace,
+  pushSubscriptions, InsertPushSubscription,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -400,5 +401,60 @@ export async function deleteWorkspace(id: number) {
     // Move forms in this workspace to no workspace
     await db.update(forms).set({ workspaceId: null }).where(eq(forms.workspaceId, String(id)));
     await db.delete(workspaces).where(eq(workspaces.id, id));
+  });
+}
+
+/* ─── Push Subscriptions ─── */
+
+export async function savePushSubscription(data: InsertPushSubscription) {
+  return withDbRetry(async (db) => {
+    // Check if this endpoint already exists for this user
+    const existing = await db.select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, data.userId))
+      .limit(50);
+    
+    const match = existing.find((s: any) => s.endpoint === data.endpoint);
+    if (match) {
+      // Update existing subscription (keys may have changed)
+      await db.update(pushSubscriptions).set({
+        p256dh: data.p256dh,
+        auth: data.auth,
+        active: true,
+        userAgent: data.userAgent,
+      }).where(eq(pushSubscriptions.id, match.id));
+      return { id: match.id, updated: true };
+    }
+    
+    const result = await db.insert(pushSubscriptions).values(data);
+    return { id: result[0].insertId, updated: false };
+  });
+}
+
+export async function getActivePushSubscriptions(userId: number) {
+  return withDbRetry(async (db) => {
+    return db.select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId))
+      .limit(50);
+  });
+}
+
+export async function deletePushSubscription(userId: number, endpoint: string) {
+  return withDbRetry(async (db) => {
+    const all = await db.select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId))
+      .limit(50);
+    const match = all.find((s: any) => s.endpoint === endpoint);
+    if (match) {
+      await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, match.id));
+    }
+  });
+}
+
+export async function deactivatePushSubscription(id: number) {
+  return withDbRetry(async (db) => {
+    await db.update(pushSubscriptions).set({ active: false }).where(eq(pushSubscriptions.id, id));
   });
 }

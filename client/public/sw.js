@@ -28,6 +28,67 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Push: handle incoming push notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    payload = {
+      title: 'FormFlow',
+      body: event.data.text(),
+    };
+  }
+
+  const options = {
+    body: payload.body || 'Nova notificação',
+    icon: payload.icon || '/icons/icon-192x192.png',
+    badge: payload.badge || '/icons/icon-72x72.png',
+    tag: payload.tag || 'formflow-notification',
+    data: {
+      url: payload.url || '/dashboard',
+      ...payload.data,
+    },
+    vibrate: [200, 100, 200],
+    requireInteraction: false,
+    actions: [
+      { action: 'open', title: 'Ver respostas' },
+      { action: 'dismiss', title: 'Dispensar' },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'FormFlow', options)
+  );
+});
+
+// Notification click: open the app or focus existing window
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const urlToOpen = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Try to focus an existing window
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(urlToOpen);
+          return client.focus();
+        }
+      }
+      // Open a new window if none exists
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
 // Fetch: network-first for API calls, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;

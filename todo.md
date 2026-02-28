@@ -162,14 +162,13 @@
 - [x] Garantir transição suave (fade-out 0.5s)
 
 ## Feature: Notificações push via Service Worker
-- [ ] Backend: gerar VAPID keys e armazenar no env
-- [ ] Backend: criar tabela push_subscriptions no schema
-- [ ] Backend: criar endpoints tRPC para subscribe/unsubscribe
-- [ ] Backend: enviar push notification quando nova resposta for recebida
-- [ ] Frontend: solicitar permissão de notificação e registrar subscription
-- [ ] Frontend: UI para ativar/desativar notificações no Dashboard
-- [ ] Service Worker: handler de push event para exibir notificação
-- [ ] Testes unitários para o fluxo de push
+- [x] Backend: criar tabela push_subscriptions no schema (drizzle + db:push)
+- [x] Backend: tRPC procedures (push.subscribe, push.unsubscribe, push.status, push.vapidPublicKey)
+- [x] Backend: enviar push notification quando nova resposta for recebida (notifyOwnerNewResponse)
+- [x] Frontend: hook usePushNotifications (solicitar permissão, registrar subscription)
+- [x] Frontend: NotificationBell component no Dashboard header (ativar/desativar)
+- [x] Service Worker: push event handler + notificationclick handler
+- [x] Testes unitários: 6 testes para pushNotification module (51 testes totais passando)
 
 ## Fix: Splash screen apenas no web app (não no formulário)
 - [x] Esconder splash screen nas rotas de preenchimento de formulário (/f/, /form/, /form-preview)

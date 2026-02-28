@@ -34,6 +34,9 @@ import {
   Building2,
   ClipboardList,
   Menu,
+  Bell,
+  BellOff,
+  BellRing,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,6 +63,7 @@ import { trpc } from "@/lib/trpc";
 
 import { exportFormAsJSON, importFormFromJSON } from "@/lib/formStorage";
 import { createOneInnovationForm } from "@/lib/oneInnovationForm";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 /* ─── Types ─── */
 
@@ -171,6 +175,60 @@ const FORM_TEMPLATES: FormTemplate[] = [
 ];
 
 /* ─── Dashboard ─── */
+
+/* ─── Notification Bell Component ─── */
+
+function NotificationBell() {
+  const { isSupported, permission, isSubscribed, isLoading, toggle } = usePushNotifications();
+
+  if (!isSupported) return null;
+
+  const handleClick = async () => {
+    if (permission === "denied") {
+      toast.error("Notificações bloqueadas", {
+        description: "Ative as notificações nas configurações do navegador para receber alertas de novas respostas.",
+      });
+      return;
+    }
+    const success = await toggle();
+    if (success) {
+      if (!isSubscribed) {
+        toast.success("Notificações ativadas!", {
+          description: "Você receberá alertas quando novas respostas forem enviadas.",
+        });
+      } else {
+        toast.info("Notificações desativadas");
+      }
+    }
+  };
+
+  const BellIcon = permission === "denied" ? BellOff : isSubscribed ? BellRing : Bell;
+  const title = permission === "denied"
+    ? "Notificações bloqueadas pelo navegador"
+    : isSubscribed
+      ? "Notificações ativas — clique para desativar"
+      : "Ativar notificações push";
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isLoading}
+      title={title}
+      className={`relative p-2.5 rounded-xl border transition-all duration-200 shrink-0 ${
+        isSubscribed
+          ? "bg-brand/10 border-brand/30 text-brand hover:bg-brand/20"
+          : permission === "denied"
+            ? "bg-secondary border-border text-muted-foreground/50 cursor-not-allowed"
+            : "bg-secondary border-border text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+      }`}
+    >
+      <BellIcon size={18} className={isLoading ? "animate-pulse" : ""} />
+      {isSubscribed && (
+        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+      )}
+    </button>
+  );
+}
 
 export default function Dashboard() {
 
@@ -567,6 +625,9 @@ export default function Dashboard() {
               className="w-full pl-12 pr-4 py-3 rounded-xl font-body text-base text-foreground placeholder:text-muted-foreground/50 bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all duration-200"
             />
           </div>
+
+          {/* Notification bell */}
+          <NotificationBell />
 
           {/* Import button - icon only on mobile */}
           <button

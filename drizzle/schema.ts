@@ -149,3 +149,27 @@ export const workspaces = mysqlTable("workspaces", {
 
 export type Workspace = typeof workspaces.$inferSelect;
 export type InsertWorkspace = typeof workspaces.$inferInsert;
+
+/**
+ * Push subscriptions — stores Web Push API subscriptions for push notifications.
+ */
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner user ID (who will receive notifications) */
+  userId: int("userId").notNull(),
+  /** The push subscription endpoint URL */
+  endpoint: text("endpoint").notNull(),
+  /** The p256dh key for encryption */
+  p256dh: text("p256dh").notNull(),
+  /** The auth secret for encryption */
+  auth: text("auth").notNull(),
+  /** User agent of the subscribing browser */
+  userAgent: text("userAgent"),
+  /** Whether this subscription is active */
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
