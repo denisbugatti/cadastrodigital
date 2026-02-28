@@ -57,7 +57,7 @@ export function CPFInput({ value, onChange, error }: CPFInputProps) {
         />
         {/* Placeholder styling */}
         <style>{`
-          input::placeholder { color: currentColor; opacity: 0.35; }
+          input::placeholder { color: currentColor; opacity: 0.45; }
         `}</style>
         {isValid !== null && (
           <motion.div

@@ -83,7 +83,7 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
             onChange={(e) => handleCEPChange(e.target.value)}
             placeholder="00000-000"
             maxLength={9}
-            className={`${inputClass(address.cep)} placeholder:opacity-30`}
+            className={`${inputClass(address.cep)} placeholder:opacity-40`}
             style={{ color: "inherit" }}
             autoComplete="off"
           />
@@ -122,7 +122,7 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
                 value={address.number}
                 onChange={(e) => updateValue({ ...address, number: e.target.value })}
                 placeholder="Nº"
-                className={`${inputClass(address.number)} placeholder:opacity-30`}
+                className={`${inputClass(address.number)} placeholder:opacity-40`}
                 style={{ color: "inherit" }}
                 autoComplete="off"
               />
@@ -134,7 +134,7 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
                 value={address.complement}
                 onChange={(e) => updateValue({ ...address, complement: e.target.value })}
                 placeholder="Apto, Bloco..."
-                className={`${inputClass(address.complement)} placeholder:opacity-30`}
+                className={`${inputClass(address.complement)} placeholder:opacity-40`}
                 style={{ color: "inherit" }}
                 autoComplete="off"
               />

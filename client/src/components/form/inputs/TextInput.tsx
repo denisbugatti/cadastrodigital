@@ -80,7 +80,7 @@ export function TextInput({
         <style>{`
           input::placeholder {
             color: inherit;
-            opacity: 0.25;
+            opacity: 0.4;
           }
         `}</style>
 

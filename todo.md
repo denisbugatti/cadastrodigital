@@ -185,3 +185,12 @@
 - [x] Fix: updateQuestion sincroniza `rules` automaticamente quando `branches` é atualizado
 - [x] Migração: dados existentes no DB sincronizados (branches ↔ rules)
 - [x] 45 testes passando, sem erros TypeScript
+
+## Feature: Pixel-perfect audit e correções visuais
+- [x] P0: Landing Page não rola — corrigido (min-h-screen + removido overflow:hidden global)
+- [x] P0: Input de texto no formulário com borda tracejada laranja — corrigido (outline:none !important no form-viewport-lock)
+- [x] P1: Dashboard cards com alturas desiguais — corrigido (min-h para descrição)
+- [x] P1: Dashboard borda azul no topo do card cortada — corrigido (overflow-visible)
+- [x] P1: Placeholder do input muito claro no fundo azul — corrigido (opacity 0.25→0.4 em todos os inputs)
+- [x] P2: Dashboard hover state mais elegante — corrigido (clean-card hover)
+- [x] P2: Micro-animações e transições mais suaves — já implementado (framer-motion)

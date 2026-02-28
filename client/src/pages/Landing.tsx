@@ -65,7 +65,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="h-screen bg-[#0a0a12] text-white overflow-y-auto overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a12] text-white overflow-x-hidden">
       {/* ─── Navbar ─── */}
       <motion.nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${

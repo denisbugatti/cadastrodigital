@@ -56,7 +56,7 @@ export function CNPJInput({ value, onChange, error }: CNPJInputProps) {
           autoComplete="off"
         />
         <style>{`
-          input::placeholder { color: currentColor; opacity: 0.35; }
+          input::placeholder { color: currentColor; opacity: 0.45; }
         `}</style>
         {isValid !== null && (
           <motion.div

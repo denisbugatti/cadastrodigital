@@ -60,7 +60,7 @@ export function LongTextInput({
         <style>{`
           textarea::placeholder {
             color: inherit;
-            opacity: 0.25;
+            opacity: 0.4;
           }
         `}</style>
       </div>

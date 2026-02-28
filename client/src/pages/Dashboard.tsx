@@ -533,7 +533,7 @@ export default function Dashboard() {
   const isLoading = formsQuery.isLoading || workspacesQuery.isLoading;
 
   return (
-    <div className="h-screen bg-background overflow-y-auto">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-6">
@@ -1184,11 +1184,11 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
       onClick={handleCardClick}
-      className="group relative clean-card rounded-2xl p-4 sm:p-6 transition-all duration-200 cursor-pointer hover:shadow-lg"
+      className="group relative clean-card rounded-2xl p-4 sm:p-6 transition-all duration-300 cursor-pointer hover:shadow-lg hover:-translate-y-0.5"
     >
       <div
-        className="absolute top-0 left-8 right-8 h-[3px] rounded-b-full opacity-70 group-hover:opacity-100 transition-opacity"
-        style={{ background: `linear-gradient(90deg, transparent, ${form.color ?? "#0D8BD9"}, transparent)` }}
+        className="absolute top-0 left-4 right-4 h-[3px] rounded-b-full transition-opacity duration-300"
+        style={{ background: form.color ?? "#0D8BD9" }}
       />
 
       <div className="flex items-start justify-between mb-4">
@@ -1199,28 +1199,14 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
           <FileText size={20} style={{ color: form.color ?? "#0D8BD9" }} />
         </div>
 
-        {/* Visible action buttons */}
-        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
-            className="p-2 rounded-lg text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Duplicar"
-          >
-            <Copy size={16} />
-          </button>
+        {/* More actions menu */}
+        <div className="flex items-center gap-1">
           <button
             onClick={handleStartRename}
-            className="p-2 rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"
             title="Renomear"
           >
             <Pencil size={16} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
-            className="p-2 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Excluir"
-          >
-            <Trash2 size={16} />
           </button>
 
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -1292,7 +1278,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       ) : (
         <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
       )}
-      <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed">{form.description}</p>
+      <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed min-h-[2.5rem]">{form.description || "Sem descrição"}</p>
 
       <div className="flex items-center gap-5 text-sm text-muted-foreground font-body">
         <span className="flex items-center gap-2">
@@ -1323,25 +1309,27 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         </span>
       </div>
 
-      {/* ─── Always-visible action buttons ─── */}
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+      {/* ─── Action buttons ─── */}
+      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-semibold text-brand bg-brand/5 hover:bg-brand/10 border border-brand/20 transition-all"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
         >
           <Pencil size={13} /> Editar
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all"
+          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-muted-foreground bg-secondary hover:bg-secondary/80 border border-border transition-all"
+          title="Duplicar"
         >
-          <Copy size={13} /> Duplicar
+          <Copy size={13} />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all"
+          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200/50 transition-all"
+          title="Excluir"
         >
-          <Trash2 size={13} /> Excluir
+          <Trash2 size={13} />
         </button>
       </div>
     </motion.div>
