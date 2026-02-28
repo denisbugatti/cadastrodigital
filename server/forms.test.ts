@@ -21,6 +21,7 @@ vi.mock("./db", () => ({
   duplicateForm: vi.fn(),
   createResponse: vi.fn(),
   getResponsesByForm: vi.fn(),
+  getResponsesByFormWithSearch: vi.fn(),
   getResponseById: vi.fn(),
   updateResponse: vi.fn(),
   createVersion: vi.fn(),
@@ -42,6 +43,16 @@ vi.mock("./db", () => ({
 // ─── Mock storage module ───
 vi.mock("./storage", () => ({
   storagePut: vi.fn().mockResolvedValue({ url: "https://s3.example.com/file.png" }),
+}));
+
+// ─── Mock email service ───
+vi.mock("./emailService", () => ({
+  sendProtocolEmail: vi.fn().mockResolvedValue(true),
+}));
+
+// ─── Mock push notification ───
+vi.mock("./pushNotification", () => ({
+  notifyOwnerNewResponse: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ─── Mock env module ───
@@ -403,14 +414,14 @@ describe("responses.listByForm", () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
-    vi.mocked(db.getResponsesByForm).mockResolvedValue([
+    vi.mocked(db.getResponsesByFormWithSearch).mockResolvedValue([
       { id: 10, formId: 1, answers: { q1: "John" }, createdAt: new Date() } as any,
     ]);
 
     const result = await caller.responses.listByForm({ formId: 1 });
 
     expect(result).toHaveLength(1);
-    expect(db.getResponsesByForm).toHaveBeenCalledWith(1);
+    expect(db.getResponsesByFormWithSearch).toHaveBeenCalledWith(1, undefined);
   });
 
   it("rejects listing responses for form owned by another user", async () => {
@@ -427,12 +438,38 @@ describe("responses.listByForm", () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormById).mockResolvedValue(sampleOwnerForm as any);
-    vi.mocked(db.getResponsesByForm).mockResolvedValue([
+    vi.mocked(db.getResponsesByFormWithSearch).mockResolvedValue([
       { id: 10, formId: 1, answers: { q1: "John" }, createdAt: new Date() } as any,
     ]);
 
     const result = await caller.responses.listByForm({ formId: 1 });
     expect(result).toHaveLength(1);
+  });
+
+  it("passes search parameter to db function", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getResponsesByFormWithSearch).mockResolvedValue([
+      { id: 10, formId: 1, protocolCode: "OI-ABC123", answers: { q1: "John" }, createdAt: new Date() } as any,
+    ]);
+
+    const result = await caller.responses.listByForm({ formId: 1, search: "OI-ABC" });
+
+    expect(result).toHaveLength(1);
+    expect(db.getResponsesByFormWithSearch).toHaveBeenCalledWith(1, "OI-ABC");
+  });
+
+  it("returns empty array when search has no matches", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getResponsesByFormWithSearch).mockResolvedValue([]);
+
+    const result = await caller.responses.listByForm({ formId: 1, search: "NONEXISTENT" });
+
+    expect(result).toHaveLength(0);
+    expect(db.getResponsesByFormWithSearch).toHaveBeenCalledWith(1, "NONEXISTENT");
   });
 });
 

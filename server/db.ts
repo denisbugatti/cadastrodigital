@@ -1,4 +1,4 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, like, or, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -313,6 +313,25 @@ export async function createResponse(data: InsertFormResponse) {
 export async function getResponsesByForm(formId: number) {
   return withDbRetry(async (db) => {
     return db.select().from(formResponses).where(eq(formResponses.formId, formId)).orderBy(desc(formResponses.createdAt));
+  });
+}
+
+export async function getResponsesByFormWithSearch(formId: number, search?: string) {
+  return withDbRetry(async (db) => {
+    if (!search || search.trim() === "") {
+      return db.select().from(formResponses).where(eq(formResponses.formId, formId)).orderBy(desc(formResponses.createdAt));
+    }
+    const term = `%${search.trim()}%`;
+    return db.select().from(formResponses).where(
+      and(
+        eq(formResponses.formId, formId),
+        or(
+          like(formResponses.protocolCode, term),
+          like(formResponses.respondentName, term),
+          like(formResponses.respondentEmail, term),
+        )
+      )
+    ).orderBy(desc(formResponses.createdAt));
   });
 }
 

@@ -11,6 +11,7 @@ import { t } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
 import { notifyOwner } from "./_core/notification";
 import { notifyOwnerNewResponse } from "./pushNotification";
+import { sendProtocolEmail } from "./emailService";
 
 /**
  * In-memory cache for the owner user.
@@ -252,6 +253,18 @@ export const appRouter = router({
             });
             // Web Push notification
             await notifyOwnerNewResponse(formTitle, respondent);
+
+            // Send protocol code email to respondent (if email provided)
+            if (input.respondentEmail && result.protocolCode) {
+              sendProtocolEmail({
+                to: input.respondentEmail,
+                respondentName: input.respondentName ?? undefined,
+                protocolCode: result.protocolCode,
+                formTitle,
+              }).catch((err) => {
+                console.warn("[Email] Failed to send protocol email:", (err as Error)?.message?.substring(0, 100));
+              });
+            }
           } catch (err) {
             // Don't fail the submission if notification fails
             console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
@@ -262,14 +275,14 @@ export const appRouter = router({
       }),
 
     listByForm: ownerFallbackProcedure
-      .input(z.object({ formId: z.number() }))
+      .input(z.object({ formId: z.number(), search: z.string().optional() }))
       .query(async ({ ctx, input }) => {
         // Verify ownership
         const form = await db.getFormById(input.formId);
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
         }
-        return db.getResponsesByForm(input.formId);
+        return db.getResponsesByFormWithSearch(input.formId, input.search);
       }),
 
     getById: ownerFallbackProcedure

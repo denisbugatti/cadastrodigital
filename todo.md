@@ -202,3 +202,16 @@
 - [x] Frontend: botão copiar código de protocolo na tela de conclusão
 - [x] Admin: código de protocolo visível na página de respostas com botão copiar
 - [x] Testes unitários para geração de protocolo (55 testes passando)
+
+## Feature: Busca por código de protocolo na página de respostas
+- [x] Backend: adicionar filtro de busca por protocolCode no endpoint listByForm (getResponsesByFormWithSearch)
+- [x] Frontend: campo de busca na página de respostas com filtro por protocolo, nome ou e-mail (debounced)
+- [x] Frontend: empty state diferenciado para busca sem resultados vs sem respostas
+- [x] Testes unitários para busca por protocolo (2 novos testes: search param e empty results)
+
+## Feature: Notificação por e-mail com código de protocolo
+- [x] Investigar opções de integração de e-mail (Resend escolhido)
+- [x] Implementar emailService.ts com template HTML profissional
+- [x] Integrar envio automático no responses.submit (quando respondentEmail presente)
+- [x] Testes unitários: mock do emailService nos testes existentes (57 testes passando)
+- [ ] PENDENTE: Configurar RESEND_API_KEY via webdev_request_secrets para ativar envio

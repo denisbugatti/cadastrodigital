@@ -3,10 +3,11 @@
  * Allows downloading individual response PDFs (Cadastro de Interesse)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   FileText,
@@ -22,16 +23,36 @@ import {
   Hash,
   Copy,
   Check,
+  Search,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function Responses() {
   const params = useParams<{ formId: string }>();
   const formId = Number(params.formId);
 
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const searchParam = useMemo(() => debouncedSearch.trim() || undefined, [debouncedSearch]);
+
   const { data: form, isLoading: formLoading } = trpc.forms.getById.useQuery({ id: formId }, { enabled: !!formId });
-  const { data: responses, isLoading: responsesLoading } = trpc.responses.listByForm.useQuery({ formId }, { enabled: !!formId });
+  const { data: responses, isLoading: responsesLoading } = trpc.responses.listByForm.useQuery(
+    { formId, search: searchParam },
+    { enabled: !!formId }
+  );
 
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -151,15 +172,57 @@ export default function Responses() {
 
       {/* Content */}
       <main className="container max-w-5xl py-4 sm:py-8">
+        {/* Search bar */}
+        <div className="mb-5">
+          <div className="relative max-w-md">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchRef}
+              type="text"
+              placeholder="Buscar por protocolo, nome ou e-mail..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-9 h-10 font-body text-sm bg-card border-border"
+            />
+            {searchInput && (
+              <button
+                onClick={() => { setSearchInput(""); searchRef.current?.focus(); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {searchParam && (
+            <p className="text-xs text-muted-foreground mt-2 font-body">
+              {responsesLoading ? "Buscando..." : `${responses?.length ?? 0} resultado(s) para "${searchParam}"`}
+            </p>
+          )}
+        </div>
+
         {!responses || responses.length === 0 ? (
           <div className="text-center py-20">
-            <FileText size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-lg text-muted-foreground font-body">
-              Nenhuma resposta ainda
-            </p>
-            <p className="text-sm text-muted-foreground/70 font-body mt-2">
-              Compartilhe o formulário para começar a receber respostas.
-            </p>
+            {searchParam ? (
+              <>
+                <Search size={48} className="mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-lg text-muted-foreground font-body">
+                  Nenhum resultado encontrado
+                </p>
+                <p className="text-sm text-muted-foreground/70 font-body mt-2">
+                  Tente buscar por outro protocolo, nome ou e-mail.
+                </p>
+              </>
+            ) : (
+              <>
+                <FileText size={48} className="mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-lg text-muted-foreground font-body">
+                  Nenhuma resposta ainda
+                </p>
+                <p className="text-sm text-muted-foreground/70 font-body mt-2">
+                  Compartilhe o formulário para começar a receber respostas.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
