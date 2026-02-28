@@ -155,3 +155,8 @@
 - [x] Criar service worker básico para cache offline (cache-first para assets, network-first para API)
 - [x] Integrar manifest e SW no index.html (+ apple-touch-icon, favicon)
 - [x] Testar instalação como PWA (45 testes passando, dev server OK)
+
+## Feature: Splash screen personalizada para PWA
+- [x] Criar splash screen com logo, nome e animação no index.html
+- [x] Esconder splash automaticamente quando o React montar (MutationObserver + fallback 8s)
+- [x] Garantir transição suave (fade-out 0.5s)

@@ -19,11 +19,128 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Splash Screen Styles -->
+    <style>
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 50%, #e8f4fd 100%);
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+      #splash-screen.splash-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .splash-logo {
+        width: 88px;
+        height: 88px;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(13, 139, 217, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+        animation: splash-float 2s ease-in-out infinite;
+      }
+      .splash-title {
+        margin-top: 20px;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a2b3c;
+        letter-spacing: -0.5px;
+      }
+      .splash-subtitle {
+        margin-top: 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        color: #7b8fa3;
+        letter-spacing: 0.2px;
+      }
+      .splash-loader {
+        margin-top: 36px;
+        display: flex;
+        gap: 6px;
+      }
+      .splash-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #0D8BD9;
+        animation: splash-bounce 1.2s ease-in-out infinite;
+      }
+      .splash-dot:nth-child(2) { animation-delay: 0.15s; }
+      .splash-dot:nth-child(3) { animation-delay: 0.3s; }
+      @keyframes splash-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+      @keyframes splash-bounce {
+        0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1.1); }
+      }
+    </style>
   </head>
 
   <body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+      <img
+        class="splash-logo"
+        src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/formflow-icon-192_c86285af.png"
+        alt="FormFlow"
+        width="88"
+        height="88"
+      />
+      <div class="splash-title">FormFlow</div>
+      <div class="splash-subtitle">Formulários inteligentes</div>
+      <div class="splash-loader">
+        <div class="splash-dot"></div>
+        <div class="splash-dot"></div>
+        <div class="splash-dot"></div>
+      </div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Hide splash screen once React has mounted
+      (function() {
+        var splash = document.getElementById('splash-screen');
+        if (!splash) return;
+
+        var observer = new MutationObserver(function(mutations) {
+          var root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            // Small delay so the app paints first
+            setTimeout(function() {
+              splash.classList.add('splash-hidden');
+              setTimeout(function() {
+                splash.remove();
+              }, 600);
+            }, 300);
+            observer.disconnect();
+          }
+        });
+
+        observer.observe(document.getElementById('root'), {
+          childList: true,
+          subtree: true
+        });
+
+        // Fallback: remove splash after 8 seconds max
+        setTimeout(function() {
+          if (splash.parentNode) {
+            splash.classList.add('splash-hidden');
+            setTimeout(function() { splash.remove(); }, 600);
+          }
+        }, 8000);
+      })();
+    </script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
