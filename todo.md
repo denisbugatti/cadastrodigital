@@ -215,3 +215,30 @@
 - [x] Integrar envio automático no responses.submit (quando respondentEmail presente)
 - [x] Testes unitários: mock do emailService nos testes existentes (57 testes passando)
 - [ ] PENDENTE: Configurar RESEND_API_KEY via webdev_request_secrets para ativar envio
+
+## Feature: Melhorar padding, margin e grid layout das perguntas do formulário
+- [x] Auditar componentes de perguntas atuais (QuestionRenderer, FormContainer, inputs)
+- [x] FormContainer: padding top/bottom aumentado (3rem/5rem), max-width 640px, padding lateral 6/8
+- [x] QuestionHeader: margin-bottom mb-8, subtitle mt-3
+- [x] TextInput: space-y-4, cores adaptativas, py-4
+- [x] LongTextInput: space-y-4, cores adaptativas
+- [x] PhoneInput: space-y-4, cores adaptativas
+- [x] CPFInput: space-y-4, cores adaptativas
+- [x] CNPJInput: space-y-4, cores adaptativas
+- [x] AddressInput: grid gap-6, labels adaptativas, space-y-6
+- [x] MultipleChoiceInput: gap-3, py-3.5 nos botões
+- [x] MultipleSelectInput: space-y-3, py-3.5 nos botões
+- [x] YesNoInput: gap-3, py-4 nos botões
+- [x] RatingInput: space-y-5, gap-3 entre estrelas
+- [x] NPSInput: space-y-4, gap-2 entre números
+- [x] SatisfactionInput: gap-4 entre emojis, p-3
+- [x] CurrencyInput: space-y-4, cores adaptativas
+- [x] DatePickerInput: space-y-4, cores adaptativas
+- [x] DropdownInput: space-y-4, dropdown escuro com backdrop-blur
+- [x] LegalInput: space-y-6, cores adaptativas
+- [x] FileUploadInput: space-y-4, cores adaptativas
+- [x] ImageChoiceInput: gap-4, cores adaptativas
+- [x] RankingInput: space-y-3, gap-3.5, cores adaptativas
+- [x] MatrixInput: cores adaptativas, border rgba
+- [x] Hints "Enter ↵" padronizados (text-xs opacity-30, kbd com border rgba)
+- [x] Todos os 57 testes passando

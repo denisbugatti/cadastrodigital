@@ -65,14 +65,14 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
 
   // Adaptive styles — uses currentColor which inherits from parent (set by FormContainer)
   const inputClass = (val: string, readOnly?: boolean) =>
-    `w-full bg-transparent border-0 border-b-2 py-3 text-lg font-body focus:outline-none transition-colors duration-300 ${
+    `w-full bg-transparent border-0 border-b-2 py-4 text-lg font-body focus:outline-none transition-colors duration-300 ${
       readOnly ? "opacity-80" : ""
     } ${val ? "border-current/30" : "border-current/15"}`;
 
-  const labelClass = "text-xs font-body uppercase tracking-wider mb-1.5 font-semibold opacity-60";
+  const labelClass = "text-xs font-body uppercase tracking-wider mb-2 font-semibold opacity-60";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }} className="space-y-5">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }} className="space-y-6">
       <div>
         <div className={labelClass}>CEP</div>
         <div className="relative">
@@ -99,10 +99,10 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
       </div>
 
       {found && (
-        <motion.div className="space-y-4" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.4 }}>
+        <motion.div className="space-y-6" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.4 }}>
           <div>
             <div className={labelClass}>Rua</div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <MapPin size={16} className="opacity-50 shrink-0" />
               <input
                 type="text"
@@ -113,7 +113,8 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <div className={labelClass}>Número</div>
               <input
@@ -140,6 +141,7 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
               />
             </div>
           </div>
+
           <div>
             <div className={labelClass}>Bairro</div>
             <input
@@ -150,7 +152,8 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
               style={{ color: "inherit" }}
             />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+
+          <div className="grid grid-cols-3 gap-6">
             <div className="col-span-2">
               <div className={labelClass}>Cidade</div>
               <input

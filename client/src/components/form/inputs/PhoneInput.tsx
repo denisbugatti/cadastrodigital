@@ -26,6 +26,7 @@ export function PhoneInput({ value, onChange, error }: PhoneInputProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
+      className="space-y-4"
     >
       <input
         ref={inputRef}
@@ -34,7 +35,7 @@ export function PhoneInput({ value, onChange, error }: PhoneInputProps) {
         onChange={(e) => onChange(maskPhone(e.target.value))}
         placeholder="(00) 00000-0000"
         maxLength={15}
-        className="w-full bg-transparent border-0 border-b-2 py-3 text-lg font-medium focus:outline-none transition-colors duration-300"
+        className="w-full bg-transparent border-0 border-b-2 py-4 text-lg font-medium focus:outline-none transition-colors duration-300"
         style={{
           color: "inherit",
           borderColor: error
@@ -53,7 +54,7 @@ export function PhoneInput({ value, onChange, error }: PhoneInputProps) {
       `}</style>
       {error && (
         <motion.p
-          className="mt-3 text-sm text-red-400 font-medium"
+          className="text-sm text-red-400 font-medium"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -61,7 +62,7 @@ export function PhoneInput({ value, onChange, error }: PhoneInputProps) {
         </motion.p>
       )}
       <motion.p
-        className="mt-4 text-xs opacity-30"
+        className="text-xs opacity-30 pt-1"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}

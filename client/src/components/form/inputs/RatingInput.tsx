@@ -31,8 +31,9 @@ export function RatingInput({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
+      className="space-y-5"
     >
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
         {Array.from({ length: maxRating }, (_, i) => {
           const rating = i + 1;
           const isActive = rating <= displayValue;
@@ -45,7 +46,7 @@ export function RatingInput({
               }}
               onMouseEnter={() => setHovered(rating)}
               onMouseLeave={() => setHovered(0)}
-              className="relative p-0.5 focus:outline-none touch-manipulation"
+              className="relative p-1 focus:outline-none touch-manipulation"
               whileHover={{ scale: 1.2 }}
               whileTap={{ scale: 0.85 }}
               initial={{ opacity: 0, y: 10 }}
@@ -72,7 +73,7 @@ export function RatingInput({
         })}
         {value > 0 && (
           <motion.span
-            className="ml-2 text-2xl font-bold"
+            className="ml-3 text-2xl font-bold"
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
@@ -82,7 +83,7 @@ export function RatingInput({
         )}
       </div>
       {labels && (
-        <div className="flex justify-between mt-4 px-1">
+        <div className="flex justify-between px-1">
           <span className="text-xs opacity-40">{labels.low}</span>
           <span className="text-xs opacity-40">{labels.high}</span>
         </div>

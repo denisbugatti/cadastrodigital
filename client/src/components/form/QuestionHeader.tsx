@@ -21,7 +21,7 @@ export function QuestionHeader({
   showNumber = true,
 }: QuestionHeaderProps) {
   return (
-    <div className="mb-6">
+    <div className="mb-8">
       {/* Title with inline number → — 24px matching Respondi */}
       <motion.h2
         className="font-display leading-snug tracking-tight"
@@ -46,7 +46,7 @@ export function QuestionHeader({
       {/* Subtitle — 16px */}
       {subtitle && (
         <motion.p
-          className="mt-2.5 leading-relaxed opacity-55"
+          className="mt-3 leading-relaxed opacity-55"
           style={{
             fontSize: "16px",
             fontWeight: 400,

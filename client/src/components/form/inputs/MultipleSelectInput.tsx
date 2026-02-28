@@ -28,7 +28,7 @@ export function MultipleSelectInput({
 
   return (
     <motion.div
-      className="space-y-2.5"
+      className="space-y-3"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.25 }}
@@ -39,7 +39,7 @@ export function MultipleSelectInput({
           <motion.button
             key={choice.id}
             onClick={() => toggleChoice(choice.id)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors duration-200 border"
+            className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-lg text-left transition-colors duration-200 border"
             style={{
               borderColor: isSelected
                 ? "currentColor"
@@ -96,7 +96,7 @@ export function MultipleSelectInput({
         );
       })}
       <motion.p
-        className="mt-2 text-xs opacity-30"
+        className="mt-3 text-xs opacity-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}

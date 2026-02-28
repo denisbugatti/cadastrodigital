@@ -32,7 +32,12 @@ export function CPFInput({ value, onChange, error }: CPFInputProps) {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3, duration: 0.4 }}
+      className="space-y-4"
+    >
       <div className="relative">
         <input
           ref={inputRef}
@@ -42,7 +47,7 @@ export function CPFInput({ value, onChange, error }: CPFInputProps) {
           onChange={(e) => handleChange(e.target.value)}
           placeholder="000.000.000-00"
           maxLength={14}
-          className="w-full bg-transparent border-0 border-b-2 py-3 text-lg font-medium focus:outline-none transition-colors duration-300"
+          className="w-full bg-transparent border-0 border-b-2 py-4 text-lg font-medium focus:outline-none transition-colors duration-300"
           style={{
             color: "inherit",
             borderColor: error || isValid === false
@@ -76,7 +81,7 @@ export function CPFInput({ value, onChange, error }: CPFInputProps) {
       </div>
       {isValid === false && (
         <motion.p
-          className="mt-3 text-sm font-medium"
+          className="text-sm font-medium"
           style={{ color: "#fca5a5" }}
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -86,7 +91,7 @@ export function CPFInput({ value, onChange, error }: CPFInputProps) {
       )}
       {error && isValid !== false && (
         <motion.p
-          className="mt-3 text-sm font-medium"
+          className="text-sm font-medium"
           style={{ color: "#fca5a5" }}
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,13 +99,18 @@ export function CPFInput({ value, onChange, error }: CPFInputProps) {
           {error}
         </motion.p>
       )}
-      <p className="mt-4 text-xs opacity-40">
+      <motion.p
+        className="text-xs opacity-30 pt-1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.3 }}
+        transition={{ delay: 0.6 }}
+      >
         Pressione{" "}
-        <kbd className="px-2 py-0.5 rounded-md text-xs font-mono border" style={{ borderColor: "rgba(128,128,128,0.3)" }}>
+        <kbd className="px-1.5 py-0.5 rounded border text-[10px] font-mono" style={{ borderColor: "rgba(128,128,128,0.3)" }}>
           Enter ↵
         </kbd>{" "}
         para continuar
-      </p>
+      </motion.p>
     </motion.div>
   );
 }

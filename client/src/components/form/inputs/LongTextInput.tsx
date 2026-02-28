@@ -39,6 +39,7 @@ export function LongTextInput({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
+      className="space-y-4"
     >
       <div className="relative">
         <textarea
@@ -47,7 +48,7 @@ export function LongTextInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || "Escreva sua resposta aqui..."}
           rows={3}
-          className="w-full bg-transparent border-0 border-b-2 py-3 text-base font-medium focus:outline-none transition-colors duration-300 resize-none"
+          className="w-full bg-transparent border-0 border-b-2 py-4 text-base font-medium focus:outline-none transition-colors duration-300 resize-none"
           style={{
             color: "inherit",
             borderColor: error
@@ -66,7 +67,7 @@ export function LongTextInput({
       </div>
       {error && (
         <motion.p
-          className="mt-3 text-sm text-red-400 font-medium"
+          className="text-sm text-red-400 font-medium"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -74,7 +75,7 @@ export function LongTextInput({
         </motion.p>
       )}
       <motion.p
-        className="mt-4 text-xs opacity-30"
+        className="text-xs opacity-30 pt-1"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.3 }}
         transition={{ delay: 0.6 }}

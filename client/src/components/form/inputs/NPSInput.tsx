@@ -33,8 +33,9 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
+      className="space-y-4"
     >
-      <div className="flex flex-wrap gap-1.5 justify-center">
+      <div className="flex flex-wrap gap-2 justify-center">
         {Array.from({ length: 11 }, (_, i) => {
           const isActive = value === i;
           const isHovered = hovered === i;
@@ -44,7 +45,7 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
               onClick={() => { onChange(i); if (onAutoAdvance) setTimeout(() => onAutoAdvance(i), 500); }}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
-              className="w-9 h-9 rounded-lg font-body font-semibold text-sm transition-all duration-200 flex items-center justify-center border touch-manipulation"
+              className="w-10 h-10 rounded-lg font-body font-semibold text-sm transition-all duration-200 flex items-center justify-center border touch-manipulation"
               style={{
                 background: isActive ? getNPSColor(i) : isHovered ? getNPSBg(i) : "transparent",
                 borderColor: isActive || isHovered ? getNPSColor(i) : "rgba(128,128,128,0.2)",
@@ -64,12 +65,12 @@ export function NPSInput({ value, onChange, labels, onAutoAdvance }: NPSInputPro
           );
         })}
       </div>
-      <div className="flex justify-between mt-3 px-1">
+      <div className="flex justify-between px-1">
         <span className="text-xs opacity-50 font-body">{labels?.low || "Nada provável"}</span>
         <span className="text-xs opacity-50 font-body">{labels?.high || "Muito provável"}</span>
       </div>
       {value >= 0 && (
-        <motion.div className="mt-3 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.div className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <span className="text-xs font-body font-medium" style={{ color: getNPSColor(value) }}>
             {value <= 6 ? "Detrator" : value <= 8 ? "Neutro" : "Promotor"}
           </span>

@@ -434,8 +434,8 @@ export function FormContainer({ form }: FormContainerProps) {
                 ref={scrollRef}
                 className="w-full h-full overflow-y-auto"
                 style={{
-                  paddingTop: "2rem",
-                  paddingBottom: "4rem",
+                  paddingTop: "3rem",
+                  paddingBottom: "5rem",
                   display: "flex",
                   flexDirection: "column",
                 }}
@@ -443,7 +443,7 @@ export function FormContainer({ form }: FormContainerProps) {
                 <div className="flex-1" />
                 <motion.div
                   key={`shake-${shakeKey}`}
-                  className="max-w-2xl mx-auto px-4 sm:px-5 pr-14 sm:pr-16 w-full"
+                  className="max-w-[640px] mx-auto px-6 sm:px-8 pr-16 sm:pr-20 w-full"
                   animate={
                     shakeKey > 0
                       ? {

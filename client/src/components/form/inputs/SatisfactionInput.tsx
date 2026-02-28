@@ -35,7 +35,7 @@ export function SatisfactionInput({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.4 }}
     >
-      <div className="flex items-center justify-center gap-3 flex-wrap">
+      <div className="flex items-center justify-center gap-4 flex-wrap">
         {FACES.map((face, i) => {
           const rating = i + 1;
           const isActive = value === rating;
@@ -49,7 +49,7 @@ export function SatisfactionInput({
               }}
               onMouseEnter={() => setHovered(rating)}
               onMouseLeave={() => setHovered(0)}
-              className="relative flex flex-col items-center gap-2 p-2.5 rounded-xl transition-all duration-200 border"
+              className="relative flex flex-col items-center gap-2.5 p-3 rounded-xl transition-all duration-200 border"
               style={{
                 borderColor: isActive
                   ? "currentColor"
