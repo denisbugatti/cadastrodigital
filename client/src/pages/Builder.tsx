@@ -233,31 +233,31 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
       />
 
       {/* ─── Top Bar ─── */}
-      <header className="h-14 border-b border-border bg-white flex items-center justify-between px-4 shrink-0 z-50">
+      <header className="h-12 sm:h-14 border-b border-border bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 z-50">
         {/* Left: Back + Form name */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button
             onClick={handleBack}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="h-5 w-px bg-border" />
-          <div className="flex items-center gap-2">
+          <div className="h-5 w-px bg-border hidden sm:block" />
+          <div className="flex items-center gap-2 hidden sm:flex">
             <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
                 <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
               </svg>
             </div>
-            <span className="font-display text-sm font-bold text-foreground truncate max-w-[200px]">
+            <span className="font-display text-sm font-bold text-foreground truncate max-w-[120px] lg:max-w-[200px]">
               {form.title || "Novo formulário"}
             </span>
           </div>
         </div>
 
         {/* Center: Tabs */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5 sm:gap-1">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -265,28 +265,28 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-body font-medium transition-all ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium transition-all ${
                   isActive
                     ? "text-foreground bg-secondary"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 }`}
               >
                 <TabIcon size={15} />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             );
           })}
         </nav>
 
         {/* Right: Save + More menu + Preview + Publish */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Save indicator */}
           <button
             onClick={() => {
               saveNow();
               toast.success("Formulário salvo!", { description: "Todas as alterações foram salvas." });
             }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-body font-medium transition-all ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium transition-all ${
               isSaved
                 ? "text-green-600 bg-green-50 hover:bg-green-100"
                 : "text-amber-600 bg-amber-50 hover:bg-amber-100 animate-pulse"
@@ -295,12 +295,12 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
             {isSaved ? (
               <>
                 <Cloud size={15} />
-                Salvo
+                <span className="hidden sm:inline">Salvo</span>
               </>
             ) : (
               <>
                 <Save size={15} />
-                Salvando...
+                <span className="hidden sm:inline">Salvando...</span>
               </>
             )}
           </button>
@@ -308,7 +308,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
           {/* More actions menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+              <button className="p-1.5 sm:p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                 <MoreVertical size={18} />
               </button>
             </DropdownMenuTrigger>
@@ -335,26 +335,26 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
 
           <button
             onClick={() => setShowPreview(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
           >
             <Play size={15} />
-            Visualizar
+            <span className="hidden md:inline">Visualizar</span>
           </button>
           <button
             onClick={handlePublish}
             disabled={isPublishing}
-            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-body font-semibold transition-all ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-semibold transition-all ${
               isPublished
                 ? "text-green-700 bg-green-100 hover:bg-green-200 border border-green-300"
                 : "text-white bg-brand hover:bg-brand-dark brand-shadow"
             } ${isPublishing ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             {isPublishing ? (
-              <><Loader2 size={15} className="animate-spin" /> {isPublished ? "Despublicando..." : "Publicando..."}</>
+              <><Loader2 size={15} className="animate-spin" /> <span className="hidden sm:inline">{isPublished ? "Despublicando..." : "Publicando..."}</span></>
             ) : isPublished ? (
-              <><CheckCircle size={15} /> Publicado</>
+              <><CheckCircle size={15} /> <span className="hidden sm:inline">Publicado</span></>
             ) : (
-              "Publicar"
+              <><span className="hidden sm:inline">Publicar</span><span className="sm:hidden">Pub.</span></>
             )}
           </button>
         </div>
@@ -373,16 +373,18 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex h-full"
             >
-              {/* Left: Question sidebar */}
-              <BuilderSidebar
-                questions={form.questions}
-                selectedQuestionId={selectedQuestionId}
-                onSelectQuestion={setSelectedQuestionId}
-                onAddQuestion={addQuestion}
-                onDuplicateQuestion={duplicateQuestion}
-                onRemoveQuestion={removeQuestion}
-                onReorderQuestions={reorderQuestions}
-              />
+              {/* Left: Question sidebar - hidden on mobile */}
+              <div className="hidden md:block">
+                <BuilderSidebar
+                  questions={form.questions}
+                  selectedQuestionId={selectedQuestionId}
+                  onSelectQuestion={setSelectedQuestionId}
+                  onAddQuestion={addQuestion}
+                  onDuplicateQuestion={duplicateQuestion}
+                  onRemoveQuestion={removeQuestion}
+                  onReorderQuestions={reorderQuestions}
+                />
+              </div>
 
               {/* Center: Live preview of selected question */}
               <div className="flex-1 h-full overflow-hidden">
@@ -409,15 +411,17 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                 />
               </div>
 
-              {/* Right: Config panel */}
-              <BuilderConfigPanel
-                question={selectedQuestion}
-                onUpdate={updateQuestion}
-                onAddChoice={addChoice}
-                onUpdateChoice={updateChoice}
-                onRemoveChoice={removeChoice}
-                conditionalTargets={conditionalTargets}
-              />
+              {/* Right: Config panel - hidden on mobile */}
+              <div className="hidden lg:block">
+                <BuilderConfigPanel
+                  question={selectedQuestion}
+                  onUpdate={updateQuestion}
+                  onAddChoice={addChoice}
+                  onUpdateChoice={updateChoice}
+                  onRemoveChoice={removeChoice}
+                  conditionalTargets={conditionalTargets}
+                />
+              </div>
             </motion.div>
           )}
 
@@ -429,13 +433,13 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex-1 flex h-full"
+              className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-[420px] border-r border-border shrink-0 overflow-hidden bg-white">
+              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-white max-h-[50vh] md:max-h-none">
                 <DesignPanel design={form.design} onUpdate={updateDesign} />
               </div>
 
-              <div className="flex-1 flex items-center justify-center p-8 bg-secondary/30">
+              <div className="hidden md:flex flex-1 items-center justify-center p-4 md:p-8 bg-secondary/30">
                 <div
                   className="w-full rounded-2xl overflow-hidden border border-border shadow-xl mx-auto relative"
                   style={{
@@ -506,9 +510,9 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex-1 flex h-full"
+              className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-[420px] border-r border-border shrink-0 overflow-hidden bg-white overflow-y-auto">
+              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-white max-h-[50vh] md:max-h-none">
                 <SharingPanel
                   sharing={form.sharing}
                   formTitle={form.title}
@@ -524,7 +528,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                 </div>
               </div>
 
-              <div className="flex-1 flex items-center justify-center p-8 bg-secondary/30">
+              <div className="hidden md:flex flex-1 items-center justify-center p-4 md:p-8 bg-secondary/30">
                 <div className="text-center max-w-md">
                   <div
                     className="w-full rounded-2xl overflow-hidden border border-border shadow-xl mx-auto mb-6 relative"
@@ -633,7 +637,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-[400px] bg-white border-l border-border shadow-2xl z-[61] flex flex-col"
+              className="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white border-l border-border shadow-2xl z-[61] flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">

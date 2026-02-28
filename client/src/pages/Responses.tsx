@@ -105,16 +105,16 @@ export default function Responses() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="container max-w-5xl py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container max-w-5xl py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft size={16} /> Voltar
+              <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 shrink-0 px-2 sm:px-3">
+                <ArrowLeft size={16} /> <span className="hidden sm:inline">Voltar</span>
               </Button>
             </Link>
-            <div>
-              <h1 className="text-lg font-display font-bold text-foreground">{form.title}</h1>
-              <p className="text-sm text-muted-foreground font-body">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-display font-bold text-foreground truncate">{form.title}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground font-body">
                 {responses?.length ?? 0} respostas coletadas
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function Responses() {
       </header>
 
       {/* Content */}
-      <main className="container max-w-5xl py-8">
+      <main className="container max-w-5xl py-4 sm:py-8">
         {!responses || responses.length === 0 ? (
           <div className="text-center py-20">
             <FileText size={48} className="mx-auto text-muted-foreground/30 mb-4" />
@@ -151,47 +151,47 @@ export default function Responses() {
                 >
                   {/* Response header */}
                   <div
-                    className="flex items-center justify-between p-5 cursor-pointer hover:bg-accent/30 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-5 cursor-pointer hover:bg-accent/30 transition-colors gap-3"
                     onClick={() => setExpandedId(isExpanded ? null : response.id)}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center text-brand font-display font-bold text-sm">
+                    <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-brand/10 flex items-center justify-center text-brand font-display font-bold text-xs sm:text-sm shrink-0">
                         #{index + 1}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           {response.respondentName && (
-                            <span className="flex items-center gap-1.5 text-sm font-body font-semibold text-foreground">
-                              <User size={14} className="text-muted-foreground" />
-                              {response.respondentName}
+                            <span className="flex items-center gap-1 text-xs sm:text-sm font-body font-semibold text-foreground">
+                              <User size={13} className="text-muted-foreground shrink-0" />
+                              <span className="truncate">{response.respondentName}</span>
                             </span>
                           )}
                           {response.respondentEmail && (
-                            <span className="flex items-center gap-1.5 text-sm font-body text-muted-foreground">
-                              <Mail size={14} />
-                              {response.respondentEmail}
+                            <span className="flex items-center gap-1 text-xs sm:text-sm font-body text-muted-foreground">
+                              <Mail size={13} className="shrink-0" />
+                              <span className="truncate">{response.respondentEmail}</span>
                             </span>
                           )}
                           {!response.respondentName && !response.respondentEmail && (
-                            <span className="text-sm font-body text-muted-foreground">Anônimo</span>
+                            <span className="text-xs sm:text-sm font-body text-muted-foreground">Anônimo</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground font-body">
-                            <Clock size={12} />
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+                          <span className="flex items-center gap-1 text-[11px] sm:text-xs text-muted-foreground font-body">
+                            <Clock size={11} />
                             {new Date(response.createdAt).toLocaleString("pt-BR")}
                           </span>
                           {response.isComplete ? (
-                            <span className="flex items-center gap-1 text-xs text-green-600 font-body">
-                              <CheckCircle2 size={12} /> Completa
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-green-600 font-body">
+                              <CheckCircle2 size={11} /> Completa
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 text-xs text-amber-600 font-body">
-                              <XCircle size={12} /> Parcial
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-amber-600 font-body">
+                              <XCircle size={11} /> Parcial
                             </span>
                           )}
                           {response.timeSpentSeconds && (
-                            <span className="text-xs text-muted-foreground font-body">
+                            <span className="text-[11px] sm:text-xs text-muted-foreground font-body">
                               {Math.floor(response.timeSpentSeconds / 60)}min {response.timeSpentSeconds % 60}s
                             </span>
                           )}
@@ -199,12 +199,12 @@ export default function Responses() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
                       {/* Gerar Ficha button */}
                       <Button
                         variant="default"
                         size="sm"
-                        className="gap-2 bg-brand hover:bg-brand/90"
+                        className="gap-1.5 sm:gap-2 bg-brand hover:bg-brand/90 text-xs sm:text-sm px-2.5 sm:px-3"
                         disabled={isGenerating}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -216,13 +216,14 @@ export default function Responses() {
                         ) : (
                           <FileText size={14} />
                         )}
-                        {isGenerating ? "Gerando..." : "Gerar Ficha"}
+                        <span className="hidden sm:inline">{isGenerating ? "Gerando..." : "Gerar Ficha"}</span>
+                        <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
                       </Button>
 
                       {isExpanded ? (
-                        <ChevronUp size={18} className="text-muted-foreground" />
+                        <ChevronUp size={18} className="text-muted-foreground shrink-0" />
                       ) : (
-                        <ChevronDown size={18} className="text-muted-foreground" />
+                        <ChevronDown size={18} className="text-muted-foreground shrink-0" />
                       )}
                     </div>
                   </div>

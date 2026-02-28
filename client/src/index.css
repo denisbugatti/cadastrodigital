@@ -98,6 +98,13 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  /* Safe area insets for notch devices */
+  html {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -204,5 +211,14 @@
     background: oklch(0.96 0.005 260);
     color: oklch(0.5 0.02 260);
     border: 1px solid oklch(0.88 0.005 260);
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

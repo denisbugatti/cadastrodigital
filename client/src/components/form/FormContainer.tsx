@@ -434,7 +434,7 @@ export function FormContainer({ form }: FormContainerProps) {
                 <div className="flex-1" />
                 <motion.div
                   key={`shake-${shakeKey}`}
-                  className="max-w-2xl mx-auto px-5 pr-16 w-full"
+                  className="max-w-2xl mx-auto px-4 sm:px-5 pr-14 sm:pr-16 w-full"
                   animate={
                     shakeKey > 0
                       ? {

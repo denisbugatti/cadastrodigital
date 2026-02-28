@@ -33,6 +33,7 @@ import {
   LayoutTemplate,
   Building2,
   ClipboardList,
+  Menu,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -187,6 +188,7 @@ export default function Dashboard() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [cloningTemplate, setCloningTemplate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -534,18 +536,28 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center brand-shadow">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
-              </svg>
-            </div>
-            <span className="font-display text-xl font-bold text-foreground tracking-tight">FormFlow</span>
-          </Link>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-6">
+          {/* Mobile: hamburger + logo */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <button
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors lg:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand flex items-center justify-center brand-shadow">
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                  <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
+                </svg>
+              </div>
+              <span className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight hidden sm:inline">FormFlow</span>
+            </Link>
+          </div>
 
-          <div className="flex-1 max-w-lg relative">
+          {/* Search - hidden on mobile, shown inline on desktop */}
+          <div className="hidden sm:block flex-1 max-w-lg relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -556,24 +568,38 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Import button */}
+          {/* Import button - icon only on mobile */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-secondary text-foreground font-body text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-secondary text-foreground font-body text-sm sm:text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
           >
             <Upload size={18} />
-            Importar
+            <span className="hidden sm:inline">Importar</span>
           </button>
 
           <Link href="/editor">
             <motion.button
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
+              className="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-brand text-white font-body text-sm sm:text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
               whileTap={{ scale: 0.98 }}
             >
               <Plus size={18} />
-              Criar formulário
+              <span className="hidden sm:inline">Criar formulário</span>
             </motion.button>
           </Link>
+        </div>
+
+        {/* Mobile search bar */}
+        <div className="sm:hidden px-4 pb-3">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Pesquisar..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl font-body text-sm text-foreground placeholder:text-muted-foreground/50 bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all duration-200"
+            />
+          </div>
         </div>
       </header>
 
@@ -586,16 +612,52 @@ export default function Dashboard() {
         onChange={handleImportForm}
       />
 
-      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+      {/* Mobile sidebar overlay */}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex gap-4 sm:gap-8">
         {/* ─── Folder Sidebar ─── */}
-        <aside className="w-60 shrink-0">
-          <div className="sticky top-24">
-            <h3 className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Pastas</h3>
+        <AnimatePresence>
+        {(mobileSidebarOpen || true) && (
+        <motion.aside
+          className={`${
+            mobileSidebarOpen
+              ? "fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-2xl pt-4 px-4 pb-8 overflow-y-auto"
+              : "hidden lg:block w-60 shrink-0"
+          }`}
+          initial={mobileSidebarOpen ? { x: "-100%" } : false}
+          animate={mobileSidebarOpen ? { x: 0 } : undefined}
+          exit={mobileSidebarOpen ? { x: "-100%" } : undefined}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        >
+          <div className={mobileSidebarOpen ? "" : "sticky top-24"}>
+            {mobileSidebarOpen && (
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display text-base font-bold text-foreground">Pastas</h3>
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            )}
+            <h3 className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 hidden lg:block">Pastas</h3>
 
             <div className="space-y-1">
               {/* All forms */}
               <button
-                onClick={() => setSelectedFolderId(null)}
+                onClick={() => { setSelectedFolderId(null); setMobileSidebarOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
                   selectedFolderId === null
                     ? "bg-brand/10 text-brand border border-brand/20"
@@ -627,7 +689,7 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => setSelectedFolderId(selectedFolderId === folder.id ? null : folder.id)}
+                      onClick={() => { setSelectedFolderId(selectedFolderId === folder.id ? null : folder.id); setMobileSidebarOpen(false); }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
                         selectedFolderId === folder.id
                           ? "bg-brand/10 text-brand border border-brand/20"
@@ -672,7 +734,7 @@ export default function Dashboard() {
               {/* Sem pasta */}
               {folderCounts["__none__"] > 0 && (
                 <button
-                  onClick={() => setSelectedFolderId(selectedFolderId === -1 ? null : -1)}
+                  onClick={() => { setSelectedFolderId(selectedFolderId === -1 ? null : -1); setMobileSidebarOpen(false); }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium transition-all duration-150 ${
                     selectedFolderId === -1
                       ? "bg-brand/10 text-brand border border-brand/20"
@@ -715,7 +777,9 @@ export default function Dashboard() {
               </button>
             )}
           </div>
-        </aside>
+        </motion.aside>
+        )}
+        </AnimatePresence>
 
         {/* ─── Main Content ─── */}
         <main className="flex-1 min-w-0">
@@ -740,7 +804,7 @@ export default function Dashboard() {
                 </>
               )}
             </div>
-            <h2 className="font-display text-3xl font-bold text-foreground tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
               {selectedFolderId !== null && selectedFolderId !== -1
                 ? folders.find((f) => f.id === selectedFolderId)?.name || "Meus formulários"
                 : selectedFolderId === -1
@@ -753,8 +817,8 @@ export default function Dashboard() {
           </div>
 
           {/* Filters & Sort Bar */}
-          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
               <SlidersHorizontal size={15} className="text-muted-foreground mr-1" />
               {statusFilters.map((filter) => {
                 const isActive = statusFilter === filter.id;
@@ -763,7 +827,7 @@ export default function Dashboard() {
                   <button
                     key={filter.id}
                     onClick={() => setStatusFilter(filter.id)}
-                    className={`relative flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-body font-medium border transition-all duration-200 ${
+                    className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-body font-medium border transition-all duration-200 whitespace-nowrap ${
                       isActive
                         ? "bg-brand/10 border-brand/30 text-brand shadow-sm"
                         : "bg-white border-border text-muted-foreground hover:text-foreground hover:border-brand/20 hover:bg-secondary/50"
@@ -911,7 +975,7 @@ export default function Dashboard() {
 
           {/* Cards Grid */}
           {!isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               <Link href="/editor">
                 <motion.div
                   className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
@@ -1120,7 +1184,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
       onClick={handleCardClick}
-      className="group relative clean-card rounded-2xl p-6 transition-all duration-200 cursor-pointer hover:shadow-lg"
+      className="group relative clean-card rounded-2xl p-4 sm:p-6 transition-all duration-200 cursor-pointer hover:shadow-lg"
     >
       <div
         className="absolute top-0 left-8 right-8 h-[3px] rounded-b-full opacity-70 group-hover:opacity-100 transition-opacity"
@@ -1136,7 +1200,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         </div>
 
         {/* Visible action buttons */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
             className="p-2 rounded-lg text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"

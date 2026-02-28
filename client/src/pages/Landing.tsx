@@ -290,8 +290,8 @@ export default function Landing() {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-white/5 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+      <footer className="border-t border-white/5 py-6 sm:py-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
               <Zap size={12} className="text-[#0a0a12]" />

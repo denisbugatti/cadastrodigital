@@ -134,3 +134,11 @@
 
 ## Bug: Uncontrolled-to-controlled input warning on /editor (recorrente)
 - [x] Fix undefined input values via deep merge in dbFormToBuilderForm (webhook integrations, design, sharing)
+
+## Feature: Design responsivo para mobile e web app
+- [x] Dashboard: sidebar colapsável/drawer no mobile, grid de cards adaptável
+- [x] Dashboard: header e filtros empilhados no mobile
+- [x] Editor/Builder: toolbar e painéis adaptáveis para telas pequenas
+- [x] Responses page: tabela responsiva com scroll horizontal ou cards no mobile
+- [x] PWA meta tags (viewport, theme-color, apple-mobile-web-app)
+- [x] Formulário de preenchimento: verificar e ajustar se necessário
