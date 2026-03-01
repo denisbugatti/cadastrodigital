@@ -396,16 +396,30 @@ export const appRouter = router({
         design: z.any().optional(),
         webhook: z.any().optional(),
         sharing: z.any().optional(),
+        slug: z.string().optional(),
         workspaceId: z.string().nullable().optional(),
         status: z.enum(["draft", "published", "closed"]).optional(),
         color: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, ...data } = input;
+        const { id, slug: directSlug, ...data } = input;
         // Verify ownership
         const form = await db.getFormById(id);
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
+        }
+        // Handle direct slug update (from Dashboard inline edit)
+        if (directSlug) {
+          const slugNormalized = directSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          const existing = await db.getFormBySlug(slugNormalized);
+          if (existing && existing.id !== id) {
+            throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
+          }
+          (data as any).slug = slugNormalized;
+          // Also sync to sharing.slug if sharing exists
+          if (form.sharing && typeof form.sharing === 'object') {
+            (data as any).sharing = { ...(form.sharing as any), slug: slugNormalized };
+          }
         }
         // Sync slug from sharing settings to the forms.slug column
         if (data.sharing && typeof data.sharing === 'object' && 'slug' in data.sharing && data.sharing.slug) {

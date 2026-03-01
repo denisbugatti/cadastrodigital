@@ -505,8 +505,8 @@
 - [x] Ao validar resposta, corretor deve digitar nome do projeto de interesse do cliente
 - [x] Salvar nomes de projetos para reutilização (autocomplete com projetos já usados)
 - [x] Após validar, marcar resposta com check de "Validado" no sistema
-- [ ] Filtrar cadastros por projeto no Dashboard do corretor
-- [ ] Somente após validação: permitir gerar PDF com respostas
+- [x] Filtrar cadastros por projeto no Dashboard do corretor
+- [x] Somente após validação: permitir gerar PDF com respostas
 - [ ] PDF: visualizar, baixar, compartilhar e editar
 - [ ] Adicionar páginas ao PDF
 
@@ -516,11 +516,14 @@
 - [x] Corretores e gerentes podem acessar preview do formulário
 
 ### Edição de Formulário (Dashboard)
-- [ ] Poder alterar o nome do formulário no Dashboard
-- [ ] Poder alterar a URL/slug do formulário no Dashboard
+- [x] Poder alterar o nome do formulário no Dashboard
+- [x] Poder alterar a URL/slug do formulário no Dashboard
 - [x] Fix: SharingPanel mostra URL de dev em vez de one.cadastrodigital.com.br — agora mostra domínio real na preview
 - [x] Fix: Remover animação de splash/loading ao abrir o site — ir direto para o conteúdo
 - [x] Fix: Settings navigate-in-render React error (mover navigate para useEffect)
 - [x] Fix: Usuário já é master no banco (Denis Bugatti)
 - [x] Feature: Validação funciona para TODAS as respostas incluindo arquivos/uploads (imagens, PDFs, múltiplos)
 - [x] Feature: Campo de observação/orientação em cada pergunta para guiar o corretor na validação (como é a resposta certa)
+- [x] Feature: Filtro por projeto no Dashboard/Respostas — corretores filtram cadastros pelo nome do projeto de interesse
+- [x] Feature: Edição de nome/slug do formulário direto no Dashboard — sem precisar abrir o editor
+- [x] Feature: Geração de PDF restrita a respostas validadas — bloquear geração até que todas as respostas estejam aprovadas

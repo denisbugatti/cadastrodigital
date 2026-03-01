@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ResponseCharts } from "@/components/ResponseCharts";
+import { Filter, ShieldCheck, ShieldAlert } from "lucide-react";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -64,6 +65,11 @@ export default function Responses() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [copiedProtocol, setCopiedProtocol] = useState<number | null>(null);
   const [showCorretores, setShowCorretores] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Get distinct project names for the filter
+  const { data: projectNames } = trpc.validations.projectNames.useQuery();
 
   // Corretor queries
   const { data: allCorretores } = trpc.corretores.list.useQuery();
@@ -152,6 +158,25 @@ export default function Responses() {
       setGeneratingId(null);
     }
   }, [utils]);
+
+  // Filter responses by project and validation status
+  const filteredResponses = useMemo(() => {
+    if (!responses) return [];
+    let filtered = [...responses];
+    if (projectFilter !== "all") {
+      filtered = filtered.filter((r: any) => r.projectName === projectFilter);
+    }
+    if (statusFilter === "validated") {
+      filtered = filtered.filter((r: any) => r.isValidated);
+    } else if (statusFilter === "pending") {
+      filtered = filtered.filter((r: any) => !r.isValidated);
+    } else if (statusFilter === "complete") {
+      filtered = filtered.filter((r: any) => r.isComplete);
+    } else if (statusFilter === "partial") {
+      filtered = filtered.filter((r: any) => !r.isComplete);
+    }
+    return filtered;
+  }, [responses, projectFilter, statusFilter]);
 
   const isLoading = formLoading || responsesLoading;
 
@@ -297,9 +322,10 @@ export default function Responses() {
 
       {/* Content */}
       <main className="container max-w-5xl py-4 sm:py-8">
-        {/* Search bar */}
-        <div className="mb-5">
-          <div className="relative max-w-md">
+        {/* Search bar + Filters */}
+        <div className="mb-5 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchRef}
@@ -318,9 +344,43 @@ export default function Responses() {
               </button>
             )}
           </div>
-          {searchParam && (
-            <p className="text-xs text-muted-foreground mt-2 font-body">
-              {responsesLoading ? "Buscando..." : `${responses?.length ?? 0} resultado(s) para "${searchParam}"`}
+          </div>
+
+          {/* Project filter */}
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              className="h-10 px-3 rounded-md border border-border bg-card text-sm font-body text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/50"
+            >
+              <option value="all">Todos os projetos</option>
+              {(projectNames ?? []).map((name: string) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 px-3 rounded-md border border-border bg-card text-sm font-body text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand/50"
+            >
+              <option value="all">Todos os status</option>
+              <option value="validated">✅ Validados</option>
+              <option value="pending">⏳ Pendentes</option>
+              <option value="complete">📋 Completas</option>
+              <option value="partial">📝 Parciais</option>
+            </select>
+          </div>
+
+          {/* Active filter info */}
+          {(searchParam || projectFilter !== "all" || statusFilter !== "all") && (
+            <p className="text-xs text-muted-foreground font-body">
+              {responsesLoading ? "Buscando..." : `${filteredResponses.length} resultado(s)`}
+              {searchParam && ` para "${searchParam}"`}
+              {projectFilter !== "all" && ` · Projeto: ${projectFilter}`}
+              {statusFilter !== "all" && ` · Status: ${statusFilter === "validated" ? "Validados" : statusFilter === "pending" ? "Pendentes" : statusFilter === "complete" ? "Completas" : "Parciais"}`}
             </p>
           )}
         </div>
@@ -330,7 +390,7 @@ export default function Responses() {
           <ResponseCharts responses={responses} questions={questions} />
         )}
 
-        {!responses || responses.length === 0 ? (
+        {filteredResponses.length === 0 ? (
           <div className="text-center py-20">
             {searchParam ? (
               <>
@@ -356,7 +416,7 @@ export default function Responses() {
           </div>
         ) : (
           <div className="space-y-4">
-            {responses.map((response: any, index: number) => {
+            {filteredResponses.map((response: any, index: number) => {
               const answers = (response.answers ?? {}) as Record<string, any>;
               const isExpanded = expandedId === response.id;
               const isGenerating = generatingId === response.id;
@@ -433,6 +493,20 @@ export default function Responses() {
                               )}
                             </span>
                           )}
+                          {response.isValidated ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-body font-medium">
+                              <ShieldCheck size={11} /> Validado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full font-body font-medium">
+                              <ShieldAlert size={11} /> Pendente
+                            </span>
+                          )}
+                          {response.projectName && (
+                            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-body font-medium">
+                              {response.projectName}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -451,12 +525,13 @@ export default function Responses() {
                         </Button>
                       </Link>
 
-                      {/* Gerar Ficha button */}
+                      {/* Gerar Ficha button - only for validated responses */}
                       <Button
                         variant="default"
                         size="sm"
                         className="gap-1.5 sm:gap-2 bg-brand hover:bg-brand/90 text-xs sm:text-sm px-2.5 sm:px-3"
-                        disabled={isGenerating}
+                        disabled={isGenerating || !response.isValidated}
+                        title={!response.isValidated ? "Valide a resposta antes de gerar a ficha" : "Gerar ficha PDF"}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleGenerateFicha(response.id);

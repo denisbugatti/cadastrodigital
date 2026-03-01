@@ -608,6 +608,15 @@ export default function Dashboard() {
     }
   };
 
+  const handleUpdateSlug = async (formId: number, newSlug: string) => {
+    try {
+      await updateFormMutation.mutateAsync({ id: formId, slug: newSlug });
+      toast.success("URL atualizada!", { description: `Novo slug: "${newSlug}"` });
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao atualizar slug");
+    }
+  };
+
   const handleUseTemplate = async (template: FormTemplate) => {
     setCloningTemplate(template.id);
     try {
@@ -1192,6 +1201,7 @@ export default function Dashboard() {
                     onMoveToFolder={handleMoveToFolder}
                     onExport={handleExportForm}
                     onExportCsv={handleExportCsv}
+                    onUpdateSlug={handleUpdateSlug}
                   />
                 ))}
               </AnimatePresence>
@@ -1401,13 +1411,17 @@ interface FormCardProps {
   onMoveToFolder: (formId: number, folderId: number | undefined) => void;
   onExport: (form: DashboardForm) => void;
   onExportCsv: (form: DashboardForm) => void;
+  onUpdateSlug: (formId: number, newSlug: string) => void;
 }
 
-function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
+function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv, onUpdateSlug }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(form.title);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [slugValue, setSlugValue] = useState(form.slug);
+  const slugInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const currentFolder = folders.find((f) => String(f.id) === form.workspaceId);
 
@@ -1553,6 +1567,56 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
         />
       ) : (
         <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
+      )}
+      {/* Inline slug display/edit */}
+      {isEditingSlug ? (
+        <div className="flex items-center gap-1 mb-2" onClick={(e) => e.stopPropagation()}>
+          <span className="text-xs text-muted-foreground font-body shrink-0">/</span>
+          <input
+            ref={slugInputRef}
+            value={slugValue}
+            onChange={(e) => setSlugValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+            onBlur={() => {
+              const trimmed = slugValue.trim().replace(/-+/g, '-').replace(/^-|-$/g, '');
+              if (trimmed && trimmed !== form.slug) {
+                onUpdateSlug(form.id, trimmed);
+              }
+              setIsEditingSlug(false);
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') {
+                const trimmed = slugValue.trim().replace(/-+/g, '-').replace(/^-|-$/g, '');
+                if (trimmed && trimmed !== form.slug) {
+                  onUpdateSlug(form.id, trimmed);
+                }
+                setIsEditingSlug(false);
+              } else if (e.key === 'Escape') {
+                setSlugValue(form.slug);
+                setIsEditingSlug(false);
+              }
+            }}
+            className="text-xs font-body text-brand bg-brand/5 border border-brand/20 rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-brand/30 w-full"
+            autoFocus
+          />
+        </div>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (canEdit) {
+              setSlugValue(form.slug);
+              setIsEditingSlug(true);
+              setTimeout(() => slugInputRef.current?.focus(), 50);
+            }
+          }}
+          className={`flex items-center gap-1 text-xs text-muted-foreground font-body mb-2 px-1.5 py-0.5 rounded transition-colors ${canEdit ? 'hover:bg-brand/5 hover:text-brand cursor-pointer' : 'cursor-default'}`}
+          title={canEdit ? 'Clique para editar a URL' : `/${form.slug}`}
+        >
+          <span className="opacity-60">/</span>{form.slug}
+          {canEdit && <Pencil size={10} className="ml-1 opacity-0 group-hover:opacity-50" />}
+        </button>
       )}
       <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed min-h-[2.5rem]">{form.description || "Sem descrição"}</p>
 
