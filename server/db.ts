@@ -9,6 +9,8 @@ import {
   files, InsertFileRecord,
   workspaces, InsertWorkspace,
   pushSubscriptions, InsertPushSubscription,
+  corretores, InsertCorretor,
+  formCorretores, InsertFormCorretor,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -501,5 +503,95 @@ export async function deletePushSubscription(userId: number, endpoint: string) {
 export async function deactivatePushSubscription(id: number) {
   return withDbRetry(async (db) => {
     await db.update(pushSubscriptions).set({ active: false }).where(eq(pushSubscriptions.id, id));
+  });
+}
+
+/* ─── Corretores ─── */
+
+export async function createCorretor(data: InsertCorretor) {
+  return withDbRetry(async (db) => {
+    const result = await db.insert(corretores).values(data);
+    return { id: result[0].insertId };
+  });
+}
+
+export async function getCorretoresByUser(userId: number) {
+  return withDbRetry(async (db) => {
+    return db.select().from(corretores).where(eq(corretores.userId, userId)).orderBy(desc(corretores.createdAt));
+  });
+}
+
+export async function getCorretorById(id: number) {
+  return withDbRetry(async (db) => {
+    const result = await db.select().from(corretores).where(eq(corretores.id, id)).limit(1);
+    return result[0] ?? null;
+  });
+}
+
+export async function updateCorretor(id: number, data: Partial<InsertCorretor>) {
+  return withDbRetry(async (db) => {
+    await db.update(corretores).set(data).where(eq(corretores.id, id));
+  });
+}
+
+export async function deleteCorretor(id: number) {
+  return withDbRetry(async (db) => {
+    // Also remove all form associations
+    await db.delete(formCorretores).where(eq(formCorretores.corretorId, id));
+    await db.delete(corretores).where(eq(corretores.id, id));
+  });
+}
+
+/* ─── Form-Corretor Associations ─── */
+
+export async function getCorretoresByForm(formId: number) {
+  return withDbRetry(async (db) => {
+    // Join formCorretores with corretores to get full corretor data
+    const associations = await db.select().from(formCorretores).where(eq(formCorretores.formId, formId));
+    if (associations.length === 0) return [];
+    const corretorIds = associations.map((a: any) => a.corretorId);
+    const allCorretores = await db.select().from(corretores);
+    return allCorretores
+      .filter((c: any) => corretorIds.includes(c.id))
+      .map((c: any) => ({
+        ...c,
+        notifyOnSubmission: associations.find((a: any) => a.corretorId === c.id)?.notifyOnSubmission ?? true,
+      }));
+  });
+}
+
+export async function getActiveCorretoresByForm(formId: number) {
+  return withDbRetry(async (db) => {
+    const associations = await db.select().from(formCorretores)
+      .where(and(eq(formCorretores.formId, formId), eq(formCorretores.notifyOnSubmission, true)));
+    if (associations.length === 0) return [];
+    const corretorIds = associations.map((a: any) => a.corretorId);
+    const allCorretores = await db.select().from(corretores);
+    return allCorretores.filter((c: any) => corretorIds.includes(c.id) && c.active);
+  });
+}
+
+export async function setFormCorretores(formId: number, corretorIds: number[]) {
+  return withDbRetry(async (db) => {
+    // Remove all existing associations for this form
+    await db.delete(formCorretores).where(eq(formCorretores.formId, formId));
+    // Insert new associations
+    if (corretorIds.length > 0) {
+      await db.insert(formCorretores).values(
+        corretorIds.map((corretorId) => ({
+          formId,
+          corretorId,
+          notifyOnSubmission: true,
+        }))
+      );
+    }
+  });
+}
+
+export async function toggleFormCorretorNotification(formId: number, corretorId: number, enabled: boolean) {
+  return withDbRetry(async (db) => {
+    await db.update(formCorretores)
+      .set({ notifyOnSubmission: enabled })
+      .where(and(eq(formCorretores.formId, formId), eq(formCorretores.corretorId, corretorId)));
   });
 }

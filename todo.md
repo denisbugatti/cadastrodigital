@@ -242,3 +242,13 @@
 - [x] MatrixInput: cores adaptativas, border rgba
 - [x] Hints "Enter ↵" padronizados (text-xs opacity-30, kbd com border rgba)
 - [x] Todos os 57 testes passando
+
+## Feature: Notificações para corretores quando novo cadastro é feito
+- [x] Backend: tabela de corretores (nome, email, telefone, ativo) + tabela form_corretores
+- [x] Backend: associar corretores a formulários (setFormCorretores, getCorretoresByForm, getActiveCorretoresByForm)
+- [x] Backend: enviar notificação por email ao corretor quando novo cadastro é feito (corretorNotification.ts com template HTML profissional)
+- [x] Backend: tRPC procedures para CRUD de corretores e associação com formulários (corretores router)
+- [x] Frontend: página de gerenciamento de corretores (/corretores) com CRUD completo
+- [x] Frontend: botão Corretores no Dashboard header
+- [x] Frontend: painel de associação corretor-formulário na página de Respostas (toggle switch animável)
+- [x] Testes unitários: 14 novos testes de corretores (70 testes totais passando)

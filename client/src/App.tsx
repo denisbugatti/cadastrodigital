@@ -11,6 +11,7 @@ import FormPreviewPage from "./pages/FormPreviewPage";
 import Dashboard from "./pages/Dashboard";
 import FormView from "./pages/FormView";
 import Responses from "./pages/Responses";
+import Corretores from "./pages/Corretores";
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path={"/form/:id"} component={FormView} />
       <Route path={"/f/:slug"} component={FormView} />
       <Route path={"/responses/:formId"} component={Responses} />
+      <Route path={"/corretores"} component={Corretores} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

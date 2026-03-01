@@ -12,6 +12,7 @@ import { COOKIE_NAME } from "../shared/const";
 import { notifyOwner } from "./_core/notification";
 import { notifyOwnerNewResponse } from "./pushNotification";
 import { sendProtocolEmail } from "./emailService";
+import { notifyCorretoresNewSubmission } from "./corretorNotification";
 
 /**
  * In-memory cache for the owner user.
@@ -263,6 +264,22 @@ export const appRouter = router({
                 formTitle,
               }).catch((err) => {
                 console.warn("[Email] Failed to send protocol email:", (err as Error)?.message?.substring(0, 100));
+              });
+            }
+
+            // Notify corretores assigned to this form
+            if (result.protocolCode) {
+              const questions: any[] = form?.questions ?? [];
+              notifyCorretoresNewSubmission({
+                formId: input.formId,
+                protocolCode: result.protocolCode,
+                formTitle,
+                respondentName: input.respondentName ?? undefined,
+                respondentEmail: input.respondentEmail ?? undefined,
+                answers: input.answers,
+                questions,
+              }).catch((err) => {
+                console.warn("[CorretorNotification] Failed:", (err as Error)?.message?.substring(0, 100));
               });
             }
           } catch (err) {
@@ -619,6 +636,92 @@ export const appRouter = router({
     vapidPublicKey: publicProcedure
       .query(() => {
         return { key: process.env.VAPID_PUBLIC_KEY ?? "" };
+      }),
+  }),
+
+  // ─── Corretores ───
+  corretores: router({
+    list: ownerFallbackProcedure.query(async ({ ctx }) => {
+      return db.getCorretoresByUser(ctx.user.id);
+    }),
+
+    create: ownerFallbackProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createCorretor({
+          userId: ctx.user.id,
+          name: input.name,
+          email: input.email,
+          phone: input.phone ?? null,
+          active: true,
+        });
+      }),
+
+    update: ownerFallbackProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        active: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const corretor = await db.getCorretorById(input.id);
+        if (!corretor || corretor.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Corretor não encontrado" });
+        }
+        const { id, ...data } = input;
+        await db.updateCorretor(id, data);
+        return { success: true };
+      }),
+
+    delete: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const corretor = await db.getCorretorById(input.id);
+        if (!corretor || corretor.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Corretor não encontrado" });
+        }
+        await db.deleteCorretor(input.id);
+        return { success: true };
+      }),
+
+    // Get corretores assigned to a specific form
+    byForm: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getCorretoresByForm(input.formId);
+      }),
+
+    // Set which corretores are assigned to a form
+    setFormCorretores: ownerFallbackProcedure
+      .input(z.object({
+        formId: z.number(),
+        corretorIds: z.array(z.number()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
+        }
+        await db.setFormCorretores(input.formId, input.corretorIds);
+        return { success: true };
+      }),
+
+    // Toggle notification for a specific corretor on a form
+    toggleNotification: ownerFallbackProcedure
+      .input(z.object({
+        formId: z.number(),
+        corretorId: z.number(),
+        enabled: z.boolean(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.toggleFormCorretorNotification(input.formId, input.corretorId, input.enabled);
+        return { success: true };
       }),
   }),
 

@@ -38,6 +38,16 @@ vi.mock("./db", () => ({
   deleteWorkspace: vi.fn(),
   getUserByOpenId: vi.fn(),
   upsertUser: vi.fn(),
+  // Corretor functions
+  createCorretor: vi.fn(),
+  getCorretoresByUser: vi.fn(),
+  getCorretorById: vi.fn(),
+  updateCorretor: vi.fn(),
+  deleteCorretor: vi.fn(),
+  getCorretoresByForm: vi.fn(),
+  getActiveCorretoresByForm: vi.fn(),
+  setFormCorretores: vi.fn(),
+  toggleFormCorretorNotification: vi.fn(),
 }));
 
 // ─── Mock storage module ───
@@ -53,6 +63,11 @@ vi.mock("./emailService", () => ({
 // ─── Mock push notification ───
 vi.mock("./pushNotification", () => ({
   notifyOwnerNewResponse: vi.fn().mockResolvedValue(undefined),
+}));
+
+// ─── Mock corretor notification ───
+vi.mock("./corretorNotification", () => ({
+  notifyCorretoresNewSubmission: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ─── Mock env module ───
@@ -880,5 +895,220 @@ describe("protocol code format", () => {
         protocolCode: "OI-PROTO1",
       })
     );
+  });
+});
+
+// ─── Corretores Tests ───
+
+describe("corretores", () => {
+  const sampleCorretor = {
+    id: 1,
+    userId: 100,
+    name: "João Silva",
+    email: "joao@corretor.com",
+    phone: "(11) 99999-9999",
+    active: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const sampleCorretor2 = {
+    id: 2,
+    userId: 100,
+    name: "Maria Santos",
+    email: "maria@corretor.com",
+    phone: null,
+    active: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  function createOwnerContext(): TrpcContext {
+    return {
+      user: ownerUser,
+      req: {
+        protocol: "https",
+        headers: {},
+        ip: "127.0.0.1",
+      } as TrpcContext["req"],
+      res: {
+        clearCookie: vi.fn(),
+      } as unknown as TrpcContext["res"],
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.getUserByOpenId).mockResolvedValue(ownerUser as any);
+  });
+
+  describe("corretores.list", () => {
+    it("should list all corretores for the authenticated user", async () => {
+      vi.mocked(db.getCorretoresByUser).mockResolvedValue([sampleCorretor, sampleCorretor2] as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.list();
+
+      expect(result).toHaveLength(2);
+      expect(db.getCorretoresByUser).toHaveBeenCalledWith(100);
+    });
+
+    it("should return empty array when no corretores exist", async () => {
+      vi.mocked(db.getCorretoresByUser).mockResolvedValue([]);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.list();
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("corretores.create", () => {
+    it("should create a new corretor", async () => {
+      vi.mocked(db.createCorretor).mockResolvedValue(sampleCorretor as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.create({
+        name: "João Silva",
+        email: "joao@corretor.com",
+        phone: "(11) 99999-9999",
+      });
+
+      expect(result).toEqual(sampleCorretor);
+      expect(db.createCorretor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "João Silva",
+          email: "joao@corretor.com",
+          phone: "(11) 99999-9999",
+          userId: 100,
+        })
+      );
+    });
+
+    it("should create a corretor without phone", async () => {
+      const corretorNoPhone = { ...sampleCorretor, phone: null };
+      vi.mocked(db.createCorretor).mockResolvedValue(corretorNoPhone as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.create({
+        name: "João Silva",
+        email: "joao@corretor.com",
+      });
+
+      expect(result).toEqual(corretorNoPhone);
+    });
+  });
+
+  describe("corretores.update", () => {
+    it("should update an existing corretor", async () => {
+      vi.mocked(db.getCorretorById).mockResolvedValue(sampleCorretor as any);
+      vi.mocked(db.updateCorretor).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.update({
+        id: 1,
+        name: "João Updated",
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(db.updateCorretor).toHaveBeenCalledWith(1, { name: "João Updated" });
+    });
+
+    it("should toggle active status", async () => {
+      vi.mocked(db.getCorretorById).mockResolvedValue(sampleCorretor as any);
+      vi.mocked(db.updateCorretor).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.update({
+        id: 1,
+        active: false,
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(db.updateCorretor).toHaveBeenCalledWith(1, { active: false });
+    });
+
+    it("should reject update for non-existent corretor", async () => {
+      vi.mocked(db.getCorretorById).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      await expect(
+        caller.corretores.update({ id: 999, name: "Ghost" })
+      ).rejects.toThrow("Corretor não encontrado");
+    });
+  });
+
+  describe("corretores.delete", () => {
+    it("should delete a corretor", async () => {
+      vi.mocked(db.getCorretorById).mockResolvedValue(sampleCorretor as any);
+      vi.mocked(db.deleteCorretor).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.delete({ id: 1 });
+
+      expect(result).toEqual({ success: true });
+      expect(db.deleteCorretor).toHaveBeenCalledWith(1);
+    });
+
+    it("should reject delete for non-existent corretor", async () => {
+      vi.mocked(db.getCorretorById).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      await expect(
+        caller.corretores.delete({ id: 999 })
+      ).rejects.toThrow("Corretor não encontrado");
+    });
+  });
+
+  describe("corretores.byForm", () => {
+    it("should list corretores assigned to a form", async () => {
+      vi.mocked(db.getCorretoresByForm).mockResolvedValue([sampleCorretor] as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.byForm({ formId: 1 });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("João Silva");
+      expect(db.getCorretoresByForm).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe("corretores.setFormCorretores", () => {
+    it("should assign corretores to a form", async () => {
+      vi.mocked(db.getFormById).mockResolvedValue({ ...sampleForm, userId: 100 } as any);
+      vi.mocked(db.setFormCorretores).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.setFormCorretores({
+        formId: 1,
+        corretorIds: [1, 2],
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(db.setFormCorretores).toHaveBeenCalledWith(1, [1, 2]);
+    });
+
+    it("should remove all corretores from a form with empty array", async () => {
+      vi.mocked(db.getFormById).mockResolvedValue({ ...sampleForm, userId: 100 } as any);
+      vi.mocked(db.setFormCorretores).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      const result = await caller.corretores.setFormCorretores({
+        formId: 1,
+        corretorIds: [],
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(db.setFormCorretores).toHaveBeenCalledWith(1, []);
+    });
+
+    it("should reject for non-existent form", async () => {
+      vi.mocked(db.getFormById).mockResolvedValue(undefined as any);
+
+      const caller = appRouter.createCaller(createOwnerContext());
+      await expect(
+        caller.corretores.setFormCorretores({ formId: 999, corretorIds: [1] })
+      ).rejects.toThrow("Formulário não encontrado");
+    });
   });
 });

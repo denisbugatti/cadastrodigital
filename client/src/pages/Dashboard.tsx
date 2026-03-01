@@ -626,6 +626,16 @@ export default function Dashboard() {
             />
           </div>
 
+          {/* Corretores link */}
+          <Link href="/corretores">
+            <button
+              title="Gerenciar corretores"
+              className="relative p-2.5 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-200 shrink-0"
+            >
+              <Users size={18} />
+            </button>
+          </Link>
+
           {/* Notification bell */}
           <NotificationBell />
 

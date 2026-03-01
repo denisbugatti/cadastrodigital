@@ -175,3 +175,42 @@ export const pushSubscriptions = mysqlTable("push_subscriptions", {
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+/**
+ * Corretores (Real estate agents) — manages agents who receive notifications.
+ */
+export const corretores = mysqlTable("corretores", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Owner user ID (who created this corretor) */
+  userId: int("userId").notNull(),
+  /** Corretor name */
+  name: varchar("name", { length: 500 }).notNull(),
+  /** Corretor email (for notifications) */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** Corretor phone (optional) */
+  phone: varchar("phone", { length: 50 }),
+  /** Whether this corretor is active */
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Corretor = typeof corretores.$inferSelect;
+export type InsertCorretor = typeof corretores.$inferInsert;
+
+/**
+ * Form-Corretor association — which corretores are notified for which forms.
+ */
+export const formCorretores = mysqlTable("form_corretores", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Form ID */
+  formId: int("formId").notNull(),
+  /** Corretor ID */
+  corretorId: int("corretorId").notNull(),
+  /** Whether notifications are enabled for this association */
+  notifyOnSubmission: boolean("notifyOnSubmission").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FormCorretor = typeof formCorretores.$inferSelect;
+export type InsertFormCorretor = typeof formCorretores.$inferInsert;

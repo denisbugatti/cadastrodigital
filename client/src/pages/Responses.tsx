@@ -14,6 +14,7 @@ import {
   Download,
   Loader2,
   User,
+  Users,
   Mail,
   Clock,
   CheckCircle2,
@@ -25,7 +26,11 @@ import {
   Check,
   Search,
   X,
+  Bell,
+  BellOff,
+  Plus,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -57,6 +62,34 @@ export default function Responses() {
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [copiedProtocol, setCopiedProtocol] = useState<number | null>(null);
+  const [showCorretores, setShowCorretores] = useState(false);
+
+  // Corretor queries
+  const { data: allCorretores } = trpc.corretores.list.useQuery();
+  const { data: formCorretores, isLoading: formCorretoresLoading } = trpc.corretores.byForm.useQuery(
+    { formId },
+    { enabled: !!formId }
+  );
+  const setFormCorretoresMutation = trpc.corretores.setFormCorretores.useMutation({
+    onSuccess: () => {
+      trpc.useUtils().corretores.byForm.invalidate({ formId });
+      toast.success("Corretores atualizados!");
+    },
+    onError: (err) => toast.error(err.message || "Erro ao atualizar corretores"),
+  });
+
+  const assignedCorretorIds = useMemo(
+    () => new Set<number>((formCorretores ?? []).map((c: any) => c.id as number)),
+    [formCorretores]
+  );
+
+  function toggleCorretorAssignment(corretorId: number) {
+    const currentIds = Array.from(assignedCorretorIds) as number[];
+    const newIds = assignedCorretorIds.has(corretorId)
+      ? currentIds.filter((id) => id !== corretorId)
+      : [...currentIds, corretorId];
+    setFormCorretoresMutation.mutate({ formId, corretorIds: newIds });
+  }
 
   const handleCopyProtocol = useCallback((responseId: number, code: string) => {
     navigator.clipboard.writeText(code).then(() => {
@@ -167,8 +200,99 @@ export default function Responses() {
               </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 shrink-0"
+            onClick={() => setShowCorretores(!showCorretores)}
+          >
+            <Users size={14} />
+            <span className="hidden sm:inline">Corretores</span>
+            {(formCorretores?.length ?? 0) > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-brand/10 text-brand">
+                {formCorretores?.length}
+              </span>
+            )}
+          </Button>
         </div>
       </header>
+
+      {/* Corretor assignment panel */}
+      <AnimatePresence>
+        {showCorretores && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-b border-border bg-card"
+          >
+            <div className="container max-w-5xl py-4 sm:py-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Bell size={14} className="text-brand" />
+                  <h3 className="text-sm font-semibold text-foreground">Corretores notificados</h3>
+                </div>
+                <Link href="/corretores">
+                  <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
+                    <Plus size={12} /> Gerenciar
+                  </Button>
+                </Link>
+              </div>
+              {!allCorretores || allCorretores.length === 0 ? (
+                <div className="text-center py-6">
+                  <Users size={24} className="mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum corretor cadastrado.</p>
+                  <Link href="/corretores">
+                    <Button variant="outline" size="sm" className="mt-3 gap-1">
+                      <Plus size={14} /> Adicionar corretor
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allCorretores.map((corretor: any) => {
+                    const isAssigned = assignedCorretorIds.has(corretor.id);
+                    return (
+                      <div
+                        key={corretor.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                          isAssigned
+                            ? "border-brand/20 bg-brand/5"
+                            : "border-border bg-background"
+                        } ${!corretor.active ? "opacity-50" : ""}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                            isAssigned ? "bg-brand/10 text-brand" : "bg-muted text-muted-foreground"
+                          }`}>
+                            {corretor.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{corretor.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{corretor.email}</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={isAssigned}
+                          onCheckedChange={() => toggleCorretorAssignment(corretor.id)}
+                          disabled={!corretor.active || setFormCorretoresMutation.isPending}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {(formCorretores?.length ?? 0) > 0 && (
+                <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+                  <Bell size={10} />
+                  {formCorretores?.length} corretor(es) serão notificados por email a cada novo cadastro.
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       <main className="container max-w-5xl py-4 sm:py-8">
