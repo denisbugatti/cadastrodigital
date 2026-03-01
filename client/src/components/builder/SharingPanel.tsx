@@ -53,7 +53,7 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
       case "button-link":
         return `<a\n  href="${formUrl}"\n  target="_blank"\n  rel="noopener noreferrer"\n  style="display:inline-block;padding:14px 28px;background:${sharing.embedButtonColor};color:#fff;border-radius:12px;text-decoration:none;font-family:sans-serif;font-size:16px;font-weight:600;"\n>${sharing.embedButtonText}</a>`;
       case "button-popup":
-        return `<button\n  onclick="window.open('${formUrl}','FormFlow','width=700,height=600,scrollbars=yes')"\n  style="padding:14px 28px;background:${sharing.embedButtonColor};color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:sans-serif;font-size:16px;font-weight:600;"\n>${sharing.embedButtonText}</button>`;
+        return `<button\n  onclick="window.open('${formUrl}','CadastroDigital','width=700,height=600,scrollbars=yes')"\n  style="padding:14px 28px;background:${sharing.embedButtonColor};color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:sans-serif;font-size:16px;font-weight:600;"\n>${sharing.embedButtonText}</button>`;
     }
   }, [sharing, formUrl]);
 

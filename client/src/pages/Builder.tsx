@@ -203,7 +203,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     if (imported) {
       toast.success("Formulário importado!", { description: `"${imported.title}" foi adicionado à sua lista.` });
     } else {
-      toast.error("Erro ao importar", { description: "O arquivo não é um formulário FormFlow válido." });
+      toast.error("Erro ao importar", { description: "O arquivo não é um formulário Cadastro Digital válido." });
     }
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";

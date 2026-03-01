@@ -83,7 +83,7 @@ export default function Landing() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
                 <Zap size={16} className="text-[#0a0a12]" />
               </div>
-              <span className="text-base font-semibold tracking-tight">FormFlow</span>
+              <span className="text-base font-semibold tracking-tight">Cadastro Digital</span>
             </div>
           </Link>
 
@@ -192,7 +192,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <FadeInSection>
             <p className="text-xs font-semibold tracking-widest text-amber-400 uppercase mb-4">
-              Por que FormFlow
+              Por que Cadastro Digital
             </p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold leading-tight mb-6 max-w-lg">
               Projetado para quem se importa com experiência.
@@ -229,7 +229,7 @@ export default function Landing() {
                 Tudo que você precisa para coletar dados com elegância.
               </h2>
               <p className="text-base text-white/40 leading-relaxed mb-8 font-body">
-                O FormFlow combina design premium com funcionalidade robusta para
+                O Cadastro Digital combina design premium com funcionalidade robusta para
                 criar experiências de formulário memoráveis.
               </p>
 
@@ -296,7 +296,7 @@ export default function Landing() {
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
               <Zap size={12} className="text-[#0a0a12]" />
             </div>
-            <span className="text-sm text-white/40">FormFlow</span>
+            <span className="text-sm text-white/40">Cadastro Digital</span>
           </div>
           <p className="text-xs text-white/20 font-body">
             Formulários conversacionais com design premium

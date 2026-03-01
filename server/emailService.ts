@@ -45,7 +45,7 @@ export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<bo
     protocolCode,
     formTitle,
     fromEmail = "onboarding@resend.dev",
-    fromName = "FormFlow",
+    fromName = "Cadastro Digital",
   } = params;
 
   const greeting = respondentName ? `Olá, ${respondentName}!` : "Olá!";

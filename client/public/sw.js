@@ -1,4 +1,4 @@
-const CACHE_NAME = 'formflow-v1';
+const CACHE_NAME = 'cadastro-digital-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -37,7 +37,7 @@ self.addEventListener('push', (event) => {
     payload = event.data.json();
   } catch (e) {
     payload = {
-      title: 'FormFlow',
+      title: 'Cadastro Digital',
       body: event.data.text(),
     };
   }
@@ -46,7 +46,7 @@ self.addEventListener('push', (event) => {
     body: payload.body || 'Nova notificação',
     icon: payload.icon || '/icons/icon-192x192.png',
     badge: payload.badge || '/icons/icon-72x72.png',
-    tag: payload.tag || 'formflow-notification',
+    tag: payload.tag || 'cadastro-digital-notification',
     data: {
       url: payload.url || '/dashboard',
       ...payload.data,
@@ -60,7 +60,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'FormFlow', options)
+    self.registration.showNotification(payload.title || 'Cadastro Digital', options)
   );
 });
 

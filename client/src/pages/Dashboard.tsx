@@ -347,7 +347,7 @@ export default function Dashboard() {
         toast.error("Erro ao importar", { description: "Falha ao salvar no banco de dados." });
       }
     } else {
-      toast.error("Erro ao importar", { description: "O arquivo não é um formulário FormFlow válido." });
+      toast.error("Erro ao importar", { description: "O arquivo não é um formulário Cadastro Digital válido." });
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [createFormMutation]);
@@ -610,7 +610,7 @@ export default function Dashboard() {
                   <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
                 </svg>
               </div>
-              <span className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight hidden sm:inline">FormFlow</span>
+              <span className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight hidden sm:inline">Cadastro Digital</span>
             </Link>
           </div>
 

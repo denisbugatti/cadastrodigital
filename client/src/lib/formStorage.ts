@@ -223,7 +223,7 @@ export function importFormFromJSON(file: File): Promise<BuilderForm | null> {
 
         // Validate structure
         if (data._type !== "formflow_export" || !data.form) {
-          console.error("Invalid FormFlow export file");
+          console.error("Invalid Cadastro Digital export file");
           resolve(null);
           return;
         }

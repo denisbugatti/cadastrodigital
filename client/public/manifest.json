@@ -1,6 +1,6 @@
 {
-  "name": "FormFlow",
-  "short_name": "FormFlow",
+  "name": "Cadastro Digital",
+  "short_name": "Cadastro Digital",
   "description": "Crie formulários profissionais e colete respostas de forma inteligente.",
   "start_url": "/",
   "display": "standalone",

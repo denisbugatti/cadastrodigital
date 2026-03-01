@@ -252,3 +252,16 @@
 - [x] Frontend: botão Corretores no Dashboard header
 - [x] Frontend: painel de associação corretor-formulário na página de Respostas (toggle switch animável)
 - [x] Testes unitários: 14 novos testes de corretores (70 testes totais passando)
+
+## Renomear: FormFlow → Cadastro Digital
+- [x] index.html: title, apple-mobile-web-app-title, splash screen
+- [x] manifest.json: name, short_name
+- [x] sw.js: cache name, notification title, tag
+- [x] Dashboard.tsx: header brand name, import error message
+- [x] Builder.tsx: import error message
+- [x] Landing.tsx: nav brand, features section, benefits section, footer
+- [x] emailService.ts: fromName → "Cadastro Digital"
+- [x] corretorNotification.ts: fromName + footer texts
+- [x] SharingPanel.tsx: window.open name
+- [x] formStorage.ts: console error message
+- [x] Todos os 70 testes passando

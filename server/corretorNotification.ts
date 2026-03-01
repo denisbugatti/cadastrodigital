@@ -51,7 +51,7 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
     formTitle,
     submittedAt,
     fromEmail = "onboarding@resend.dev",
-    fromName = "FormFlow",
+    fromName = "Cadastro Digital",
   } = params;
 
   const dateStr = submittedAt.toLocaleDateString("pt-BR", {
@@ -133,7 +133,7 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
           <tr>
             <td style="padding:20px 32px;background-color:#f9fafb;border-top:1px solid #eaeaea;text-align:center;">
               <p style="margin:0;color:#999999;font-size:12px;line-height:1.5;">
-                Este é um e-mail automático do FormFlow. Por favor, não responda.
+                Este é um e-mail automático do Cadastro Digital. Por favor, não responda.
               </p>
             </td>
           </tr>
@@ -159,7 +159,7 @@ Recebido em: ${dateStr}
 Acesse o painel para ver todos os detalhes da resposta e gerar a ficha de cadastro.
 
 ---
-Este é um e-mail automático do FormFlow. Por favor, não responda.`;
+Este é um e-mail automático do Cadastro Digital. Por favor, não responda.`;
 
   try {
     const { data, error } = await resend.emails.send({
