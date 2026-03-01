@@ -1,14 +1,16 @@
 /**
  * FormFlow Design Editor (Light Theme)
  * Allows customizing colors, fonts, logo, background, and OG meta.
+ * Supports file upload for logo, background image, and OG image via tRPC.
  */
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  Palette, Type, Image, Globe,
+  Palette, Type, Image, Globe, Upload, X, Loader2,
 } from "lucide-react";
 import type { FormDesignSettings } from "@/lib/builderTypes";
+import { trpc } from "@/lib/trpc";
 
 interface DesignEditorProps {
   design: FormDesignSettings;
@@ -66,6 +68,174 @@ function ColorInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-24 px-3 py-2 rounded-xl text-sm font-mono bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Reusable image upload field with drag-and-drop, file picker, and URL fallback.
+ */
+function ImageUploadField({
+  label,
+  description,
+  value,
+  onChange,
+  previewClassName = "max-h-16 object-contain",
+  previewContainerClassName = "mt-3 p-4 rounded-xl border border-border flex items-center justify-center bg-secondary/50",
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (url: string) => void;
+  previewClassName?: string;
+  previewContainerClassName?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadMutation = trpc.files.upload.useMutation();
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Arquivo muito grande. Máximo: 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data:image/xxx;base64, prefix
+          const base64Data = result.split(",")[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadMutation.mutateAsync({
+        filename: file.name,
+        contentBase64: base64,
+        mimeType: file.type,
+        context: "design",
+      });
+
+      onChange(result.url);
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Erro ao fazer upload. Tente novamente.");
+    } finally {
+      setUploading(false);
+    }
+  }, [uploadMutation, onChange]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  }, [handleFileUpload]);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFileUpload(e.target.files[0]);
+    }
+  }, [handleFileUpload]);
+
+  return (
+    <div>
+      <h4 className="text-sm font-body font-semibold text-foreground mb-1">
+        {label}
+      </h4>
+      <p className="text-sm text-muted-foreground mb-3">
+        {description}
+      </p>
+
+      {/* Upload area */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {!value ? (
+        <div
+          className={`rounded-xl border-2 border-dashed p-6 flex flex-col items-center gap-3 cursor-pointer transition-all duration-200 ${
+            isDragging
+              ? "border-brand bg-brand/5"
+              : "border-border hover:border-brand/40 hover:bg-secondary/50"
+          }`}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+        >
+          {uploading ? (
+            <div className="flex flex-col items-center gap-2 py-2">
+              <Loader2 size={24} className="animate-spin text-brand" />
+              <span className="text-sm text-muted-foreground">Enviando...</span>
+            </div>
+          ) : (
+            <>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary border border-border">
+                <Upload size={18} className="text-muted-foreground" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-foreground">
+                  <span className="font-medium text-brand cursor-pointer">Escolher arquivo</span>
+                  {" "}ou arraste aqui
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">PNG, JPG, SVG, WebP (máx. 5MB)</p>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className={previewContainerClassName}>
+          <div className="flex-1 flex items-center justify-center">
+            <img
+              src={value}
+              alt={`${label} preview`}
+              className={previewClassName}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-brand hover:text-brand/80 font-medium transition-colors"
+            >
+              Trocar
+            </button>
+            <button
+              onClick={() => onChange("")}
+              className="p-1 rounded-md hover:bg-secondary transition-colors"
+              title="Remover"
+            >
+              <X size={14} className="text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* URL fallback input */}
+      <div className="mt-2">
+        <input
+          type="text"
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Ou cole a URL da imagem..."
+          className="w-full px-4 py-2 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
         />
       </div>
     </div>
@@ -280,62 +450,24 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
             className="space-y-6"
           >
             {/* Logo */}
-            <div>
-              <h4 className="text-sm font-body font-semibold text-foreground mb-1">
-                Logotipo
-              </h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Aparece no topo do formulário. Recomendado: PNG transparente.
-              </p>
-              <input
-                type="text"
-                value={design.logoUrl ?? ""}
-                onChange={(e) => onUpdate({ logoUrl: e.target.value })}
-                placeholder="URL da imagem do logo..."
-                className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
-              />
-              {design.logoUrl && (
-                <div className="mt-3 p-4 rounded-xl border border-border flex items-center justify-center bg-secondary/50">
-                  <img
-                    src={design.logoUrl}
-                    alt="Logo preview"
-                    className="max-h-16 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            <ImageUploadField
+              label="Logotipo"
+              description="Aparece no topo do formulário. Recomendado: PNG transparente."
+              value={design.logoUrl ?? ""}
+              onChange={(url) => onUpdate({ logoUrl: url })}
+              previewClassName="max-h-16 object-contain"
+              previewContainerClassName="mt-3 p-4 rounded-xl border border-border flex flex-col items-center bg-secondary/50"
+            />
 
             {/* Background image */}
-            <div>
-              <h4 className="text-sm font-body font-semibold text-foreground mb-1">
-                Imagem de fundo
-              </h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Imagem que aparece no fundo do formulário. Cuidado com o contraste.
-              </p>
-              <input
-                type="text"
-                value={design.backgroundImage ?? ""}
-                onChange={(e) => onUpdate({ backgroundImage: e.target.value })}
-                placeholder="URL da imagem de fundo..."
-                className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
-              />
-              {design.backgroundImage && (
-                <div className="mt-3 rounded-xl overflow-hidden border border-border">
-                  <img
-                    src={design.backgroundImage}
-                    alt="Background preview"
-                    className="w-full h-28 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            <ImageUploadField
+              label="Imagem de fundo"
+              description="Imagem que aparece no fundo do formulário. Cuidado com o contraste."
+              value={design.backgroundImage ?? ""}
+              onChange={(url) => onUpdate({ backgroundImage: url })}
+              previewClassName="w-full h-28 object-cover rounded-lg"
+              previewContainerClassName="mt-3 rounded-xl overflow-hidden border border-border flex flex-col items-center"
+            />
           </motion.div>
         )}
 
@@ -407,18 +539,16 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                     className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all resize-none"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
-                    Imagem de capa
-                  </label>
-                  <input
-                    type="text"
-                    value={design.ogImage ?? ""}
-                    onChange={(e) => onUpdate({ ogImage: e.target.value })}
-                    placeholder="URL da imagem de capa..."
-                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
-                  />
-                </div>
+
+                {/* OG Image upload */}
+                <ImageUploadField
+                  label="Imagem de capa"
+                  description="Imagem exibida ao compartilhar o link em redes sociais."
+                  value={design.ogImage ?? ""}
+                  onChange={(url) => onUpdate({ ogImage: url })}
+                  previewClassName="w-full h-28 object-cover rounded-lg"
+                  previewContainerClassName="mt-3 rounded-xl overflow-hidden border border-border flex flex-col items-center"
+                />
               </div>
             </div>
           </motion.div>

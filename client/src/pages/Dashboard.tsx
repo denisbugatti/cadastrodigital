@@ -58,6 +58,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -247,6 +265,9 @@ export default function Dashboard() {
   const [cloningTemplate, setCloningTemplate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<DashboardForm | null>(null);
+  const [duplicateTitle, setDuplicateTitle] = useState("");
+  const [duplicateFolderId, setDuplicateFolderId] = useState<string>("same");
 
   const utils = trpc.useUtils();
 
@@ -486,12 +507,29 @@ export default function Dashboard() {
     }
   };
 
-  const handleDuplicate = async (form: DashboardForm) => {
+  const handleDuplicate = (form: DashboardForm) => {
+    setDuplicateTarget(form);
+    setDuplicateTitle(`${form.title} (cópia)`);
+    setDuplicateFolderId("same");
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateTarget) return;
     try {
-      await duplicateFormMutation.mutateAsync({ id: form.id });
-      toast.success("Formulário duplicado!", {
-        description: `"${form.title}" foi duplicado como rascunho.`,
+      const workspaceId = duplicateFolderId === "same"
+        ? duplicateTarget.workspaceId
+        : duplicateFolderId === "none"
+          ? null
+          : duplicateFolderId;
+      await duplicateFormMutation.mutateAsync({
+        id: duplicateTarget.id,
+        title: duplicateTitle.trim() || `${duplicateTarget.title} (cópia)`,
+        workspaceId,
       });
+      toast.success("Formulário duplicado!", {
+        description: `"${duplicateTitle.trim()}" foi criado como rascunho.`,
+      });
+      setDuplicateTarget(null);
     } catch (err) {
       toast.error("Erro ao duplicar formulário");
     }
@@ -1215,6 +1253,90 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ─── Duplicate Form Dialog ─── */}
+      <Dialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
+        <DialogContent className="bg-white border-border shadow-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg font-bold text-foreground">
+              Duplicar formulário
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground font-body">
+              Crie uma cópia de <span className="font-semibold text-foreground">"{duplicateTarget?.title}"</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="duplicate-title" className="text-sm font-medium text-foreground">Nome do formulário</Label>
+              <Input
+                id="duplicate-title"
+                value={duplicateTitle}
+                onChange={(e) => setDuplicateTitle(e.target.value)}
+                placeholder="Nome do formulário"
+                className="font-body"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmDuplicate(); }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="duplicate-folder" className="text-sm font-medium text-foreground">Pasta de destino</Label>
+              <Select value={duplicateFolderId} onValueChange={setDuplicateFolderId}>
+                <SelectTrigger className="font-body">
+                  <SelectValue placeholder="Escolha uma pasta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="same">
+                    <span className="flex items-center gap-2">
+                      <FolderOpen size={14} className="text-muted-foreground" />
+                      Mesma pasta do original
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="none">
+                    <span className="flex items-center gap-2">
+                      <FileText size={14} className="text-muted-foreground" />
+                      Sem pasta
+                    </span>
+                  </SelectItem>
+                  {folders.map((folder) => (
+                    <SelectItem key={folder.id} value={String(folder.id)}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: folder.color }}
+                        />
+                        {folder.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2">
+            <Button
+              variant="outline"
+              onClick={() => setDuplicateTarget(null)}
+              className="font-body font-medium rounded-xl px-5"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDuplicate}
+              disabled={duplicateFormMutation.isPending || !duplicateTitle.trim()}
+              className="font-body font-medium rounded-xl px-5 bg-brand hover:bg-brand-dark text-white"
+            >
+              {duplicateFormMutation.isPending ? (
+                <><Loader2 size={14} className="animate-spin mr-1.5" /> Duplicando...</>
+              ) : (
+                <><Copy size={14} className="mr-1.5" /> Duplicar</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

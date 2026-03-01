@@ -359,3 +359,16 @@
 - [x] viewport-fit=cover para phones com notch + safe area CSS utilities
 - [x] Touch-action improvements no CSS global
 - [x] 144 testes passando
+
+## Feature: Duplicar formulário com renomear e escolher pasta
+- [ ] Backend: criar procedure duplicateForm (copia form + questions + settings)
+- [ ] Backend: gerar novo slug único para o formulário duplicado
+- [ ] Frontend: dialog de duplicação com campo de nome e seletor de pasta
+- [ ] Frontend: integrar dialog no botão de duplicar do Dashboard
+- [ ] Testar fluxo completo de duplicação
+
+## Feature: Upload de imagem no DesignEditor (logo)
+- [x] Adicionar input file para upload de imagem no campo de logo do DesignEditor
+- [x] Fazer upload da imagem para S3 via backend
+- [x] Exibir preview da imagem selecionada
+- [x] Testar upload e exibição da imagem

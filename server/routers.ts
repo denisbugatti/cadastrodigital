@@ -230,10 +230,14 @@ export const appRouter = router({
       }),
 
     duplicate: ownerFallbackProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        workspaceId: z.string().nullable().optional(),
+      }))
       .mutation(async ({ ctx, input }) => {
         const newSlug = `form_${nanoid(10)}`;
-        return db.duplicateForm(input.id, ctx.user.id, newSlug);
+        return db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
       }),
   }),
 

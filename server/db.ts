@@ -253,21 +253,29 @@ export async function deleteForm(id: number) {
   });
 }
 
-export async function duplicateForm(id: number, userId: number, newSlug: string) {
+export async function duplicateForm(
+  id: number,
+  userId: number,
+  newSlug: string,
+  customTitle?: string,
+  customWorkspaceId?: string | null,
+) {
   return withDbRetry(async (db) => {
     const original = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
     if (!original[0]) throw new Error("Form not found");
     const o = original[0];
+    // Update sharing object with new slug
+    const newSharing = o.sharing ? { ...(o.sharing as any), slug: newSlug } : { slug: newSlug };
     const result = await db.insert(forms).values({
       slug: newSlug,
       userId,
-      title: `${o.title} (cópia)`,
+      title: customTitle || `${o.title} (cópia)`,
       description: o.description,
       questions: o.questions,
       design: o.design,
       webhook: o.webhook,
-      sharing: o.sharing,
-      workspaceId: o.workspaceId,
+      sharing: newSharing,
+      workspaceId: customWorkspaceId !== undefined ? customWorkspaceId : o.workspaceId,
       status: "draft",
       color: o.color,
       responseCount: 0,

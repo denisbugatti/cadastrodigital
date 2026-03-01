@@ -374,7 +374,26 @@ describe("forms.duplicate", () => {
     expect(db.duplicateForm).toHaveBeenCalledWith(
       1,
       1,
-      expect.stringContaining("form_")
+      expect.stringContaining("form_"),
+      undefined,
+      undefined,
+    );
+  });
+
+  it("duplicates a form with custom title and folder", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.duplicateForm).mockResolvedValue({ id: 100 });
+
+    const result = await caller.forms.duplicate({ id: 1, title: "My Copy", workspaceId: "ws-123" });
+
+    expect(result.id).toBe(100);
+    expect(db.duplicateForm).toHaveBeenCalledWith(
+      1,
+      1,
+      expect.stringContaining("form_"),
+      "My Copy",
+      "ws-123",
     );
   });
 });
