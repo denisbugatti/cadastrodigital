@@ -169,11 +169,14 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
           {/* URL slug editor */}
           <div className="mb-4">
             <label className="text-sm font-body font-medium text-foreground mb-2 block">
-              Endpoint do formulário
+              URL do formulário
             </label>
+            <p className="text-xs text-muted-foreground mb-2 truncate">
+              {baseUrl}/<span className="font-semibold text-foreground">{slugInput || "..."}</span>
+            </p>
             <div className="flex items-center gap-0 bg-secondary rounded-xl border border-border overflow-hidden">
               <span className="text-sm text-muted-foreground shrink-0 px-3 py-2.5 bg-muted/50 border-r border-border">
-                {baseUrl}/
+                Slug:
               </span>
               <div className="flex-1 flex items-center">
                 <input
