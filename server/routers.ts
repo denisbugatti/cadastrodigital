@@ -138,6 +138,15 @@ export const appRouter = router({
         return db.getFormBySlug(input.slug);
       }),
 
+    checkSlugAvailable: publicProcedure
+      .input(z.object({ slug: z.string(), excludeFormId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const existing = await db.getFormBySlug(input.slug);
+        if (!existing) return { available: true };
+        if (input.excludeFormId && existing.id === input.excludeFormId) return { available: true };
+        return { available: false };
+      }),
+
     getById: publicProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
@@ -194,6 +203,16 @@ export const appRouter = router({
         const form = await db.getFormById(id);
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
+        }
+        // Sync slug from sharing settings to the forms.slug column
+        if (data.sharing && typeof data.sharing === 'object' && 'slug' in data.sharing && data.sharing.slug) {
+          const newSlug = data.sharing.slug as string;
+          // Check uniqueness before updating
+          const existing = await db.getFormBySlug(newSlug);
+          if (existing && existing.id !== id) {
+            throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
+          }
+          (data as any).slug = newSlug;
         }
         await db.updateForm(id, data);
         return { success: true };

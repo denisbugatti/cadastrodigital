@@ -522,7 +522,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                 <SharingPanel
                   sharing={form.sharing}
                   formTitle={form.title}
-                  workspaceDomain={undefined}
+                  formId={currentDbFormId}
                   onUpdate={updateSharing}
                 />
                 <div className="border-t border-border">

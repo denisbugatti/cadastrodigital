@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import FormView from "./pages/FormView";
 import Responses from "./pages/Responses";
 import Corretores from "./pages/Corretores";
+import SlugResolver from "./pages/SlugResolver";
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -27,6 +29,8 @@ function Router() {
       <Route path={"/responses/:formId"} component={Responses} />
       <Route path={"/corretores"} component={Corretores} />
       <Route path={"/404"} component={NotFound} />
+      {/* Catch-all: try to resolve as a form slug (e.g., /vitoria) */}
+      <Route path={"/:slug"} component={SlugResolver} />
       <Route component={NotFound} />
     </Switch>
   );

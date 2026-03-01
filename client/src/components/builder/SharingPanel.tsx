@@ -1,21 +1,25 @@
 /**
  * FormFlow Sharing Panel (Light Theme)
  * Link sharing, social media, embed code generation.
+ * Uses window.location.origin as the base URL so it automatically
+ * reflects the real domain (e.g., one.cadastrodigital.com.br).
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Copy, Check, ExternalLink, Facebook, Twitter, Linkedin,
   Code, Monitor, Maximize, MousePointer, Layers,
+  CheckCircle2, XCircle, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import type { SharingSettings, EmbedMode } from "@/lib/builderTypes";
 
 interface SharingPanelProps {
   sharing: SharingSettings;
   formTitle: string;
-  workspaceDomain?: string;
+  formId?: number;
   onUpdate: (updates: Partial<SharingSettings>) => void;
 }
 
@@ -26,16 +30,71 @@ const embedModes: { id: EmbedMode; label: string; icon: typeof Monitor; descript
   { id: "button-popup", label: "Botão para janela", icon: Layers, description: "Botão que abre popup" },
 ];
 
-export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: SharingPanelProps) {
+export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPanelProps) {
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showCode, setShowCode] = useState(false);
+  const [slugInput, setSlugInput] = useState(sharing.slug ?? "");
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const baseUrl = workspaceDomain
-    ? `https://${workspaceDomain}`
-    : "https://formflow.app";
+  // Use the current origin as the base URL — automatically reflects the real domain
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://one.cadastrodigital.com.br";
 
   const formUrl = `${baseUrl}/${sharing.slug}`;
+
+  // Sync slugInput when sharing.slug changes externally
+  useEffect(() => {
+    setSlugInput(sharing.slug ?? "");
+  }, [sharing.slug]);
+
+  // Check slug availability with debounce
+  const checkSlugQuery = trpc.forms.checkSlugAvailable.useQuery(
+    { slug: slugInput, excludeFormId: formId },
+    {
+      enabled: slugStatus === "checking" && slugInput.length >= 2,
+      retry: 1,
+    }
+  );
+
+  useEffect(() => {
+    if (checkSlugQuery.data && slugStatus === "checking") {
+      setSlugStatus(checkSlugQuery.data.available ? "available" : "taken");
+    }
+  }, [checkSlugQuery.data, slugStatus]);
+
+  const handleSlugChange = (value: string) => {
+    const sanitized = value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-");
+    
+    setSlugInput(sanitized);
+    setSlugStatus("idle");
+
+    // Clear previous timeout
+    if (slugCheckTimeout.current) {
+      clearTimeout(slugCheckTimeout.current);
+    }
+
+    if (sanitized.length < 2) {
+      return;
+    }
+
+    // Debounce the slug check
+    slugCheckTimeout.current = setTimeout(() => {
+      setSlugStatus("checking");
+    }, 500);
+  };
+
+  const applySlug = () => {
+    if (slugStatus === "available" || slugInput === sharing.slug) {
+      onUpdate({ slug: slugInput });
+      if (slugInput !== sharing.slug) {
+        toast.success("Slug atualizado!");
+      }
+    }
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(formUrl);
@@ -94,10 +153,10 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
           animate={{ opacity: 1, y: 0 }}
         >
           <h4 className="text-lg font-display font-bold text-foreground mb-1">
-            Link
+            Link do formulário
           </h4>
           <p className="text-sm text-muted-foreground mb-4">
-            Envie esse link por e-mail, ou compartilhe nas suas redes sociais.
+            Cada formulário tem um link fixo e permanente. Edite o slug abaixo para personalizar.
           </p>
 
           {!sharing.isPublished && (
@@ -110,30 +169,50 @@ export function SharingPanel({ sharing, formTitle, workspaceDomain, onUpdate }: 
           {/* URL slug editor */}
           <div className="mb-4">
             <label className="text-sm font-body font-medium text-foreground mb-2 block">
-              Slug da URL
+              Endpoint do formulário
             </label>
-            <div className="flex items-center gap-2 bg-secondary rounded-xl border border-border p-1">
-              <span className="text-sm text-muted-foreground shrink-0 pl-3">
+            <div className="flex items-center gap-0 bg-secondary rounded-xl border border-border overflow-hidden">
+              <span className="text-sm text-muted-foreground shrink-0 px-3 py-2.5 bg-muted/50 border-r border-border">
                 {baseUrl}/
               </span>
-              <input
-                type="text"
-                value={sharing.slug ?? ""}
-                onChange={(e) =>
-                  onUpdate({
-                    slug: e.target.value
-                      .toLowerCase()
-                      .replace(/[^a-z0-9-/]/g, "")
-                      .replace(/\/+/g, "/"),
-                  })
-                }
-                className="flex-1 px-2 py-2 rounded-lg text-sm bg-white border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
-                placeholder="meu-formulario"
-              />
+              <div className="flex-1 flex items-center">
+                <input
+                  type="text"
+                  value={slugInput}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  onBlur={applySlug}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applySlug();
+                  }}
+                  className="flex-1 px-3 py-2.5 text-sm bg-transparent text-foreground focus:outline-none"
+                  placeholder="nome-do-formulario"
+                />
+                <div className="pr-3 flex items-center">
+                  {slugStatus === "checking" && (
+                    <Loader2 size={16} className="text-muted-foreground animate-spin" />
+                  )}
+                  {slugStatus === "available" && (
+                    <CheckCircle2 size={16} className="text-green-500" />
+                  )}
+                  {slugStatus === "taken" && (
+                    <XCircle size={16} className="text-red-500" />
+                  )}
+                </div>
+              </div>
             </div>
+            {slugStatus === "taken" && (
+              <p className="text-xs text-red-500 mt-1.5 ml-1">
+                Este slug já está em uso. Escolha outro.
+              </p>
+            )}
+            {slugStatus === "available" && slugInput !== sharing.slug && (
+              <p className="text-xs text-green-600 mt-1.5 ml-1">
+                Slug disponível! Clique fora ou pressione Enter para aplicar.
+              </p>
+            )}
           </div>
 
-          {/* Copy link */}
+          {/* Final URL display + Copy */}
           <div className="flex items-center gap-2">
             <div className="flex-1 px-4 py-3 rounded-xl text-sm font-mono truncate bg-secondary border border-border text-foreground">
               {formUrl}

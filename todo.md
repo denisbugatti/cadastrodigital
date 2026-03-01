@@ -336,3 +336,14 @@
 - [x] Integrado no menu ⋮ do Builder como "Pontuação"
 - [x] Testado: panel abre, toggles funcionam, scores editáveis, salva sem erros (200 OK)
 - [x] 144 testes passando
+
+## Feature: Endpoint fixo por formulário (URL permanente)
+- [x] Sistema de slug já existe no banco (campo unique slug na tabela forms)
+- [x] Rota /f/:slug já existe no frontend (App.tsx) e backend (getBySlug)
+- [x] SharingPanel usa window.location.origin (reflete domínio real automaticamente)
+- [x] Backend: endpoint checkSlugAvailable com validação de unicidade
+- [x] Backend: slug sincronizado ao salvar formulário (sharing.slug → forms.slug)
+- [x] Rota /:slug no App.tsx via SlugResolver (URLs limpas sem /f/ prefix)
+- [x] SharingPanel: campo editável com feedback verde/vermelho (disponível/indisponível)
+- [x] SharingPanel: debounce de 500ms na verificação de slug
+- [x] Testado: /vitoria carrega formulário, /f/vitoria também funciona, 144 testes passando
