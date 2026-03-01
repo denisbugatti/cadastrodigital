@@ -450,3 +450,18 @@
 - [x] Cards com border-glow que segue o cursor
 - [x] Números animados (counter up) ao entrar na viewport
 - [x] Smooth scroll entre seções
+
+## Bug Fix: Formulário da One Innovation não aparece no Dashboard
+- [x] Investigar por que o formulário não está aparecendo (context.ts não reconhecia JWT custom auth)
+- [x] Corrigir o problema (context.ts atualizado para mapear staff user → owner user)
+
+## Bug Fix: Landing page lenta e travada
+- [x] Remover blobs pesados e animações que causam lag (538→7 CSS animations)
+- [x] Otimizar todas as animações para fluidez máxima (GPU-accelerated, will-change)
+- [x] Reduzir loading screen para algo leve e rápido
+- [x] Garantir 60fps em todas as interações
+
+## Bug Fix: Formulário não aparece após login do staff
+- [x] Corrigir context.ts para reconhecer JWT custom auth e mapear para owner user
+- [x] Garantir que forms.list retorna formulários para staff logado
+- [x] Testar fluxo completo: login staff → dashboard → ver formulários (OK)
