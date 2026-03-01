@@ -319,3 +319,20 @@
 - [x] FormView.tsx: mapeamento de scoreRules + campos scoring (scoringEnabled, questionScore, choice.score)
 - [x] updateQuestion: preserva scoreRules como array separado (evita referências compartilhadas)
 - [x] Testes unitários: 18 novos testes para lógica de pontuação (144 testes totais passando)
+
+## Feature: Reordenar perguntas via drag-and-drop no editor
+- [x] Já implementado: drag-and-drop com @dnd-kit na sidebar de perguntas
+- [x] Já implementado: handle GripVertical visível ao hover
+- [x] Já implementado: proteção contra mover Welcome e Thank You screens
+- [x] Já implementado: auto-save após reordenação
+
+## Feature: Painel centralizado de pontuação (estilo Respondi)
+- [x] Criar componente ScoringPanel como modal Dialog com animações
+- [x] Toggle global "Habilitar pontuação" que ativa/desativa scoring para todas as perguntas
+- [x] Lista de todas as perguntas de múltipla escolha com faixa de pontos ("0 → 9 PONTOS")
+- [x] Expandir/colapsar perguntas para ver opções com campos de pontuação
+- [x] Toggle individual por pergunta para ativar/desativar scoring
+- [x] Botão Salvar no final do painel
+- [x] Integrado no menu ⋮ do Builder como "Pontuação"
+- [x] Testado: panel abre, toggles funcionam, scores editáveis, salva sem erros (200 OK)
+- [x] 144 testes passando

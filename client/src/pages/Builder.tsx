@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
   FileText, Save, Cloud, Download, Upload, History,
-  RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle,
+  RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle, Hash,
 } from "lucide-react";
 import { useBuilder } from "@/hooks/useBuilder";
 import { BuilderSidebar } from "@/components/builder/BuilderSidebar";
@@ -24,6 +24,7 @@ import { SharingPanel } from "@/components/builder/SharingPanel";
 import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { BuilderLivePreview } from "@/components/builder/BuilderLivePreview";
 import { WebhookPanel } from "@/components/builder/WebhookPanel";
+import { ScoringPanel } from "@/components/builder/ScoringPanel";
 import { importFormFromJSON, type FormVersion } from "@/lib/formStorage";
 import { trpc } from "@/lib/trpc";
 
@@ -90,6 +91,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
   const [showPreview, setShowPreview] = useState(false);
+  const [showScoringPanel, setShowScoringPanel] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [versionHistory, setVersionHistory] = useState<FormVersion[]>([]);
@@ -320,6 +322,10 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               <DropdownMenuItem onClick={openHistory}>
                 <History size={15} className="mr-2" />
                 Histórico de versões
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowScoringPanel(true)}>
+                <Hash size={15} className="mr-2" />
+                Pontuação
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={exportForm}>
@@ -747,6 +753,15 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
           </>
         )}
       </AnimatePresence>
+
+      {/* Scoring Panel */}
+      <ScoringPanel
+        open={showScoringPanel}
+        onOpenChange={setShowScoringPanel}
+        questions={form.questions}
+        onUpdateQuestion={updateQuestion}
+        onUpdateChoice={updateChoice}
+      />
 
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
