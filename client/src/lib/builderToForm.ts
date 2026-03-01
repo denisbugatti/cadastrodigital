@@ -33,6 +33,9 @@ function convertQuestion(bq: BuilderQuestion): Question {
   // Handle scoring
   if (bq.scoringEnabled) {
     question.scoringEnabled = true;
+    if (bq.questionScore) {
+      question.questionScore = bq.questionScore;
+    }
   }
 
   // Handle legal text

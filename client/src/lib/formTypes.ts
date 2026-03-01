@@ -85,6 +85,7 @@ export interface Question {
   rankItems?: string[];
   // Scoring
   scoringEnabled?: boolean;
+  questionScore?: number; // Fixed score for non-choice questions (awarded when answered)
   // Conditional logic
   conditionalLogic?: {
     enabled: boolean;

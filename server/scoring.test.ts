@@ -1,54 +1,58 @@
 /**
  * Scoring Logic Tests
- * Tests for the scoring feature: score per choice, scoringEnabled flag,
- * and builderToForm conversion preserving scoring data.
+ * Tests for the scoring feature: score per choice, fixed questionScore,
+ * scoringEnabled flag, and support for ALL question types.
  */
 import { describe, it, expect } from "vitest";
 
-// We test the scoring logic directly since builderToForm is a client module.
-// Instead, we test the scoring calculation logic that FormContainer uses.
+// Mirrors the scoring calculation from FormContainer (expanded version)
+function calculateTotalScore(
+  questions: Array<{
+    id: string;
+    scoringEnabled?: boolean;
+    choices?: Array<{ id: string; label: string; score?: number }>;
+    questionScore?: number;
+  }>,
+  responses: Map<string, { questionId: string; value: unknown }>
+): number | null {
+  const hasScoringQuestions = questions.some((q) => q.scoringEnabled);
+  if (!hasScoringQuestions) return null;
 
-describe("Scoring Logic", () => {
-  // Simulate the scoring calculation from FormContainer
-  function calculateTotalScore(
-    questions: Array<{
-      id: string;
-      scoringEnabled?: boolean;
-      choices?: Array<{ id: string; label: string; score?: number }>;
-    }>,
-    responses: Map<string, { questionId: string; value: unknown }>
-  ): number | null {
-    const hasScoringQuestions = questions.some(
-      (q) => q.scoringEnabled && q.choices?.some((c) => c.score !== undefined)
-    );
-    if (!hasScoringQuestions) return null;
+  let score = 0;
+  responses.forEach((v) => {
+    const q = questions.find((q) => q.id === v.questionId);
+    if (!q?.scoringEnabled) return;
 
-    let score = 0;
-    responses.forEach((v) => {
-      const q = questions.find((q) => q.id === v.questionId);
-      if (q?.scoringEnabled && q.choices) {
-        // For single choice
-        if (typeof v.value === "string") {
-          const choice = q.choices.find(
-            (c) => c.id === v.value || c.label === v.value
+    // Choice-based questions: score per selected option
+    if (q.choices && q.choices.length > 0) {
+      if (typeof v.value === "string") {
+        const choice = q.choices.find(
+          (c) => c.id === v.value || c.label === v.value
+        );
+        if (choice?.score) score += choice.score;
+      }
+      if (Array.isArray(v.value)) {
+        v.value.forEach((val) => {
+          const choice = q.choices!.find(
+            (c) => c.id === val || c.label === val
           );
           if (choice?.score) score += choice.score;
-        }
-        // For multiple select
-        if (Array.isArray(v.value)) {
-          v.value.forEach((val) => {
-            const choice = q.choices!.find(
-              (c) => c.id === val || c.label === val
-            );
-            if (choice?.score) score += choice.score;
-          });
-        }
+        });
       }
-    });
-    return score;
-  }
+    } else {
+      // Non-choice questions: fixed questionScore awarded when answered
+      const hasValue =
+        v.value !== null && v.value !== undefined && v.value !== "";
+      if (hasValue && q.questionScore) {
+        score += q.questionScore;
+      }
+    }
+  });
+  return score;
+}
 
-  describe("calculateTotalScore", () => {
+describe("Scoring Logic", () => {
+  describe("Choice-based scoring", () => {
     it("should return null when no questions have scoring enabled", () => {
       const questions = [
         {
@@ -62,27 +66,7 @@ describe("Scoring Logic", () => {
       ];
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "a" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBeNull();
-    });
-
-    it("should return null when no choices have scores", () => {
-      const questions = [
-        {
-          id: "q1",
-          scoringEnabled: true,
-          choices: [
-            { id: "a", label: "Option A" },
-            { id: "b", label: "Option B" },
-          ],
-        },
-      ];
-      const responses = new Map();
-      responses.set("q1", { questionId: "q1", value: "a" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBeNull();
+      expect(calculateTotalScore(questions, responses)).toBeNull();
     });
 
     it("should calculate score for single choice by id", () => {
@@ -99,9 +83,7 @@ describe("Scoring Logic", () => {
       ];
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "b" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(20);
+      expect(calculateTotalScore(questions, responses)).toBe(20);
     });
 
     it("should calculate score for single choice by label", () => {
@@ -117,9 +99,7 @@ describe("Scoring Logic", () => {
       ];
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "Option A" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(10);
+      expect(calculateTotalScore(questions, responses)).toBe(10);
     });
 
     it("should calculate score for multiple select (array)", () => {
@@ -136,9 +116,7 @@ describe("Scoring Logic", () => {
       ];
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: ["a", "c"] });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(20); // 5 + 15
+      expect(calculateTotalScore(questions, responses)).toBe(20);
     });
 
     it("should sum scores across multiple questions", () => {
@@ -163,9 +141,7 @@ describe("Scoring Logic", () => {
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "a" });
       responses.set("q2", { questionId: "q2", value: "y" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(25); // 10 + 15
+      expect(calculateTotalScore(questions, responses)).toBe(25);
     });
 
     it("should ignore questions without scoring enabled", () => {
@@ -190,9 +166,7 @@ describe("Scoring Logic", () => {
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "b" });
       responses.set("q2", { questionId: "q2", value: "x" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(20); // Only q1 counts
+      expect(calculateTotalScore(questions, responses)).toBe(20);
     });
 
     it("should handle zero scores correctly", () => {
@@ -208,63 +182,7 @@ describe("Scoring Logic", () => {
       ];
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "a" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(0);
-    });
-
-    it("should handle unanswered scoring questions", () => {
-      const questions = [
-        {
-          id: "q1",
-          scoringEnabled: true,
-          choices: [
-            { id: "a", label: "Option A", score: 10 },
-            { id: "b", label: "Option B", score: 20 },
-          ],
-        },
-      ];
-      const responses = new Map();
-      // No response for q1
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(0);
-    });
-
-    it("should handle mixed scoring and non-scoring questions", () => {
-      const questions = [
-        {
-          id: "q1",
-          scoringEnabled: true,
-          choices: [
-            { id: "a", label: "Sim", score: 10 },
-            { id: "b", label: "Não", score: 0 },
-          ],
-        },
-        {
-          id: "q2",
-          choices: [
-            { id: "x", label: "Opção X" },
-            { id: "y", label: "Opção Y" },
-          ],
-        },
-        {
-          id: "q3",
-          scoringEnabled: true,
-          choices: [
-            { id: "p", label: "Alto", score: 30 },
-            { id: "q", label: "Médio", score: 20 },
-            { id: "r", label: "Baixo", score: 10 },
-          ],
-        },
-      ];
-      const responses = new Map();
-      responses.set("q1", { questionId: "q1", value: "a" });
-      responses.set("q2", { questionId: "q2", value: "x" });
-      responses.set("q3", { questionId: "q3", value: "q" });
-
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(30); // 10 + 20
+      expect(calculateTotalScore(questions, responses)).toBe(0);
     });
 
     it("should handle negative scores", () => {
@@ -280,9 +198,161 @@ describe("Scoring Logic", () => {
       ];
       const responses = new Map();
       responses.set("q1", { questionId: "q1", value: "b" });
+      expect(calculateTotalScore(questions, responses)).toBe(-5);
+    });
+  });
 
-      const result = calculateTotalScore(questions, responses);
-      expect(result).toBe(-5);
+  describe("Fixed questionScore (non-choice questions)", () => {
+    it("should award questionScore when a text question is answered", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 5 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "John Doe" });
+      expect(calculateTotalScore(questions, responses)).toBe(5);
+    });
+
+    it("should NOT award questionScore when a text question is empty", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 5 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "" });
+      expect(calculateTotalScore(questions, responses)).toBe(0);
+    });
+
+    it("should NOT award questionScore when value is null", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 5 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: null });
+      expect(calculateTotalScore(questions, responses)).toBe(0);
+    });
+
+    it("should award questionScore for number answers", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 10 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: 42 });
+      expect(calculateTotalScore(questions, responses)).toBe(10);
+    });
+
+    it("should award questionScore for object answers (e.g., address)", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 15 },
+      ];
+      const responses = new Map();
+      responses.set("q1", {
+        questionId: "q1",
+        value: { cep: "12345-678", city: "São Paulo" },
+      });
+      expect(calculateTotalScore(questions, responses)).toBe(15);
+    });
+
+    it("should sum questionScores across multiple non-choice questions", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 5 },
+        { id: "q2", scoringEnabled: true, questionScore: 10 },
+        { id: "q3", scoringEnabled: true, questionScore: 15 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "John" });
+      responses.set("q2", { questionId: "q2", value: "john@email.com" });
+      responses.set("q3", { questionId: "q3", value: "(11) 99999-9999" });
+      expect(calculateTotalScore(questions, responses)).toBe(30);
+    });
+
+    it("should NOT award questionScore when scoringEnabled is false", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: false, questionScore: 100 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "answered" });
+      expect(calculateTotalScore(questions, responses)).toBeNull();
+    });
+
+    it("should handle questionScore of 0 (no points awarded)", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 0 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "answered" });
+      expect(calculateTotalScore(questions, responses)).toBe(0);
+    });
+  });
+
+  describe("Mixed scoring (choice + non-choice questions)", () => {
+    it("should combine choice scores and questionScores", () => {
+      const questions = [
+        {
+          id: "q1",
+          scoringEnabled: true,
+          choices: [
+            { id: "a", label: "Sim", score: 10 },
+            { id: "b", label: "Não", score: 0 },
+          ],
+        },
+        { id: "q2", scoringEnabled: true, questionScore: 5 },
+        {
+          id: "q3",
+          scoringEnabled: true,
+          choices: [
+            { id: "p", label: "Alto", score: 30 },
+            { id: "q", label: "Baixo", score: 10 },
+          ],
+        },
+        { id: "q4", scoringEnabled: true, questionScore: 8 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "a" }); // +10
+      responses.set("q2", { questionId: "q2", value: "John" }); // +5
+      responses.set("q3", { questionId: "q3", value: "p" }); // +30
+      responses.set("q4", { questionId: "q4", value: "john@email.com" }); // +8
+      expect(calculateTotalScore(questions, responses)).toBe(53);
+    });
+
+    it("should handle partial answers in mixed scoring", () => {
+      const questions = [
+        {
+          id: "q1",
+          scoringEnabled: true,
+          choices: [
+            { id: "a", label: "Sim", score: 10 },
+            { id: "b", label: "Não", score: 0 },
+          ],
+        },
+        { id: "q2", scoringEnabled: true, questionScore: 5 },
+        { id: "q3", scoringEnabled: true, questionScore: 15 },
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "a" }); // +10
+      responses.set("q2", { questionId: "q2", value: "" }); // +0 (empty)
+      responses.set("q3", { questionId: "q3", value: "answered" }); // +15
+      expect(calculateTotalScore(questions, responses)).toBe(25);
+    });
+
+    it("should handle non-scoring questions mixed with scoring ones", () => {
+      const questions = [
+        { id: "q1", scoringEnabled: true, questionScore: 10 },
+        { id: "q2", scoringEnabled: false }, // no scoring
+        {
+          id: "q3",
+          scoringEnabled: true,
+          choices: [
+            { id: "a", label: "A", score: 20 },
+            { id: "b", label: "B", score: 5 },
+          ],
+        },
+        { id: "q4" }, // no scoringEnabled at all
+      ];
+      const responses = new Map();
+      responses.set("q1", { questionId: "q1", value: "name" }); // +10
+      responses.set("q2", { questionId: "q2", value: "ignored" }); // +0
+      responses.set("q3", { questionId: "q3", value: "a" }); // +20
+      responses.set("q4", { questionId: "q4", value: "also ignored" }); // +0
+      expect(calculateTotalScore(questions, responses)).toBe(30);
     });
   });
 });

@@ -277,3 +277,13 @@
 - [x] Suporte a single choice (por id e label) e multiple select (array)
 - [x] Suporte a scores negativos e zero
 - [x] Testes unitários: 11 testes de scoring (81 testes totais passando)
+
+## Feature: Expandir pontuação para TODOS os tipos de pergunta
+- [x] Tipos: questionScore em BuilderQuestion e Question (pontuação fixa por resposta)
+- [x] builderToForm: converter questionScore para o form engine
+- [x] Builder UI: toggle "Pontuação" disponível para TODOS os tipos de pergunta (não apenas múltipla escolha)
+- [x] Builder UI: campo "Pontos ao responder" para perguntas sem opções (texto, email, telefone, CPF, endereço, etc.)
+- [x] Builder UI: pontuação por opção mantida para perguntas com choices
+- [x] FormContainer: cálculo expandido - choice-based (por opção) + non-choice (questionScore fixo)
+- [x] Suporte a respostas de texto, número, objeto (endereço), etc.
+- [x] Testes unitários: 19 testes de scoring (89 testes totais passando)

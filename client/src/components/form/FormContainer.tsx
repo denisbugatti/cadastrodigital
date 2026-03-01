@@ -149,23 +149,30 @@ export function FormContainer({ form }: FormContainerProps) {
       clearSavedResponses(form.id);
 
       // Calculate total score if any question has scoring enabled
-      const hasScoringQuestions = form.questions.some(q => q.scoringEnabled && q.choices?.some(c => c.score !== undefined));
+      const hasScoringQuestions = form.questions.some(q => q.scoringEnabled);
       if (hasScoringQuestions) {
         let score = 0;
         engine.responses.forEach((v) => {
           const q = form.questions.find(q => q.id === v.questionId);
-          if (q?.scoringEnabled && q.choices) {
-            // For single choice (multiple-choice, dropdown, image-choice)
+          if (!q?.scoringEnabled) return;
+
+          // Choice-based questions: score per selected option
+          if (q.choices && q.choices.length > 0) {
             if (typeof v.value === "string") {
               const choice = q.choices.find(c => c.id === v.value || c.label === v.value);
               if (choice?.score) score += choice.score;
             }
-            // For multiple select (array of values)
             if (Array.isArray(v.value)) {
               v.value.forEach(val => {
                 const choice = q.choices!.find(c => c.id === val || c.label === val);
                 if (choice?.score) score += choice.score;
               });
+            }
+          } else {
+            // Non-choice questions: fixed questionScore awarded when answered
+            const hasValue = v.value !== null && v.value !== undefined && v.value !== "";
+            if (hasValue && q.questionScore) {
+              score += q.questionScore;
             }
           }
         });

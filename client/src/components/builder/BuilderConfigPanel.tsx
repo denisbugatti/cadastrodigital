@@ -290,8 +290,8 @@ export function BuilderConfigPanel({
                 </FieldGroup>
               )}
 
-              {/* Scoring toggle for choice-based questions */}
-              {hasChoices && !isSpecial && (
+              {/* Scoring toggle for ALL question types */}
+              {!isSpecial && (
                 <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-amber-50 border border-amber-200">
                   <Label className="text-sm font-body text-foreground flex items-center gap-2">
                     <Hash size={16} className="text-amber-600" />
@@ -303,11 +303,29 @@ export function BuilderConfigPanel({
                   />
                 </div>
               )}
+              {/* Scoring hint for choice-based questions */}
               {hasChoices && question.scoringEnabled && (
                 <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-body text-amber-700 leading-relaxed">
                   <Hash size={12} className="inline mr-1.5" />
                   Atribua uma pontuação a cada opção. A pontuação total será calculada e exibida ao final do formulário.
                 </div>
+              )}
+              {/* Fixed score input for non-choice questions */}
+              {!hasChoices && !isSpecial && question.scoringEnabled && (
+                <FieldGroup label="Pontos ao responder" icon={<Hash size={14} className="text-amber-600" />}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={question.questionScore ?? 0}
+                      onChange={(e) => onUpdate(question.id, { questionScore: Number(e.target.value) })}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-amber-50 border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-300 transition-all"
+                      placeholder="0"
+                    />
+                  </div>
+                  <p className="text-xs text-amber-600/70 font-body mt-2">
+                    Pontos atribuídos quando o respondente responder esta pergunta.
+                  </p>
+                </FieldGroup>
               )}
 
               {/* Rating config */}

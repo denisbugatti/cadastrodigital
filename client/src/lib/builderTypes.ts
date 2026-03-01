@@ -124,6 +124,7 @@ export interface BuilderQuestion {
   redirectUrl: string;
   // Scoring
   scoringEnabled: boolean;
+  questionScore: number; // Fixed score for non-choice questions (awarded when answered)
   // Legal text
   legalText: string;
   // Address fields config
@@ -317,6 +318,7 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     showButton: true,
     redirectUrl: "",
     scoringEnabled: false,
+    questionScore: 0,
     legalText: "",
     addressFields: {
       cep: true,
