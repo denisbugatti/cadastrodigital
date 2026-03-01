@@ -477,3 +477,44 @@
 - [x] Aumentar borda dos campos de upload de arquivos no formulário (7px)
 - [x] Feature: Seletor de bandeira/país no campo de telefone (Brasil padrão, permite alterar)
 - [x] Feature: Formulários acessíveis via /{slug} diretamente (ex: one.cadastrodigital.com.br/vitoria) sem precisar de /f/{slug}
+- [ ] Fix: Garantir que a edição de slug funcione corretamente no editor de formulários (escolher slug customizado)
+
+## Reestruturação do Sistema (01/03/2026)
+
+### Limpeza de Rotas/Páginas
+- [x] Remover rota /cadastro-cliente (ClientRegister) — será implementada depois
+- [x] Remover rota /portal (ClientPortal) — será implementada depois
+- [x] Remover rota /form (duplicata do Dashboard)
+- [x] Remover rota /:slug (SlugResolver catch-all) — mantido como catch-all para resolver slugs
+- [x] Remover rota /corretores (página separada) — movido para Settings
+- [x] Remover rota /f/:slug (duplicata)
+- [x] Remover rota /form/:id
+- [x] Remover rota /form-preview
+- [x] Remover rota /editor sem ID
+- [x] Remover rota /landing (duplicata de /)
+- [x] Remover rota /permissoes — movido para Settings
+- [x] Remover rota /dashboard — mantido como rota principal do staff
+
+### Página de Configurações (Settings)
+- [x] Criar página de Configurações unificada (placeholder com 3 abas)
+- [ ] Aba Permissões: configurar o que gerentes e corretores podem ver/editar
+- [ ] Aba Usuários: gerar convites (corretor ou gerente), desativar usuário (temporário ou definitivo)
+- [ ] Aba Exportação: exportar respostas com filtros (validados, completas, incompletas, por formulário, por gerente, por corretor)
+
+### Validação de Respostas (Workflow do Corretor)
+- [ ] Ao validar resposta, corretor deve digitar nome do projeto de interesse do cliente
+- [ ] Salvar nomes de projetos para reutilização (autocomplete com projetos já usados)
+- [ ] Após validar, marcar resposta com check de "Validado" no sistema
+- [ ] Filtrar cadastros por projeto no Dashboard do corretor
+- [ ] Somente após validação: permitir gerar PDF com respostas
+- [ ] PDF: visualizar, baixar, compartilhar e editar
+- [ ] Adicionar páginas ao PDF
+
+### Controle de Acesso por Papel (RBAC)
+- [ ] Corretores e gerentes NÃO têm acesso ao editor de formulários
+- [ ] Corretores e gerentes veem apenas respostas dos seus próprios formulários
+- [ ] Corretores e gerentes podem acessar preview do formulário
+
+### Edição de Formulário (Dashboard)
+- [ ] Poder alterar o nome do formulário no Dashboard
+- [ ] Poder alterar a URL/slug do formulário no Dashboard

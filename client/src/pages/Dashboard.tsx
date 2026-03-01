@@ -666,12 +666,12 @@ export default function Dashboard() {
 
           {/* Desktop action buttons */}
           <div className="hidden sm:flex items-center gap-2">
-            <Link href="/corretores">
+            <Link href="/configuracoes">
               <button
-                title="Gerenciar corretores"
+                title="Configurações"
                 className="relative p-2.5 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-200 shrink-0"
               >
-                <Users size={18} />
+                <SlidersHorizontal size={18} />
               </button>
             </Link>
 
@@ -715,8 +715,8 @@ export default function Dashboard() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-48">
                 <DropdownMenuItem asChild>
-                  <Link href="/corretores" className="flex items-center gap-2 cursor-pointer">
-                    <Users size={16} /> Corretores
+                  <Link href="/configuracoes" className="flex items-center gap-2 cursor-pointer">
+                    <SlidersHorizontal size={16} /> Configurações
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 cursor-pointer">
@@ -899,13 +899,13 @@ export default function Dashboard() {
                   <span className="flex-1 text-left">Equipe</span>
                 </button>
               </Link>
-              <Link href="/permissoes">
+              <Link href="/configuracoes">
                 <button
                   onClick={() => setMobileSidebarOpen(false)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-foreground hover:bg-secondary border border-transparent transition-all duration-150"
                 >
                   <SlidersHorizontal size={16} className="text-muted-foreground" />
-                  <span className="flex-1 text-left">Permissões</span>
+                  <span className="flex-1 text-left">Configurações</span>
                 </button>
               </Link>
             </div>

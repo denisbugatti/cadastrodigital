@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, slug, JSON_EXTRACT(sharing, '$.slug') as sharing_slug FROM forms WHERE id = 60002",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, slug, JSON_EXTRACT(sharing, '$.slug') as sharing_slug FROM forms WHERE id = 60002",
+  "rows": [
+    {
+      "id": "60002",
+      "slug": "vitoria-novo",
+      "sharing_slug": "\"vitoria-novo\""
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tslug\tsharing_slug\n60002\tvitoria-novo\t\"vitoria-novo\"\n",
+  "stderr": "",
+  "execution_time_ms": 100
+}
