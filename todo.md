@@ -436,3 +436,17 @@
 
 ## Bug Fix: Slug não editável no SharingPanel
 - [x] Corrigir campo de slug no SharingPanel para permitir edição (testado — funciona corretamente)
+
+## Feature: Landing page animações extraordinárias (estilo Halo)
+- [x] Cursor glow effect (brilho que segue o mouse)
+- [x] Blobs animados no fundo (gradientes flutuantes)
+- [x] Parallax scroll em múltiplas camadas
+- [x] Hover effects com energia/glow nas bordas dos cards
+- [x] Scroll-triggered animations (fade in, slide up, scale)
+- [x] Marquee/ticker infinito com "ONE INNOVATION"
+- [x] Micro-interações em botões (pulse, glow, scale)
+- [x] Loading animation na entrada da página
+- [x] Gradient mesh animado no hero
+- [x] Cards com border-glow que segue o cursor
+- [x] Números animados (counter up) ao entrar na viewport
+- [x] Smooth scroll entre seções
