@@ -476,3 +476,4 @@
 - [ ] Bug Fix: Slug não pode ser alterado — investigar e corrigir edição de slug
 - [x] Aumentar borda dos campos de upload de arquivos no formulário (7px)
 - [x] Feature: Seletor de bandeira/país no campo de telefone (Brasil padrão, permite alterar)
+- [x] Feature: Formulários acessíveis via /{slug} diretamente (ex: one.cadastrodigital.com.br/vitoria) sem precisar de /f/{slug}
