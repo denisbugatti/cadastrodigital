@@ -74,25 +74,18 @@ export default function Settings() {
   const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
   const staffUser = staffMeQuery.data;
 
-  if (loading || staffMeQuery.isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Determine redirect state (computed before hooks to keep hook order stable)
+  const isAuthLoading = loading || staffMeQuery.isLoading;
+  const shouldRedirect = !isAuthLoading && (staffUser?.type !== "staff" || staffUser.role !== "master");
 
-  // If not master, redirect to dashboard
-  const shouldRedirect = staffUser?.type !== "staff" || staffUser.role !== "master";
+  // ALL hooks must be called before any conditional return
   useEffect(() => {
-    if (!loading && !staffMeQuery.isLoading && shouldRedirect) {
+    if (!isAuthLoading && shouldRedirect) {
       navigate("/dashboard");
     }
-  }, [loading, staffMeQuery.isLoading, shouldRedirect, navigate]);
+  }, [isAuthLoading, shouldRedirect, navigate]);
 
-  if (shouldRedirect) {
+  if (isAuthLoading || shouldRedirect) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">

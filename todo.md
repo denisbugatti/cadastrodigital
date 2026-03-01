@@ -527,3 +527,4 @@
 - [x] Feature: Filtro por projeto no Dashboard/Respostas — corretores filtram cadastros pelo nome do projeto de interesse
 - [x] Feature: Edição de nome/slug do formulário direto no Dashboard — sem precisar abrir o editor
 - [x] Feature: Geração de PDF restrita a respostas validadas — bloquear geração até que todas as respostas estejam aprovadas
+- [x] Bug: Settings page (/configuracoes) crashes with "Rendered more hooks than during the previous render" — hooks called conditionally based on auth state
