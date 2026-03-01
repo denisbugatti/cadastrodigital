@@ -89,12 +89,14 @@ export interface Question {
   // Conditional logic
   conditionalLogic?: {
     enabled: boolean;
-    rules?: Array<{
+    branches?: Array<{
       choiceId: string;
       goToQuestionId: string;
     }>;
-    branches?: Array<{
-      choiceId: string;
+    rules?: Array<{
+      id: string;
+      operator: string; // is_answered, is_empty, equals, not_equals, contains, not_contains, greater_than, less_than, greater_equal, less_equal
+      value: string;
       goToQuestionId: string;
     }>;
     defaultGoTo?: string;

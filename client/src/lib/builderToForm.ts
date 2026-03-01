@@ -87,16 +87,23 @@ function convertQuestion(bq: BuilderQuestion): Question {
   // Handle conditional logic
   if (bq.conditionalLogic?.enabled) {
     const hasBranches = (bq.conditionalLogic?.branches?.length ?? 0) > 0;
+    const hasRules = (bq.conditionalLogic?.rules?.length ?? 0) > 0;
     const hasDefaultGoTo = bq.conditionalLogic?.defaultGoTo && bq.conditionalLogic.defaultGoTo !== "next";
-    if (hasBranches || hasDefaultGoTo) {
+    if (hasBranches || hasRules || hasDefaultGoTo) {
       const mappedBranches = (bq.conditionalLogic?.branches ?? []).map((b) => ({
         choiceId: b.choiceId,
         goToQuestionId: b.goToQuestionId,
       }));
+      const mappedRules = (bq.conditionalLogic?.rules ?? []).map((r) => ({
+        id: r.id,
+        operator: r.operator,
+        value: r.value,
+        goToQuestionId: r.goToQuestionId,
+      }));
       question.conditionalLogic = {
         enabled: true,
-        rules: mappedBranches,
         branches: mappedBranches,
+        rules: mappedRules,
         defaultGoTo: hasDefaultGoTo ? bq.conditionalLogic?.defaultGoTo : undefined,
       };
     }

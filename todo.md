@@ -287,3 +287,14 @@
 - [x] FormContainer: cálculo expandido - choice-based (por opção) + non-choice (questionScore fixo)
 - [x] Suporte a respostas de texto, número, objeto (endereço), etc.
 - [x] Testes unitários: 19 testes de scoring (89 testes totais passando)
+
+## Feature: Lógica condicional para TODOS os tipos de pergunta
+- [x] Tipos: ConditionalRule com ConditionOperator (equals, contains, greater_than, less_than, is_answered, is_empty, etc.)
+- [x] hasConditionalLogic habilitado para todos os tipos (exceto welcome, thank-you, statement)
+- [x] Builder UI: aba Lógica com branches (choice-based) + rules (condition-based) + defaultGoTo
+- [x] Builder UI: operadores disponíveis por tipo de pergunta (texto: equals/contains, número: greater_than/less_than, etc.)
+- [x] Builder UI: campo de valor condicional + seletor de destino para cada regra
+- [x] Form Engine: evaluateRule com suporte a 10 operadores
+- [x] Form Engine: resolveTarget com suporte a "next", "end", e IDs de pergunta
+- [x] Form Engine: getNextIndexForValue unificado (branches → rules → defaultGoTo)
+- [x] Testes: 37 testes de lógica condicional (126 testes totais passando)

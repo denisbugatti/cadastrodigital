@@ -166,57 +166,128 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
   }, [isWelcome, isThankYou, isStatement, validateCurrent]);
 
   /**
-   * Determine the next question index based on conditional logic.
-   * If the current question has conditional rules and the user's answer
-   * matches a rule, jump to that question. Otherwise, go to next.
+   * Evaluate a condition-based rule against a response value.
+   * Returns true if the rule matches.
    */
-  const getNextIndex = useCallback((): number => {
-    const q = currentQuestion;
+  const evaluateRule = useCallback((rule: { operator: string; value: string }, responseValue: any): boolean => {
+    const op = rule.operator;
+    const compareVal = rule.value;
+
+    // Check if value is "answered" (non-empty)
+    const isAnswered = responseValue !== null && responseValue !== undefined && responseValue !== "" &&
+      !(Array.isArray(responseValue) && responseValue.length === 0) &&
+      !(typeof responseValue === "object" && !Array.isArray(responseValue) && Object.values(responseValue).every((v) => !v));
+
+    if (op === "is_answered") return isAnswered;
+    if (op === "is_empty") return !isAnswered;
+
+    if (!isAnswered) return false;
+
+    // Normalize value to string for comparison
+    const strValue = typeof responseValue === "object" ? JSON.stringify(responseValue) : String(responseValue).toLowerCase();
+    const strCompare = compareVal.toLowerCase();
+
+    switch (op) {
+      case "equals":
+        return strValue === strCompare;
+      case "not_equals":
+        return strValue !== strCompare;
+      case "contains":
+        return strValue.includes(strCompare);
+      case "not_contains":
+        return !strValue.includes(strCompare);
+      case "greater_than": {
+        const num = parseFloat(String(responseValue));
+        const cmp = parseFloat(compareVal);
+        return !isNaN(num) && !isNaN(cmp) && num > cmp;
+      }
+      case "less_than": {
+        const num = parseFloat(String(responseValue));
+        const cmp = parseFloat(compareVal);
+        return !isNaN(num) && !isNaN(cmp) && num < cmp;
+      }
+      case "greater_equal": {
+        const num = parseFloat(String(responseValue));
+        const cmp = parseFloat(compareVal);
+        return !isNaN(num) && !isNaN(cmp) && num >= cmp;
+      }
+      case "less_equal": {
+        const num = parseFloat(String(responseValue));
+        const cmp = parseFloat(compareVal);
+        return !isNaN(num) && !isNaN(cmp) && num <= cmp;
+      }
+      default:
+        return false;
+    }
+  }, []);
+
+  /**
+   * Resolve the target question index from a goToQuestionId.
+   * Returns -1 if not found, or questions.length for "end".
+   */
+  const resolveTarget = useCallback((goToQuestionId: string): number => {
+    if (goToQuestionId === "next") return -1;
+    if (goToQuestionId === "end") {
+      // Find the thank-you screen
+      const thankYouIdx = questions.findIndex((q2) => q2.type === "thank-you");
+      return thankYouIdx !== -1 ? thankYouIdx : questions.length - 1;
+    }
+    return questions.findIndex((q2) => q2.id === goToQuestionId);
+  }, [questions]);
+
+  /**
+   * Determine the next question index based on conditional logic.
+   * Supports both choice-based branches and condition-based rules.
+   */
+  const getNextIndexForValue = useCallback((q: Question, value: any): number => {
     if (!q || !q.conditionalLogic?.enabled) {
-      return currentIndex + 1;
+      return -1; // no conditional logic, use default
     }
 
-    const response = responses.get(q.id);
-    const value = response?.value;
-
-    // Check branches (canonical field) with fallback to rules (legacy field)
-    const branchList = (q.conditionalLogic?.branches?.length ? q.conditionalLogic.branches : q.conditionalLogic?.rules) ?? [];
-    if (branchList.length > 0 && value !== null && value !== undefined) {
+    // 1. Check choice-based branches first
+    const branches = q.conditionalLogic?.branches ?? [];
+    if (branches.length > 0 && value !== null && value !== undefined) {
       let matchedBranch;
-
       if (typeof value === "string") {
-        matchedBranch = branchList.find(
-          (b: any) => b.choiceId === value
-        );
+        matchedBranch = branches.find((b: any) => b.choiceId === value);
       } else if (typeof value === "boolean") {
         const boolId = value ? "yes" : "no";
-        matchedBranch = branchList.find(
-          (b: any) => b.choiceId === boolId
-        );
+        matchedBranch = branches.find((b: any) => b.choiceId === boolId);
       }
-
       if (matchedBranch && matchedBranch.goToQuestionId !== "next") {
-        const targetIdx = questions.findIndex(
-          (q2) => q2.id === matchedBranch.goToQuestionId
-        );
-        if (targetIdx !== -1) {
-          return targetIdx;
+        const targetIdx = resolveTarget(matchedBranch.goToQuestionId);
+        if (targetIdx !== -1) return targetIdx;
+      }
+    }
+
+    // 2. Check condition-based rules (evaluated top to bottom, first match wins)
+    const rules = q.conditionalLogic?.rules ?? [];
+    for (const rule of rules) {
+      if (evaluateRule(rule, value)) {
+        if (rule.goToQuestionId !== "next") {
+          const targetIdx = resolveTarget(rule.goToQuestionId);
+          if (targetIdx !== -1) return targetIdx;
         }
+        break; // first match wins, even if target is "next"
       }
     }
 
-    // Check defaultGoTo (for non-choice questions like currency/text with skip logic)
+    // 3. Check defaultGoTo
     if (q.conditionalLogic?.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
-      const targetIdx = questions.findIndex(
-        (q2) => q2.id === q.conditionalLogic?.defaultGoTo
-      );
-      if (targetIdx !== -1) {
-        return targetIdx;
-      }
+      const targetIdx = resolveTarget(q.conditionalLogic.defaultGoTo);
+      if (targetIdx !== -1) return targetIdx;
     }
 
-    return currentIndex + 1;
-  }, [currentQuestion, currentIndex, responses, questions]);
+    return -1; // no match, use default
+  }, [evaluateRule, resolveTarget]);
+
+  const getNextIndex = useCallback((): number => {
+    const q = currentQuestion;
+    const response = responses.get(q.id);
+    const value = response?.value;
+    const result = getNextIndexForValue(q, value);
+    return result !== -1 ? result : currentIndex + 1;
+  }, [currentQuestion, currentIndex, responses, getNextIndexForValue]);
 
   const goNext = useCallback(() => {
     const nextIdx = getNextIndex();
@@ -235,35 +306,8 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
   const goNextWithValue = useCallback(
     (value: FormResponse["value"]) => {
       const q = currentQuestion;
-      let nextIdx = currentIndex + 1;
-
-      if (q?.conditionalLogic?.enabled) {
-        // Check branches (canonical field) with fallback to rules (legacy field)
-        const branchList = (q.conditionalLogic?.branches?.length ? q.conditionalLogic.branches : q.conditionalLogic?.rules) ?? [];
-        if (branchList.length > 0 && value !== null && value !== undefined) {
-          let matchedBranch;
-          if (typeof value === "string") {
-            matchedBranch = branchList.find((b: any) => b.choiceId === value);
-          } else if (typeof value === "boolean") {
-            const boolId = value ? "yes" : "no";
-            matchedBranch = branchList.find((b: any) => b.choiceId === boolId);
-          }
-          if (matchedBranch && matchedBranch.goToQuestionId !== "next") {
-            const targetIdx = questions.findIndex((q2) => q2.id === matchedBranch.goToQuestionId);
-            if (targetIdx !== -1) {
-              nextIdx = targetIdx;
-            }
-          }
-        }
-
-        // Check defaultGoTo (for non-choice questions like currency/text with skip logic)
-        if (nextIdx === currentIndex + 1 && q.conditionalLogic?.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
-          const targetIdx = questions.findIndex((q2) => q2.id === q.conditionalLogic?.defaultGoTo);
-          if (targetIdx !== -1) {
-            nextIdx = targetIdx;
-          }
-        }
-      }
+      const result = getNextIndexForValue(q, value);
+      const nextIdx = result !== -1 ? result : currentIndex + 1;
 
       if (nextIdx < totalQuestions) {
         setDirection("forward");
@@ -271,7 +315,7 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
         setNavHistory((prev) => [...prev, nextIdx]);
       }
     },
-    [currentQuestion, currentIndex, questions, totalQuestions]
+    [currentQuestion, currentIndex, getNextIndexForValue, totalQuestions]
   );
 
   const goPrev = useCallback(() => {

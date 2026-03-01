@@ -16,7 +16,7 @@ import {
   Star, Gauge, ArrowUpDown, Grid3X3,
   Calendar, Upload, Hand, Heart, ShieldCheck,
 } from "lucide-react";
-import type { BuilderQuestion, BuilderChoice } from "@/lib/builderTypes";
+import type { BuilderQuestion, BuilderChoice, ConditionOperator, ConditionalRule } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -587,6 +587,48 @@ export function BuilderConfigPanel({
 
 // ─── Conditional Logic Editor ───
 
+// Operator labels for condition-based rules
+const OPERATOR_LABELS: Record<string, string> = {
+  is_answered: "Foi respondida",
+  is_empty: "Não foi respondida",
+  equals: "É igual a",
+  not_equals: "Não é igual a",
+  contains: "Contém",
+  not_contains: "Não contém",
+  greater_than: "Maior que",
+  less_than: "Menor que",
+  greater_equal: "Maior ou igual a",
+  less_equal: "Menor ou igual a",
+};
+
+// Operators that don't need a value input
+const NO_VALUE_OPERATORS = new Set(["is_answered", "is_empty"]);
+
+// Operators available per question category
+function getOperatorsForType(type: string): string[] {
+  const base = ["is_answered", "is_empty"];
+  const text = ["equals", "not_equals", "contains", "not_contains"];
+  const numeric = ["equals", "not_equals", "greater_than", "less_than", "greater_equal", "less_equal"];
+
+  switch (type) {
+    case "number":
+    case "currency":
+    case "nps":
+    case "rating":
+    case "satisfaction":
+      return [...base, ...numeric];
+    case "date":
+      return [...base, "equals", "not_equals"];
+    case "file-upload":
+    case "address":
+    case "matrix":
+    case "ranking":
+      return base;
+    default:
+      return [...base, ...text];
+  }
+}
+
 function ConditionalLogicEditor({
   question,
   onUpdate,
@@ -596,8 +638,10 @@ function ConditionalLogicEditor({
   onUpdate: (id: string, updates: Partial<BuilderQuestion>) => void;
   targets: { id: string; label: string; type: string }[];
 }) {
-  const logic = question.conditionalLogic ?? { enabled: false, branches: [] };
+  const logic = question.conditionalLogic ?? { enabled: false, branches: [], rules: [], defaultGoTo: "next" };
   const isYesNo = question.type === "yes-no";
+  const typeInfo = questionTypes.find((t) => t.type === question.type);
+  const hasChoices = typeInfo?.hasChoices || isYesNo;
 
   const choices = isYesNo
     ? [
@@ -607,20 +651,35 @@ function ConditionalLogicEditor({
     : question.choices;
 
   const toggleLogic = (enabled: boolean) => {
-    onUpdate(question.id, {
-      conditionalLogic: {
-        ...logic,
-        enabled,
-        branches: enabled
-          ? choices.map((c) => ({
-              choiceId: c.id,
-              goToQuestionId: "next",
-            }))
-          : [],
-      },
-    });
+    if (hasChoices) {
+      onUpdate(question.id, {
+        conditionalLogic: {
+          ...logic,
+          enabled,
+          branches: enabled
+            ? choices.map((c) => ({
+                choiceId: c.id,
+                goToQuestionId: "next",
+              }))
+            : [],
+          rules: logic.rules ?? [],
+        },
+      });
+    } else {
+      onUpdate(question.id, {
+        conditionalLogic: {
+          ...logic,
+          enabled,
+          branches: logic.branches ?? [],
+          rules: enabled && (logic.rules ?? []).length === 0
+            ? [{ id: `rule_${Date.now()}`, operator: "is_answered" as ConditionOperator, value: "", goToQuestionId: "next" }]
+            : logic.rules ?? [],
+        },
+      });
+    }
   };
 
+  // Choice-based branch update
   const updateBranch = (choiceId: string, goToQuestionId: string) => {
     const newBranches = (logic.branches ?? []).map((b) =>
       b.choiceId === choiceId ? { ...b, goToQuestionId } : b
@@ -632,6 +691,39 @@ function ConditionalLogicEditor({
       conditionalLogic: { ...logic, branches: newBranches },
     });
   };
+
+  // Condition-based rule CRUD
+  const addRule = () => {
+    const newRule: ConditionalRule = { id: `rule_${Date.now()}`, operator: "is_answered", value: "", goToQuestionId: "next" };
+    const newRules: ConditionalRule[] = [...(logic.rules ?? []), newRule];
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, rules: newRules },
+    });
+  };
+
+  const updateRule = (ruleId: string, updates: Partial<{ operator: ConditionOperator; value: string; goToQuestionId: string }>) => {
+    const newRules: ConditionalRule[] = (logic.rules ?? []).map((r) =>
+      r.id === ruleId ? { ...r, ...updates } : r
+    );
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, rules: newRules },
+    });
+  };
+
+  const removeRule = (ruleId: string) => {
+    const newRules = (logic.rules ?? []).filter((r) => r.id !== ruleId);
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, rules: newRules },
+    });
+  };
+
+  const updateDefaultGoTo = (goTo: string) => {
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, defaultGoTo: goTo },
+    });
+  };
+
+  const availableOperators = getOperatorsForType(question.type);
 
   return (
     <div className="space-y-5">
@@ -647,7 +739,7 @@ function ConditionalLogicEditor({
         />
       </div>
 
-      {logic.enabled && (
+      {logic.enabled && hasChoices && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground font-body">
             Defina para onde o formulário vai após cada resposta:
@@ -692,7 +784,111 @@ function ConditionalLogicEditor({
           {/* Info box */}
           <div className="mt-3 p-4 rounded-xl border border-brand/10 bg-brand-lighter/30 text-sm font-body text-brand-dark leading-relaxed">
             <GitBranch size={14} className="inline mr-2" />
-            Quando ativada, cada opção pode direcionar o respondente para uma pergunta diferente, criando fluxos personalizados.
+            Cada opção pode direcionar o respondente para uma pergunta diferente, criando fluxos personalizados.
+          </div>
+        </div>
+      )}
+
+      {logic.enabled && !hasChoices && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground font-body">
+            Defina regras condicionais baseadas na resposta:
+          </p>
+
+          {(logic.rules ?? []).map((rule, idx) => (
+            <div
+              key={rule.id}
+              className="rounded-xl border border-border p-4 space-y-3 bg-secondary/50"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wide">
+                  Regra {idx + 1}
+                </span>
+                <button
+                  onClick={() => removeRule(rule.id)}
+                  className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              {/* Operator select */}
+              <select
+                value={rule.operator}
+                onChange={(e) => updateRule(rule.id, { operator: e.target.value as ConditionOperator, value: NO_VALUE_OPERATORS.has(e.target.value) ? "" : rule.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+              >
+                {availableOperators.map((op) => (
+                  <option key={op} value={op}>
+                    {OPERATOR_LABELS[op] || op}
+                  </option>
+                ))}
+              </select>
+
+              {/* Value input (hidden for is_answered/is_empty) */}
+              {!NO_VALUE_OPERATORS.has(rule.operator) && (
+                <input
+                  type={["number", "currency", "nps", "rating", "satisfaction"].includes(question.type) ? "number" : "text"}
+                  value={rule.value}
+                  onChange={(e) => updateRule(rule.id, { value: e.target.value })}
+                  placeholder="Valor para comparação..."
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                />
+              )}
+
+              {/* Target select */}
+              <div className="flex items-center gap-2">
+                <ArrowRight size={14} className="text-muted-foreground shrink-0" />
+                <select
+                  value={rule.goToQuestionId}
+                  onChange={(e) => updateRule(rule.id, { goToQuestionId: e.target.value })}
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+                >
+                  <option value="next">Próxima pergunta (padrão)</option>
+                  <option value="end">Ir para agradecimento</option>
+                  {targets.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+
+          {/* Add rule button */}
+          <button
+            onClick={addRule}
+            className="w-full py-2.5 rounded-xl border-2 border-dashed border-border text-sm font-body text-muted-foreground hover:border-brand/40 hover:text-brand transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={14} />
+            Adicionar regra
+          </button>
+
+          {/* Default destination */}
+          <div className="rounded-xl border border-border p-4 space-y-3 bg-secondary/30">
+            <span className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wide">
+              Se nenhuma regra corresponder
+            </span>
+            <select
+              value={logic.defaultGoTo || "next"}
+              onChange={(e) => updateDefaultGoTo(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+            >
+              <option value="next">Próxima pergunta (padrão)</option>
+              <option value="end">Ir para agradecimento</option>
+              {targets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Info box */}
+          <div className="mt-3 p-4 rounded-xl border border-brand/10 bg-brand-lighter/30 text-sm font-body text-brand-dark leading-relaxed">
+            <GitBranch size={14} className="inline mr-2" />
+            As regras são avaliadas de cima para baixo. A primeira regra que corresponder à resposta será usada para direcionar o fluxo.
           </div>
         </div>
       )}

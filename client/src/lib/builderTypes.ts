@@ -74,9 +74,30 @@ export interface ConditionalBranch {
   goToQuestionId: string; // "next" = default next, or question ID
 }
 
+// Condition-based rules for non-choice questions (text, number, email, etc.)
+export type ConditionOperator =
+  | "is_answered"    // any non-empty value
+  | "is_empty"       // no value
+  | "equals"         // exact match (case-insensitive)
+  | "not_equals"     // not equal
+  | "contains"       // text contains substring
+  | "not_contains"   // text does not contain
+  | "greater_than"   // numeric comparison
+  | "less_than"      // numeric comparison
+  | "greater_equal"  // numeric comparison
+  | "less_equal";    // numeric comparison
+
+export interface ConditionalRule {
+  id: string;
+  operator: ConditionOperator;
+  value: string; // comparison value (empty for is_answered/is_empty)
+  goToQuestionId: string;
+}
+
 export interface ConditionalLogic {
   enabled: boolean;
-  branches: ConditionalBranch[];
+  branches: ConditionalBranch[]; // for choice-based questions
+  rules: ConditionalRule[];       // for non-choice questions (condition-based)
   defaultGoTo: string; // "next" or question ID
 }
 
@@ -250,40 +271,40 @@ export const questionCategories: CategoryInfo[] = [
 
 export const questionTypes: QuestionTypeInfo[] = [
   // Contact Info
-  { type: "name", label: "Nome próprio", icon: "user", description: "Campo para nome completo", category: "contact" },
-  { type: "email", label: "E-mail", icon: "mail", description: "Campo com validação de e-mail", category: "contact" },
-  { type: "phone", label: "Telefone", icon: "phone", description: "Campo com máscara de telefone", category: "contact" },
-  { type: "cpf", label: "CPF", icon: "fingerprint", description: "Com validação real de CPF", category: "contact" },
-  { type: "cnpj", label: "CNPJ", icon: "building-2", description: "Com validação de CNPJ", category: "contact" },
-  { type: "identity-doc", label: "Documento de Identidade", icon: "id-card", description: "RG ou outro documento", category: "contact" },
-  { type: "address", label: "Endereço", icon: "map-pin", description: "Busca automática por CEP", category: "contact" },
+  { type: "name", label: "Nome próprio", icon: "user", description: "Campo para nome completo", category: "contact", hasConditionalLogic: true },
+  { type: "email", label: "E-mail", icon: "mail", description: "Campo com validação de e-mail", category: "contact", hasConditionalLogic: true },
+  { type: "phone", label: "Telefone", icon: "phone", description: "Campo com máscara de telefone", category: "contact", hasConditionalLogic: true },
+  { type: "cpf", label: "CPF", icon: "fingerprint", description: "Com validação real de CPF", category: "contact", hasConditionalLogic: true },
+  { type: "cnpj", label: "CNPJ", icon: "building-2", description: "Com validação de CNPJ", category: "contact", hasConditionalLogic: true },
+  { type: "identity-doc", label: "Documento de Identidade", icon: "id-card", description: "RG ou outro documento", category: "contact", hasConditionalLogic: true },
+  { type: "address", label: "Endereço", icon: "map-pin", description: "Busca automática por CEP", category: "contact", hasConditionalLogic: true },
   // Text & Content
-  { type: "short-text", label: "Resposta curta", icon: "minus", description: "Texto de uma linha", category: "text" },
-  { type: "long-text", label: "Texto longo", icon: "align-left", description: "Área de texto expandida", category: "text" },
+  { type: "short-text", label: "Resposta curta", icon: "minus", description: "Texto de uma linha", category: "text", hasConditionalLogic: true },
+  { type: "long-text", label: "Texto longo", icon: "align-left", description: "Área de texto expandida", category: "text", hasConditionalLogic: true },
   { type: "statement", label: "Mensagem", icon: "message-square", description: "Tela informativa sem input", category: "text" },
-  { type: "number", label: "Número", icon: "hash", description: "Campo numérico", category: "text" },
-  { type: "currency", label: "Valor Monetário", icon: "dollar-sign", description: "Campo com máscara R$", category: "text" },
-  { type: "link", label: "Link / Website", icon: "link", description: "Campo para URL", category: "text" },
+  { type: "number", label: "Número", icon: "hash", description: "Campo numérico", category: "text", hasConditionalLogic: true },
+  { type: "currency", label: "Valor Monetário", icon: "dollar-sign", description: "Campo com máscara R$", category: "text", hasConditionalLogic: true },
+  { type: "link", label: "Link / Website", icon: "link", description: "Campo para URL", category: "text", hasConditionalLogic: true },
   // Choice & Selection
   { type: "multiple-choice", label: "Múltipla Escolha", icon: "circle-dot", description: "Selecionar uma opção", category: "choice", hasChoices: true, hasConditionalLogic: true },
   { type: "dropdown", label: "Seleção de Lista", icon: "chevron-down", description: "Lista suspensa", category: "choice", hasChoices: true, hasConditionalLogic: true },
-  { type: "image-choice", label: "Seleção de Imagem", icon: "image", description: "Opções com imagens", category: "choice", hasChoices: true },
+  { type: "image-choice", label: "Seleção de Imagem", icon: "image", description: "Opções com imagens", category: "choice", hasChoices: true, hasConditionalLogic: true },
   { type: "yes-no", label: "Sim / Não", icon: "toggle-left", description: "Pergunta binária", category: "choice", hasConditionalLogic: true },
-  { type: "checkbox", label: "Checkbox", icon: "check-square", description: "Marcar múltiplas opções", category: "choice", hasChoices: true },
+  { type: "checkbox", label: "Checkbox", icon: "check-square", description: "Marcar múltiplas opções", category: "choice", hasChoices: true, hasConditionalLogic: true },
   // Rating & Scale
-  { type: "satisfaction", label: "Escala de Satisfação", icon: "smile", description: "Escala visual com emojis", category: "rating" },
-  { type: "rating", label: "Rating (Estrelas)", icon: "star", description: "Avaliação com estrelas", category: "rating" },
-  { type: "nps", label: "NPS", icon: "gauge", description: "Net Promoter Score (0-10)", category: "rating" },
-  { type: "ranking", label: "Ranking", icon: "arrow-up-down", description: "Ordenar por preferência", category: "rating" },
-  { type: "matrix", label: "Matrix", icon: "grid-3x3", description: "Tabela de avaliação", category: "rating" },
+  { type: "satisfaction", label: "Escala de Satisfação", icon: "smile", description: "Escala visual com emojis", category: "rating", hasConditionalLogic: true },
+  { type: "rating", label: "Rating (Estrelas)", icon: "star", description: "Avaliação com estrelas", category: "rating", hasConditionalLogic: true },
+  { type: "nps", label: "NPS", icon: "gauge", description: "Net Promoter Score (0-10)", category: "rating", hasConditionalLogic: true },
+  { type: "ranking", label: "Ranking", icon: "arrow-up-down", description: "Ordenar por preferência", category: "rating", hasConditionalLogic: true },
+  { type: "matrix", label: "Matrix", icon: "grid-3x3", description: "Tabela de avaliação", category: "rating", hasConditionalLogic: true },
   // Date
-  { type: "date", label: "Data", icon: "calendar", description: "Seletor de data", category: "date" },
+  { type: "date", label: "Data", icon: "calendar", description: "Seletor de data", category: "date", hasConditionalLogic: true },
   // Media
-  { type: "file-upload", label: "Arquivo Anexo", icon: "upload", description: "Upload de arquivos", category: "media" },
+  { type: "file-upload", label: "Arquivo Anexo", icon: "upload", description: "Upload de arquivos", category: "media", hasConditionalLogic: true },
   // Special Screens
   { type: "welcome", label: "Boas-vindas", icon: "hand", description: "Tela inicial do formulário", category: "special" },
   { type: "thank-you", label: "Agradecimento", icon: "heart", description: "Tela final após envio", category: "special" },
-  { type: "legal", label: "Termos de Uso", icon: "shield-check", description: "Aceite de termos obrigatório", category: "special" },
+  { type: "legal", label: "Termos de Uso", icon: "shield-check", description: "Aceite de termos obrigatório", category: "special", hasConditionalLogic: true },
 ];
 
 // ─── Helper: Create a new question with defaults ───
@@ -309,7 +330,7 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     matrix: { rows: ["Item 1", "Item 2"], columns: ["Ruim", "Regular", "Bom", "Ótimo"] },
     rankItems: ["Item 1", "Item 2", "Item 3"],
     validation: {},
-    conditionalLogic: { enabled: false, branches: [], defaultGoTo: "next" },
+    conditionalLogic: { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
     image: "",
     imageUrl: "",
     iconName: "",
