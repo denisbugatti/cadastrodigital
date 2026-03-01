@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -85,9 +85,21 @@ export default function Settings() {
   }
 
   // If not master, redirect to dashboard
-  if (staffUser?.type !== "staff" || staffUser.role !== "master") {
-    navigate("/dashboard");
-    return null;
+  const shouldRedirect = staffUser?.type !== "staff" || staffUser.role !== "master";
+  useEffect(() => {
+    if (!loading && !staffMeQuery.isLoading && shouldRedirect) {
+      navigate("/dashboard");
+    }
+  }, [loading, staffMeQuery.isLoading, shouldRedirect, navigate]);
+
+  if (shouldRedirect) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (

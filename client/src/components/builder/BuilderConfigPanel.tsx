@@ -14,7 +14,7 @@ import {
   Minus, MessageSquare, Hash, DollarSign, Link,
   CircleDot, ChevronDown, Image, CheckSquare,
   Star, Gauge, ArrowUpDown, Grid3X3,
-  Calendar, Upload, Hand, Heart, ShieldCheck,
+  Calendar, Upload, Hand, Heart, ShieldCheck, ClipboardCheck,
 } from "lucide-react";
 import type { BuilderQuestion, BuilderChoice, ConditionOperator, ConditionalRule, ScoreRule } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
@@ -402,6 +402,19 @@ export function BuilderConfigPanel({
                     className="w-full px-4 py-3 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all resize-none h-28"
                     placeholder="Texto dos termos de uso..."
                   />
+                </FieldGroup>
+              )}
+
+              {/* Validation guidance for corretores */}
+              {!isSpecial && (
+                <FieldGroup label="Orientação para validação" icon={<ClipboardCheck size={14} />}>
+                  <textarea
+                    value={question.validationGuidance ?? ""}
+                    onChange={(e) => onUpdate(question.id, { validationGuidance: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all resize-none h-20"
+                    placeholder="Ex: O CPF deve ter 11 dígitos válidos. Verificar se o nome confere com o documento."
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Essa orientação será exibida ao corretor durante a validação das respostas.</p>
                 </FieldGroup>
               )}
             </motion.div>

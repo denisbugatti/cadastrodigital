@@ -34,6 +34,7 @@ function makeQ(overrides: Partial<BuilderQuestion> & { id: string; type: Builder
     scoringEnabled: false,
     questionScore: 0,
     legalText: "",
+    validationGuidance: "",
     addressFields: {
       cep: true, street: true, number: true, complement: true,
       neighborhood: true, city: true, state: true,

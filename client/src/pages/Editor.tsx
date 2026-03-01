@@ -5,6 +5,7 @@
  * When :id is a string slug, loads pre-built form.
  */
 
+import { useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import Builder from "./Builder";
@@ -203,9 +204,19 @@ export default function Editor() {
   }
 
   // If not staff or not master/diretor, redirect to dashboard
-  if (staffUser?.type !== "staff" || (staffUser.role !== "master" && staffUser.role !== "diretor")) {
-    navigate("/dashboard");
-    return null;
+  const shouldRedirect = staffUser?.type !== "staff" || (staffUser.role !== "master" && staffUser.role !== "diretor");
+  useEffect(() => {
+    if (!staffMeQuery.isLoading && shouldRedirect) {
+      navigate("/dashboard");
+    }
+  }, [staffMeQuery.isLoading, shouldRedirect, navigate]);
+
+  if (shouldRedirect) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={32} className="animate-spin text-brand" />
+      </div>
+    );
   }
 
   // If formId is a number, load from database

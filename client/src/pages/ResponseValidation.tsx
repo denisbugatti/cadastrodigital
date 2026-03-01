@@ -20,7 +20,7 @@ import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
   Download, Loader2, AlertTriangle, MessageSquare,
   User, Mail, Phone, Calendar, Building2, FileDown,
-  Share2, Pencil, Eye,
+  Share2, Pencil, Eye, Info,
 } from "lucide-react";
 
 /* ─── Status Badge ─── */
@@ -438,32 +438,56 @@ export default function ResponseValidation() {
 
           // Format answer for display
           let displayAnswer: React.ReactNode;
+
+          const renderFileLink = (url: string, filename: string) => {
+            if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+              return (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                  <img src={url} alt={filename} className="max-w-xs rounded-lg border border-gray-200" />
+                </a>
+              );
+            } else if (url.match(/\.(pdf)$/i)) {
+              return (
+                <a href={url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
+                >
+                  <FileText className="w-4 h-4" /> {filename}
+                </a>
+              );
+            } else {
+              return (
+                <a href={url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> {filename}
+                </a>
+              );
+            }
+          };
+
           if (typeof answer === "object" && answer !== null) {
             if (answer.url) {
-              // File upload answer
-              const url = answer.url as string;
-              const filename = answer.filename || answer.name || "Arquivo";
-              if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+              // Single file upload answer
+              displayAnswer = renderFileLink(answer.url as string, answer.filename || answer.name || "Arquivo");
+            } else if (Array.isArray(answer)) {
+              // Array of files or values
+              const hasFiles = answer.some((item: any) => typeof item === "object" && item?.url);
+              if (hasFiles) {
                 displayAnswer = (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-                    <img src={url} alt={filename} className="max-w-xs rounded-lg border border-gray-200" />
-                  </a>
+                  <div className="space-y-2">
+                    {answer.map((item: any, idx: number) => (
+                      <div key={idx}>
+                        {typeof item === "object" && item?.url
+                          ? renderFileLink(item.url, item.filename || item.name || `Arquivo ${idx + 1}`)
+                          : <span className="text-sm text-gray-600">{String(item)}</span>
+                        }
+                      </div>
+                    ))}
+                  </div>
                 );
               } else {
-                displayAnswer = (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    {filename}
-                  </a>
-                );
+                displayAnswer = answer.join(", ");
               }
-            } else if (Array.isArray(answer)) {
-              displayAnswer = answer.join(", ");
             } else {
               displayAnswer = Object.entries(answer)
                 .map(([k, v]) => `${k}: ${v}`)
@@ -512,6 +536,16 @@ export default function ResponseValidation() {
                 </div>
                 <StatusBadge status={status} />
               </div>
+
+              {/* Validation guidance */}
+              {question?.validationGuidance && (
+                <div className="mb-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                    <Info className="w-3 h-3" /> Orientação para validação:
+                  </p>
+                  <p className="text-sm text-blue-700">{question.validationGuidance}</p>
+                </div>
+              )}
 
               {/* Answer content */}
               <div className="mb-4">
