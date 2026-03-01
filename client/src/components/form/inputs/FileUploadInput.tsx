@@ -33,8 +33,9 @@ export function FileUploadInput({ value, onChange, error }: FileUploadInputProps
       {!fileName ? (
         <motion.label
           htmlFor="file-upload"
-          className="rounded-xl border-2 border-dashed p-8 flex flex-col items-center gap-4 cursor-pointer transition-all duration-300"
+          className="rounded-xl border-dashed p-8 flex flex-col items-center gap-4 cursor-pointer transition-all duration-300"
           style={{
+            borderWidth: '7px',
             borderColor: isDragging ? "currentColor" : "rgba(128,128,128,0.3)",
             backgroundColor: isDragging ? "rgba(128,128,128,0.06)" : "transparent",
           }}

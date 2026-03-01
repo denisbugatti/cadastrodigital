@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, slug, title FROM forms WHERE id = 60002;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, slug, title FROM forms WHERE id = 60002;",
+  "rows": [
+    {
+      "id": "60002",
+      "slug": "vitoria-teste",
+      "title": "Cadastro Online - One Innovation"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tslug\ttitle\n60002\tvitoria-teste\tCadastro Online - One Innovation\n",
+  "stderr": "",
+  "execution_time_ms": 109
+}

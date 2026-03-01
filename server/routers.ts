@@ -843,6 +843,31 @@ export const appRouter = router({
       return db.getCorretoresByUser(ctx.user.id);
     }),
 
+    listPublic: publicProcedure.query(async () => {
+      const legacyCorretores = await db.getPublicCorretoresWithForms();
+      const staffCorretores = await db.getStaffCorretoresWithForms();
+      const staffIds = new Set(staffCorretores.map((s: any) => s.id));
+      const merged = [
+        ...staffCorretores,
+        ...legacyCorretores.filter((c: any) => !c.staffUserId || !staffIds.has(c.staffUserId)),
+      ];
+      return merged.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    }),
+
+    assignToForm: ownerFallbackProcedure
+      .input(z.object({
+        formId: z.number(),
+        staffUserId: z.number().nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formulario nao encontrado" });
+        }
+        await db.updateForm(input.formId, { assignedCorretorId: input.staffUserId });
+        return { success: true };
+      }),
+
     create: ownerFallbackProcedure
       .input(z.object({
         name: z.string().min(1),
@@ -920,6 +945,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await db.toggleFormCorretorNotification(input.formId, input.corretorId, input.enabled);
         return { success: true };
+      }),
+
+    getAssigned: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form) return null;
+        if (!form.assignedCorretorId) return null;
+        return staffDb.getStaffUserById(form.assignedCorretorId);
       }),
   }),
 

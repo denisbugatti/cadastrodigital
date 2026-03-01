@@ -465,3 +465,13 @@
 - [x] Corrigir context.ts para reconhecer JWT custom auth e mapear para owner user
 - [x] Garantir que forms.list retorna formulários para staff logado
 - [x] Testar fluxo completo: login staff → dashboard → ver formulários (OK)
+
+## Feature: Vincular corretores a formulários (Preencher para Lançamento)
+- [ ] Backend: endpoint público para listar corretores ativos com formulários vinculados
+- [ ] Backend: garantir que form_corretores já vincula corretores a formulários
+- [ ] Frontend: modal "Preencher para Lançamento" busca corretores reais do backend
+- [ ] Frontend: ao selecionar corretor, abre o formulário vinculado a ele
+- [ ] Frontend: campo de telefone do corretor exibido no modal
+- [ ] Testar fluxo completo: landing → selecionar corretor → abrir formulário
+- [ ] Bug Fix: Slug não pode ser alterado — investigar e corrigir edição de slug
+- [x] Aumentar borda dos campos de upload de arquivos no formulário (7px)

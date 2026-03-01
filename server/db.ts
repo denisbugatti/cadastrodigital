@@ -622,3 +622,100 @@ export async function toggleFormCorretorNotification(formId: number, corretorId:
       .where(and(eq(formCorretores.formId, formId), eq(formCorretores.corretorId, corretorId)));
   });
 }
+
+
+/* ─── Public Corretores with Forms (for Landing Page) ─── */
+
+/**
+ * Returns active corretores that have at least one published form linked.
+ * Each corretor includes the slug of their linked form.
+ * Used by the public landing page modal.
+ */
+export async function getPublicCorretoresWithForms() {
+  return withDbRetry(async (db) => {
+    // Get all active corretores
+    const activeCorretores = await db.select().from(corretores).where(eq(corretores.active, true));
+    if (activeCorretores.length === 0) return [];
+
+    // Get all form-corretor associations
+    const associations = await db.select().from(formCorretores);
+    if (associations.length === 0) return [];
+
+    // Get all forms to resolve slugs
+    const allForms = await db.select({
+      id: forms.id,
+      slug: forms.slug,
+      title: forms.title,
+      status: forms.status,
+    }).from(forms);
+
+    // Build result: each corretor with their linked form(s)
+    return activeCorretores
+      .map((c: any) => {
+        const corretorAssocs = associations.filter((a: any) => a.corretorId === c.id);
+        const linkedForms = corretorAssocs
+          .map((a: any) => allForms.find((f: any) => f.id === a.formId))
+          .filter((f: any) => f != null);
+
+        // Pick the first published form, or first form if none published
+        const publishedForm = linkedForms.find((f: any) => f.status === 'published') ?? linkedForms[0];
+
+        return {
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          email: c.email,
+          avatarUrl: null as string | null,
+          staffUserId: c.staffUserId,
+          formSlug: publishedForm?.slug ?? null,
+          formTitle: publishedForm?.title ?? null,
+        };
+      })
+      .filter((c: any) => c.formSlug != null); // Only return corretores with a linked form
+  });
+}
+
+/**
+ * Returns active staff users with role 'corretor' that have forms assigned to them.
+ * Uses the forms.assignedCorretorId field.
+ */
+export async function getStaffCorretoresWithForms() {
+  return withDbRetry(async (db) => {
+    // Get active staff corretores
+    const { staffUsers } = await import("../drizzle/schema");
+    const staffCorretores = await db.select().from(staffUsers)
+      .where(and(
+        eq(staffUsers.role, 'corretor' as any),
+        eq(staffUsers.active, true),
+      ));
+
+    if (staffCorretores.length === 0) return [];
+
+    // Get forms assigned to these corretores
+    const allForms = await db.select({
+      id: forms.id,
+      slug: forms.slug,
+      title: forms.title,
+      status: forms.status,
+      assignedCorretorId: forms.assignedCorretorId,
+    }).from(forms);
+
+    return staffCorretores
+      .map((s: any) => {
+        const assignedForms = allForms.filter((f: any) => f.assignedCorretorId === s.id);
+        const publishedForm = assignedForms.find((f: any) => f.status === 'published') ?? assignedForms[0];
+
+        return {
+          id: s.id,
+          name: s.name,
+          phone: s.phone,
+          email: s.email,
+          avatarUrl: s.avatarUrl,
+          isStaff: true,
+          formSlug: publishedForm?.slug ?? null,
+          formTitle: publishedForm?.title ?? null,
+        };
+      })
+      .filter((c: any) => c.formSlug != null);
+  });
+}

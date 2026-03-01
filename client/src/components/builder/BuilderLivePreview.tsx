@@ -415,8 +415,8 @@ function InputPreview({
     case "file-upload":
       return (
         <div
-          className="border-2 border-dashed rounded-xl p-8 text-center"
-          style={{ borderColor: `${design.answerColor}30` }}
+          className="border-dashed rounded-xl p-8 text-center"
+          style={{ borderColor: `${design.answerColor}30`, borderWidth: '7px' }}
         >
           <Upload size={32} className="mx-auto mb-3 opacity-30" style={{ color: design.answerColor }} />
           <p className="text-sm opacity-40" style={{ color: design.questionColor, fontFamily: design.fontFamily }}>
