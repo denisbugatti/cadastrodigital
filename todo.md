@@ -518,3 +518,4 @@
 ### Edição de Formulário (Dashboard)
 - [ ] Poder alterar o nome do formulário no Dashboard
 - [ ] Poder alterar a URL/slug do formulário no Dashboard
+- [x] Fix: SharingPanel mostra URL de dev em vez de one.cadastrodigital.com.br — agora mostra domínio real na preview
