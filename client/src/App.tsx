@@ -13,11 +13,21 @@ import FormView from "./pages/FormView";
 import Responses from "./pages/Responses";
 import Corretores from "./pages/Corretores";
 import SlugResolver from "./pages/SlugResolver";
+import Login from "./pages/Login";
+import AcceptInvite from "./pages/AcceptInvite";
+import ClientRegister from "./pages/ClientRegister";
+import ClientPortal from "./pages/ClientPortal";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      {/* Auth routes */}
+      <Route path={"/login"} component={Login} />
+      <Route path={"/aceitar-convite"} component={AcceptInvite} />
+      <Route path={"/cadastro-cliente"} component={ClientRegister} />
+      <Route path={"/portal"} component={ClientPortal} />
+
+      {/* Staff dashboard routes */}
       <Route path={"/"} component={Dashboard} />
       <Route path={"/form"} component={Dashboard} />
       <Route path={"/landing"} component={Landing} />

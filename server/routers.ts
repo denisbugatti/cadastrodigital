@@ -13,6 +13,11 @@ import { notifyOwner } from "./_core/notification";
 import { notifyOwnerNewResponse } from "./pushNotification";
 import { sendProtocolEmail } from "./emailService";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
+import { customAuthRouter } from "./authRouter";
+import * as staffDb from "./staffDb";
+import { verifySessionToken } from "./authService";
+import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail } from "./emailService";
+import { generateInviteToken } from "./authService";
 
 /**
  * In-memory cache for the owner user.
@@ -117,6 +122,7 @@ const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
+  // Legacy auth (Manus OAuth) — kept for backward compatibility
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -124,6 +130,162 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+  }),
+  // New custom auth system
+  customAuth: customAuthRouter,
+
+  // ─── Staff Management (master only) ───
+  staff: router({
+    list: ownerFallbackProcedure.query(async () => {
+      const users = await staffDb.getAllStaffUsers();
+      return users.map((u: any) => ({
+        id: u.id, email: u.email, name: u.name, phone: u.phone,
+        role: u.role, active: u.active, createdAt: u.createdAt,
+        lastSignedIn: u.lastSignedIn, avatarUrl: u.avatarUrl,
+      }));
+    }),
+
+    update: ownerFallbackProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        phone: z.string().optional(),
+        role: z.enum(["master", "diretor", "gerente", "corretor"]).optional(),
+        active: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await staffDb.updateStaffUser(id, data as any);
+        return { success: true };
+      }),
+
+    delete: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await staffDb.deleteStaffUser(input.id);
+        return { success: true };
+      }),
+
+    invite: ownerFallbackProcedure
+      .input(z.object({
+        email: z.string().email(),
+        role: z.enum(["diretor", "gerente", "corretor"]),
+        name: z.string().optional(),
+        phone: z.string().optional(),
+        origin: z.string(), // Frontend origin for building invite URL
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if email already has an account
+        const existing = await staffDb.getStaffUserByEmail(input.email);
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Este email já possui uma conta" });
+        }
+        const token = generateInviteToken();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        await staffDb.createInvite({
+          email: input.email.toLowerCase(),
+          token,
+          role: input.role as any,
+          invitedBy: ctx.user.id,
+          name: input.name ?? null,
+          phone: input.phone ?? null,
+          expiresAt,
+        });
+        const inviteUrl = `${input.origin}/aceitar-convite?token=${token}`;
+        await sendInviteEmail({
+          to: input.email,
+          inviterName: ctx.user.name || "Administrador",
+          role: input.role,
+          inviteUrl,
+        });
+        return { success: true, token };
+      }),
+
+    invites: ownerFallbackProcedure.query(async ({ ctx }) => {
+      return staffDb.getInvitesByInviter(ctx.user.id);
+    }),
+  }),
+
+  // ─── Permissions Management ───
+  permissions: router({
+    list: ownerFallbackProcedure.query(async () => {
+      return staffDb.getAllPermissions();
+    }),
+
+    update: ownerFallbackProcedure
+      .input(z.object({
+        role: z.string(),
+        permission: z.string(),
+        granted: z.boolean(),
+      }))
+      .mutation(async ({ input }) => {
+        await staffDb.upsertPermission(input.role, input.permission, input.granted);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Response Validations ───
+  validations: router({
+    byResponse: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .query(async ({ input }) => {
+        return staffDb.getValidationsByResponse(input.responseId);
+      }),
+
+    validate: ownerFallbackProcedure
+      .input(z.object({
+        responseId: z.number(),
+        questionId: z.string(),
+        status: z.enum(["approved", "rejected"]),
+        justification: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await staffDb.upsertValidation(
+          input.responseId,
+          input.questionId,
+          input.status,
+          ctx.user.id,
+          input.justification,
+        );
+        // Check if all questions are validated
+        const allValidations = await staffDb.getValidationsByResponse(input.responseId);
+        const response = await db.getResponseById(input.responseId);
+        if (response) {
+          const questions = response.answers ? Object.keys(response.answers as any) : [];
+          const allValidated = questions.every(qId =>
+            allValidations.some((v: any) => v.questionId === qId && v.status !== "pending")
+          );
+          const allApproved = allValidated && allValidations.every((v: any) => v.status === "approved");
+          const hasRejection = allValidations.some((v: any) => v.status === "rejected");
+
+          let newStatus: string = "in_review";
+          if (allApproved) newStatus = "approved";
+          else if (hasRejection) newStatus = "rejected";
+
+          await db.updateResponse(input.responseId, {
+            validationStatus: newStatus as any,
+            reviewedBy: ctx.user.id,
+            reviewedAt: allValidated ? new Date() : undefined,
+          });
+
+          // Send email notifications based on status
+          if (allApproved && response.respondentEmail) {
+            await sendApprovalEmail({
+              to: response.respondentEmail,
+              clientName: response.respondentName || "Cliente",
+            });
+          } else if (hasRejection && response.respondentEmail) {
+            const rejections = allValidations.filter((v: any) => v.status === "rejected");
+            const reasons = rejections.map((v: any) => v.justification || "Documento/dado precisa de revisão").join("; ");
+            await sendRejectionEmail({
+              to: response.respondentEmail,
+              clientName: response.respondentName || "Cliente",
+              reason: reasons,
+            });
+          }
+        }
+        return { success: true };
+      }),
   }),
 
   // ─── Forms ───
@@ -445,6 +607,19 @@ export const appRouter = router({
         const filename = `Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
 
         return { base64, filename, tipo };
+      }),
+
+    myResponses: publicProcedure
+      .query(async ({ ctx }) => {
+        // Parse cookie to get client session
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "client") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de cliente necessário" });
+        }
+        return db.getResponsesByCpfCnpj(session.cpfCnpj);
       }),
 
     exportCsv: ownerFallbackProcedure

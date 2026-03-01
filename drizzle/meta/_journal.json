@@ -43,6 +43,13 @@
       "when": 1772323324685,
       "tag": "0005_eminent_proemial_gods",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1772384746080,
+      "tag": "0006_lame_legion",
+      "breakpoints": true
     }
   ]
 }

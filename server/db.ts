@@ -345,6 +345,25 @@ export async function getResponsesByFormWithSearch(formId: number, search?: stri
   });
 }
 
+export async function getResponsesByCpfCnpj(cpfCnpj: string) {
+  return withDbRetry(async (db) => {
+    return db.select({
+      id: formResponses.id,
+      formId: formResponses.formId,
+      respondentName: formResponses.respondentName,
+      respondentEmail: formResponses.respondentEmail,
+      protocolCode: formResponses.protocolCode,
+      validationStatus: formResponses.validationStatus,
+      isComplete: formResponses.isComplete,
+      createdAt: formResponses.createdAt,
+      formTitle: forms.title,
+    }).from(formResponses)
+      .leftJoin(forms, eq(formResponses.formId, forms.id))
+      .where(eq(formResponses.respondentCpfCnpj, cpfCnpj))
+      .orderBy(desc(formResponses.createdAt));
+  });
+}
+
 export async function getResponseById(id: number) {
   return withDbRetry(async (db) => {
     const result = await db.select().from(formResponses).where(eq(formResponses.id, id)).limit(1);

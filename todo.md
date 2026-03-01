@@ -372,3 +372,64 @@
 - [x] Fazer upload da imagem para S3 via backend
 - [x] Exibir preview da imagem selecionada
 - [x] Testar upload e exibição da imagem
+
+## Feature: Configurar RESEND_API_KEY
+- [x] Configurar secret RESEND_API_KEY via webdev_request_secrets
+- [x] Testar envio de email com protocolo
+
+## Feature: Sistema de autenticação próprio (substituir Manus OAuth)
+- [ ] Criar tabela platform_users (email, passwordHash, role, name, phone, active, invitedBy)
+- [ ] Criar tabela invites (email, token, role, invitedBy, expiresAt, usedAt)
+- [ ] Criar tabela client_users (cpf_cnpj, passwordHash, name, email, phone)
+- [ ] Implementar hash de senha com bcrypt
+- [ ] Backend: login endpoint (email/senha para staff, CPF/CNPJ para clientes)
+- [ ] Backend: register endpoint (apenas via convite para staff)
+- [ ] Backend: invite endpoint (master envia convite por email)
+- [ ] Backend: session/JWT management próprio
+- [ ] Frontend: página de login (staff e cliente)
+- [ ] Frontend: página de registro via convite (definir senha)
+- [ ] Frontend: página de login do cliente (CPF/CNPJ)
+- [ ] Seed do master: contato@denisbugatti.com.br / WdZQ7eQJXJ
+- [ ] Remover dependência do Manus OAuth
+
+## Feature: Níveis de acesso (Master, Diretor, Gerente, Corretor)
+- [ ] Enum de roles: master, diretor, gerente, corretor
+- [ ] Tabela de permissões por role (permissions matrix)
+- [ ] Backend: middleware de verificação de permissões
+- [ ] Frontend: página de gerenciamento de permissões (master only)
+- [ ] Frontend: hierarquia visual de acesso (como na imagem)
+- [ ] Frontend: checkboxes editáveis por recurso/role
+
+## Feature: Portal do cliente (CPF/CNPJ)
+- [ ] Login do cliente por CPF/CNPJ + senha
+- [ ] Dashboard do cliente: ver status do cadastro
+- [ ] Cliente pode finalizar cadastro incompleto
+- [ ] Cliente recebe email de status (aprovado/reprovado/pendente)
+- [ ] Cliente NÃO vê quem é o corretor responsável
+
+## Feature: Validação de respostas pelo corretor
+- [ ] Tabela response_validations (responseId, questionId, status, justification, validatedBy)
+- [ ] Backend: endpoints de validação (aprovar/reprovar resposta individual)
+- [ ] Frontend: interface de validação para corretor (check verde / X vermelho com justificativa)
+- [ ] Backend: calcular status geral (aprovado quando todas validadas)
+- [ ] Email de aprovação (parabéns, apto para comprar imóvel One Innovation)
+- [ ] Email de reprovação (justificativa, solicitar novo documento/dado)
+
+## Feature: Landing page incrível
+- [ ] Design premium da landing page com informações sobre a plataforma
+- [ ] Botão "Preencher para Lançamento" no header (chamativo)
+- [ ] Ao clicar: modal com campo de corretor e telefone do corretor
+- [ ] Após selecionar corretor: abre o formulário vinculado ao corretor
+- [ ] Botões de login (staff e cliente) no header
+- [ ] Informações sobre LGPD e proteção de dados
+
+## Feature: Vinculação corretor-formulário
+- [ ] Cada formulário vinculado a um corretor específico (userId do corretor)
+- [ ] Corretor vê apenas seus formulários e respostas
+- [ ] Ao criar formulário: obrigatório informar número e email do corretor
+
+## Feature: Duplicar formulário melhorado
+- [ ] Dialog de duplicação com campo de nome
+- [ ] Seletor de pasta de destino no dialog
+- [ ] Integrar dialog no botão de duplicar do Dashboard
+- [ ] Testar fluxo completo
