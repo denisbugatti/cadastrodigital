@@ -35,7 +35,7 @@ const questionDefaults = {
   matrix: { rows: ["Item 1", "Item 2"], columns: ["Ruim", "Regular", "Bom", "Ótimo"] },
   rankItems: ["Item 1", "Item 2", "Item 3"],
   validation: {},
-  conditionalLogic: { enabled: false, branches: [], defaultGoTo: "next" },
+  conditionalLogic: { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
   image: "",
   imageUrl: "",
   iconName: "",
@@ -57,15 +57,27 @@ const questionDefaults = {
 
 function ensureQuestionDefaults(q: any): any {
   const merged = { ...questionDefaults, ...q };
-  // Deep-merge conditionalLogic: ensure branches is populated from rules if missing
+  // Deep-merge conditionalLogic: ensure branches and rules are always separate arrays
   if (q.conditionalLogic) {
     const cl = q.conditionalLogic;
     merged.conditionalLogic = {
       enabled: cl.enabled ?? false,
-      branches: cl.branches?.length ? cl.branches : (cl.rules ?? []),
+      branches: Array.isArray(cl.branches) ? [...cl.branches] : [],
+      rules: Array.isArray(cl.rules) ? [...cl.rules] : [],
       defaultGoTo: cl.defaultGoTo ?? "next",
     };
+  } else {
+    // Ensure conditionalLogic always has separate array instances
+    merged.conditionalLogic = {
+      enabled: false,
+      branches: [],
+      rules: [],
+      defaultGoTo: "next",
+    };
   }
+  // Ensure scoringEnabled and questionScore have defaults
+  if (merged.scoringEnabled === undefined) merged.scoringEnabled = false;
+  if (merged.questionScore === undefined) merged.questionScore = 0;
   return merged;
 }
 

@@ -43,17 +43,21 @@ function dbFormToFormData(dbForm: any): FormData {
     matrixColumns: q.matrix?.columns ?? q.matrixColumns,
     rankItems: q.rankItems,
     conditionalLogic: q.conditionalLogic ? {
-      enabled: q.conditionalLogic.enabled,
-      rules: (q.conditionalLogic.branches ?? q.conditionalLogic.rules ?? []).map((r: any) => ({
+      enabled: q.conditionalLogic.enabled ?? false,
+      branches: (q.conditionalLogic.branches ?? []).map((r: any) => ({
         choiceId: r.choiceId,
         goToQuestionId: r.goToQuestionId,
+        operator: r.operator,
+        value: r.value,
       })),
-      branches: (q.conditionalLogic.branches ?? q.conditionalLogic.rules ?? []).map((r: any) => ({
+      rules: (q.conditionalLogic.rules ?? []).map((r: any) => ({
         choiceId: r.choiceId,
         goToQuestionId: r.goToQuestionId,
+        operator: r.operator,
+        value: r.value,
       })),
-      defaultGoTo: q.conditionalLogic.defaultGoTo,
-    } : undefined,
+      defaultGoTo: q.conditionalLogic.defaultGoTo ?? "next",
+    } : { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
   }));
 
   const design = dbForm.design ?? {};

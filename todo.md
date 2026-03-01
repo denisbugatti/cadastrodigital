@@ -298,3 +298,11 @@
 - [x] Form Engine: resolveTarget com suporte a "next", "end", e IDs de pergunta
 - [x] Form Engine: getNextIndexForValue unificado (branches → rules → defaultGoTo)
 - [x] Testes: 37 testes de lógica condicional (126 testes totais passando)
+
+## Bug: Erro ao salvar formulário no editor ("The string did not match the expected pattern")
+- [x] Investigar causa raiz: superjson criava referências compartilhadas entre branches e rules quando arrays eram a mesma instância
+- [x] Corrigir: ensureQuestionDefaults (Editor.tsx) agora cria arrays separados para branches e rules com spread operator
+- [x] Corrigir: updateQuestion (useBuilder.ts) agora copia branches/rules com map/spread para evitar referências compartilhadas
+- [x] Corrigir: FormView.tsx agora mapeia branches e rules separadamente com defaults
+- [x] Corrigir: todos os defaultCL objects agora incluem campo rules: []
+- [x] Testar salvamento do formulário no editor — 200 OK, sem erros no console, 126 testes passando
