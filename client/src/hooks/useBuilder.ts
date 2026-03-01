@@ -263,7 +263,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
     (questionId: string) => {
       setForm((prev) => {
         const questions = prev.questions.filter((q) => q.id !== questionId);
-        const defaultCL = { enabled: false, branches: [], rules: [], defaultGoTo: "next" };
+        const defaultCL = { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" };
         const cleaned = questions.map((q) => ({
           ...q,
           conditionalLogic: {
@@ -302,7 +302,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
           ...JSON.parse(JSON.stringify(original)),
           id: `q_${Date.now()}_dup`,
           title: `${original.title} (cópia)`,
-          conditionalLogic: { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
+          conditionalLogic: { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" },
         };
         const questions = [...prev.questions];
         questions.splice(idx + 1, 0, duplicate);
@@ -342,6 +342,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
         const cl = updates.conditionalLogic;
         const branchesArr = Array.isArray(cl.branches) ? cl.branches : [];
         const rulesArr = Array.isArray((cl as any).rules) ? (cl as any).rules : [];
+        const scoreRulesArr = Array.isArray((cl as any).scoreRules) ? (cl as any).scoreRules : [];
         updates = {
           ...updates,
           conditionalLogic: {
@@ -349,6 +350,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
             branches: [...branchesArr],
             // Keep rules in sync: copy branches for choice-based, keep rules for condition-based
             rules: branchesArr.length > 0 ? branchesArr.map(b => ({...b})) : [...rulesArr],
+            scoreRules: [...scoreRulesArr],
           } as any,
         };
       }
@@ -455,7 +457,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
             ...q,
             choices: q.choices.filter((c) => c.id !== choiceId),
             conditionalLogic: {
-              ...(q.conditionalLogic ?? { enabled: false, branches: [], rules: [], defaultGoTo: "next" }),
+              ...(q.conditionalLogic ?? { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" }),
               branches: ((q.conditionalLogic?.branches) ?? []).filter(
                 (b) => b.choiceId !== choiceId
               ),

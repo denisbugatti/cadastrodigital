@@ -306,3 +306,16 @@
 - [x] Corrigir: FormView.tsx agora mapeia branches e rules separadamente com defaults
 - [x] Corrigir: todos os defaultCL objects agora incluem campo rules: []
 - [x] Testar salvamento do formulário no editor — 200 OK, sem erros no console, 126 testes passando
+
+## Feature: Lógica condicional baseada em pontuação total
+- [x] Tipos: ScoreRule com campos id, scoreMin, scoreMax, goToQuestionId em builderTypes.ts
+- [x] Tipos: scoreRules adicionado ao ConditionalLogic em builderTypes.ts e formTypes.ts
+- [x] Todos os defaults atualizados: Editor.tsx, useBuilder.ts, BuilderConfigPanel.tsx, FormView.tsx, oneInnovationForm.ts
+- [x] Form Engine: calculateCurrentScore calcula pontuação acumulada (choice-based + questionScore)
+- [x] Form Engine: getNextIndexForValue avalia scoreRules após branches e rules (primeira regra que corresponder vence)
+- [x] Builder UI: seção "Regras por pontuação total" na aba Lógica (disponível para TODAS as perguntas)
+- [x] Builder UI: inputs de pontuação mínima e máxima + seletor de destino com design amber/gold
+- [x] builderToForm.ts: conversão de scoreRules para o form engine
+- [x] FormView.tsx: mapeamento de scoreRules + campos scoring (scoringEnabled, questionScore, choice.score)
+- [x] updateQuestion: preserva scoreRules como array separado (evita referências compartilhadas)
+- [x] Testes unitários: 18 novos testes para lógica de pontuação (144 testes totais passando)

@@ -236,8 +236,45 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
   }, [questions]);
 
   /**
+   * Calculate the accumulated total score up to (and including) the current question.
+   * Considers all responses collected so far.
+   */
+  const calculateCurrentScore = useCallback((currentResponses: Map<string, FormResponse>, includeValue?: { questionId: string; value: any }): number => {
+    let score = 0;
+    const allResponses = new Map(currentResponses);
+    // Include the fresh value if provided (for auto-advance scenarios)
+    if (includeValue) {
+      allResponses.set(includeValue.questionId, { questionId: includeValue.questionId, value: includeValue.value });
+    }
+    allResponses.forEach((v) => {
+      const q = questions.find((q2) => q2.id === v.questionId);
+      if (!q?.scoringEnabled) return;
+      // Choice-based questions: score per selected option
+      if (q.choices && q.choices.length > 0) {
+        if (typeof v.value === "string") {
+          const choice = q.choices.find((c) => c.id === v.value || c.label === v.value);
+          if (choice?.score) score += choice.score;
+        }
+        if (Array.isArray(v.value)) {
+          v.value.forEach((val) => {
+            const choice = q.choices!.find((c) => c.id === val || c.label === val);
+            if (choice?.score) score += choice.score;
+          });
+        }
+      } else {
+        // Non-choice questions: fixed questionScore awarded when answered
+        const hasValue = v.value !== null && v.value !== undefined && v.value !== "";
+        if (hasValue && q.questionScore) {
+          score += q.questionScore;
+        }
+      }
+    });
+    return score;
+  }, [questions]);
+
+  /**
    * Determine the next question index based on conditional logic.
-   * Supports both choice-based branches and condition-based rules.
+   * Supports choice-based branches, condition-based rules, and score-based rules.
    */
   const getNextIndexForValue = useCallback((q: Question, value: any): number => {
     if (!q || !q.conditionalLogic?.enabled) {
@@ -272,14 +309,31 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
       }
     }
 
-    // 3. Check defaultGoTo
+    // 3. Check score-based rules (evaluated top to bottom, first match wins)
+    const scoreRules = q.conditionalLogic?.scoreRules ?? [];
+    if (scoreRules.length > 0) {
+      const totalScore = calculateCurrentScore(responses, { questionId: q.id, value });
+      for (const sr of scoreRules) {
+        const minOk = sr.scoreMin === null || sr.scoreMin === undefined || totalScore >= sr.scoreMin;
+        const maxOk = sr.scoreMax === null || sr.scoreMax === undefined || totalScore <= sr.scoreMax;
+        if (minOk && maxOk) {
+          if (sr.goToQuestionId !== "next") {
+            const targetIdx = resolveTarget(sr.goToQuestionId);
+            if (targetIdx !== -1) return targetIdx;
+          }
+          break; // first match wins
+        }
+      }
+    }
+
+    // 4. Check defaultGoTo
     if (q.conditionalLogic?.defaultGoTo && q.conditionalLogic.defaultGoTo !== "next") {
       const targetIdx = resolveTarget(q.conditionalLogic.defaultGoTo);
       if (targetIdx !== -1) return targetIdx;
     }
 
     return -1; // no match, use default
-  }, [evaluateRule, resolveTarget]);
+  }, [evaluateRule, resolveTarget, calculateCurrentScore, responses]);
 
   const getNextIndex = useCallback((): number => {
     const q = currentQuestion;

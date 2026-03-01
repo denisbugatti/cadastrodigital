@@ -35,7 +35,7 @@ const questionDefaults = {
   matrix: { rows: ["Item 1", "Item 2"], columns: ["Ruim", "Regular", "Bom", "Ótimo"] },
   rankItems: ["Item 1", "Item 2", "Item 3"],
   validation: {},
-  conditionalLogic: { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
+  conditionalLogic: { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" },
   image: "",
   imageUrl: "",
   iconName: "",
@@ -64,6 +64,7 @@ function ensureQuestionDefaults(q: any): any {
       enabled: cl.enabled ?? false,
       branches: Array.isArray(cl.branches) ? [...cl.branches] : [],
       rules: Array.isArray(cl.rules) ? [...cl.rules] : [],
+      scoreRules: Array.isArray(cl.scoreRules) ? [...cl.scoreRules] : [],
       defaultGoTo: cl.defaultGoTo ?? "next",
     };
   } else {
@@ -72,6 +73,7 @@ function ensureQuestionDefaults(q: any): any {
       enabled: false,
       branches: [],
       rules: [],
+      scoreRules: [],
       defaultGoTo: "next",
     };
   }

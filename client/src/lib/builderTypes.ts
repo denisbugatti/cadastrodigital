@@ -94,10 +94,19 @@ export interface ConditionalRule {
   goToQuestionId: string;
 }
 
+// Score-based conditional rule: jump based on accumulated total score
+export interface ScoreRule {
+  id: string;
+  scoreMin: number | null; // minimum score (inclusive), null = no lower bound
+  scoreMax: number | null; // maximum score (inclusive), null = no upper bound
+  goToQuestionId: string;
+}
+
 export interface ConditionalLogic {
   enabled: boolean;
   branches: ConditionalBranch[]; // for choice-based questions
   rules: ConditionalRule[];       // for non-choice questions (condition-based)
+  scoreRules: ScoreRule[];        // score-based rules (evaluated on accumulated score)
   defaultGoTo: string; // "next" or question ID
 }
 
@@ -330,7 +339,7 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     matrix: { rows: ["Item 1", "Item 2"], columns: ["Ruim", "Regular", "Bom", "Ótimo"] },
     rankItems: ["Item 1", "Item 2", "Item 3"],
     validation: {},
-    conditionalLogic: { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
+    conditionalLogic: { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" },
     image: "",
     imageUrl: "",
     iconName: "",

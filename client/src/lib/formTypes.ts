@@ -99,6 +99,12 @@ export interface Question {
       value: string;
       goToQuestionId: string;
     }>;
+    scoreRules?: Array<{
+      id: string;
+      scoreMin: number | null; // minimum score (inclusive), null = no lower bound
+      scoreMax: number | null; // maximum score (inclusive), null = no upper bound
+      goToQuestionId: string;
+    }>;
     defaultGoTo?: string;
   };
 }

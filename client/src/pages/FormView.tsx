@@ -27,6 +27,7 @@ function dbFormToFormData(dbForm: any): FormData {
       label: c.label,
       icon: c.icon,
       imageUrl: c.imageUrl,
+      score: c.score,
     })),
     maxRating: q.maxRating,
     ratingLabels: q.ratingLabels,
@@ -42,6 +43,8 @@ function dbFormToFormData(dbForm: any): FormData {
     matrixRows: q.matrix?.rows ?? q.matrixRows,
     matrixColumns: q.matrix?.columns ?? q.matrixColumns,
     rankItems: q.rankItems,
+    scoringEnabled: q.scoringEnabled,
+    questionScore: q.questionScore,
     conditionalLogic: q.conditionalLogic ? {
       enabled: q.conditionalLogic.enabled ?? false,
       branches: (q.conditionalLogic.branches ?? []).map((r: any) => ({
@@ -51,13 +54,19 @@ function dbFormToFormData(dbForm: any): FormData {
         value: r.value,
       })),
       rules: (q.conditionalLogic.rules ?? []).map((r: any) => ({
-        choiceId: r.choiceId,
+        id: r.id,
         goToQuestionId: r.goToQuestionId,
         operator: r.operator,
         value: r.value,
       })),
+      scoreRules: (q.conditionalLogic.scoreRules ?? []).map((sr: any) => ({
+        id: sr.id,
+        scoreMin: sr.scoreMin ?? null,
+        scoreMax: sr.scoreMax ?? null,
+        goToQuestionId: sr.goToQuestionId,
+      })),
       defaultGoTo: q.conditionalLogic.defaultGoTo ?? "next",
-    } : { enabled: false, branches: [], rules: [], defaultGoTo: "next" },
+    } : { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" },
   }));
 
   const design = dbForm.design ?? {};

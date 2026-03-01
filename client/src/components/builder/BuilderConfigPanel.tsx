@@ -8,7 +8,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings, Type, AlignLeft, ToggleLeft, Plus, Trash2, X,
-  GitBranch, ArrowRight, Sparkles, ImagePlus, Smile, Link2,
+  GitBranch, ArrowRight, Sparkles, ImagePlus, Smile, Link2, Trophy,
   MousePointerClick, ExternalLink, RotateCcw,
   User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
   Minus, MessageSquare, Hash, DollarSign, Link,
@@ -16,7 +16,7 @@ import {
   Star, Gauge, ArrowUpDown, Grid3X3,
   Calendar, Upload, Hand, Heart, ShieldCheck,
 } from "lucide-react";
-import type { BuilderQuestion, BuilderChoice, ConditionOperator, ConditionalRule } from "@/lib/builderTypes";
+import type { BuilderQuestion, BuilderChoice, ConditionOperator, ConditionalRule, ScoreRule } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -638,7 +638,7 @@ function ConditionalLogicEditor({
   onUpdate: (id: string, updates: Partial<BuilderQuestion>) => void;
   targets: { id: string; label: string; type: string }[];
 }) {
-  const logic = question.conditionalLogic ?? { enabled: false, branches: [], rules: [], defaultGoTo: "next" };
+  const logic = question.conditionalLogic ?? { enabled: false, branches: [], rules: [], scoreRules: [], defaultGoTo: "next" };
   const isYesNo = question.type === "yes-no";
   const typeInfo = questionTypes.find((t) => t.type === question.type);
   const hasChoices = typeInfo?.hasChoices || isYesNo;
@@ -723,6 +723,31 @@ function ConditionalLogicEditor({
     });
   };
 
+  // Score-based rule CRUD
+  const addScoreRule = () => {
+    const newRule: ScoreRule = { id: `sr_${Date.now()}`, scoreMin: 0, scoreMax: null, goToQuestionId: "next" };
+    const newScoreRules: ScoreRule[] = [...(logic.scoreRules ?? []), newRule];
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, scoreRules: newScoreRules },
+    });
+  };
+
+  const updateScoreRule = (ruleId: string, updates: Partial<{ scoreMin: number | null; scoreMax: number | null; goToQuestionId: string }>) => {
+    const newScoreRules: ScoreRule[] = (logic.scoreRules ?? []).map((r) =>
+      r.id === ruleId ? { ...r, ...updates } : r
+    );
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, scoreRules: newScoreRules },
+    });
+  };
+
+  const removeScoreRule = (ruleId: string) => {
+    const newScoreRules = (logic.scoreRules ?? []).filter((r) => r.id !== ruleId);
+    onUpdate(question.id, {
+      conditionalLogic: { ...logic, scoreRules: newScoreRules },
+    });
+  };
+
   const availableOperators = getOperatorsForType(question.type);
 
   return (
@@ -786,6 +811,97 @@ function ConditionalLogicEditor({
             <GitBranch size={14} className="inline mr-2" />
             Cada opção pode direcionar o respondente para uma pergunta diferente, criando fluxos personalizados.
           </div>
+        </div>
+      )}
+
+      {/* Score-based rules section — available for ALL question types when logic is enabled */}
+      {logic.enabled && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 py-2">
+            <Trophy size={16} className="text-amber-500" />
+            <p className="text-sm font-body font-semibold text-foreground">
+              Regras por pontuação total
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground font-body">
+            Direcione o fluxo com base na pontuação acumulada até esta pergunta.
+          </p>
+
+          {(logic.scoreRules ?? []).map((sr, idx) => (
+            <div
+              key={sr.id}
+              className="rounded-xl border border-amber-200 p-4 space-y-3 bg-amber-50/50"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-body font-semibold text-amber-700 uppercase tracking-wide">
+                  Regra de pontuação {idx + 1}
+                </span>
+                <button
+                  onClick={() => removeScoreRule(sr.id)}
+                  className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-body text-muted-foreground mb-1 block">Pontuação mínima</label>
+                  <input
+                    type="number"
+                    value={sr.scoreMin ?? ""}
+                    onChange={(e) => updateScoreRule(sr.id, { scoreMin: e.target.value === "" ? null : Number(e.target.value) })}
+                    placeholder="Sem mínimo"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-body text-muted-foreground mb-1 block">Pontuação máxima</label>
+                  <input
+                    type="number"
+                    value={sr.scoreMax ?? ""}
+                    onChange={(e) => updateScoreRule(sr.id, { scoreMax: e.target.value === "" ? null : Number(e.target.value) })}
+                    placeholder="Sem máximo"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Target select */}
+              <div className="flex items-center gap-2">
+                <ArrowRight size={14} className="text-amber-600 shrink-0" />
+                <select
+                  value={sr.goToQuestionId}
+                  onChange={(e) => updateScoreRule(sr.id, { goToQuestionId: e.target.value })}
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all appearance-none"
+                >
+                  <option value="next">Próxima pergunta (padrão)</option>
+                  <option value="end">Ir para agradecimento</option>
+                  {targets.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+
+          {/* Add score rule button */}
+          <button
+            onClick={addScoreRule}
+            className="w-full py-2.5 rounded-xl border-2 border-dashed border-amber-300 text-sm font-body text-amber-600 hover:border-amber-400 hover:text-amber-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={14} />
+            Adicionar regra de pontuação
+          </button>
+
+          {(logic.scoreRules ?? []).length > 0 && (
+            <div className="p-4 rounded-xl border border-amber-200/50 bg-amber-50/30 text-sm font-body text-amber-700 leading-relaxed">
+              <Trophy size={14} className="inline mr-2" />
+              As regras de pontuação avaliam a pontuação total acumulada até esta pergunta. A primeira regra que corresponder será usada.
+            </div>
+          )}
         </div>
       )}
 

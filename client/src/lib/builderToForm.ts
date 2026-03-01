@@ -88,8 +88,9 @@ function convertQuestion(bq: BuilderQuestion): Question {
   if (bq.conditionalLogic?.enabled) {
     const hasBranches = (bq.conditionalLogic?.branches?.length ?? 0) > 0;
     const hasRules = (bq.conditionalLogic?.rules?.length ?? 0) > 0;
+    const hasScoreRules = (bq.conditionalLogic?.scoreRules?.length ?? 0) > 0;
     const hasDefaultGoTo = bq.conditionalLogic?.defaultGoTo && bq.conditionalLogic.defaultGoTo !== "next";
-    if (hasBranches || hasRules || hasDefaultGoTo) {
+    if (hasBranches || hasRules || hasScoreRules || hasDefaultGoTo) {
       const mappedBranches = (bq.conditionalLogic?.branches ?? []).map((b) => ({
         choiceId: b.choiceId,
         goToQuestionId: b.goToQuestionId,
@@ -100,10 +101,17 @@ function convertQuestion(bq: BuilderQuestion): Question {
         value: r.value,
         goToQuestionId: r.goToQuestionId,
       }));
+      const mappedScoreRules = (bq.conditionalLogic?.scoreRules ?? []).map((sr) => ({
+        id: sr.id,
+        scoreMin: sr.scoreMin,
+        scoreMax: sr.scoreMax,
+        goToQuestionId: sr.goToQuestionId,
+      }));
       question.conditionalLogic = {
         enabled: true,
         branches: mappedBranches,
         rules: mappedRules,
+        scoreRules: mappedScoreRules,
         defaultGoTo: hasDefaultGoTo ? bq.conditionalLogic?.defaultGoTo : undefined,
       };
     }
