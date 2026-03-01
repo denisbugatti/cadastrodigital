@@ -141,11 +141,36 @@ export function FormContainer({ form }: FormContainerProps) {
   const submitResponseMutation = trpc.responses.submit.useMutation();
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [protocolCode, setProtocolCode] = useState<string | null>(null);
+  const [totalScore, setTotalScore] = useState<number | null>(null);
 
   useEffect(() => {
     if (!hasRestoredFromSave) return;
     if (engine.isThankYou) {
       clearSavedResponses(form.id);
+
+      // Calculate total score if any question has scoring enabled
+      const hasScoringQuestions = form.questions.some(q => q.scoringEnabled && q.choices?.some(c => c.score !== undefined));
+      if (hasScoringQuestions) {
+        let score = 0;
+        engine.responses.forEach((v) => {
+          const q = form.questions.find(q => q.id === v.questionId);
+          if (q?.scoringEnabled && q.choices) {
+            // For single choice (multiple-choice, dropdown, image-choice)
+            if (typeof v.value === "string") {
+              const choice = q.choices.find(c => c.id === v.value || c.label === v.value);
+              if (choice?.score) score += choice.score;
+            }
+            // For multiple select (array of values)
+            if (Array.isArray(v.value)) {
+              v.value.forEach(val => {
+                const choice = q.choices!.find(c => c.id === val || c.label === val);
+                if (choice?.score) score += choice.score;
+              });
+            }
+          }
+        });
+        setTotalScore(score);
+      }
 
       // Submit to database if we have a dbFormId and haven't submitted yet
       if (form._dbFormId && !hasSubmitted) {
@@ -425,6 +450,7 @@ export function FormContainer({ form }: FormContainerProps) {
                   onAutoAdvance={handleAutoAdvance}
                   validationError={validationError}
                   protocolCode={protocolCode}
+                  totalScore={totalScore}
                   design={form.design}
                 />
               </div>

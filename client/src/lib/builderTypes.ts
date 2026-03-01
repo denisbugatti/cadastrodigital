@@ -122,6 +122,8 @@ export interface BuilderQuestion {
   buttonText: string;
   showButton: boolean;
   redirectUrl: string;
+  // Scoring
+  scoringEnabled: boolean;
   // Legal text
   legalText: string;
   // Address fields config
@@ -140,6 +142,7 @@ export interface BuilderChoice {
   id: string;
   label: string;
   imageUrl?: string; // for image-choice
+  score?: number; // scoring points for this option
 }
 
 // ─── Design Settings ───
@@ -313,6 +316,7 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     buttonText: "Continuar",
     showButton: true,
     redirectUrl: "",
+    scoringEnabled: false,
     legalText: "",
     addressFields: {
       cep: true,

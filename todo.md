@@ -265,3 +265,15 @@
 - [x] SharingPanel.tsx: window.open name
 - [x] formStorage.ts: console error message
 - [x] Todos os 70 testes passando
+
+## Feature: Lógica por pontuação em perguntas de múltipla escolha
+- [x] Tipos: score opcional em BuilderChoice/Choice, scoringEnabled em BuilderQuestion/Question
+- [x] builderToForm: converter score e scoringEnabled para o form engine
+- [x] Builder UI: toggle "Pontuação" com ícone amber na aba Geral (visível para multiple-choice, multiple-select, yes-no, dropdown)
+- [x] Builder UI: campo numérico de score ao lado de cada opção (quando ativado)
+- [x] Builder UI: dica explicativa sobre pontuação
+- [x] FormContainer: cálculo de pontuação total baseado nas respostas (single choice + multiple select)
+- [x] ThankYouScreen: exibição da pontuação total com design amber/gold animado
+- [x] Suporte a single choice (por id e label) e multiple select (array)
+- [x] Suporte a scores negativos e zero
+- [x] Testes unitários: 11 testes de scoring (81 testes totais passando)

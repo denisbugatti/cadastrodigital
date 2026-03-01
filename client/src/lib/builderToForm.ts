@@ -26,7 +26,13 @@ function convertQuestion(bq: BuilderQuestion): Question {
       id: c.id,
       label: c.label,
       icon: undefined,
+      score: c.score,
     }));
+  }
+
+  // Handle scoring
+  if (bq.scoringEnabled) {
+    question.scoringEnabled = true;
   }
 
   // Handle legal text

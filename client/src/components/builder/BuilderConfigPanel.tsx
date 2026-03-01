@@ -242,27 +242,41 @@ export function BuilderConfigPanel({
                 <FieldGroup label="Opções" icon={<Plus size={14} />}>
                   <div className="space-y-2">
                     {question.choices.map((choice, idx) => (
-                      <div key={choice.id} className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground font-body w-5 text-center shrink-0 font-semibold">
-                          {String.fromCharCode(65 + idx)}
-                        </span>
-                        <input
-                          type="text"
-                          value={choice.label}
-                          onChange={(e) =>
-                            onUpdateChoice(question.id, choice.id, { label: e.target.value })
-                          }
-                          className="flex-1 px-3 py-2 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
-                          placeholder={`Opção ${idx + 1}`}
-                        />
-                        {question.choices.length > 2 && (
-                          <button
-                            onClick={() => onRemoveChoice(question.id, choice.id)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
+                      <div key={choice.id} className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground font-body w-5 text-center shrink-0 font-semibold">
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <input
+                            type="text"
+                            value={choice.label}
+                            onChange={(e) =>
+                              onUpdateChoice(question.id, choice.id, { label: e.target.value })
+                            }
+                            className="flex-1 px-3 py-2 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                            placeholder={`Opção ${idx + 1}`}
+                          />
+                          {question.scoringEnabled && (
+                            <input
+                              type="number"
+                              value={choice.score ?? 0}
+                              onChange={(e) =>
+                                onUpdateChoice(question.id, choice.id, { score: Number(e.target.value) })
+                              }
+                              className="w-16 px-2 py-2 rounded-xl text-sm font-body text-foreground bg-amber-50 border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-300 transition-all text-center"
+                              placeholder="0"
+                              title="Pontuação desta opção"
+                            />
+                          )}
+                          {question.choices.length > 2 && (
+                            <button
+                              onClick={() => onRemoveChoice(question.id, choice.id)}
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <button
@@ -274,6 +288,26 @@ export function BuilderConfigPanel({
                     </button>
                   </div>
                 </FieldGroup>
+              )}
+
+              {/* Scoring toggle for choice-based questions */}
+              {hasChoices && !isSpecial && (
+                <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <Label className="text-sm font-body text-foreground flex items-center gap-2">
+                    <Hash size={16} className="text-amber-600" />
+                    Pontuação
+                  </Label>
+                  <Switch
+                    checked={question.scoringEnabled}
+                    onCheckedChange={(checked) => onUpdate(question.id, { scoringEnabled: checked })}
+                  />
+                </div>
+              )}
+              {hasChoices && question.scoringEnabled && (
+                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-xs font-body text-amber-700 leading-relaxed">
+                  <Hash size={12} className="inline mr-1.5" />
+                  Atribua uma pontuação a cada opção. A pontuação total será calculada e exibida ao final do formulário.
+                </div>
               )}
 
               {/* Rating config */}

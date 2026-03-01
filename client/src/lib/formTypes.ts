@@ -48,6 +48,7 @@ export interface Choice {
   label: string;
   icon?: string;
   imageUrl?: string;
+  score?: number;
 }
 
 export interface Question {
@@ -82,6 +83,8 @@ export interface Question {
   matrixColumns?: string[];
   // Ranking
   rankItems?: string[];
+  // Scoring
+  scoringEnabled?: boolean;
   // Conditional logic
   conditionalLogic?: {
     enabled: boolean;
