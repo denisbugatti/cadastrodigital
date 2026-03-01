@@ -33,6 +33,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { ResponseCharts } from "@/components/ResponseCharts";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -323,6 +324,11 @@ export default function Responses() {
             </p>
           )}
         </div>
+
+        {/* Charts */}
+        {responses && responses.length > 0 && (
+          <ResponseCharts responses={responses} questions={questions} />
+        )}
 
         {!responses || responses.length === 0 ? (
           <div className="text-center py-20">

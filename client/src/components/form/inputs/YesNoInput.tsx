@@ -58,7 +58,7 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
             style={{
               borderColor: isSelected
                 ? "currentColor"
-                : "rgba(128,128,128,0.25)",
+                : "rgba(255,255,255,0.4)",
               backgroundColor: isSelected
                 ? "rgba(128,128,128,0.08)"
                 : "transparent",
@@ -82,7 +82,7 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
             <span>{opt.label}</span>
             <kbd
               className="px-1.5 py-0.5 rounded border text-[10px] font-mono ml-1 opacity-40"
-              style={{ borderColor: "rgba(128,128,128,0.3)" }}
+              style={{ borderColor: "rgba(255,255,255,0.35)" }}
             >
               {opt.letter}
             </kbd>

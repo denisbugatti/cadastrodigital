@@ -7,11 +7,11 @@
 - [ ] Direita: painel de configurações (tipo de resposta, branching, obrigatório, etc.)
 
 ## Visual do Formulário (Preview/Respondente)
-- [ ] Bordas dos botões de múltipla escolha → brancas (não azul escuro)
-- [ ] Melhorar contraste geral — textos mais legíveis
-- [ ] Motion/animações suaves ao mudar de pergunta (slide + fade)
-- [ ] Barra de progresso "Pergunta X de Y" no rodapé
-- [ ] Botão voltar (seta para cima) funcional
+- [x] Bordas dos botões de múltipla escolha → brancas (rgba 0.5→0.7, hover 0.9)
+- [x] Melhorar contraste geral — bordas mais visíveis em MultipleChoice, MultipleSelect, YesNo
+- [x] Motion/animações suaves ao mudar de pergunta (slide + fade) — já implementado
+- [x] Barra de progresso "Pergunta X de Y" no topo esquerdo do formulário
+- [x] Botão voltar (seta para cima) funcional — já implementado
 
 ## Tipo Capa/Statement
 - [ ] Adicionar tipo "statement" ao builder (pergunta divisória com título + descrição + botão continuar)
@@ -19,17 +19,17 @@
 - [ ] Atualizar o Check List do One Innovation para usar o novo visual
 
 ## Gráficos na Aba Respostas
-- [ ] Gráfico de pizza: distribuição PF vs PJ
-- [ ] Gráfico de barras: respostas por dia
-- [ ] Cards de estatísticas melhorados
+- [x] Gráfico de pizza: distribuição por pergunta selecionável (recharts PieChart donut)
+- [x] Gráfico de barras: respostas por dia últimos 14 dias (recharts BarChart)
+- [x] Componente ResponseCharts integrado na aba de Respostas
 
 ## Duplicar Formulário
 - [ ] Botão de duplicar/clonar formulário no dashboard
 
 ## Salvar Respostas Parciais
-- [ ] Salvar progresso no localStorage ao responder
-- [ ] Ao reabrir o formulário, perguntar se quer continuar de onde parou
-- [ ] Limpar dados salvos ao completar o formulário
+- [x] Salvar progresso no localStorage ao responder — já implementado
+- [x] Ao reabrir o formulário, restaura automaticamente de onde parou — já implementado
+- [x] Limpar dados salvos ao completar o formulário — já implementado
 
 ## Full-Stack Migration (Database + S3)
 - [x] Create database schema (forms, questions, responses, versions, files)

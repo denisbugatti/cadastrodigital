@@ -52,9 +52,9 @@ export function MultipleChoiceInput({
   }, [design?.backgroundColor]);
 
   // Adaptive colors based on background
-  const borderDefault = isLightBg ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.3)";
-  const borderSelected = isLightBg ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.9)";
-  const borderHover = isLightBg ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.5)";
+  const borderDefault = isLightBg ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.45)";
+  const borderSelected = isLightBg ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,1)";
+  const borderHover = isLightBg ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.65)";
   const bgSelected = isLightBg ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.12)";
   const bgHover = isLightBg ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.06)";
   const textColor = isLightBg ? "#1E293B" : "#FFFFFF";

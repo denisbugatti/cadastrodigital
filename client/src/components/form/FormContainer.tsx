@@ -384,6 +384,23 @@ export function FormContainer({ form }: FormContainerProps) {
         </div>
       )}
 
+      {/* ─── Question Counter (bottom-left) ─── */}
+      {showNav && (
+        <motion.div
+          className="absolute bottom-3 sm:bottom-5 left-4 sm:left-8 z-30"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <span
+            className="text-[11px] sm:text-xs font-medium tracking-wide"
+            style={{ color: subtextColor }}
+          >
+            {questionNumber} / {totalActualQuestions}
+          </span>
+        </motion.div>
+      )}
+
       {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered) ─── */}
       {showNav && (
         <motion.div

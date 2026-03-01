@@ -43,7 +43,7 @@ export function MultipleSelectInput({
             style={{
               borderColor: isSelected
                 ? "currentColor"
-                : "rgba(128,128,128,0.25)",
+                : "rgba(255,255,255,0.4)",
               backgroundColor: isSelected
                 ? "rgba(128,128,128,0.08)"
                 : "transparent",
@@ -68,7 +68,7 @@ export function MultipleSelectInput({
               style={{
                 borderColor: isSelected
                   ? "currentColor"
-                  : "rgba(128,128,128,0.3)",
+                  : "rgba(255,255,255,0.45)",
                 backgroundColor: isSelected ? "currentColor" : "transparent",
               }}
             >
