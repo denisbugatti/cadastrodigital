@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,15 +66,14 @@ const PERMISSION_GROUPS = [
 ];
 
 export default function Settings() {
-  const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
-  // Auth guard: only master can access settings
+  // Auth guard: only master can access settings (uses custom auth, not Manus OAuth)
   const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
   const staffUser = staffMeQuery.data;
 
-  // Determine redirect state (computed before hooks to keep hook order stable)
-  const isAuthLoading = loading || staffMeQuery.isLoading;
+  // Determine redirect state
+  const isAuthLoading = staffMeQuery.isLoading;
   const shouldRedirect = !isAuthLoading && (staffUser?.type !== "staff" || staffUser.role !== "master");
 
   // ALL hooks must be called before any conditional return

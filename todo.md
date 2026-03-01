@@ -532,3 +532,5 @@
 - [x] Feature: PDF download — botão de download direto do PDF gerado
 - [x] Feature: PDF compartilhar — gerar link compartilhável do PDF (salvar no S3)
 - [x] Feature: Adicionar páginas extras ao PDF — permitir anexar documentos/imagens adicionais ao Cadastro de Interesse gerado
+- [x] Bug: Usuário não consegue acessar configurações e editar formulário — DashboardLayout usava Manus OAuth em vez de customAuth
+- [x] Bug: Após login com Manus OAuth, formulários não aparecem e acesso fica limitado — DashboardLayout e Settings agora usam customAuth.me e redirecionam para /login
