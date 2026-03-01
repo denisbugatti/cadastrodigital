@@ -5,7 +5,7 @@
  * When :id is a string slug, loads pre-built form.
  */
 
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import Builder from "./Builder";
 import { createOneInnovationForm } from "@/lib/oneInnovationForm";
@@ -188,6 +188,25 @@ function EditorWithDbForm({ formId }: { formId: number }) {
 export default function Editor() {
   const params = useParams<{ id?: string }>();
   const formId = params?.id;
+  const [, navigate] = useLocation();
+
+  // Auth guard: only master and diretor can access the editor
+  const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
+  const staffUser = staffMeQuery.data;
+
+  if (staffMeQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={32} className="animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  // If not staff or not master/diretor, redirect to dashboard
+  if (staffUser?.type !== "staff" || (staffUser.role !== "master" && staffUser.role !== "diretor")) {
+    navigate("/dashboard");
+    return null;
+  }
 
   // If formId is a number, load from database
   if (formId && /^\d+$/.test(formId)) {

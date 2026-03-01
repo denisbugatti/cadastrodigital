@@ -232,6 +232,47 @@ export const appRouter = router({
         return staffDb.getValidationsByResponse(input.responseId);
       }),
 
+    // Get distinct project names used across all responses (for autocomplete)
+    projectNames: ownerFallbackProcedure
+      .query(async () => {
+        return db.getDistinctProjectNames();
+      }),
+
+    // Set project name and mark response as validated
+    completeValidation: ownerFallbackProcedure
+      .input(z.object({
+        responseId: z.number(),
+        projectName: z.string().min(1),
+        reviewNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta n\u00e3o encontrada" });
+        }
+        await db.updateResponse(input.responseId, {
+          projectName: input.projectName,
+          validationStatus: "approved" as any,
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          reviewNotes: input.reviewNotes ?? null,
+        });
+
+        // Send approval email
+        if (response.respondentEmail) {
+          try {
+            await sendApprovalEmail({
+              to: response.respondentEmail,
+              clientName: response.respondentName || "Cliente",
+            });
+          } catch (err) {
+            console.warn("[Email] Failed to send approval:", (err as Error)?.message?.substring(0, 100));
+          }
+        }
+
+        return { success: true };
+      }),
+
     validate: ownerFallbackProcedure
       .input(z.object({
         responseId: z.number(),

@@ -497,25 +497,26 @@
 
 ### Página de Configurações (Settings)
 - [x] Criar página de Configurações unificada (placeholder com 3 abas)
-- [ ] Aba Permissões: configurar o que gerentes e corretores podem ver/editar
-- [ ] Aba Usuários: gerar convites (corretor ou gerente), desativar usuário (temporário ou definitivo)
-- [ ] Aba Exportação: exportar respostas com filtros (validados, completas, incompletas, por formulário, por gerente, por corretor)
+- [x] Aba Permissões: configurar o que gerentes e corretores podem ver/editar
+- [x] Aba Usuários: gerar convites (corretor ou gerente), desativar usuário (temporário ou definitivo)
+- [x] Aba Exportação: exportar respostas com filtros (validados, completas, incompletas, por formulário, por gerente, por corretor)
 
 ### Validação de Respostas (Workflow do Corretor)
-- [ ] Ao validar resposta, corretor deve digitar nome do projeto de interesse do cliente
-- [ ] Salvar nomes de projetos para reutilização (autocomplete com projetos já usados)
-- [ ] Após validar, marcar resposta com check de "Validado" no sistema
+- [x] Ao validar resposta, corretor deve digitar nome do projeto de interesse do cliente
+- [x] Salvar nomes de projetos para reutilização (autocomplete com projetos já usados)
+- [x] Após validar, marcar resposta com check de "Validado" no sistema
 - [ ] Filtrar cadastros por projeto no Dashboard do corretor
 - [ ] Somente após validação: permitir gerar PDF com respostas
 - [ ] PDF: visualizar, baixar, compartilhar e editar
 - [ ] Adicionar páginas ao PDF
 
 ### Controle de Acesso por Papel (RBAC)
-- [ ] Corretores e gerentes NÃO têm acesso ao editor de formulários
-- [ ] Corretores e gerentes veem apenas respostas dos seus próprios formulários
-- [ ] Corretores e gerentes podem acessar preview do formulário
+- [x] Corretores e gerentes NÃO têm acesso ao editor de formulários (Editor redireciona para dashboard)
+- [x] Corretores e gerentes veem apenas respostas dos seus próprios formulários (Dashboard RBAC)
+- [x] Corretores e gerentes podem acessar preview do formulário
 
 ### Edição de Formulário (Dashboard)
 - [ ] Poder alterar o nome do formulário no Dashboard
 - [ ] Poder alterar a URL/slug do formulário no Dashboard
 - [x] Fix: SharingPanel mostra URL de dev em vez de one.cadastrodigital.com.br — agora mostra domínio real na preview
+- [x] Fix: Remover animação de splash/loading ao abrir o site — ir direto para o conteúdo

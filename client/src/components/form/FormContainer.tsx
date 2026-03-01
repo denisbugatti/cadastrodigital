@@ -83,7 +83,7 @@ export function FormContainer({ form }: FormContainerProps) {
   const engine = useFormEngine(form);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [shakeKey, setShakeKey] = useState(0);
-  const [showLoading, setShowLoading] = useState(true);
+  const [showLoading, setShowLoading] = useState(false);
   const [hasRestoredFromSave, setHasRestoredFromSave] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -225,15 +225,7 @@ export function FormContainer({ form }: FormContainerProps) {
     }
   }, [engine.currentQuestion.id]);
 
-  // Loading animation — show logo for 1.5s then fade out
-  useEffect(() => {
-    if (!logoUrl) {
-      setShowLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setShowLoading(false), 1800);
-    return () => clearTimeout(timer);
-  }, [logoUrl]);
+  // Loading animation disabled — go straight to the form
 
   const questionNumber = engine.visitedQuestionNumber;
 

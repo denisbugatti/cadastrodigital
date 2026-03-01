@@ -1,29 +1,29 @@
 /**
  * Response Validation Page — Corretor validates each answer/document.
- * Approve with a check or reject with justification.
+ * After validating all fields, must enter "Projeto de Interesse" to complete.
+ * Only after completion can they generate/download/share PDF.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
-  Image, Download, Loader2, AlertTriangle, MessageSquare,
-  Shield, User, Mail, Phone, Calendar,
+  Download, Loader2, AlertTriangle, MessageSquare,
+  User, Mail, Phone, Calendar, Building2, FileDown,
+  Share2, Pencil, Eye,
 } from "lucide-react";
 
+/* ─── Status Badge ─── */
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "approved":
@@ -47,6 +47,71 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
+/* ─── Project Name Autocomplete ─── */
+function ProjectNameInput({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const projectNamesQuery = trpc.validations.projectNames.useQuery();
+  const names = (projectNamesQuery.data ?? []) as string[];
+
+  const filtered = useMemo(() => {
+    if (!filter) return names;
+    const q = filter.toLowerCase();
+    return names.filter((n) => n.toLowerCase().includes(q));
+  }, [names, filter]);
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2">
+        <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+        <Input
+          ref={inputRef}
+          placeholder="Nome do projeto de interesse..."
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setFilter(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+          disabled={disabled}
+          className="flex-1"
+        />
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-6 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {filtered.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className="w-full text-left px-4 py-2 text-sm hover:bg-blue-50 text-gray-700 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(name);
+                setFilter(name);
+                setOpen(false);
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main Component ─── */
 export default function ResponseValidation() {
   const [, navigate] = useLocation();
   const params = useParams<{ responseId: string }>();
@@ -54,6 +119,10 @@ export default function ResponseValidation() {
 
   const [rejectingQuestion, setRejectingQuestion] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -87,11 +156,27 @@ export default function ResponseValidation() {
     onError: (err) => toast.error(err.message),
   });
 
+  const completeValidationMutation = trpc.validations.completeValidation.useMutation({
+    onSuccess: () => {
+      toast.success("Validação concluída! Agora você pode gerar o PDF.");
+      utils.responses.getById.invalidate({ id: responseId });
+      setShowCompleteDialog(false);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const response = responseQuery.data as any;
   const form = formQuery.data as any;
   const validations = (validationsQuery.data ?? []) as any[];
   const answers = response?.answers as Record<string, any> || {};
   const questions = (form?.questions ?? []) as any[];
+
+  // Initialize projectName from response if already set
+  useEffect(() => {
+    if (response?.projectName) {
+      setProjectName(response.projectName);
+    }
+  }, [response?.projectName]);
 
   // Build question map
   const questionMap = useMemo(() => {
@@ -111,12 +196,17 @@ export default function ResponseValidation() {
     return map;
   }, [validations]);
 
-  const handleApprove = (questionId: string) => {
-    validateMutation.mutate({
-      responseId,
-      questionId,
-      status: "approved",
+  // Filter out welcome/thank-you/statement questions for validation
+  const answerEntries = useMemo(() => {
+    return Object.entries(answers).filter(([qId]) => {
+      const q = questionMap[qId];
+      if (!q) return true;
+      return q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement";
     });
+  }, [answers, questionMap]);
+
+  const handleApprove = (questionId: string) => {
+    validateMutation.mutate({ responseId, questionId, status: "approved" });
   };
 
   const handleReject = () => {
@@ -133,7 +223,112 @@ export default function ResponseValidation() {
     });
   };
 
+  const handleCompleteValidation = () => {
+    if (!projectName.trim()) {
+      toast.error("Informe o nome do projeto de interesse");
+      return;
+    }
+    completeValidationMutation.mutate({
+      responseId,
+      projectName: projectName.trim(),
+      reviewNotes: reviewNotes.trim() || undefined,
+    });
+  };
+
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const result = await utils.responses.generateFicha.fetch({ responseId });
+      if (result?.base64) {
+        const byteCharacters = atob(result.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.filename || "ficha.pdf";
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("PDF gerado com sucesso!");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao gerar PDF: " + (err.message || "Tente novamente"));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleViewPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const result = await utils.responses.generateFicha.fetch({ responseId });
+      if (result?.base64) {
+        const byteCharacters = atob(result.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao gerar PDF: " + (err.message || "Tente novamente"));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    setPdfLoading(true);
+    try {
+      const result = await utils.responses.generateFicha.fetch({ responseId });
+      if (result?.base64) {
+        const byteCharacters = atob(result.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const file = new File([blob], result.filename || "ficha.pdf", { type: "application/pdf" });
+
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: result.filename });
+        } else {
+          // Fallback: copy a message to clipboard
+          await navigator.clipboard.writeText(
+            `Ficha de cadastro: ${response?.respondentName || "Cliente"} - Projeto: ${response?.projectName || "N/A"}`
+          );
+          toast.info("Link copiado para a área de transferência");
+        }
+      }
+    } catch (err: any) {
+      toast.error("Erro ao compartilhar: " + (err.message || "Tente novamente"));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   const isLoading = responseQuery.isLoading || formQuery.isLoading;
+  const isValidated = response?.validationStatus === "approved";
+
+  // Check if all answers have been individually validated
+  const allAnswersValidated = useMemo(() => {
+    if (answerEntries.length === 0) return false;
+    return answerEntries.every(([qId]) => {
+      const v = validationMap[qId];
+      return v && v.status !== "pending";
+    });
+  }, [answerEntries, validationMap]);
+
+  const hasRejections = validations.some((v: any) => v.status === "rejected");
 
   if (isLoading) {
     return (
@@ -158,7 +353,7 @@ export default function ResponseValidation() {
   }
 
   // Count stats
-  const totalQuestions = Object.keys(answers).length;
+  const totalQuestions = answerEntries.length;
   const approvedCount = validations.filter((v: any) => v.status === "approved").length;
   const rejectedCount = validations.filter((v: any) => v.status === "rejected").length;
   const pendingCount = totalQuestions - approvedCount - rejectedCount;
@@ -166,21 +361,30 @@ export default function ResponseValidation() {
   return (
     <div className="min-h-screen bg-[#fafbfc]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-4 mb-3">
-            <button
-              onClick={() => navigate(-1 as any)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 font-display">Validar Resposta</h1>
-              <p className="text-sm text-gray-500">
-                Protocolo: <span className="font-mono text-gray-700">{response.protocolCode || `#${response.id}`}</span>
-              </p>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(-1 as any)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Validar Resposta</h1>
+                <p className="text-sm text-gray-500">
+                  Protocolo: <span className="font-mono text-gray-700">{response.protocolCode || `#${response.id}`}</span>
+                </p>
+              </div>
             </div>
+            {/* Validated badge */}
+            {isValidated && (
+              <Badge className="bg-green-100 text-green-700 border-green-300 gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Validado
+              </Badge>
+            )}
           </div>
 
           {/* Respondent info */}
@@ -195,14 +399,15 @@ export default function ResponseValidation() {
                 <Mail className="w-3.5 h-3.5" /> {response.respondentEmail}
               </span>
             )}
-            {response.respondentPhone && (
-              <span className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> {response.respondentPhone}
-              </span>
-            )}
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" /> {new Date(response.createdAt).toLocaleDateString("pt-BR")}
             </span>
+            {response.projectName && (
+              <span className="flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text-blue-600 font-medium">{response.projectName}</span>
+              </span>
+            )}
           </div>
 
           {/* Stats */}
@@ -225,12 +430,64 @@ export default function ResponseValidation() {
 
       {/* Answers list */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-4">
-        {Object.entries(answers).map(([questionId, answer]) => {
+        {answerEntries.map(([questionId, answer]) => {
           const question = questionMap[questionId];
           const validation = validationMap[questionId];
           const status = validation?.status || "pending";
-          const isFile = question?.type === "file" || question?.type === "image";
-          const answerStr = typeof answer === "object" ? JSON.stringify(answer) : String(answer ?? "");
+          const isFile = question?.type === "file-upload" || question?.type === "file" || question?.type === "image";
+
+          // Format answer for display
+          let displayAnswer: React.ReactNode;
+          if (typeof answer === "object" && answer !== null) {
+            if (answer.url) {
+              // File upload answer
+              const url = answer.url as string;
+              const filename = answer.filename || answer.name || "Arquivo";
+              if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                displayAnswer = (
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                    <img src={url} alt={filename} className="max-w-xs rounded-lg border border-gray-200" />
+                  </a>
+                );
+              } else {
+                displayAnswer = (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    {filename}
+                  </a>
+                );
+              }
+            } else if (Array.isArray(answer)) {
+              displayAnswer = answer.join(", ");
+            } else {
+              displayAnswer = Object.entries(answer)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(", ");
+            }
+          } else if (typeof answer === "string" && answer.startsWith("http")) {
+            if (answer.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+              displayAnswer = (
+                <a href={answer} target="_blank" rel="noopener noreferrer" className="block">
+                  <img src={answer} alt="Documento" className="max-w-xs rounded-lg border border-gray-200" />
+                </a>
+              );
+            } else {
+              displayAnswer = (
+                <a href={answer} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Ver arquivo
+                </a>
+              );
+            }
+          } else {
+            displayAnswer = String(answer ?? "");
+          }
 
           return (
             <div
@@ -247,7 +504,7 @@ export default function ResponseValidation() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <p className="text-xs text-gray-400 mb-1">
-                    {question?.type === "file" ? "📎 Arquivo" : question?.type === "image" ? "🖼️ Imagem" : "📝 Resposta"}
+                    {isFile ? "📎 Arquivo" : "📝 Resposta"}
                   </p>
                   <h3 className="text-sm font-semibold text-gray-800">
                     {question?.title || question?.label || `Pergunta ${questionId}`}
@@ -258,28 +515,12 @@ export default function ResponseValidation() {
 
               {/* Answer content */}
               <div className="mb-4">
-                {isFile && typeof answer === "string" && answer.startsWith("http") ? (
-                  <div className="flex items-center gap-3">
-                    {answer.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                      <a href={answer} target="_blank" rel="noopener noreferrer" className="block">
-                        <img src={answer} alt="Documento" className="max-w-xs rounded-lg border border-gray-200" />
-                      </a>
-                    ) : (
-                      <a
-                        href={answer}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        Ver arquivo
-                      </a>
-                    )}
-                  </div>
-                ) : (
+                {typeof displayAnswer === "string" ? (
                   <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    {answerStr || <span className="text-gray-400 italic">Sem resposta</span>}
+                    {displayAnswer || <span className="text-gray-400 italic">Sem resposta</span>}
                   </p>
+                ) : (
+                  displayAnswer
                 )}
               </div>
 
@@ -294,38 +535,124 @@ export default function ResponseValidation() {
               )}
 
               {/* Action buttons */}
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant={status === "approved" ? "default" : "outline"}
-                  className={status === "approved" ? "bg-green-600 hover:bg-green-700" : ""}
-                  onClick={() => handleApprove(questionId)}
-                  disabled={validateMutation.isPending}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  {status === "approved" ? "Aprovado" : "Aprovar"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={status === "rejected" ? "destructive" : "outline"}
-                  onClick={() => {
-                    setRejectingQuestion(questionId);
-                    setJustification(validation?.justification || "");
-                  }}
-                  disabled={validateMutation.isPending}
-                >
-                  <XCircle className="w-3.5 h-3.5 mr-1" />
-                  {status === "rejected" ? "Reprovado" : "Reprovar"}
-                </Button>
-              </div>
+              {!isValidated && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={status === "approved" ? "default" : "outline"}
+                    className={status === "approved" ? "bg-green-600 hover:bg-green-700" : ""}
+                    onClick={() => handleApprove(questionId)}
+                    disabled={validateMutation.isPending}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                    {status === "approved" ? "Aprovado" : "Aprovar"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={status === "rejected" ? "destructive" : "outline"}
+                    onClick={() => {
+                      setRejectingQuestion(questionId);
+                      setJustification(validation?.justification || "");
+                    }}
+                    disabled={validateMutation.isPending}
+                  >
+                    <XCircle className="w-3.5 h-3.5 mr-1" />
+                    {status === "rejected" ? "Reprovado" : "Reprovar"}
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
 
-        {Object.keys(answers).length === 0 && (
+        {answerEntries.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
             <p className="text-sm">Nenhuma resposta para validar</p>
+          </div>
+        )}
+
+        {/* ─── Complete Validation Section ─── */}
+        {!isValidated && allAnswersValidated && !hasRejections && (
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-blue-600" />
+              Todas as respostas foram validadas
+            </h3>
+            <p className="text-sm text-blue-700 mb-4">
+              Para concluir a validação, informe o projeto de interesse do cliente. Após a conclusão, você poderá gerar o PDF.
+            </p>
+            <div className="space-y-3">
+              <ProjectNameInput
+                value={projectName}
+                onChange={setProjectName}
+              />
+              <Textarea
+                placeholder="Observações adicionais (opcional)..."
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                rows={2}
+                className="bg-white"
+              />
+              <Button
+                onClick={handleCompleteValidation}
+                disabled={completeValidationMutation.isPending || !projectName.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+              >
+                {completeValidationMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                Concluir Validação
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── PDF Actions (only after validation is complete) ─── */}
+        {isValidated && (
+          <div className="mt-8 bg-green-50 border border-green-200 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-green-900 mb-2 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              Cadastro Validado
+            </h3>
+            <p className="text-sm text-green-700 mb-1">
+              Projeto: <span className="font-semibold">{response.projectName || "N/A"}</span>
+            </p>
+            {response.reviewNotes && (
+              <p className="text-sm text-green-600 mb-4">
+                Obs: {response.reviewNotes}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3 mt-4">
+              <Button
+                onClick={handleViewPdf}
+                disabled={pdfLoading}
+                variant="outline"
+                className="gap-2 border-green-300 text-green-700 hover:bg-green-100"
+              >
+                {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                Visualizar PDF
+              </Button>
+              <Button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                Baixar PDF
+              </Button>
+              <Button
+                onClick={handleSharePdf}
+                disabled={pdfLoading}
+                variant="outline"
+                className="gap-2 border-green-300 text-green-700 hover:bg-green-100"
+              >
+                {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                Compartilhar
+              </Button>
+            </div>
           </div>
         )}
       </div>

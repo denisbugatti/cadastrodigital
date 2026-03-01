@@ -271,6 +271,16 @@ export default function Dashboard() {
 
   const utils = trpc.useUtils();
 
+  // ─── Auth: get current staff user role ───
+  const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
+  const staffUser = staffMeQuery.data;
+  const isMaster = staffUser?.type === "staff" && staffUser?.role === "master";
+  const isDiretor = staffUser?.type === "staff" && staffUser?.role === "diretor";
+  const isGerente = staffUser?.type === "staff" && staffUser?.role === "gerente";
+  const isCorretor = staffUser?.type === "staff" && staffUser?.role === "corretor";
+  const canEdit = isMaster || isDiretor; // Only master and diretor can edit forms
+  const canManage = isMaster; // Only master can manage settings, create forms, delete, etc.
+
   // ─── tRPC Queries ───
   const formsQuery = trpc.forms.list.useQuery(undefined);
   const workspacesQuery = trpc.workspaces.list.useQuery(undefined);
@@ -685,6 +695,7 @@ export default function Dashboard() {
               <span>Importar</span>
             </button>
 
+            {canManage && (
             <Link href="/editor">
               <motion.button
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
@@ -694,11 +705,13 @@ export default function Dashboard() {
                 <span>Criar formulário</span>
               </motion.button>
             </Link>
+            )}
           </div>
 
           {/* Mobile action buttons - simplified */}
           <div className="flex sm:hidden items-center gap-1.5">
             <NotificationBell />
+            {canManage && (
             <Link href="/editor">
               <motion.button
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white font-body text-sm font-semibold active:scale-[0.98] transition-all duration-200"
@@ -707,6 +720,7 @@ export default function Dashboard() {
                 <Plus size={16} />
               </motion.button>
             </Link>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-2 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground transition-all duration-200">
@@ -714,14 +728,18 @@ export default function Dashboard() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-48">
+                {canManage && (
                 <DropdownMenuItem asChild>
                   <Link href="/configuracoes" className="flex items-center gap-2 cursor-pointer">
                     <SlidersHorizontal size={16} /> Configurações
                   </Link>
                 </DropdownMenuItem>
+                )}
+                {canManage && (
                 <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 cursor-pointer">
                   <Upload size={16} /> Importar
                 </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -887,7 +905,8 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ─── Management Links ─── */}
+            {/* ─── Management Links (master only) ─── */}
+            {canManage && (
             <div className="mt-6 pt-4 border-t border-border space-y-1">
               <h3 className="font-display text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Gestão</h3>
               <Link href="/equipe">
@@ -909,6 +928,7 @@ export default function Dashboard() {
                 </button>
               </Link>
             </div>
+            )}
 
             {/* Create folder */}
             {creatingFolder ? (
@@ -1163,6 +1183,8 @@ export default function Dashboard() {
                     form={form}
                     index={i}
                     folders={folders}
+                    canEdit={canEdit}
+                    canManage={canManage}
                     onNavigate={navigate}
                     onRequestDelete={(f) => setDeleteTarget(f)}
                     onDuplicate={handleDuplicate}
@@ -1370,6 +1392,8 @@ interface FormCardProps {
   form: DashboardForm;
   index: number;
   folders: DashboardFolder[];
+  canEdit: boolean;
+  canManage: boolean;
   onNavigate: (to: string) => void;
   onRequestDelete: (form: DashboardForm) => void;
   onDuplicate: (form: DashboardForm) => void;
@@ -1379,7 +1403,7 @@ interface FormCardProps {
   onExportCsv: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
+function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1393,7 +1417,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       e.stopPropagation();
       return;
     }
-    onNavigate(`/editor/${form.id}`);
+    onNavigate(canEdit ? `/editor/${form.id}` : `/responses/${form.id}`);
   };
 
   const handleStartRename = (e: React.MouseEvent) => {
@@ -1465,14 +1489,17 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
+              {canEdit && (
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
                 <Pencil size={15} className="mr-2" /> Editar
               </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/responses/${form.id}`); }}>
                 <BarChart3 size={15} className="mr-2" /> Ver respostas
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              {canEdit && <DropdownMenuSeparator />}
 
+              {canManage && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
                   <FolderOpen size={15} className="mr-2" /> Mover para pasta
@@ -1494,16 +1521,19 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
+              )}
 
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/${form.slug}`); toast.success("Link copiado!"); }}>
                 <Share2 size={15} className="mr-2" /> Compartilhar link
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExportCsv(form); }}>
                 <BarChart3 size={15} className="mr-2" /> Exportar respostas (CSV)
               </DropdownMenuItem>
+              {canManage && (
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
                 <Download size={15} className="mr-2" /> Exportar JSON
               </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1557,12 +1587,22 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
 
       {/* ─── Action buttons ─── */}
       <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-        <button
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
-        >
-          <Pencil size={13} /> Editar
-        </button>
+        {canEdit ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/responses/${form.id}`); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
+          >
+            <BarChart3 size={13} /> Ver Respostas
+          </button>
+        )}
+        {canManage && (
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
           className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-muted-foreground bg-secondary hover:bg-secondary/80 border border-border transition-all"
@@ -1570,6 +1610,8 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         >
           <Copy size={13} />
         </button>
+        )}
+        {canManage && (
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
           className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200/50 transition-all"
@@ -1577,6 +1619,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         >
           <Trash2 size={13} />
         </button>
+        )}
       </div>
     </motion.div>
   );

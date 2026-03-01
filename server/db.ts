@@ -377,6 +377,21 @@ export async function updateResponse(id: number, data: Partial<InsertFormRespons
   });
 }
 
+export async function getDistinctProjectNames() {
+  return withDbRetry(async (db) => {
+    const results = await db.selectDistinct({ projectName: formResponses.projectName })
+      .from(formResponses)
+      .where(sql`${formResponses.projectName} IS NOT NULL AND ${formResponses.projectName} != ''`);
+    return results.map((r: any) => r.projectName as string).sort();
+  });
+}
+
+export async function getAllResponses() {
+  return withDbRetry(async (db) => {
+    return db.select().from(formResponses).orderBy(desc(formResponses.createdAt));
+  });
+}
+
 /* ─── Form Versions ─── */
 
 export async function createVersion(data: InsertFormVersion) {
