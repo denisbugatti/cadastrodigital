@@ -39,7 +39,7 @@ export function MultipleSelectInput({
           <motion.button
             key={choice.id}
             onClick={() => toggleChoice(choice.id)}
-            className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-lg text-left transition-colors duration-200 border"
+            className="w-full flex items-center gap-3 sm:gap-3.5 px-3 sm:px-4 py-3 sm:py-3.5 rounded-lg text-left transition-colors duration-200 border"
             style={{
               borderColor: isSelected
                 ? "currentColor"

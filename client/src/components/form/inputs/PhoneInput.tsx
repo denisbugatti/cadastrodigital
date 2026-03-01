@@ -35,7 +35,7 @@ export function PhoneInput({ value, onChange, error }: PhoneInputProps) {
         onChange={(e) => onChange(maskPhone(e.target.value))}
         placeholder="(00) 00000-0000"
         maxLength={15}
-        className="w-full bg-transparent border-0 border-b-2 py-4 text-lg font-medium focus:outline-none transition-colors duration-300"
+        className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-base sm:text-lg font-medium focus:outline-none transition-colors duration-300"
         style={{
           color: "inherit",
           borderColor: error

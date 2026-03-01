@@ -102,7 +102,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
       )}
 
       {/* Centered content */}
-      <div className="relative z-10 text-center px-6 max-w-lg mx-auto">
+      <div className="relative z-10 text-center px-4 sm:px-6 max-w-lg mx-auto">
         {/* Checkmark animation */}
         <motion.div
           className="mb-5 w-16 h-16 rounded-full flex items-center justify-center mx-auto"
@@ -125,8 +125,8 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
 
         {/* Title — "Cadastro completo!" or custom */}
         <motion.h1
-          className="leading-tight tracking-tight"
-          style={{ color: textColor, fontFamily, fontSize: "28px", fontWeight: 600 }}
+          className="leading-tight tracking-tight text-xl sm:text-2xl md:text-[28px]"
+          style={{ color: textColor, fontFamily, fontWeight: 600 }}
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -149,7 +149,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
               Sua pontuação
             </p>
             <div
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl"
+              className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl"
               style={{
                 backgroundColor: isLightBg ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.12)",
                 border: `1.5px solid ${isLightBg ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.25)"}`,
@@ -159,7 +159,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
                 className="font-mono"
                 style={{
                   color: isLightBg ? "#D97706" : "#FBBF24",
-                  fontSize: "32px",
+                  fontSize: "clamp(24px, 5vw, 32px)",
                   fontWeight: 700,
                 }}
               >
@@ -190,7 +190,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
               Seu código de protocolo
             </p>
             <div
-              className="inline-flex items-center gap-3 px-5 py-3 rounded-xl cursor-pointer transition-all duration-200"
+              className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl cursor-pointer transition-all duration-200"
               style={{
                 backgroundColor: isLightBg ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
                 border: `1.5px solid ${isLightBg ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)"}`,
@@ -202,7 +202,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
                 className="font-mono tracking-wider"
                 style={{
                   color: textColor,
-                  fontSize: "22px",
+                  fontSize: "clamp(18px, 4vw, 22px)",
                   fontWeight: 700,
                   letterSpacing: "0.12em",
                 }}
@@ -284,7 +284,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
           {showButton && (
             <motion.button
               onClick={() => window.location.reload()}
-              className="px-7 py-3 rounded-lg font-medium shadow-lg transition-all"
+              className="px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-medium shadow-lg transition-all text-sm sm:text-base"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,

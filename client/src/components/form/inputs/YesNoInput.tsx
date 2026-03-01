@@ -54,7 +54,7 @@ export function YesNoInput({ value, onChange, onAutoAdvance }: YesNoInputProps) 
               onChange(opt.val);
               if (onAutoAdvance) setTimeout(() => onAutoAdvance(opt.val), 500);
             }}
-            className="flex-1 flex items-center justify-center gap-3 py-4 rounded-lg text-base font-medium transition-all duration-200 border"
+            className="flex-1 flex items-center justify-center gap-2.5 sm:gap-3 py-3 sm:py-4 rounded-lg text-base font-medium transition-all duration-200 border"
             style={{
               borderColor: isSelected
                 ? "currentColor"

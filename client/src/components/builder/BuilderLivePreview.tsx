@@ -68,7 +68,7 @@ export function BuilderLivePreview({
   return (
     <div className="h-full flex flex-col bg-secondary/30">
       {/* Preview container */}
-      <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+      <div className="flex-1 flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-auto">
         <motion.div
           key={question.id}
           initial={{ opacity: 0, y: 20 }}
@@ -98,7 +98,7 @@ export function BuilderLivePreview({
 
             {/* Logo for welcome/thank-you */}
             {isSpecial && design.logoUrl && (
-              <div className="pt-8 px-8">
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 md:pt-8 md:px-8">
                 <img
                   src={design.logoUrl}
                   alt="Logo"
@@ -108,7 +108,7 @@ export function BuilderLivePreview({
               </div>
             )}
 
-            <div className={`p-8 ${isSpecial ? "text-center flex flex-col items-center justify-center min-h-[300px]" : ""}`}>
+            <div className={`p-4 sm:p-6 md:p-8 ${isSpecial ? "text-center flex flex-col items-center justify-center min-h-[300px]" : ""}`}>
               {/* Question number */}
               {!isSpecial && !isStatement && (
                 <div className="flex items-center gap-2 mb-4">

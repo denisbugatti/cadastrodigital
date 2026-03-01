@@ -80,7 +80,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
       )}
 
       {/* Centered content */}
-      <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
+      <div className="relative z-10 text-center px-4 sm:px-6 max-w-2xl mx-auto">
         {/* Motion icon or custom image */}
         {question.motionIconUrl && (
           <motion.div
@@ -99,11 +99,10 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
 
         {/* Title — 32px matching Respondi */}
         <motion.h1
-          className="leading-tight tracking-tight"
+          className="leading-tight tracking-tight text-2xl sm:text-3xl md:text-[32px]"
           style={{
             color: textColor,
             fontFamily,
-            fontSize: "32px",
             fontWeight: 400,
           }}
           initial={{ opacity: 0, y: 30 }}
@@ -116,11 +115,10 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
         {/* Subtitle — 24px matching Respondi */}
         {question.subtitle && (
           <motion.p
-            className="mt-3 leading-relaxed"
+            className="mt-2 sm:mt-3 leading-relaxed text-base sm:text-lg md:text-xl"
             style={{
               color: subtitleColor,
               fontFamily,
-              fontSize: "20px",
               fontWeight: 400,
             }}
             initial={{ opacity: 0, y: 20 }}
@@ -134,14 +132,14 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
         {/* CTA Button + Enter hint (Respondi-style) — 16px button text */}
         {showButton && (
           <motion.div
-            className="mt-7 flex items-center justify-center gap-3"
+            className="mt-5 sm:mt-7 flex items-center justify-center gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.button
               onClick={onStart}
-              className="px-7 py-3 rounded-lg font-medium shadow-lg flex items-center gap-2.5 transition-all"
+              className="px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-medium shadow-lg flex items-center gap-2 sm:gap-2.5 transition-all text-sm sm:text-base"
               style={{
                 backgroundColor: buttonColor,
                 color: btnTextColor,

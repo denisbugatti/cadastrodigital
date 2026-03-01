@@ -34,7 +34,7 @@ export function DatePickerInput({ value, onChange, error }: DatePickerInputProps
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent border-0 border-b-2 py-4 text-xl font-medium focus:outline-none transition-colors duration-300"
+          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-lg sm:text-xl font-medium focus:outline-none transition-colors duration-300"
           style={{
             color: "inherit",
             borderColor: error

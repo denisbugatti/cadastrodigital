@@ -65,7 +65,7 @@ export function AddressInput({ value, onChange, error }: AddressInputProps) {
 
   // Adaptive styles — uses currentColor which inherits from parent (set by FormContainer)
   const inputClass = (val: string, readOnly?: boolean) =>
-    `w-full bg-transparent border-0 border-b-2 py-4 text-lg font-body focus:outline-none transition-colors duration-300 ${
+    `w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-base sm:text-lg font-body focus:outline-none transition-colors duration-300 ${
       readOnly ? "opacity-80" : ""
     } ${val ? "border-current/30" : "border-current/15"}`;
 

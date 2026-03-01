@@ -626,37 +626,67 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Corretores link */}
-          <Link href="/corretores">
+          {/* Desktop action buttons */}
+          <div className="hidden sm:flex items-center gap-2">
+            <Link href="/corretores">
+              <button
+                title="Gerenciar corretores"
+                className="relative p-2.5 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-200 shrink-0"
+              >
+                <Users size={18} />
+              </button>
+            </Link>
+
+            <NotificationBell />
+
             <button
-              title="Gerenciar corretores"
-              className="relative p-2.5 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-200 shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-secondary text-foreground font-body text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
             >
-              <Users size={18} />
+              <Upload size={18} />
+              <span>Importar</span>
             </button>
-          </Link>
 
-          {/* Notification bell */}
-          <NotificationBell />
+            <Link href="/editor">
+              <motion.button
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
+                whileTap={{ scale: 0.98 }}
+              >
+                <Plus size={18} />
+                <span>Criar formulário</span>
+              </motion.button>
+            </Link>
+          </div>
 
-          {/* Import button - icon only on mobile */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-secondary text-foreground font-body text-sm sm:text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
-          >
-            <Upload size={18} />
-            <span className="hidden sm:inline">Importar</span>
-          </button>
-
-          <Link href="/editor">
-            <motion.button
-              className="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-brand text-white font-body text-sm sm:text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
-              whileTap={{ scale: 0.98 }}
-            >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Criar formulário</span>
-            </motion.button>
-          </Link>
+          {/* Mobile action buttons - simplified */}
+          <div className="flex sm:hidden items-center gap-1.5">
+            <NotificationBell />
+            <Link href="/editor">
+              <motion.button
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white font-body text-sm font-semibold active:scale-[0.98] transition-all duration-200"
+                whileTap={{ scale: 0.98 }}
+              >
+                <Plus size={16} />
+              </motion.button>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground transition-all duration-200">
+                  <MoreHorizontal size={18} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/corretores" className="flex items-center gap-2 cursor-pointer">
+                    <Users size={16} /> Corretores
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 cursor-pointer">
+                  <Upload size={16} /> Importar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Mobile search bar */}

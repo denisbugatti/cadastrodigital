@@ -358,7 +358,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <img
             src={logoUrl}
             alt="Logo"
-            className="h-20 sm:h-16 lg:h-28 object-contain"
+            className="h-12 sm:h-16 lg:h-28 object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -387,7 +387,7 @@ export function FormContainer({ form }: FormContainerProps) {
       {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered) ─── */}
       {showNav && (
         <motion.div
-          className="absolute right-3 sm:right-6 bottom-6 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-30 flex flex-col gap-2"
+          className="absolute right-2 sm:right-6 bottom-4 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-30 flex flex-col gap-1.5 sm:gap-2"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
@@ -396,7 +396,7 @@ export function FormContainer({ form }: FormContainerProps) {
           <motion.button
             onClick={handlePrev}
             disabled={engine.isFirst}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-20 disabled:cursor-not-allowed"
             style={{
               backgroundColor: arrowBg,
               color: arrowColor,
@@ -410,7 +410,7 @@ export function FormContainer({ form }: FormContainerProps) {
           {/* Down arrow = go next (next question) */}
           <motion.button
             onClick={handleNext}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200"
             style={{
               backgroundColor: arrowBg,
               color: arrowColor,
@@ -476,7 +476,7 @@ export function FormContainer({ form }: FormContainerProps) {
                 <div className="flex-1" />
                 <motion.div
                   key={`shake-${shakeKey}`}
-                  className="max-w-[640px] mx-auto px-6 sm:px-8 pr-16 sm:pr-20 w-full"
+                  className="max-w-[640px] mx-auto px-4 sm:px-8 pr-14 sm:pr-20 w-full"
                   animate={
                     shakeKey > 0
                       ? {

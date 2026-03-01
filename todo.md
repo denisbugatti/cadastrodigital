@@ -347,3 +347,15 @@
 - [x] SharingPanel: campo editável com feedback verde/vermelho (disponível/indisponível)
 - [x] SharingPanel: debounce de 500ms na verificação de slug
 - [x] Testado: /vitoria carrega formulário, /f/vitoria também funciona, 144 testes passando
+
+## Feature: Melhorar responsividade e UX do web app
+- [x] Audit completo: Dashboard, Editor, Builder, FormView, Responses, Corretores
+- [x] Dashboard: header mobile simplificado com menu dropdown, sidebar overlay, cards grid responsivo
+- [x] Editor/Builder: mobile bottom bar + Sheet panels para sidebar e config, tabs só ícones no mobile
+- [x] Formulário: QuestionHeader fontes responsivas, WelcomeScreen/ThankYouScreen responsivos
+- [x] Inputs: MultipleChoiceInput touch targets maiores (min-h-48px), TextInput 16px no mobile (evita zoom iOS)
+- [x] BuilderLivePreview: padding responsivo (p-2 sm:p-4 md:p-8)
+- [x] Responses: padding responsivo no detalhe expandido
+- [x] viewport-fit=cover para phones com notch + safe area CSS utilities
+- [x] Touch-action improvements no CSS global
+- [x] 144 testes passando

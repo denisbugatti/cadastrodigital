@@ -14,7 +14,9 @@ import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
   FileText, Save, Cloud, Download, Upload, History,
   RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle, Hash,
+  List, Settings2, PanelLeftClose,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useBuilder } from "@/hooks/useBuilder";
 import { BuilderSidebar } from "@/components/builder/BuilderSidebar";
 import { BuilderConfigPanel } from "@/components/builder/BuilderConfigPanel";
@@ -98,6 +100,8 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
   const [restoreTarget, setRestoreTarget] = useState<FormVersion | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileConfigOpen, setMobileConfigOpen] = useState(false);
 
   // Check publish status from form data
   const formStatusQuery = trpc.forms.getById.useQuery(
@@ -762,6 +766,61 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
         onUpdateQuestion={updateQuestion}
         onUpdateChoice={updateChoice}
       />
+
+      {/* Mobile Bottom Bar - Content tab only */}
+      {activeTab === "content" && (
+        <div className="md:hidden flex items-center justify-around border-t border-border bg-white py-2 px-4 shrink-0 safe-area-bottom">
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+          >
+            <List size={20} />
+            <span className="text-[10px] font-body font-medium">Perguntas</span>
+          </button>
+          <button
+            onClick={() => setMobileConfigOpen(true)}
+            className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+          >
+            <Settings2 size={20} />
+            <span className="text-[10px] font-body font-medium">Configurar</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Sidebar Sheet */}
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <SheetContent side="left" className="p-0 w-[300px] sm:w-[340px]">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Perguntas</SheetTitle>
+          </SheetHeader>
+          <BuilderSidebar
+            questions={form.questions}
+            selectedQuestionId={selectedQuestionId}
+            onSelectQuestion={(id) => { setSelectedQuestionId(id); setMobileSidebarOpen(false); }}
+            onAddQuestion={(type) => { addQuestion(type); setMobileSidebarOpen(false); }}
+            onDuplicateQuestion={duplicateQuestion}
+            onRemoveQuestion={removeQuestion}
+            onReorderQuestions={reorderQuestions}
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile Config Sheet */}
+      <Sheet open={mobileConfigOpen} onOpenChange={setMobileConfigOpen}>
+        <SheetContent side="right" className="p-0 w-[340px] sm:w-[380px]">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Configurações</SheetTitle>
+          </SheetHeader>
+          <BuilderConfigPanel
+            question={selectedQuestion}
+            onUpdate={updateQuestion}
+            onAddChoice={addChoice}
+            onUpdateChoice={updateChoice}
+            onRemoveChoice={removeChoice}
+            conditionalTargets={conditionalTargets}
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>

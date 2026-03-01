@@ -35,7 +35,7 @@ export function CurrencyInput({ value, onChange, error }: CurrencyInputProps) {
         value={value}
         onChange={(e) => onChange(formatCurrency(e.target.value))}
         placeholder="R$ 0,00"
-        className="w-full bg-transparent border-0 border-b-2 py-4 text-xl font-medium focus:outline-none transition-colors duration-300"
+        className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-lg sm:text-xl font-medium focus:outline-none transition-colors duration-300"
         style={{
           color: "inherit",
           borderColor: error

@@ -91,7 +91,7 @@ export function MultipleChoiceInput({
 
   return (
     <motion.div
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2.5 sm:gap-3"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2 }}
@@ -104,7 +104,7 @@ export function MultipleChoiceInput({
           <motion.button
             key={choice.id}
             onClick={() => handleSelect(choice.id)}
-            className="group w-full flex items-center gap-3.5 px-4 py-3.5 rounded-lg text-left transition-all duration-200 border"
+            className="group w-full flex items-center gap-3 sm:gap-3.5 px-3 sm:px-4 py-3 sm:py-3.5 rounded-lg text-left transition-all duration-200 border"
             style={{
               borderColor: validationError && !value ? errorBorder : (isSelected ? borderSelected : borderDefault),
               backgroundColor: isSelected ? bgSelected : "transparent",
@@ -152,7 +152,7 @@ export function MultipleChoiceInput({
             </span>
 
             {/* Label */}
-            <span className="flex-1 font-medium" style={{ color: textColor, fontSize: "16px" }}>
+            <span className="flex-1 font-medium text-sm sm:text-base" style={{ color: textColor }}>
               {choice.icon && <span className="mr-2">{choice.icon}</span>}
               {choice.label}
             </span>

@@ -48,7 +48,7 @@ export function LongTextInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || "Escreva sua resposta aqui..."}
           rows={3}
-          className="w-full bg-transparent border-0 border-b-2 py-4 text-base font-medium focus:outline-none transition-colors duration-300 resize-none"
+          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 text-base font-medium focus:outline-none transition-colors duration-300 resize-none"
           style={{
             color: "inherit",
             borderColor: error

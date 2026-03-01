@@ -254,4 +254,25 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* Safe area for notched phones */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* Better touch targets */
+  @media (hover: none) and (pointer: coarse) {
+    button, [role="button"], a {
+      min-height: 36px;
+    }
+    input, select, textarea {
+      font-size: 16px !important; /* Prevent iOS zoom on focus */
+    }
+  }
+  /* Smooth scrolling on mobile */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }

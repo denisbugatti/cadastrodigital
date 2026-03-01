@@ -470,7 +470,7 @@ export default function Responses() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-5 pb-5 border-t border-border/50">
+                        <div className="px-3 sm:px-5 pb-4 sm:pb-5 border-t border-border/50">
                           <div className="grid gap-3 mt-4">
                             {questions
                               .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
