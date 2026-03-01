@@ -528,3 +528,7 @@
 - [x] Feature: Edição de nome/slug do formulário direto no Dashboard — sem precisar abrir o editor
 - [x] Feature: Geração de PDF restrita a respostas validadas — bloquear geração até que todas as respostas estejam aprovadas
 - [x] Bug: Settings page (/configuracoes) crashes with "Rendered more hooks than during the previous render" — hooks called conditionally based on auth state
+- [x] Feature: PDF preview inline — visualizar PDF gerado diretamente na página sem precisar baixar
+- [x] Feature: PDF download — botão de download direto do PDF gerado
+- [x] Feature: PDF compartilhar — gerar link compartilhável do PDF (salvar no S3)
+- [x] Feature: Adicionar páginas extras ao PDF — permitir anexar documentos/imagens adicionais ao Cadastro de Interesse gerado

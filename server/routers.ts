@@ -651,9 +651,13 @@ export const appRouter = router({
           }
         }
 
-        // Merge with attachments if any
-        if (attachments.length > 0) {
-          pdfBytes = await mergeWithAttachments(pdfBytes, attachments);
+        // Include extra pages from the response record
+        const extraPages = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
+        const allAttachments = [...attachments, ...extraPages];
+
+        // Merge all attachments + extra pages into the PDF
+        if (allAttachments.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, allAttachments);
         }
 
         // Convert to base64 for transport
@@ -662,6 +666,143 @@ export const appRouter = router({
         const filename = `Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
 
         return { base64, filename, tipo };
+      }),
+
+    /** Generate PDF, upload to S3, and return a shareable URL */
+    generateAndUploadPdf: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        // Re-use generateFicha logic but upload to S3
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        const form = await db.getFormById(response.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        const questions: any[] = form.questions ?? [];
+        const answers = (response.answers ?? {}) as Record<string, any>;
+
+        let tipo: "pf" | "pj" = "pf";
+        for (const q of questions) {
+          if (/aquisi[cç][aã]o.*como|pretende.*fazer/i.test(q.title) && answers[q.id]) {
+            const val = String(answers[q.id]).toLowerCase();
+            if (/jur[ií]dica|pj|empresa|cnpj/i.test(val)) {
+              tipo = "pj";
+            }
+            break;
+          }
+        }
+
+        const { generateCadastroInteressePdf, mergeWithAttachments: mergeAtt } = await import("./pdfGenerator");
+
+        let pdfBytes = await generateCadastroInteressePdf({
+          tipo, answers, questions,
+          respondentName: response.respondentName ?? undefined,
+          respondentEmail: response.respondentEmail ?? undefined,
+        });
+
+        // Collect file attachments
+        const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
+        for (const q of questions) {
+          if (q.type === "file-upload" && answers[q.id]) {
+            const val = answers[q.id];
+            if (typeof val === "object" && val.url) {
+              attachments.push({ url: val.url, filename: val.filename || val.name || q.title, mimeType: val.mimeType || val.type || "application/octet-stream" });
+            } else if (typeof val === "string" && val.startsWith("http")) {
+              attachments.push({ url: val, filename: q.title, mimeType: "image/jpeg" });
+            }
+          }
+        }
+        const dbFiles = await db.getFilesByResponse(input.responseId);
+        for (const f of dbFiles) {
+          if (f.url && !attachments.some(a => a.url === f.url)) {
+            attachments.push({ url: f.url, filename: f.filename || "arquivo", mimeType: f.mimeType || "application/octet-stream" });
+          }
+        }
+
+        // Include extra pages
+        const extraPages = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
+        const allAttachments = [...attachments, ...extraPages];
+        if (allAttachments.length > 0) {
+          pdfBytes = await mergeAtt(pdfBytes, allAttachments);
+        }
+
+        // Upload to S3
+        const respondent = response.respondentName || "cadastro";
+        const filename = `Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
+        const fileKey = `pdfs/${input.responseId}-${nanoid(8)}-${filename}`;
+        const { url: pdfUrl } = await storagePut(fileKey, Buffer.from(pdfBytes), "application/pdf");
+
+        // Save URL to response record
+        await db.updateResponse(input.responseId, { pdfKey: fileKey, pdfUrl } as any);
+
+        return { pdfUrl, filename, tipo };
+      }),
+
+    /** Add extra pages to a response (documents/images to append to PDF) */
+    addExtraPages: ownerFallbackProcedure
+      .input(z.object({
+        responseId: z.number(),
+        pages: z.array(z.object({
+          url: z.string(),
+          filename: z.string(),
+          mimeType: z.string(),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        const form = await db.getFormById(response.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        const existing = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
+        const updated = [...existing, ...input.pages];
+        await db.updateResponse(input.responseId, { extraPages: updated } as any);
+
+        // Invalidate cached PDF since pages changed
+        if (response.pdfUrl) {
+          await db.updateResponse(input.responseId, { pdfUrl: null, pdfKey: null } as any);
+        }
+
+        return { success: true, totalPages: updated.length };
+      }),
+
+    /** Remove an extra page by index */
+    removeExtraPage: ownerFallbackProcedure
+      .input(z.object({
+        responseId: z.number(),
+        pageIndex: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        const form = await db.getFormById(response.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        const existing = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
+        if (input.pageIndex < 0 || input.pageIndex >= existing.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Índice inválido" });
+        }
+        existing.splice(input.pageIndex, 1);
+        await db.updateResponse(input.responseId, { extraPages: existing } as any);
+
+        // Invalidate cached PDF
+        if (response.pdfUrl) {
+          await db.updateResponse(input.responseId, { pdfUrl: null, pdfKey: null } as any);
+        }
+
+        return { success: true, totalPages: existing.length };
       }),
 
     myResponses: publicProcedure

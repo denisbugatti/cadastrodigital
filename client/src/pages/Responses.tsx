@@ -167,9 +167,9 @@ export default function Responses() {
       filtered = filtered.filter((r: any) => r.projectName === projectFilter);
     }
     if (statusFilter === "validated") {
-      filtered = filtered.filter((r: any) => r.isValidated);
+      filtered = filtered.filter((r: any) => r.validationStatus === "approved");
     } else if (statusFilter === "pending") {
-      filtered = filtered.filter((r: any) => !r.isValidated);
+      filtered = filtered.filter((r: any) => r.validationStatus !== "approved");
     } else if (statusFilter === "complete") {
       filtered = filtered.filter((r: any) => r.isComplete);
     } else if (statusFilter === "partial") {
@@ -493,7 +493,7 @@ export default function Responses() {
                               )}
                             </span>
                           )}
-                          {response.isValidated ? (
+                          {response.validationStatus === "approved" ? (
                             <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-body font-medium">
                               <ShieldCheck size={11} /> Validado
                             </span>
@@ -530,8 +530,8 @@ export default function Responses() {
                         variant="default"
                         size="sm"
                         className="gap-1.5 sm:gap-2 bg-brand hover:bg-brand/90 text-xs sm:text-sm px-2.5 sm:px-3"
-                        disabled={isGenerating || !response.isValidated}
-                        title={!response.isValidated ? "Valide a resposta antes de gerar a ficha" : "Gerar ficha PDF"}
+                        disabled={isGenerating || response.validationStatus !== "approved"}
+                        title={response.validationStatus !== "approved" ? "Valide a resposta antes de gerar a ficha" : "Gerar ficha PDF"}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleGenerateFicha(response.id);

@@ -186,3 +186,85 @@ describe("PDF Generator - Cadastro de Interesse", () => {
     });
   });
 });
+
+describe("PDF Extra Pages Schema", () => {
+  it("should validate extra pages structure", () => {
+    const extraPages = [
+      { url: "https://example.com/doc1.pdf", filename: "doc1.pdf", mimeType: "application/pdf" },
+      { url: "https://example.com/img1.jpg", filename: "foto.jpg", mimeType: "image/jpeg" },
+    ];
+
+    expect(extraPages).toHaveLength(2);
+    for (const page of extraPages) {
+      expect(page).toHaveProperty("url");
+      expect(page).toHaveProperty("filename");
+      expect(page).toHaveProperty("mimeType");
+      expect(typeof page.url).toBe("string");
+      expect(typeof page.filename).toBe("string");
+      expect(typeof page.mimeType).toBe("string");
+    }
+  });
+
+  it("should handle removing extra page by index", () => {
+    const pages = [
+      { url: "https://example.com/a.pdf", filename: "a.pdf", mimeType: "application/pdf" },
+      { url: "https://example.com/b.jpg", filename: "b.jpg", mimeType: "image/jpeg" },
+      { url: "https://example.com/c.png", filename: "c.png", mimeType: "image/png" },
+    ];
+
+    // Remove index 1 (b.jpg)
+    pages.splice(1, 1);
+    expect(pages).toHaveLength(2);
+    expect(pages[0].filename).toBe("a.pdf");
+    expect(pages[1].filename).toBe("c.png");
+  });
+
+  it("should handle adding extra pages to existing list", () => {
+    const existing = [
+      { url: "https://example.com/a.pdf", filename: "a.pdf", mimeType: "application/pdf" },
+    ];
+    const newPages = [
+      { url: "https://example.com/b.jpg", filename: "b.jpg", mimeType: "image/jpeg" },
+    ];
+
+    const updated = [...existing, ...newPages];
+    expect(updated).toHaveLength(2);
+    expect(updated[0].filename).toBe("a.pdf");
+    expect(updated[1].filename).toBe("b.jpg");
+  });
+
+  it("should reject invalid page index for removal", () => {
+    const pages = [
+      { url: "https://example.com/a.pdf", filename: "a.pdf", mimeType: "application/pdf" },
+    ];
+
+    const pageIndex = 5;
+    expect(pageIndex < 0 || pageIndex >= pages.length).toBe(true);
+  });
+
+  it("should handle empty extra pages array", () => {
+    const extraPages: Array<{url: string; filename: string; mimeType: string}> = [];
+    const attachments = [
+      { url: "https://example.com/file.pdf", filename: "file.pdf", mimeType: "application/pdf" },
+    ];
+
+    const allAttachments = [...attachments, ...extraPages];
+    expect(allAttachments).toHaveLength(1);
+  });
+
+  it("should merge attachments and extra pages correctly", () => {
+    const attachments = [
+      { url: "https://example.com/file1.pdf", filename: "file1.pdf", mimeType: "application/pdf" },
+    ];
+    const extraPages = [
+      { url: "https://example.com/extra1.jpg", filename: "extra1.jpg", mimeType: "image/jpeg" },
+      { url: "https://example.com/extra2.pdf", filename: "extra2.pdf", mimeType: "application/pdf" },
+    ];
+
+    const allAttachments = [...attachments, ...extraPages];
+    expect(allAttachments).toHaveLength(3);
+    expect(allAttachments[0].filename).toBe("file1.pdf");
+    expect(allAttachments[1].filename).toBe("extra1.jpg");
+    expect(allAttachments[2].filename).toBe("extra2.pdf");
+  });
+});

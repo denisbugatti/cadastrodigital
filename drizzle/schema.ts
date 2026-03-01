@@ -201,6 +201,12 @@ export const formResponses = mysqlTable("form_responses", {
   reviewNotes: text("reviewNotes"),
   /** Project of interest — filled by corretor during validation */
   projectName: varchar("projectName", { length: 500 }),
+  /** Generated PDF S3 key */
+  pdfKey: varchar("pdfKey", { length: 500 }),
+  /** Generated PDF public URL */
+  pdfUrl: varchar("pdfUrl", { length: 1000 }),
+  /** Extra pages (JSON array of {url, filename, mimeType}) to append to PDF */
+  extraPages: json("extraPages").$type<Array<{url: string; filename: string; mimeType: string}>>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
