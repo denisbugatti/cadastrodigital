@@ -491,7 +491,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                       className="px-8 py-3 rounded-xl text-sm font-semibold text-white transition-all"
                       style={{
                         backgroundColor: form.design.buttonColor,
-                        fontFamily: form.design.fontFamily,
+                        fontFamily: form.design.fontFamily, color: '#0d8bd9',
                       }}
                     >
                       Começar
