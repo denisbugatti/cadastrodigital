@@ -30,7 +30,7 @@ export default function Login() {
   const staffLogin = trpc.customAuth.staffLogin.useMutation({
     onSuccess: () => {
       toast.success("Login realizado com sucesso!");
-      navigate("/");
+      navigate("/dashboard");
     },
     onError: (err) => {
       toast.error(err.message);
@@ -96,7 +96,7 @@ export default function Login() {
       <div className="relative w-full max-w-md">
         {/* Back to landing */}
         <button
-          onClick={() => navigate("/landing")}
+          onClick={() => navigate("/")}
           className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

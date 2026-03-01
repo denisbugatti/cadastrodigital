@@ -887,6 +887,29 @@ export default function Dashboard() {
               )}
             </div>
 
+            {/* ─── Management Links ─── */}
+            <div className="mt-6 pt-4 border-t border-border space-y-1">
+              <h3 className="font-display text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Gestão</h3>
+              <Link href="/equipe">
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-foreground hover:bg-secondary border border-transparent transition-all duration-150"
+                >
+                  <Users size={16} className="text-muted-foreground" />
+                  <span className="flex-1 text-left">Equipe</span>
+                </button>
+              </Link>
+              <Link href="/permissoes">
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-foreground hover:bg-secondary border border-transparent transition-all duration-150"
+                >
+                  <SlidersHorizontal size={16} className="text-muted-foreground" />
+                  <span className="flex-1 text-left">Permissões</span>
+                </button>
+              </Link>
+            </div>
+
             {/* Create folder */}
             {creatingFolder ? (
               <div className="mt-3 flex items-center gap-2 px-3">

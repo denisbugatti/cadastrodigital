@@ -51,6 +51,7 @@
 
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
+  --font-heading: "Inter Tight", system-ui, sans-serif;
 }
 
 :root {
@@ -188,6 +189,10 @@
 
   .font-body {
     font-family: var(--font-body);
+  }
+
+  .font-heading {
+    font-family: var(--font-heading);
   }
 
   /* Clean card style */

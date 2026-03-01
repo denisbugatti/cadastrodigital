@@ -438,6 +438,19 @@ export default function Responses() {
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
+                      {/* Validar button */}
+                      <Link href={`/validar/${response.id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-xs sm:text-sm px-2.5 sm:px-3 border-amber-300 text-amber-700 hover:bg-amber-50"
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                          <CheckCircle2 size={14} />
+                          <span className="hidden sm:inline">Validar</span>
+                        </Button>
+                      </Link>
+
                       {/* Gerar Ficha button */}
                       <Button
                         variant="default"

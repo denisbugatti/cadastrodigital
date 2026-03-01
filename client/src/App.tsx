@@ -17,6 +17,9 @@ import Login from "./pages/Login";
 import AcceptInvite from "./pages/AcceptInvite";
 import ClientRegister from "./pages/ClientRegister";
 import ClientPortal from "./pages/ClientPortal";
+import StaffManagement from "./pages/StaffManagement";
+import PermissionsPage from "./pages/PermissionsPage";
+import ResponseValidation from "./pages/ResponseValidation";
 
 function Router() {
   return (
@@ -27,8 +30,11 @@ function Router() {
       <Route path={"/cadastro-cliente"} component={ClientRegister} />
       <Route path={"/portal"} component={ClientPortal} />
 
+      {/* Landing page as home */}
+      <Route path={"/"} component={Landing} />
+
       {/* Staff dashboard routes */}
-      <Route path={"/"} component={Dashboard} />
+      <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/form"} component={Dashboard} />
       <Route path={"/landing"} component={Landing} />
       <Route path={"/editor"} component={Editor} />
@@ -38,6 +44,14 @@ function Router() {
       <Route path={"/f/:slug"} component={FormView} />
       <Route path={"/responses/:formId"} component={Responses} />
       <Route path={"/corretores"} component={Corretores} />
+
+      {/* Staff management & permissions */}
+      <Route path={"/equipe"} component={StaffManagement} />
+      <Route path={"/permissoes"} component={PermissionsPage} />
+
+      {/* Response validation */}
+      <Route path={"/validar/:responseId"} component={ResponseValidation} />
+
       <Route path={"/404"} component={NotFound} />
       {/* Catch-all: try to resolve as a form slug (e.g., /vitoria) */}
       <Route path={"/:slug"} component={SlugResolver} />

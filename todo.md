@@ -378,50 +378,50 @@
 - [x] Testar envio de email com protocolo
 
 ## Feature: Sistema de autenticação próprio (substituir Manus OAuth)
-- [ ] Criar tabela platform_users (email, passwordHash, role, name, phone, active, invitedBy)
-- [ ] Criar tabela invites (email, token, role, invitedBy, expiresAt, usedAt)
-- [ ] Criar tabela client_users (cpf_cnpj, passwordHash, name, email, phone)
-- [ ] Implementar hash de senha com bcrypt
-- [ ] Backend: login endpoint (email/senha para staff, CPF/CNPJ para clientes)
-- [ ] Backend: register endpoint (apenas via convite para staff)
-- [ ] Backend: invite endpoint (master envia convite por email)
-- [ ] Backend: session/JWT management próprio
-- [ ] Frontend: página de login (staff e cliente)
-- [ ] Frontend: página de registro via convite (definir senha)
-- [ ] Frontend: página de login do cliente (CPF/CNPJ)
-- [ ] Seed do master: contato@denisbugatti.com.br / WdZQ7eQJXJ
-- [ ] Remover dependência do Manus OAuth
+- [x] Criar tabela platform_users (email, passwordHash, role, name, phone, active, invitedBy)
+- [x] Criar tabela invites (email, token, role, invitedBy, expiresAt, usedAt)
+- [x] Criar tabela client_users (cpf_cnpj, passwordHash, name, email, phone)
+- [x] Implementar hash de senha com bcrypt
+- [x] Backend: login endpoint (email/senha para staff, CPF/CNPJ para clientes)
+- [x] Backend: register endpoint (apenas via convite para staff)
+- [x] Backend: invite endpoint (master envia convite por email)
+- [x] Backend: session/JWT management próprio
+- [x] Frontend: página de login (staff e cliente)
+- [x] Frontend: página de registro via convite (definir senha)
+- [x] Frontend: página de login do cliente (CPF/CNPJ)
+- [x] Seed do master: contato@denisbugatti.com.br / WdZQ7eQJXJ
+- [ ] Remover dependência do Manus OAuth (mantido como fallback)
 
 ## Feature: Níveis de acesso (Master, Diretor, Gerente, Corretor)
-- [ ] Enum de roles: master, diretor, gerente, corretor
-- [ ] Tabela de permissões por role (permissions matrix)
-- [ ] Backend: middleware de verificação de permissões
-- [ ] Frontend: página de gerenciamento de permissões (master only)
-- [ ] Frontend: hierarquia visual de acesso (como na imagem)
-- [ ] Frontend: checkboxes editáveis por recurso/role
+- [x] Enum de roles: master, diretor, gerente, corretor
+- [x] Tabela de permissões por role (permissions matrix)
+- [x] Backend: middleware de verificação de permissões
+- [x] Frontend: página de gerenciamento de permissões (master only)
+- [x] Frontend: hierarquia visual de acesso (como na imagem)
+- [x] Frontend: checkboxes editáveis por recurso/role
 
 ## Feature: Portal do cliente (CPF/CNPJ)
-- [ ] Login do cliente por CPF/CNPJ + senha
-- [ ] Dashboard do cliente: ver status do cadastro
-- [ ] Cliente pode finalizar cadastro incompleto
-- [ ] Cliente recebe email de status (aprovado/reprovado/pendente)
-- [ ] Cliente NÃO vê quem é o corretor responsável
+- [x] Login do cliente por CPF/CNPJ + senha
+- [x] Dashboard do cliente: ver status do cadastro
+- [x] Cliente pode finalizar cadastro incompleto
+- [x] Cliente recebe email de status (aprovado/reprovado/pendente)
+- [x] Cliente NÃO vê quem é o corretor responsável
 
 ## Feature: Validação de respostas pelo corretor
-- [ ] Tabela response_validations (responseId, questionId, status, justification, validatedBy)
-- [ ] Backend: endpoints de validação (aprovar/reprovar resposta individual)
-- [ ] Frontend: interface de validação para corretor (check verde / X vermelho com justificativa)
-- [ ] Backend: calcular status geral (aprovado quando todas validadas)
-- [ ] Email de aprovação (parabéns, apto para comprar imóvel One Innovation)
-- [ ] Email de reprovação (justificativa, solicitar novo documento/dado)
+- [x] Tabela response_validations (responseId, questionId, status, justification, validatedBy)
+- [x] Backend: endpoints de validação (aprovar/reprovar resposta individual)
+- [x] Frontend: interface de validação para corretor (check verde / X vermelho com justificativa)
+- [x] Backend: calcular status geral (aprovado quando todas validadas)
+- [x] Email de aprovação (parabéns, apto para comprar imóvel One Innovation)
+- [x] Email de reprovação (justificativa, solicitar novo documento/dado)
 
 ## Feature: Landing page incrível
-- [ ] Design premium da landing page com informações sobre a plataforma
-- [ ] Botão "Preencher para Lançamento" no header (chamativo)
-- [ ] Ao clicar: modal com campo de corretor e telefone do corretor
-- [ ] Após selecionar corretor: abre o formulário vinculado ao corretor
-- [ ] Botões de login (staff e cliente) no header
-- [ ] Informações sobre LGPD e proteção de dados
+- [x] Design premium da landing page (estilo Halo dark theme)
+- [x] Botão "Preencher para Lançamento" no header (chamativo)
+- [x] Ao clicar: modal com campo de corretor e telefone do corretor
+- [x] Após selecionar corretor: abre o formulário vinculado ao corretor
+- [x] Botões de login (staff e cliente) no header
+- [x] Informações sobre LGPD e proteção de dados
 
 ## Feature: Vinculação corretor-formulário
 - [ ] Cada formulário vinculado a um corretor específico (userId do corretor)
@@ -433,3 +433,6 @@
 - [ ] Seletor de pasta de destino no dialog
 - [ ] Integrar dialog no botão de duplicar do Dashboard
 - [ ] Testar fluxo completo
+
+## Bug Fix: Slug não editável no SharingPanel
+- [x] Corrigir campo de slug no SharingPanel para permitir edição (testado — funciona corretamente)
