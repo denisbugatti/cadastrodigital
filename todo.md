@@ -558,3 +558,7 @@
 - [x] Remover animação splash do logo FormFlow no início do site (formulário público)
 - [x] Corrigir anexos no drawer de validação - agora detecta URLs do S3 nas respostas e mostra preview inline
 - [x] FileUploadInput agora faz upload real para S3 via tRPC (antes só salvava o nome do arquivo)
+
+### Preview de Link de Compartilhamento (Open Graph)
+- [x] Configurar OG meta tags dinâmicos para formulários compartilhados (título, descrição, imagem)
+- [x] Garantir que WhatsApp, Facebook, etc. mostrem preview correto ao compartilhar link do formulário

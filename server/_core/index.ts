@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { warmUpDb } from "../db";
 import { runSeeds } from "../seedMaster";
+import { ogMiddleware } from "../ogMiddleware";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -45,6 +46,9 @@ async function startServer() {
       createContext,
     })
   );
+  // OG meta tags for social media crawlers (must be before SPA fallback)
+  app.use(ogMiddleware());
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
