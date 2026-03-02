@@ -630,3 +630,20 @@
 - [x] ogMiddleware funciona corretamente no dev (confirmado via curl com WhatsApp UA)
 - [x] Atualizar index.html estático com OG tags corretas da One Innovation como fallback
 - [x] Título, descrição e twitter:card atualizados no HTML estático
+
+### Feature: Renomear formulário no editor
+- [x] Adicionar campo editável inline para o nome do formulário no Builder (Pencil icon + input)
+- [x] Salvar nome via updateFormMeta mutation ao confirmar edição
+
+### Feature: Fundo WebGL animado nos formulários
+- [x] Criar componente WebGLBackground com 5 efeitos (gradient-flow, particles, aurora, waves, mesh-gradient)
+- [x] Adicionar seletor backgroundType (solid/image/webgl) + efeito + intensidade no DesignEditor
+- [x] Integrar WebGLBackground no FormContainer como opção de background
+
+### Melhoria: Redesign da página de respostas
+- [x] Cards de estatísticas no topo (total, completas, tempo médio, validadas)
+- [x] Filtros por status (todos, completas, parciais, validadas, pendentes)
+- [x] Cards de resposta redesenhados com ValidationBadge e animações
+- [x] Visualização expandida com layout pergunta/resposta lado a lado
+- [x] Design responsivo e consistente com tema escuro/claro
+- [x] 15 novos testes (234 testes totais passando)

@@ -18,6 +18,7 @@ import { useFormEngine } from "@/hooks/useFormEngine";
 import { trpc } from "@/lib/trpc";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { QuestionRenderer } from "./QuestionRenderer";
+import { WebGLBackground } from "./WebGLBackground";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface FormContainerProps {
@@ -340,8 +341,8 @@ export function FormContainer({ form }: FormContainerProps) {
         height: "100%",
       }}
     >
-      {/* Background image if set */}
-      {d?.backgroundImage && (
+      {/* Background: image or WebGL */}
+      {(d?.backgroundType === "image" || (!d?.backgroundType && d?.backgroundImage)) && d?.backgroundImage && (
         <div
           className="absolute inset-0 pointer-events-none opacity-10"
           style={{
@@ -350,6 +351,15 @@ export function FormContainer({ form }: FormContainerProps) {
             backgroundPosition: "center",
           }}
         />
+      )}
+      {d?.backgroundType === "webgl" && (
+        <div className="absolute inset-0 pointer-events-none">
+          <WebGLBackground
+            effect={d.webglEffect || "gradient-flow"}
+            intensity={d.webglIntensity ?? 50}
+            baseColor={bgColor}
+          />
+        </div>
       )}
 
       {/* ─── Fixed Logo (top-left) ─── */}

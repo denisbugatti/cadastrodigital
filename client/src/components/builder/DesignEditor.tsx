@@ -7,9 +7,10 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  Palette, Type, Image, Globe, Upload, X, Loader2,
+  Palette, Type, Image, Globe, Upload, X, Loader2, Monitor, Sparkles, ImageIcon,
 } from "lucide-react";
-import type { FormDesignSettings } from "@/lib/builderTypes";
+import type { FormDesignSettings, BackgroundType } from "@/lib/builderTypes";
+import { WEBGL_EFFECTS, WebGLBackground } from "@/components/form/WebGLBackground";
 import { trpc } from "@/lib/trpc";
 
 interface DesignEditorProps {
@@ -459,15 +460,142 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               previewContainerClassName="mt-3 p-4 rounded-xl border border-border flex flex-col items-center bg-secondary/50"
             />
 
-            {/* Background image */}
-            <ImageUploadField
-              label="Imagem de fundo"
-              description="Imagem que aparece no fundo do formulário. Cuidado com o contraste."
-              value={design.backgroundImage ?? ""}
-              onChange={(url) => onUpdate({ backgroundImage: url })}
-              previewClassName="w-full h-28 object-cover rounded-lg"
-              previewContainerClassName="mt-3 rounded-xl overflow-hidden border border-border flex flex-col items-center"
-            />
+            {/* Background Type Selector */}
+            <div>
+              <h4 className="text-sm font-body font-semibold text-foreground mb-3">
+                Tipo de fundo
+              </h4>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {([
+                  { id: "solid" as BackgroundType, label: "Cor sólida", icon: Palette },
+                  { id: "image" as BackgroundType, label: "Imagem", icon: ImageIcon },
+                  { id: "webgl" as BackgroundType, label: "WebGL", icon: Sparkles },
+                ]).map((bg) => {
+                  const Icon = bg.icon;
+                  const isActive = (design.backgroundType || "solid") === bg.id;
+                  return (
+                    <button
+                      key={bg.id}
+                      onClick={() => onUpdate({ backgroundType: bg.id })}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                        isActive
+                          ? "border-brand bg-brand/5 text-brand shadow-sm"
+                          : "border-border text-muted-foreground hover:border-brand/30 hover:text-foreground"
+                      }`}
+                    >
+                      <Icon size={18} />
+                      <span className="text-xs font-medium">{bg.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Solid - no extra options needed (uses backgroundColor from Colors tab) */}
+              {(design.backgroundType || "solid") === "solid" && (
+                <div className="p-4 rounded-xl bg-secondary/50 border border-border">
+                  <p className="text-sm text-muted-foreground">
+                    O fundo usa a cor definida na aba <span className="font-semibold text-foreground">Cores</span>.
+                  </p>
+                </div>
+              )}
+
+              {/* Image background */}
+              {design.backgroundType === "image" && (
+                <ImageUploadField
+                  label="Imagem de fundo"
+                  description="Imagem que aparece no fundo do formulário. Cuidado com o contraste."
+                  value={design.backgroundImage ?? ""}
+                  onChange={(url) => onUpdate({ backgroundImage: url })}
+                  previewClassName="w-full h-28 object-cover rounded-lg"
+                  previewContainerClassName="mt-3 rounded-xl overflow-hidden border border-border flex flex-col items-center"
+                />
+              )}
+
+              {/* WebGL background */}
+              {design.backgroundType === "webgl" && (
+                <div className="space-y-4">
+                  {/* Effect selector */}
+                  <div>
+                    <label className="text-sm font-body font-medium text-foreground mb-2 block">
+                      Efeito
+                    </label>
+                    <div className="space-y-2">
+                      {WEBGL_EFFECTS.map((fx) => {
+                        const isActive = (design.webglEffect || "gradient-flow") === fx.id;
+                        return (
+                          <button
+                            key={fx.id}
+                            onClick={() => onUpdate({ webglEffect: fx.id })}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              isActive
+                                ? "border-brand bg-brand/5"
+                                : "border-border hover:border-brand/30"
+                            }`}
+                          >
+                            {/* Mini WebGL preview */}
+                            <div className="w-12 h-12 rounded-lg overflow-hidden relative shrink-0 border border-border/50">
+                              <WebGLBackground
+                                effect={fx.id}
+                                intensity={design.webglIntensity ?? 50}
+                                baseColor={design.backgroundColor}
+                              />
+                            </div>
+                            <div className="text-left">
+                              <p className={`text-sm font-medium ${
+                                isActive ? "text-brand" : "text-foreground"
+                              }`}>
+                                {fx.label}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {fx.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Intensity slider */}
+                  <div>
+                    <label className="text-sm font-body font-medium text-foreground mb-2 block">
+                      Intensidade: {design.webglIntensity ?? 50}%
+                    </label>
+                    <input
+                      type="range"
+                      min={10}
+                      max={100}
+                      value={design.webglIntensity ?? 50}
+                      onChange={(e) => onUpdate({ webglIntensity: Number(e.target.value) })}
+                      className="w-full accent-brand"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Sutil</span>
+                      <span>Intenso</span>
+                    </div>
+                  </div>
+
+                  {/* Live preview */}
+                  <div>
+                    <label className="text-sm font-body font-medium text-foreground mb-2 block">
+                      Pré-visualização
+                    </label>
+                    <div className="w-full h-40 rounded-xl overflow-hidden relative border border-border">
+                      <WebGLBackground
+                        effect={design.webglEffect || "gradient-flow"}
+                        intensity={design.webglIntensity ?? 50}
+                        baseColor={design.backgroundColor}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-white text-sm font-semibold drop-shadow-lg">
+                          Preview do efeito
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 

@@ -127,6 +127,9 @@ export interface FormData {
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;
+    backgroundType?: "solid" | "image" | "webgl";
+    webglEffect?: "gradient-flow" | "particles" | "aurora" | "waves" | "mesh-gradient";
+    webglIntensity?: number;
   };
   /** Database form ID for response submission (internal use) */
   _dbFormId?: number;

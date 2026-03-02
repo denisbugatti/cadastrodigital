@@ -14,7 +14,7 @@ import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
   FileText, Save, Cloud, Download, Upload, History,
   RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle, Hash,
-  List, Settings2, PanelLeftClose,
+  List, Settings2, PanelLeftClose, Pencil,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useBuilder } from "@/hooks/useBuilder";
@@ -102,6 +102,17 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
   const [isPublished, setIsPublished] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileConfigOpen, setMobileConfigOpen] = useState(false);
+  const [isRenamingForm, setIsRenamingForm] = useState(false);
+  const [renameValue, setRenameValue] = useState(form.title);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus rename input when entering rename mode
+  useEffect(() => {
+    if (isRenamingForm && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [isRenamingForm]);
 
   // Check publish status from form data
   const formStatusQuery = trpc.forms.getById.useQuery(
@@ -256,9 +267,43 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                 <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
               </svg>
             </div>
-            <span className="font-display text-sm font-bold text-foreground truncate max-w-[120px] lg:max-w-[200px]">
-              {form.title || "Novo formulário"}
-            </span>
+            {isRenamingForm ? (
+              <input
+                ref={renameInputRef}
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={() => {
+                  const trimmed = renameValue.trim();
+                  if (trimmed && trimmed !== form.title) {
+                    updateFormMeta({ title: trimmed });
+                    toast.success("Formulário renomeado");
+                  }
+                  setIsRenamingForm(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    (e.target as HTMLInputElement).blur();
+                  } else if (e.key === "Escape") {
+                    setRenameValue(form.title);
+                    setIsRenamingForm(false);
+                  }
+                }}
+                className="font-display text-sm font-bold text-foreground bg-secondary border border-brand/40 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-brand/20 max-w-[200px]"
+              />
+            ) : (
+              <button
+                onClick={() => {
+                  setRenameValue(form.title);
+                  setIsRenamingForm(true);
+                }}
+                className="group flex items-center gap-1.5 font-display text-sm font-bold text-foreground truncate max-w-[120px] lg:max-w-[200px] hover:text-brand transition-colors"
+                title="Clique para renomear"
+              >
+                <span className="truncate">{form.title || "Novo formulário"}</span>
+                <Pencil size={12} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+              </button>
+            )}
           </div>
         </div>
 
