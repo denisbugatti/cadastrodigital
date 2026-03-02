@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, email, name, role, active, passwordHash, createdAt FROM staff_users WHERE email = 'contato@denisbugatti.com.br';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, email, name, role, active, passwordHash, createdAt FROM staff_users WHERE email = 'contato@denisbugatti.com.br';",
+  "rows": [
+    {
+      "id": "1",
+      "email": "contato@denisbugatti.com.br",
+      "name": "Denis Bugatti",
+      "role": "master",
+      "active": "1",
+      "passwordHash": "$2b$12$HUuZv/vytS4S/8/EAgRMreSXO.i1.a3SSDJQyngk4mXaKVCGjUD12",
+      "createdAt": "2026-03-01 17:09:49"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tactive\tpasswordHash\tcreatedAt\n1\tcontato@denisbugatti.com.br\tDenis Bugatti\tmaster\t1\t$2b$12$HUuZv/vytS4S/8/EAgRMreSXO.i1.a3SSDJQyngk4mXaKVCGjUD12\t2026-03-01 17:09:49\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

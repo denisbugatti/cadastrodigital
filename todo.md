@@ -532,3 +532,12 @@
 
 ### Bug Fixes
 - [x] Fix Framer Motion spring animation error on editor page (keyframes 0,-4,4,-4,4,0 not supported with spring)
+
+### Validação de respostas melhorada
+- [x] Tela de validação com check individual por campo/resposta (aprovar/reprovar cada campo)
+- [x] Validação de arquivos anexados com check individual
+- [x] Justificativa obrigatória ao reprovar um campo
+- [x] Status visual claro (aprovado/reprovado/pendente) por campo
+
+### Bug: Login mostrando senha errada
+- [x] Investigar e corrigir erro de login que mostra "senha errada" (hash corrompido no DB, resetado)
