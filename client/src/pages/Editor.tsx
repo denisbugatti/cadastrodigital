@@ -195,23 +195,15 @@ export default function Editor() {
   const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
   const staffUser = staffMeQuery.data;
 
-  if (staffMeQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 size={32} className="animate-spin text-brand" />
-      </div>
-    );
-  }
-
   // If not staff or not master/diretor, redirect to dashboard
-  const shouldRedirect = staffUser?.type !== "staff" || (staffUser.role !== "master" && staffUser.role !== "diretor");
+  const shouldRedirect = !staffMeQuery.isLoading && (staffUser?.type !== "staff" || (staffUser.role !== "master" && staffUser.role !== "diretor"));
   useEffect(() => {
-    if (!staffMeQuery.isLoading && shouldRedirect) {
+    if (shouldRedirect) {
       navigate("/dashboard");
     }
-  }, [staffMeQuery.isLoading, shouldRedirect, navigate]);
+  }, [shouldRedirect, navigate]);
 
-  if (shouldRedirect) {
+  if (staffMeQuery.isLoading || shouldRedirect) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 size={32} className="animate-spin text-brand" />

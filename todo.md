@@ -538,3 +538,4 @@
 - [x] Bug: Edição de formulário — senha do master user estava incorreta no DB, resetada para Denis@2025
 - [x] Bug: Convite de usuário — email Resend em modo teste, agora mostra link copiável quando email falha + aviso sobre verificação de domínio
 - [x] Pixel-perfect: Settings reescrita com cores semânticas, DashboardLayout sem sidebar genérica, convites com botão copiar link
+- [x] Bug: Editor page crashes with "Rendered more hooks than during the previous render" — moved useEffect before conditional loading return
