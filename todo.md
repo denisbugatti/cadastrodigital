@@ -647,3 +647,13 @@
 - [x] Visualização expandida com layout pergunta/resposta lado a lado
 - [x] Design responsivo e consistente com tema escuro/claro
 - [x] 15 novos testes (234 testes totais passando)
+
+### Bug: Página de aceitar convite com link inválido
+- [x] Investigado: comportamento correto — página mostra "Link inválido" quando acessada sem token (só funciona pelo link do email de convite)
+
+### Feature: Editar e excluir usuários na Equipe
+- [x] Botões de editar (lápis) e excluir (lixeira) visíveis diretamente em cada membro
+- [x] Diálogo de edição com nome, email, telefone, cargo e status ativo/inativo (Switch)
+- [x] Confirmação antes de excluir com AlertDialog
+- [x] Campo email adicionado ao backend staff.update
+- [x] Tema escuro aplicado na página de Equipe (bg-background, bg-card, text-foreground)

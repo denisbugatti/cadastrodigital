@@ -167,6 +167,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
+        email: z.string().email().optional(),
         phone: z.string().optional(),
         role: z.enum(["master", "diretor", "gerente", "corretor"]).optional(),
         active: z.boolean().optional(),

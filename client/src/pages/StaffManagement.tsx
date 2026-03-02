@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -25,12 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -42,9 +37,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  ArrowLeft, UserPlus, MoreHorizontal, Mail, Phone, Shield,
+  ArrowLeft, UserPlus, Mail, Phone,
   Star, Building2, Users, Loader2, CheckCircle2, XCircle,
-  Crown, Briefcase, User,
+  Crown, Briefcase, Pencil, Trash2, Clock,
 } from "lucide-react";
 
 const roleConfig: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
@@ -129,20 +124,20 @@ export default function StaffManagement() {
   const invites = (invitesQuery.data ?? []) as any[];
 
   return (
-    <div className="min-h-screen bg-[#fafbfc]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/dashboard")}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 font-display">Equipe</h1>
-              <p className="text-sm text-gray-500">Gerencie membros e permissões</p>
+              <h1 className="text-xl font-bold text-foreground font-display">Equipe</h1>
+              <p className="text-sm text-muted-foreground">Gerencie membros e permissões</p>
             </div>
           </div>
           <Button
@@ -157,52 +152,53 @@ export default function StaffManagement() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Staff List */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">
+        <div className="bg-card rounded-xl border border-border overflow-hidden mb-8">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">
               Membros da equipe ({staff.length})
             </h2>
           </div>
 
           {staffQuery.isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : staff.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Users className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
               <p className="text-sm">Nenhum membro na equipe</p>
+              <p className="text-xs mt-1">Clique em "Convidar" para adicionar membros</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {staff.map((member: any) => {
                 const role = roleConfig[member.role] || roleConfig.corretor;
                 const RoleIcon = role.icon;
                 return (
-                  <div key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
                     <div className="flex items-center gap-4">
                       {/* Avatar */}
-                      <div className={`w-10 h-10 rounded-full ${role.bgColor} flex items-center justify-center`}>
+                      <div className={`w-10 h-10 rounded-full ${role.bgColor} flex items-center justify-center shrink-0`}>
                         <RoleIcon className={`w-5 h-5 ${role.color}`} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900">{member.name || member.email}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">{member.name || member.email}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${role.bgColor} ${role.color} font-medium`}>
                             {role.label}
                           </span>
                           {!member.active && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 font-medium">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 font-medium">
                               Inativo
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" /> {member.email}
                           </span>
                           {member.phone && (
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Phone className="w-3 h-3" /> {member.phone}
                             </span>
                           )}
@@ -210,25 +206,28 @@ export default function StaffManagement() {
                       </div>
                     </div>
 
+                    {/* Action buttons - always visible */}
                     {member.role !== "master" && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="text-gray-400 hover:text-gray-600 p-1">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingUser(member)}>
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteTarget(member)}
-                            className="text-red-600"
-                          >
-                            Remover
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-1 shrink-0 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingUser({ ...member })}
+                          className="text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 h-8 w-8 p-0"
+                          title="Editar"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteTarget(member)}
+                          className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
+                          title="Remover"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 );
@@ -239,27 +238,29 @@ export default function StaffManagement() {
 
         {/* Pending Invites */}
         {invites.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="px-6 py-4 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">
                 Convites pendentes ({invites.filter((i: any) => i.status === "pending").length})
               </h2>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {invites.map((invite: any) => (
                 <div key={invite.id} className="px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                      <Mail className="w-4 h-4 text-gray-400" />
+                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <span className="text-sm text-gray-700">{invite.email}</span>
+                      <span className="text-sm text-foreground">{invite.email}</span>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           {roleConfig[invite.role]?.label || invite.role}
                         </span>
                         {invite.status === "pending" ? (
-                          <span className="text-xs text-amber-500">Pendente</span>
+                          <span className="text-xs text-amber-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Pendente
+                          </span>
                         ) : invite.status === "accepted" ? (
                           <span className="text-xs text-green-500 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Aceito
@@ -355,14 +356,28 @@ export default function StaffManagement() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Editar Membro</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do membro da equipe.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Nome</Label>
                 <Input
                   type="text"
+                  placeholder="Nome completo"
                   value={editingUser.name || ""}
                   onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={editingUser.email || ""}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                   className="mt-1"
                 />
               </div>
@@ -370,6 +385,7 @@ export default function StaffManagement() {
                 <Label>Telefone</Label>
                 <Input
                   type="text"
+                  placeholder="(00) 00000-0000"
                   value={editingUser.phone || ""}
                   onChange={(e) => setEditingUser({ ...editingUser, phone: formatPhone(e.target.value) })}
                   maxLength={15}
@@ -392,13 +408,16 @@ export default function StaffManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <Label>Ativo</Label>
-                <input
-                  type="checkbox"
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <Label className="text-sm font-medium">Status ativo</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Membros inativos não podem acessar o sistema
+                  </p>
+                </div>
+                <Switch
                   checked={editingUser.active}
-                  onChange={(e) => setEditingUser({ ...editingUser, active: e.target.checked })}
-                  className="rounded border-gray-300"
+                  onCheckedChange={(checked) => setEditingUser({ ...editingUser, active: checked })}
                 />
               </div>
             </div>
@@ -419,9 +438,9 @@ export default function StaffManagement() {
                 disabled={updateMutation.isPending}
               >
                 {updateMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Salvando...</>
                 ) : (
-                  "Salvar"
+                  "Salvar alterações"
                 )}
               </Button>
             </DialogFooter>
@@ -443,9 +462,13 @@ export default function StaffManagement() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Remover
+              {deleteMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Removendo...</>
+              ) : (
+                "Remover"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
