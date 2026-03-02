@@ -336,6 +336,64 @@ describe("forms.update", () => {
 
     expect(result.success).toBe(true);
   });
+
+  it("updates slug directly via slug field", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getFormBySlug).mockResolvedValue(null);
+    vi.mocked(db.updateForm).mockResolvedValue(undefined);
+
+    const result = await caller.forms.update({
+      id: 1,
+      slug: "my-new-slug",
+    });
+
+    expect(result.success).toBe(true);
+    expect(db.updateForm).toHaveBeenCalledWith(1, expect.objectContaining({ slug: "my-new-slug" }));
+  });
+
+  it("sanitizes slug input (removes special chars, lowercases)", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getFormBySlug).mockResolvedValue(null);
+    vi.mocked(db.updateForm).mockResolvedValue(undefined);
+
+    const result = await caller.forms.update({
+      id: 1,
+      slug: "My Form Slug!!",
+    });
+
+    expect(result.success).toBe(true);
+    expect(db.updateForm).toHaveBeenCalledWith(1, expect.objectContaining({ slug: "my-form-slug" }));
+  });
+
+  it("rejects slug update when slug is already taken", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getFormBySlug).mockResolvedValue({ ...sampleForm, id: 999 } as any); // different form
+
+    await expect(
+      caller.forms.update({ id: 1, slug: "taken-slug" })
+    ).rejects.toThrow("slug");
+  });
+
+  it("allows slug update when same form already has that slug", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
+    vi.mocked(db.getFormBySlug).mockResolvedValue(sampleForm as any); // same form
+    vi.mocked(db.updateForm).mockResolvedValue(undefined);
+
+    const result = await caller.forms.update({
+      id: 1,
+      slug: "test-form-abc",
+    });
+
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("forms.delete", () => {

@@ -518,3 +518,14 @@
 ### Edição de Formulário (Dashboard)
 - [ ] Poder alterar o nome do formulário no Dashboard
 - [ ] Poder alterar a URL/slug do formulário no Dashboard
+
+## Reimplementação pós-rollback (v0f052237)
+
+### Edição inline de nome/slug no Dashboard
+- [x] Editar nome do formulário diretamente no card do Dashboard (click-to-edit)
+- [x] Editar slug/URL do formulário diretamente no card do Dashboard (click-to-edit)
+- [x] Backend: tRPC mutation para atualizar nome e slug do formulário
+
+### Geração de PDF restrita a respostas validadas
+- [x] Desabilitar botão "Gerar Ficha" quando resposta não está validada
+- [x] Mostrar tooltip/mensagem explicando que precisa validar antes de gerar PDF

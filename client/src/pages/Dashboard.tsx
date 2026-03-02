@@ -598,6 +598,16 @@ export default function Dashboard() {
     }
   };
 
+  const handleUpdateSlug = async (formId: number, newSlug: string) => {
+    try {
+      await updateFormMutation.mutateAsync({ id: formId, slug: newSlug });
+      toast.success("URL atualizada!", { description: `Novo slug: "${newSlug}"` });
+    } catch (err: any) {
+      const msg = err?.message?.includes('slug') ? 'Este slug já está em uso.' : 'Erro ao atualizar URL';
+      toast.error(msg);
+    }
+  };
+
   const handleUseTemplate = async (template: FormTemplate) => {
     setCloningTemplate(template.id);
     try {
@@ -1167,6 +1177,7 @@ export default function Dashboard() {
                     onRequestDelete={(f) => setDeleteTarget(f)}
                     onDuplicate={handleDuplicate}
                     onRename={handleRenameForm}
+                    onUpdateSlug={handleUpdateSlug}
                     onMoveToFolder={handleMoveToFolder}
                     onExport={handleExportForm}
                     onExportCsv={handleExportCsv}
@@ -1374,21 +1385,25 @@ interface FormCardProps {
   onRequestDelete: (form: DashboardForm) => void;
   onDuplicate: (form: DashboardForm) => void;
   onRename: (formId: number, newTitle: string) => void;
+  onUpdateSlug: (formId: number, newSlug: string) => void;
   onMoveToFolder: (formId: number, folderId: number | undefined) => void;
   onExport: (form: DashboardForm) => void;
   onExportCsv: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(form.title);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [slugValue, setSlugValue] = useState(form.slug);
+  const slugInputRef = useRef<HTMLInputElement>(null);
   const currentFolder = folders.find((f) => String(f.id) === form.workspaceId);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    if (dropdownOpen || isRenaming) {
+    if (dropdownOpen || isRenaming || isEditingSlug) {
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -1523,6 +1538,55 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         />
       ) : (
         <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
+      )}
+      {/* Inline slug editing */}
+      {isEditingSlug ? (
+        <div className="flex items-center gap-1.5 mb-3" onClick={(e) => e.stopPropagation()}>
+          <span className="text-xs text-muted-foreground font-body shrink-0">Slug:</span>
+          <input
+            ref={slugInputRef}
+            value={slugValue}
+            onChange={(e) => setSlugValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+            onBlur={() => {
+              const trimmed = slugValue.trim();
+              if (trimmed && trimmed !== form.slug) {
+                onUpdateSlug(form.id, trimmed);
+              }
+              setIsEditingSlug(false);
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') {
+                const trimmed = slugValue.trim();
+                if (trimmed && trimmed !== form.slug) {
+                  onUpdateSlug(form.id, trimmed);
+                }
+                setIsEditingSlug(false);
+              } else if (e.key === 'Escape') {
+                setIsEditingSlug(false);
+                setSlugValue(form.slug);
+              }
+            }}
+            className="flex-1 text-xs font-body text-muted-foreground bg-secondary/50 border border-border rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-brand/30"
+            autoFocus
+          />
+        </div>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setSlugValue(form.slug);
+            setIsEditingSlug(true);
+            setTimeout(() => slugInputRef.current?.focus(), 50);
+          }}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground/70 font-body mb-3 hover:text-brand transition-colors group/slug"
+          title="Clique para editar o slug/URL"
+        >
+          <Share2 size={11} className="shrink-0" />
+          <span className="truncate max-w-[180px]">{form.slug}</span>
+          <Pencil size={10} className="shrink-0 opacity-0 group-hover/slug:opacity-100 transition-opacity" />
+        </button>
       )}
       <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed min-h-[2.5rem]">{form.description || "Sem descrição"}</p>
 

@@ -350,6 +350,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
+        slug: z.string().min(1).optional(),
         description: z.string().optional(),
         questions: z.any().optional(),
         design: z.any().optional(),
@@ -360,16 +361,26 @@ export const appRouter = router({
         color: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, ...data } = input;
+        const { id, slug: directSlug, ...data } = input;
         // Verify ownership
         const form = await db.getFormById(id);
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
         }
+        // Handle direct slug update
+        if (directSlug) {
+          const sanitized = directSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          if (sanitized) {
+            const existing = await db.getFormBySlug(sanitized);
+            if (existing && existing.id !== id) {
+              throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
+            }
+            (data as any).slug = sanitized;
+          }
+        }
         // Sync slug from sharing settings to the forms.slug column
         if (data.sharing && typeof data.sharing === 'object' && 'slug' in data.sharing && data.sharing.slug) {
           const newSlug = data.sharing.slug as string;
-          // Check uniqueness before updating
           const existing = await db.getFormBySlug(newSlug);
           if (existing && existing.id !== id) {
             throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });

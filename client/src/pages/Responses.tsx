@@ -29,6 +29,9 @@ import {
   Bell,
   BellOff,
   Plus,
+  ShieldCheck,
+  ShieldAlert,
+  Lock,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -433,6 +436,24 @@ export default function Responses() {
                               )}
                             </span>
                           )}
+                          {/* Validation status badge */}
+                          {response.validationStatus === 'approved' ? (
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-green-700 font-body font-semibold bg-green-50 px-1.5 py-0.5 rounded-full">
+                              <ShieldCheck size={11} /> Validado
+                            </span>
+                          ) : response.validationStatus === 'rejected' ? (
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-red-700 font-body font-semibold bg-red-50 px-1.5 py-0.5 rounded-full">
+                              <ShieldAlert size={11} /> Rejeitado
+                            </span>
+                          ) : response.validationStatus === 'in_review' ? (
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-700 font-body font-semibold bg-blue-50 px-1.5 py-0.5 rounded-full">
+                              <ShieldAlert size={11} /> Em revisão
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-muted-foreground font-body bg-muted px-1.5 py-0.5 rounded-full">
+                              <ShieldAlert size={11} /> Pendente
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -451,25 +472,47 @@ export default function Responses() {
                         </Button>
                       </Link>
 
-                      {/* Gerar Ficha button */}
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="gap-1.5 sm:gap-2 bg-brand hover:bg-brand/90 text-xs sm:text-sm px-2.5 sm:px-3"
-                        disabled={isGenerating}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGenerateFicha(response.id);
-                        }}
-                      >
-                        {isGenerating ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <FileText size={14} />
-                        )}
-                        <span className="hidden sm:inline">{isGenerating ? "Gerando..." : "Gerar Ficha"}</span>
-                        <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
-                      </Button>
+                      {/* Gerar Ficha button — only enabled when validated */}
+                      {(() => {
+                        const isValidated = response.validationStatus === 'approved';
+                        return (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className={`gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3 ${
+                              isValidated
+                                ? 'bg-brand hover:bg-brand/90'
+                                : 'bg-muted text-muted-foreground cursor-not-allowed'
+                            }`}
+                            disabled={isGenerating || !isValidated}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isValidated) {
+                                toast.info('Validação necessária', {
+                                  description: 'É preciso validar a resposta antes de gerar o PDF.',
+                                });
+                                return;
+                              }
+                              handleGenerateFicha(response.id);
+                            }}
+                            title={isValidated ? 'Gerar ficha PDF' : 'Valide a resposta antes de gerar o PDF'}
+                          >
+                            {isGenerating ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : !isValidated ? (
+                              <Lock size={14} />
+                            ) : (
+                              <FileText size={14} />
+                            )}
+                            <span className="hidden sm:inline">
+                              {isGenerating ? 'Gerando...' : !isValidated ? 'Validar antes' : 'Gerar Ficha'}
+                            </span>
+                            <span className="sm:hidden">
+                              {isGenerating ? '...' : !isValidated ? '🔒' : 'PDF'}
+                            </span>
+                          </Button>
+                        );
+                      })()}
 
                       {isExpanded ? (
                         <ChevronUp size={18} className="text-muted-foreground shrink-0" />

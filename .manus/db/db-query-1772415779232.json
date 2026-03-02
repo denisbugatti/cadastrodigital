@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, title, slug FROM forms; SELECT id, formId, respondentName, validationStatus FROM form_responses LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, slug FROM forms; SELECT id, formId, respondentName, validationStatus FROM form_responses LIMIT 10;",
+  "rows": [
+    {
+      "id": "60002",
+      "title": "Cadastro Online - One Innovation",
+      "slug": "vitoria"
+    }
+  ],
+  "messages": [
+    "id\tformId\trespondentName\tvalidationStatus",
+    "1\t60002\tDenis teste \tpending",
+    "2\t60002\tRicardo Almeida Santos\tin_review"
+  ],
+  "stdout": "id\ttitle\tslug\n60002\tCadastro Online - One Innovation\tvitoria\nid\tformId\trespondentName\tvalidationStatus\n1\t60002\tDenis teste \tpending\n2\t60002\tRicardo Almeida Santos\tin_review\n",
+  "stderr": "",
+  "execution_time_ms": 76
+}
