@@ -1189,3 +1189,54 @@ describe("corretores", () => {
     });
   });
 });
+
+
+// ─── Owner Fallback Resilience Tests ───
+
+describe("ownerFallbackProcedure resilience", () => {
+  it("falls back to synthetic owner when DB getUserByOpenId throws", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    // Simulate DB failure for owner lookup
+    vi.mocked(db.getUserByOpenId).mockRejectedValue(new Error("ECONNRESET"));
+    vi.mocked(db.getFormsByUser).mockResolvedValue([]);
+
+    // Should NOT throw — should use synthetic owner
+    const result = await caller.forms.list();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("falls back to synthetic owner when DB getUserByOpenId returns undefined and upsert fails", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    // Owner not found AND upsert fails
+    vi.mocked(db.getUserByOpenId).mockResolvedValue(undefined);
+    vi.mocked(db.upsertUser).mockRejectedValue(new Error("Connection lost"));
+    vi.mocked(db.getFormsByUser).mockResolvedValue([]);
+
+    // Should NOT throw — should use synthetic owner
+    const result = await caller.forms.list();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("caches owner user and does not re-query DB on subsequent calls", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    vi.mocked(db.getUserByOpenId).mockResolvedValue(ownerUser as any);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleOwnerForm as any]);
+
+    // First call — should query DB
+    await caller.forms.list();
+    const firstCallCount = vi.mocked(db.getUserByOpenId).mock.calls.length;
+
+    // Second call — should use cache
+    await caller.forms.list();
+    const secondCallCount = vi.mocked(db.getUserByOpenId).mock.calls.length;
+
+    // Should not have made additional DB calls for owner lookup
+    expect(secondCallCount).toBe(firstCallCount);
+  });
+});

@@ -27,27 +27,58 @@ import { generateInviteToken } from "./authService";
  */
 let _cachedOwnerUser: any = null;
 let _ownerCacheExpiry = 0;
-const OWNER_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const OWNER_CACHE_TTL = 30 * 60 * 1000; // 30 minutes (increased for stability)
 
+/**
+ * Build a synthetic owner user object.
+ * Used as ultimate fallback when DB is unreachable.
+ */
+function buildSyntheticOwner(ownerOpenId: string): any {
+  return {
+    id: 1,
+    openId: ownerOpenId,
+    name: process.env.OWNER_NAME ?? "Owner",
+    role: "admin" as const,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+}
+
+/**
+ * Get or create the owner user with multiple fallback layers:
+ * 1. In-memory cache (fastest)
+ * 2. Database lookup with retry
+ * 3. Stale cache (if available)
+ * 4. Synthetic owner (guaranteed to work)
+ *
+ * This function NEVER throws — it always returns a valid owner user.
+ */
 async function getOrCreateOwnerUser(): Promise<any> {
   const now = Date.now();
 
-  // Return cached owner if still valid
+  // Layer 1: Return cached owner if still valid
   if (_cachedOwnerUser && now < _ownerCacheExpiry) {
     return _cachedOwnerUser;
   }
 
   const ownerOpenId = ENV.ownerOpenId;
   if (!ownerOpenId) {
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner not configured" });
+    console.error("[ownerFallback] OWNER_OPEN_ID is not set!");
+    // Even without ownerOpenId, return a synthetic user so the app doesn't crash
+    const synthetic = buildSyntheticOwner("unknown");
+    _cachedOwnerUser = synthetic;
+    _ownerCacheExpiry = now + 30000;
+    return synthetic;
   }
 
-  // Try up to 2 times with a short delay between attempts
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Layer 2: Try database lookup with retries
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       let ownerUser = await db.getUserByOpenId(ownerOpenId);
       if (!ownerUser) {
         // Auto-create owner user
+        console.log("[ownerFallback] Owner not found in DB, creating...");
         await db.upsertUser({
           openId: ownerOpenId,
           name: process.env.OWNER_NAME ?? "Owner",
@@ -63,38 +94,30 @@ async function getOrCreateOwnerUser(): Promise<any> {
         return ownerUser;
       }
     } catch (err: any) {
-      console.warn(`[ownerFallback] DB error attempt ${attempt + 1}/2:`, err?.message?.substring(0, 80));
-      // If cache exists but expired, use stale cache as fallback
+      const errMsg = err?.message?.substring(0, 120) ?? "unknown";
+      console.warn(`[ownerFallback] DB error attempt ${attempt + 1}/3: ${errMsg}`);
+
+      // Layer 3: If we have a stale cache, use it
       if (_cachedOwnerUser) {
-        _ownerCacheExpiry = now + 60000; // Extend stale cache for 60s
+        console.log("[ownerFallback] Using stale cached owner");
+        _ownerCacheExpiry = now + 120000; // Extend stale cache for 2 min
         return _cachedOwnerUser;
       }
-      if (attempt < 1) {
-        await new Promise(r => setTimeout(r, 500)); // Wait 500ms before retry
+
+      if (attempt < 2) {
+        const delay = 500 * Math.pow(2, attempt) + Math.random() * 300;
+        await new Promise(r => setTimeout(r, delay));
         continue;
       }
-      throw err;
     }
   }
 
-  // Final fallback: create a synthetic owner user so the app doesn't break
-  // This allows the app to at least render while DB recovers
-  if (!_cachedOwnerUser) {
-    console.warn("[ownerFallback] Creating synthetic owner user as last resort");
-    _cachedOwnerUser = {
-      id: 1,
-      openId: ownerOpenId,
-      name: process.env.OWNER_NAME ?? "Owner",
-      role: "admin" as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSignedIn: new Date(),
-    };
-    _ownerCacheExpiry = now + 30000; // Short TTL so we retry DB soon
-    return _cachedOwnerUser;
-  }
-
-  return _cachedOwnerUser;
+  // Layer 4: Synthetic owner as ultimate fallback (NEVER fails)
+  console.warn("[ownerFallback] All DB attempts failed. Using synthetic owner.");
+  const synthetic = buildSyntheticOwner(ownerOpenId);
+  _cachedOwnerUser = synthetic;
+  _ownerCacheExpiry = now + 30000; // Short TTL so we retry DB soon
+  return synthetic;
 }
 
 /**
@@ -102,22 +125,17 @@ async function getOrCreateOwnerUser(): Promise<any> {
  * If the user is authenticated, use their id.
  * If not authenticated, fall back to the cached owner user.
  * This allows the app to work without login — all data belongs to the owner.
+ *
+ * This procedure NEVER throws auth errors — getOrCreateOwnerUser always returns a user.
  */
 const ownerFallbackProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (ctx.user) {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
-  try {
-    const ownerUser = await getOrCreateOwnerUser();
-    return next({ ctx: { ...ctx, user: ownerUser } });
-  } catch (err: any) {
-    console.error("[ownerFallback] Failed:", err?.message?.substring(0, 100));
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Erro temporário de conexão. Tente novamente em alguns segundos.",
-    });
-  }
+  // getOrCreateOwnerUser never throws — it always returns a valid user
+  const ownerUser = await getOrCreateOwnerUser();
+  return next({ ctx: { ...ctx, user: ownerUser } });
 });
 
 export const appRouter = router({

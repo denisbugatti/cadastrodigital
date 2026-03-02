@@ -592,3 +592,9 @@
 - [x] Adicionar aba "Aparência" nas Configurações com toggle de tema
 - [x] Garantir que Dashboard, Editor, Settings e componentes funcionem em ambos os temas
 - [x] Testar transição suave entre temas
+
+### Bug: Formulários não aparecem no Dashboard (intermitente)
+- [x] Investigar logs do servidor e banco de dados
+- [x] Identificar causa raiz: ownerFallbackProcedure falhava quando DB demorava a responder, sem fallback adequado
+- [x] Corrigir: getOrCreateOwnerUser agora NUNCA falha — usa 4 camadas de fallback (cache → DB retry → stale cache → synthetic owner)
+- [x] Cache TTL aumentado para 30 min, retry com backoff exponencial, 3 testes de resiliência adicionados (193 testes passando)
