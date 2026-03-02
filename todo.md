@@ -554,3 +554,4 @@
 - [x] Remover botão "Aprovar todos os pendentes" do drawer de validação (validação deve ser campo a campo)
 - [x] Redesenhar drawer de validação com design mais limpo, bonito e intuitivo
 - [x] Formatar exibição de respostas no drawer de validação (remover JSON bruto, aspas, colchetes)
+- [x] Preview expandido de anexos (imagens/PDFs) diretamente no drawer de validação sem abrir outra aba

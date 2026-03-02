@@ -217,37 +217,64 @@ function ValidationDrawer({
                   {/* Content */}
                   <div className="px-4 py-3">
                     {isFile && questionFiles.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {questionFiles.map((file: any) => {
                           const isImage = file.mimeType?.startsWith("image/");
                           const isPdf = file.mimeType === "application/pdf";
                           return (
-                            <div key={file.id} className="flex items-center gap-3">
+                            <div key={file.id} className="space-y-2">
+                              {/* File info row */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {isImage ? (
+                                    <ImageIcon size={14} className="text-blue-500 shrink-0" />
+                                  ) : isPdf ? (
+                                    <FileText size={14} className="text-red-500 shrink-0" />
+                                  ) : (
+                                    <FileIcon size={14} className="text-gray-400 shrink-0" />
+                                  )}
+                                  <span className="text-[12px] font-medium text-gray-600 truncate">{file.filename || "Arquivo"}</span>
+                                </div>
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-brand transition-colors shrink-0"
+                                >
+                                  <ExternalLink size={12} /> Abrir
+                                </a>
+                              </div>
+
+                              {/* Inline expanded preview */}
                               {isImage ? (
                                 <button
                                   onClick={() => setExpandedImage(file.url)}
-                                  className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0 hover:opacity-80 transition-opacity cursor-zoom-in"
+                                  className="block w-full rounded-lg overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-zoom-in"
                                 >
-                                  <img src={file.url} alt={file.filename} className="w-full h-full object-cover" />
+                                  <img
+                                    src={file.url}
+                                    alt={file.filename}
+                                    className="w-full max-h-[280px] object-contain"
+                                    loading="lazy"
+                                  />
                                 </button>
+                              ) : isPdf ? (
+                                <div className="w-full rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                                  <iframe
+                                    src={`${file.url}#toolbar=0&navpanes=0`}
+                                    className="w-full h-[320px]"
+                                    title={file.filename || "PDF Preview"}
+                                  />
+                                </div>
                               ) : (
-                                <div className={`w-14 h-14 rounded-lg flex items-center justify-center shrink-0 ${isPdf ? "bg-red-50" : "bg-gray-100"}`}>
-                                  {isPdf ? <FileText size={22} className="text-red-400" /> : <FileIcon size={22} className="text-gray-400" />}
+                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                  <FileIcon size={28} className="text-gray-300 shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-gray-600 truncate">{file.filename || "Arquivo"}</p>
+                                    <p className="text-[11px] text-gray-400">{file.mimeType} • Clique em "Abrir" para visualizar</p>
+                                  </div>
                                 </div>
                               )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-700 truncate">{file.filename || "Arquivo"}</p>
-                                <p className="text-[11px] text-gray-400">{file.mimeType}</p>
-                              </div>
-                              <a
-                                href={file.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 rounded-lg text-gray-400 hover:text-brand hover:bg-brand/5 transition-all shrink-0"
-                                title="Abrir arquivo"
-                              >
-                                <ExternalLink size={15} />
-                              </a>
                             </div>
                           );
                         })}
