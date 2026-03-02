@@ -13,7 +13,7 @@ import {
   CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
   Lock, Loader2, Check, AlertTriangle, MessageSquare,
   ExternalLink, Image as ImageIcon, File as FileIcon,
-  MoreHorizontal, Clock, User,
+  MoreHorizontal, Clock, User, Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -447,6 +447,7 @@ function ResponseCard({
   onGeneratePdf,
   isGenerating,
   getStatusBadge,
+  formatWhatsAppLink,
 }: {
   response: any;
   questions: BuilderQuestion[];
@@ -454,19 +455,31 @@ function ResponseCard({
   onGeneratePdf: (id: number) => void;
   isGenerating: boolean;
   getStatusBadge: (status: string | null | undefined) => React.ReactNode;
+  formatWhatsAppLink: (phone: string) => string | null;
 }) {
   const answers = (response.answers ?? {}) as Record<string, any>;
   const isValidated = response.validationStatus === "approved";
+  const actualQs = questions.filter((q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement");
 
-  // Show first 2-3 meaningful answers as preview
-  const previewFields = questions
-    .filter((q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement")
-    .slice(0, 3)
-    .map((q) => ({
-      label: q.title,
-      value: answers[q.id],
-    }))
-    .filter((f) => f.value);
+  // Smart field detection for mobile cards
+  const findByType = (types: string[]) => actualQs.find((q) => types.includes(q.type));
+  const findByTitle = (keywords: string[]) => actualQs.find((q) => keywords.some((kw) => q.title.toLowerCase().includes(kw)));
+
+  const docField = findByType(["cpf"]) || findByType(["cnpj"]) || findByTitle(["cpf", "cnpj"]);
+  const nameField = findByType(["name"]) || findByTitle(["nome", "name", "razão social"]);
+  const phoneField = findByType(["phone"]) || findByTitle(["telefone", "celular", "whatsapp", "phone", "fone"]);
+
+  const previewFields: { label: string; value: any; isPhone?: boolean }[] = [];
+  if (docField && answers[docField.id]) previewFields.push({ label: "CPF/CNPJ", value: answers[docField.id] });
+  if (nameField && answers[nameField.id]) previewFields.push({ label: "Nome", value: answers[nameField.id] });
+  if (phoneField && answers[phoneField.id]) previewFields.push({ label: "Telefone", value: answers[phoneField.id], isPhone: true });
+
+  // Fallback if no smart fields found
+  if (previewFields.length === 0) {
+    actualQs.slice(0, 3).forEach((q) => {
+      if (answers[q.id]) previewFields.push({ label: q.title, value: answers[q.id] });
+    });
+  }
 
   return (
     <motion.div
@@ -501,16 +514,33 @@ function ResponseCard({
       {/* Preview fields */}
       {previewFields.length > 0 && (
         <div className="px-4 pb-2 space-y-1.5">
-          {previewFields.map((field, i) => (
-            <div key={i} className="flex items-baseline gap-2">
-              <span className="text-[11px] text-muted-foreground shrink-0 w-[90px] truncate">
-                {field.label}
-              </span>
-              <span className="text-xs text-foreground font-medium truncate">
-                {typeof field.value === "object" ? JSON.stringify(field.value) : String(field.value)}
-              </span>
-            </div>
-          ))}
+          {previewFields.map((field, i) => {
+            const displayValue = typeof field.value === "object" ? JSON.stringify(field.value) : String(field.value);
+            const whatsappUrl = field.isPhone ? formatWhatsAppLink(displayValue) : null;
+
+            return (
+              <div key={i} className="flex items-baseline gap-2">
+                <span className="text-[11px] text-muted-foreground shrink-0 w-[80px] truncate">
+                  {field.label}
+                </span>
+                {whatsappUrl ? (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium truncate"
+                  >
+                    <Phone size={11} className="shrink-0" />
+                    {displayValue}
+                  </a>
+                ) : (
+                  <span className="text-xs text-foreground font-medium truncate">
+                    {displayValue}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -580,10 +610,51 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const responses = responsesQuery.data ?? [];
   const utils = trpc.useUtils();
 
-  // Columns for desktop table (max 4)
-  const visibleColumns = useMemo(() => {
-    return actualQuestions.slice(0, 4);
+  // ─── Smart field detection: find CPF/CNPJ, Nome, Telefone from questions ───
+  const smartFields = useMemo(() => {
+    const findByType = (types: string[]) =>
+      actualQuestions.find((q) => types.includes(q.type));
+    const findByTitle = (keywords: string[]) =>
+      actualQuestions.find((q) =>
+        keywords.some((kw) => q.title.toLowerCase().includes(kw))
+      );
+
+    const cpfField = findByType(["cpf"]) || findByTitle(["cpf"]);
+    const cnpjField = findByType(["cnpj"]) || findByTitle(["cnpj"]);
+    const nameField = findByType(["name"]) || findByTitle(["nome", "name", "razão social", "razao social"]);
+    const phoneField = findByType(["phone"]) || findByTitle(["telefone", "celular", "whatsapp", "phone", "fone"]);
+
+    // CPF/CNPJ combined — prefer CPF, fallback to CNPJ
+    const docField = cpfField || cnpjField;
+
+    return { docField, nameField, phoneField };
   }, [actualQuestions]);
+
+  // Format phone for WhatsApp link
+  const formatWhatsAppLink = (phone: string) => {
+    if (!phone) return null;
+    // Remove everything except digits and +
+    const cleaned = phone.replace(/[^\d+]/g, "");
+    // If starts with +, keep as is; otherwise assume Brazil (+55)
+    const number = cleaned.startsWith("+") ? cleaned.replace("+", "") : cleaned.startsWith("55") ? cleaned : `55${cleaned}`;
+    return `https://wa.me/${number}`;
+  };
+
+  // Columns for desktop table — use smart fields
+  const visibleColumns = useMemo(() => {
+    // If we found smart fields, use those specifically
+    const { docField, nameField, phoneField } = smartFields;
+    const smartCols: BuilderQuestion[] = [];
+    if (docField) smartCols.push(docField);
+    if (nameField) smartCols.push(nameField);
+    if (phoneField) smartCols.push(phoneField);
+
+    // If we found at least 2 smart fields, use them
+    if (smartCols.length >= 2) return smartCols;
+
+    // Fallback: first 3 questions
+    return actualQuestions.slice(0, 3);
+  }, [actualQuestions, smartFields]);
 
   // Filter responses
   const filteredResponses = useMemo(() => {
@@ -926,6 +997,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
               onGeneratePdf={handleGenerateFicha}
               isGenerating={generatingId === resp.id}
               getStatusBadge={getStatusBadge}
+              formatWhatsAppLink={formatWhatsAppLink}
             />
           ))}
 
@@ -1003,14 +1075,33 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                       })}
                     </span>
                   </td>
-                  {visibleColumns.map((q) => (
-                    <td
-                      key={q.id}
-                      className="px-4 py-3 text-sm font-body text-foreground max-w-[180px] truncate"
-                    >
-                      {answers[q.id] || "—"}
-                    </td>
-                  ))}
+                  {visibleColumns.map((q) => {
+                    const val = answers[q.id];
+                    const isPhone = q.type === "phone" || ["telefone", "celular", "whatsapp", "phone", "fone"].some((kw) => q.title.toLowerCase().includes(kw));
+                    const whatsappUrl = isPhone && val ? formatWhatsAppLink(String(val)) : null;
+
+                    return (
+                      <td
+                        key={q.id}
+                        className="px-4 py-3 text-sm font-body text-foreground max-w-[180px] truncate"
+                      >
+                        {whatsappUrl ? (
+                          <a
+                            href={whatsappUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
+                            title="Abrir no WhatsApp"
+                          >
+                            <Phone size={12} className="shrink-0" />
+                            {val}
+                          </a>
+                        ) : (
+                          val || "\u2014"
+                        )}
+                      </td>
+                    );
+                  })}
                   <td className="px-4 py-3">{getStatusBadge(resp.validationStatus)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">

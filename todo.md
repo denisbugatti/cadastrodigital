@@ -708,3 +708,9 @@
 - [x] Reject modal como bottom sheet no mobile
 - [x] Paginação compacta no mobile
 - [x] Todos os 244 testes passando
+
+### Feature: Colunas específicas no ResponsesPanel
+- [x] Colunas desktop: Data, CPF/CNPJ, Nome, Telefone (link WhatsApp), Validação, Ações
+- [x] Cards mobile: mostrar Data, CPF/CNPJ, Nome, Telefone (link WhatsApp), status, botões
+- [x] Telefone clicável abre conversa no WhatsApp (wa.me link com +55)
+- [x] Smart field detection: busca por tipo (cpf, cnpj, name, phone) e por título (keywords)
