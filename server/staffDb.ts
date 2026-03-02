@@ -189,6 +189,25 @@ export async function markInviteUsed(id: number) {
   });
 }
 
+export async function deleteInvite(id: number) {
+  return withRetry(async (db) => {
+    await db.delete(invites).where(eq(invites.id, id));
+  });
+}
+
+export async function updateInvite(id: number, data: { email?: string; role?: string; name?: string | null; phone?: string | null }) {
+  return withRetry(async (db) => {
+    await db.update(invites).set(data).where(eq(invites.id, id));
+  });
+}
+
+export async function getInviteById(id: number) {
+  return withRetry(async (db) => {
+    const result = await db.select().from(invites).where(eq(invites.id, id)).limit(1);
+    return result[0] ?? null;
+  });
+}
+
 /* ─── Role Permissions ─── */
 
 export async function getAllPermissions() {

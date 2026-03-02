@@ -736,3 +736,12 @@
 - [x] Listar staff users + corretores no dropdown com avatar e role
 - [x] Opções: Todos, Sem responsável, e cada staff/corretor individualmente
 - [x] Todos os 244 testes passando
+
+### Feature: Excluir e editar convites pendentes
+- [x] Adicionar botão de excluir convite pendente (com confirmação AlertDialog)
+- [x] Adicionar botão de editar convite pendente (alterar email, nome, telefone, role)
+- [x] Criar procedures no backend: staff.deleteInvite e staff.updateInvite
+- [x] DB helpers: deleteInvite, updateInvite, getInviteById em staffDb.ts
+- [x] UI com botões Pencil e Trash2 em cada convite pendente
+- [x] Validação: não permite editar/excluir convites já utilizados
+- [x] Todos os 244 testes passando

@@ -223,6 +223,41 @@ export const appRouter = router({
     invites: ownerFallbackProcedure.query(async ({ ctx }) => {
       return staffDb.getInvitesByInviter(ctx.user.id);
     }),
+
+    deleteInvite: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const invite = await staffDb.getInviteById(input.id);
+        if (!invite || invite.invitedBy !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Convite não encontrado" });
+        }
+        if (invite.usedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Convite já foi utilizado e não pode ser excluído" });
+        }
+        await staffDb.deleteInvite(input.id);
+        return { success: true };
+      }),
+
+    updateInvite: ownerFallbackProcedure
+      .input(z.object({
+        id: z.number(),
+        email: z.string().email().optional(),
+        role: z.enum(["diretor", "gerente", "corretor"]).optional(),
+        name: z.string().optional(),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const invite = await staffDb.getInviteById(input.id);
+        if (!invite || invite.invitedBy !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Convite não encontrado" });
+        }
+        if (invite.usedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Convite já foi utilizado e não pode ser editado" });
+        }
+        const { id, ...data } = input;
+        await staffDb.updateInvite(id, data as any);
+        return { success: true };
+      }),
   }),
 
   // ─── Permissions Management ───

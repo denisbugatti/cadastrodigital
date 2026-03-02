@@ -97,6 +97,28 @@ export default function StaffManagement() {
     onError: (err) => toast.error(err.message),
   });
 
+  // Invite edit/delete
+  const [editingInvite, setEditingInvite] = useState<any>(null);
+  const [deleteInviteId, setDeleteInviteId] = useState<number | null>(null);
+
+  const deleteInviteMutation = trpc.staff.deleteInvite.useMutation({
+    onSuccess: () => {
+      toast.success("Convite excluído!");
+      setDeleteInviteId(null);
+      utils.staff.invites.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateInviteMutation = trpc.staff.updateInvite.useMutation({
+    onSuccess: () => {
+      toast.success("Convite atualizado!");
+      setEditingInvite(null);
+      utils.staff.invites.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) {
@@ -247,32 +269,60 @@ export default function StaffManagement() {
             <div className="divide-y divide-border">
               {invites.map((invite: any) => (
                 <div key={invite.id} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shrink-0">
                       <Mail className="w-4 h-4 text-muted-foreground" />
                     </div>
-                    <div>
-                      <span className="text-sm text-foreground">{invite.email}</span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-muted-foreground">
+                    <div className="min-w-0">
+                      <span className="text-sm text-foreground truncate block">{invite.email}</span>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleConfig[invite.role]?.bgColor || 'bg-muted'} ${roleConfig[invite.role]?.color || 'text-muted-foreground'}`}>
                           {roleConfig[invite.role]?.label || invite.role}
                         </span>
-                        {invite.status === "pending" ? (
-                          <span className="text-xs text-amber-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Pendente
-                          </span>
-                        ) : invite.status === "accepted" ? (
+                        {invite.name && (
+                          <span className="text-xs text-muted-foreground">{invite.name}</span>
+                        )}
+                        {!invite.usedAt && invite.expiresAt ? (
+                          new Date(invite.expiresAt) > new Date() ? (
+                            <span className="text-xs text-amber-500 flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Expira em {new Date(invite.expiresAt).toLocaleDateString('pt-BR')}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-red-500 flex items-center gap-1">
+                              <XCircle className="w-3 h-3" /> Expirado
+                            </span>
+                          )
+                        ) : invite.usedAt ? (
                           <span className="text-xs text-green-500 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Aceito
                           </span>
-                        ) : (
-                          <span className="text-xs text-red-500 flex items-center gap-1">
-                            <XCircle className="w-3 h-3" /> Expirado
-                          </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
+                  {/* Edit/Delete buttons for pending (unused) invites */}
+                  {!invite.usedAt && (
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingInvite({ ...invite })}
+                        className="text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 h-8 w-8 p-0"
+                        title="Editar convite"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteInviteId(invite.id)}
+                        className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
+                        title="Excluir convite"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -447,6 +497,117 @@ export default function StaffManagement() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ─── Edit Invite Dialog ─── */}
+      {editingInvite && (
+        <Dialog open={!!editingInvite} onOpenChange={() => setEditingInvite(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Convite</DialogTitle>
+              <DialogDescription>
+                Atualize as informações do convite pendente.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={editingInvite.email || ""}
+                  onChange={(e) => setEditingInvite({ ...editingInvite, email: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Nome</Label>
+                <Input
+                  type="text"
+                  placeholder="Nome do membro"
+                  value={editingInvite.name || ""}
+                  onChange={(e) => setEditingInvite({ ...editingInvite, name: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  type="text"
+                  placeholder="(00) 00000-0000"
+                  value={editingInvite.phone || ""}
+                  onChange={(e) => setEditingInvite({ ...editingInvite, phone: formatPhone(e.target.value) })}
+                  maxLength={15}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Cargo</Label>
+                <Select
+                  value={editingInvite.role}
+                  onValueChange={(v) => setEditingInvite({ ...editingInvite, role: v })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="diretor">Diretor</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                    <SelectItem value="corretor">Corretor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingInvite(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  updateInviteMutation.mutate({
+                    id: editingInvite.id,
+                    email: editingInvite.email,
+                    role: editingInvite.role,
+                    name: editingInvite.name || undefined,
+                    phone: editingInvite.phone || undefined,
+                  });
+                }}
+                disabled={updateInviteMutation.isPending}
+              >
+                {updateInviteMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Salvando...</>
+                ) : (
+                  "Salvar alterações"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ─── Delete Invite Confirmation ─── */}
+      <AlertDialog open={deleteInviteId !== null} onOpenChange={(open) => { if (!open) setDeleteInviteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir convite?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este convite? O link enviado por email deixará de funcionar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteInviteId && deleteInviteMutation.mutate({ id: deleteInviteId })}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteInviteMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Excluindo...</>
+              ) : (
+                "Excluir"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ─── Delete Confirmation ─── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
