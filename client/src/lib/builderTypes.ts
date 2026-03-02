@@ -157,8 +157,6 @@ export interface BuilderQuestion {
   questionScore: number; // Fixed score for non-choice questions (awarded when answered)
   // Legal text
   legalText: string;
-  // Validation guidance for the corretor (shown during response validation)
-  validationGuidance: string;
   // Address fields config
   addressFields: {
     cep: boolean;
@@ -352,7 +350,6 @@ export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestio
     scoringEnabled: false,
     questionScore: 0,
     legalText: "",
-    validationGuidance: "",
     addressFields: {
       cep: true,
       street: true,

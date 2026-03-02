@@ -1,1 +1,0 @@
-ALTER TABLE `form_responses` ADD `projectName` varchar(500);

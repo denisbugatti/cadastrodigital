@@ -477,7 +477,7 @@
 - [x] Aumentar borda dos campos de upload de arquivos no formulário (7px)
 - [x] Feature: Seletor de bandeira/país no campo de telefone (Brasil padrão, permite alterar)
 - [x] Feature: Formulários acessíveis via /{slug} diretamente (ex: one.cadastrodigital.com.br/vitoria) sem precisar de /f/{slug}
-- [x] Fix: Garantir que a edição de slug funcione corretamente no editor de formulários (layout corrigido — slug não fica mais cortado)
+- [ ] Fix: Garantir que a edição de slug funcione corretamente no editor de formulários (escolher slug customizado)
 
 ## Reestruturação do Sistema (01/03/2026)
 
@@ -497,46 +497,24 @@
 
 ### Página de Configurações (Settings)
 - [x] Criar página de Configurações unificada (placeholder com 3 abas)
-- [x] Aba Permissões: configurar o que gerentes e corretores podem ver/editar
-- [x] Aba Usuários: gerar convites (corretor ou gerente), desativar usuário (temporário ou definitivo)
-- [x] Aba Exportação: exportar respostas com filtros (validados, completas, incompletas, por formulário, por gerente, por corretor)
+- [ ] Aba Permissões: configurar o que gerentes e corretores podem ver/editar
+- [ ] Aba Usuários: gerar convites (corretor ou gerente), desativar usuário (temporário ou definitivo)
+- [ ] Aba Exportação: exportar respostas com filtros (validados, completas, incompletas, por formulário, por gerente, por corretor)
 
 ### Validação de Respostas (Workflow do Corretor)
-- [x] Ao validar resposta, corretor deve digitar nome do projeto de interesse do cliente
-- [x] Salvar nomes de projetos para reutilização (autocomplete com projetos já usados)
-- [x] Após validar, marcar resposta com check de "Validado" no sistema
-- [x] Filtrar cadastros por projeto no Dashboard do corretor
-- [x] Somente após validação: permitir gerar PDF com respostas
+- [ ] Ao validar resposta, corretor deve digitar nome do projeto de interesse do cliente
+- [ ] Salvar nomes de projetos para reutilização (autocomplete com projetos já usados)
+- [ ] Após validar, marcar resposta com check de "Validado" no sistema
+- [ ] Filtrar cadastros por projeto no Dashboard do corretor
+- [ ] Somente após validação: permitir gerar PDF com respostas
 - [ ] PDF: visualizar, baixar, compartilhar e editar
 - [ ] Adicionar páginas ao PDF
 
 ### Controle de Acesso por Papel (RBAC)
-- [x] Corretores e gerentes NÃO têm acesso ao editor de formulários (Editor redireciona para dashboard)
-- [x] Corretores e gerentes veem apenas respostas dos seus próprios formulários (Dashboard RBAC)
-- [x] Corretores e gerentes podem acessar preview do formulário
+- [ ] Corretores e gerentes NÃO têm acesso ao editor de formulários
+- [ ] Corretores e gerentes veem apenas respostas dos seus próprios formulários
+- [ ] Corretores e gerentes podem acessar preview do formulário
 
 ### Edição de Formulário (Dashboard)
-- [x] Poder alterar o nome do formulário no Dashboard
-- [x] Poder alterar a URL/slug do formulário no Dashboard
-- [x] Fix: SharingPanel mostra URL de dev em vez de one.cadastrodigital.com.br — agora mostra domínio real na preview
-- [x] Fix: Remover animação de splash/loading ao abrir o site — ir direto para o conteúdo
-- [x] Fix: Settings navigate-in-render React error (mover navigate para useEffect)
-- [x] Fix: Usuário já é master no banco (Denis Bugatti)
-- [x] Feature: Validação funciona para TODAS as respostas incluindo arquivos/uploads (imagens, PDFs, múltiplos)
-- [x] Feature: Campo de observação/orientação em cada pergunta para guiar o corretor na validação (como é a resposta certa)
-- [x] Feature: Filtro por projeto no Dashboard/Respostas — corretores filtram cadastros pelo nome do projeto de interesse
-- [x] Feature: Edição de nome/slug do formulário direto no Dashboard — sem precisar abrir o editor
-- [x] Feature: Geração de PDF restrita a respostas validadas — bloquear geração até que todas as respostas estejam aprovadas
-- [x] Bug: Settings page (/configuracoes) crashes with "Rendered more hooks than during the previous render" — hooks called conditionally based on auth state
-- [x] Feature: PDF preview inline — visualizar PDF gerado diretamente na página sem precisar baixar
-- [x] Feature: PDF download — botão de download direto do PDF gerado
-- [x] Feature: PDF compartilhar — gerar link compartilhável do PDF (salvar no S3)
-- [x] Feature: Adicionar páginas extras ao PDF — permitir anexar documentos/imagens adicionais ao Cadastro de Interesse gerado
-- [x] Bug: Usuário não consegue acessar configurações e editar formulário — DashboardLayout usava Manus OAuth em vez de customAuth
-- [x] Bug: Após login com Manus OAuth, formulários não aparecem e acesso fica limitado — DashboardLayout e Settings agora usam customAuth.me e redirecionam para /login
-- [x] Bug: Configurações não acessíveis — require('cookie') ESM error + cores hardcoded para tema escuro reescritas com variáveis semânticas
-- [x] Bug: Edição de formulário — senha do master user estava incorreta no DB, resetada para Denis@2025
-- [x] Bug: Convite de usuário — email Resend em modo teste, agora mostra link copiável quando email falha + aviso sobre verificação de domínio
-- [x] Pixel-perfect: Settings reescrita com cores semânticas, DashboardLayout sem sidebar genérica, convites com botão copiar link
-- [x] Bug: Editor page crashes with "Rendered more hooks than during the previous render" — moved useEffect before conditional loading return
-- [x] Bug: Usuário não consegue acessar editor e configurações — versão publicada com código antigo + DB connection failing. ownerFallback agora nunca lança exceção (synthetic fallback). Precisa publicar novo checkpoint.
+- [ ] Poder alterar o nome do formulário no Dashboard
+- [ ] Poder alterar a URL/slug do formulário no Dashboard

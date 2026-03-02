@@ -42,8 +42,8 @@ async function getOrCreateOwnerUser(): Promise<any> {
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Owner not configured" });
   }
 
-  // Try up to 3 times with exponential backoff
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Try up to 2 times with a short delay between attempts
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       let ownerUser = await db.getUserByOpenId(ownerOpenId);
       if (!ownerUser) {
@@ -63,34 +63,37 @@ async function getOrCreateOwnerUser(): Promise<any> {
         return ownerUser;
       }
     } catch (err: any) {
-      console.warn(`[ownerFallback] DB error attempt ${attempt + 1}/3:`, err?.message?.substring(0, 80));
+      console.warn(`[ownerFallback] DB error attempt ${attempt + 1}/2:`, err?.message?.substring(0, 80));
       // If cache exists but expired, use stale cache as fallback
       if (_cachedOwnerUser) {
         _ownerCacheExpiry = now + 60000; // Extend stale cache for 60s
         return _cachedOwnerUser;
       }
-      if (attempt < 2) {
-        const delay = 500 * Math.pow(2, attempt) + Math.random() * 300;
-        await new Promise(r => setTimeout(r, delay));
+      if (attempt < 1) {
+        await new Promise(r => setTimeout(r, 500)); // Wait 500ms before retry
         continue;
       }
-      // Don't throw — fall through to synthetic fallback below
+      throw err;
     }
   }
 
   // Final fallback: create a synthetic owner user so the app doesn't break
   // This allows the app to at least render while DB recovers
-  console.warn("[ownerFallback] All DB attempts failed, creating synthetic owner user");
-  _cachedOwnerUser = {
-    id: 1,
-    openId: ownerOpenId,
-    name: process.env.OWNER_NAME ?? "Owner",
-    role: "admin" as const,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
-  };
-  _ownerCacheExpiry = now + 30000; // Short TTL so we retry DB soon
+  if (!_cachedOwnerUser) {
+    console.warn("[ownerFallback] Creating synthetic owner user as last resort");
+    _cachedOwnerUser = {
+      id: 1,
+      openId: ownerOpenId,
+      name: process.env.OWNER_NAME ?? "Owner",
+      role: "admin" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    };
+    _ownerCacheExpiry = now + 30000; // Short TTL so we retry DB soon
+    return _cachedOwnerUser;
+  }
+
   return _cachedOwnerUser;
 }
 
@@ -189,13 +192,13 @@ export const appRouter = router({
           expiresAt,
         });
         const inviteUrl = `${input.origin}/aceitar-convite?token=${token}`;
-        const emailSent = await sendInviteEmail({
+        await sendInviteEmail({
           to: input.email,
           inviterName: ctx.user.name || "Administrador",
           role: input.role,
           inviteUrl,
         });
-        return { success: true, token, inviteUrl, emailSent };
+        return { success: true, token };
       }),
 
     invites: ownerFallbackProcedure.query(async ({ ctx }) => {
@@ -227,47 +230,6 @@ export const appRouter = router({
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         return staffDb.getValidationsByResponse(input.responseId);
-      }),
-
-    // Get distinct project names used across all responses (for autocomplete)
-    projectNames: ownerFallbackProcedure
-      .query(async () => {
-        return db.getDistinctProjectNames();
-      }),
-
-    // Set project name and mark response as validated
-    completeValidation: ownerFallbackProcedure
-      .input(z.object({
-        responseId: z.number(),
-        projectName: z.string().min(1),
-        reviewNotes: z.string().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const response = await db.getResponseById(input.responseId);
-        if (!response) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta n\u00e3o encontrada" });
-        }
-        await db.updateResponse(input.responseId, {
-          projectName: input.projectName,
-          validationStatus: "approved" as any,
-          reviewedBy: ctx.user.id,
-          reviewedAt: new Date(),
-          reviewNotes: input.reviewNotes ?? null,
-        });
-
-        // Send approval email
-        if (response.respondentEmail) {
-          try {
-            await sendApprovalEmail({
-              to: response.respondentEmail,
-              clientName: response.respondentName || "Cliente",
-            });
-          } catch (err) {
-            console.warn("[Email] Failed to send approval:", (err as Error)?.message?.substring(0, 100));
-          }
-        }
-
-        return { success: true };
       }),
 
     validate: ownerFallbackProcedure
@@ -393,30 +355,16 @@ export const appRouter = router({
         design: z.any().optional(),
         webhook: z.any().optional(),
         sharing: z.any().optional(),
-        slug: z.string().optional(),
         workspaceId: z.string().nullable().optional(),
         status: z.enum(["draft", "published", "closed"]).optional(),
         color: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, slug: directSlug, ...data } = input;
+        const { id, ...data } = input;
         // Verify ownership
         const form = await db.getFormById(id);
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
-        }
-        // Handle direct slug update (from Dashboard inline edit)
-        if (directSlug) {
-          const slugNormalized = directSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-          const existing = await db.getFormBySlug(slugNormalized);
-          if (existing && existing.id !== id) {
-            throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
-          }
-          (data as any).slug = slugNormalized;
-          // Also sync to sharing.slug if sharing exists
-          if (form.sharing && typeof form.sharing === 'object') {
-            (data as any).sharing = { ...(form.sharing as any), slug: slugNormalized };
-          }
         }
         // Sync slug from sharing settings to the forms.slug column
         if (data.sharing && typeof data.sharing === 'object' && 'slug' in data.sharing && data.sharing.slug) {
@@ -648,13 +596,9 @@ export const appRouter = router({
           }
         }
 
-        // Include extra pages from the response record
-        const extraPages = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
-        const allAttachments = [...attachments, ...extraPages];
-
-        // Merge all attachments + extra pages into the PDF
-        if (allAttachments.length > 0) {
-          pdfBytes = await mergeWithAttachments(pdfBytes, allAttachments);
+        // Merge with attachments if any
+        if (attachments.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, attachments);
         }
 
         // Convert to base64 for transport
@@ -663,143 +607,6 @@ export const appRouter = router({
         const filename = `Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
 
         return { base64, filename, tipo };
-      }),
-
-    /** Generate PDF, upload to S3, and return a shareable URL */
-    generateAndUploadPdf: ownerFallbackProcedure
-      .input(z.object({ responseId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        // Re-use generateFicha logic but upload to S3
-        const response = await db.getResponseById(input.responseId);
-        if (!response) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
-        }
-        const form = await db.getFormById(response.formId);
-        if (!form || form.userId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
-        }
-
-        const questions: any[] = form.questions ?? [];
-        const answers = (response.answers ?? {}) as Record<string, any>;
-
-        let tipo: "pf" | "pj" = "pf";
-        for (const q of questions) {
-          if (/aquisi[cç][aã]o.*como|pretende.*fazer/i.test(q.title) && answers[q.id]) {
-            const val = String(answers[q.id]).toLowerCase();
-            if (/jur[ií]dica|pj|empresa|cnpj/i.test(val)) {
-              tipo = "pj";
-            }
-            break;
-          }
-        }
-
-        const { generateCadastroInteressePdf, mergeWithAttachments: mergeAtt } = await import("./pdfGenerator");
-
-        let pdfBytes = await generateCadastroInteressePdf({
-          tipo, answers, questions,
-          respondentName: response.respondentName ?? undefined,
-          respondentEmail: response.respondentEmail ?? undefined,
-        });
-
-        // Collect file attachments
-        const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
-        for (const q of questions) {
-          if (q.type === "file-upload" && answers[q.id]) {
-            const val = answers[q.id];
-            if (typeof val === "object" && val.url) {
-              attachments.push({ url: val.url, filename: val.filename || val.name || q.title, mimeType: val.mimeType || val.type || "application/octet-stream" });
-            } else if (typeof val === "string" && val.startsWith("http")) {
-              attachments.push({ url: val, filename: q.title, mimeType: "image/jpeg" });
-            }
-          }
-        }
-        const dbFiles = await db.getFilesByResponse(input.responseId);
-        for (const f of dbFiles) {
-          if (f.url && !attachments.some(a => a.url === f.url)) {
-            attachments.push({ url: f.url, filename: f.filename || "arquivo", mimeType: f.mimeType || "application/octet-stream" });
-          }
-        }
-
-        // Include extra pages
-        const extraPages = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
-        const allAttachments = [...attachments, ...extraPages];
-        if (allAttachments.length > 0) {
-          pdfBytes = await mergeAtt(pdfBytes, allAttachments);
-        }
-
-        // Upload to S3
-        const respondent = response.respondentName || "cadastro";
-        const filename = `Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
-        const fileKey = `pdfs/${input.responseId}-${nanoid(8)}-${filename}`;
-        const { url: pdfUrl } = await storagePut(fileKey, Buffer.from(pdfBytes), "application/pdf");
-
-        // Save URL to response record
-        await db.updateResponse(input.responseId, { pdfKey: fileKey, pdfUrl } as any);
-
-        return { pdfUrl, filename, tipo };
-      }),
-
-    /** Add extra pages to a response (documents/images to append to PDF) */
-    addExtraPages: ownerFallbackProcedure
-      .input(z.object({
-        responseId: z.number(),
-        pages: z.array(z.object({
-          url: z.string(),
-          filename: z.string(),
-          mimeType: z.string(),
-        })),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const response = await db.getResponseById(input.responseId);
-        if (!response) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
-        }
-        const form = await db.getFormById(response.formId);
-        if (!form || form.userId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
-        }
-
-        const existing = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
-        const updated = [...existing, ...input.pages];
-        await db.updateResponse(input.responseId, { extraPages: updated } as any);
-
-        // Invalidate cached PDF since pages changed
-        if (response.pdfUrl) {
-          await db.updateResponse(input.responseId, { pdfUrl: null, pdfKey: null } as any);
-        }
-
-        return { success: true, totalPages: updated.length };
-      }),
-
-    /** Remove an extra page by index */
-    removeExtraPage: ownerFallbackProcedure
-      .input(z.object({
-        responseId: z.number(),
-        pageIndex: z.number(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const response = await db.getResponseById(input.responseId);
-        if (!response) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
-        }
-        const form = await db.getFormById(response.formId);
-        if (!form || form.userId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
-        }
-
-        const existing = (response.extraPages ?? []) as Array<{url: string; filename: string; mimeType: string}>;
-        if (input.pageIndex < 0 || input.pageIndex >= existing.length) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Índice inválido" });
-        }
-        existing.splice(input.pageIndex, 1);
-        await db.updateResponse(input.responseId, { extraPages: existing } as any);
-
-        // Invalidate cached PDF
-        if (response.pdfUrl) {
-          await db.updateResponse(input.responseId, { pdfUrl: null, pdfKey: null } as any);
-        }
-
-        return { success: true, totalPages: existing.length };
       }),
 
     myResponses: publicProcedure

@@ -38,13 +38,10 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Display URL always shows the production domain for clarity
-  const displayDomain = "one.cadastrodigital.com.br";
-  const displayUrl = `https://${displayDomain}/${sharing.slug}`;
+  // Use the current origin as the base URL — automatically reflects the real domain
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://one.cadastrodigital.com.br";
 
-  // For copy/share, use the actual origin so links work in any environment
-  const actualBaseUrl = typeof window !== "undefined" ? window.location.origin : `https://${displayDomain}`;
-  const formUrl = `${actualBaseUrl}/${sharing.slug}`;
+  const formUrl = `${baseUrl}/${sharing.slug}`;
 
   // Sync slugInput when sharing.slug changes externally
   useEffect(() => {
@@ -172,14 +169,11 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
           {/* URL slug editor */}
           <div className="mb-4">
             <label className="text-sm font-body font-medium text-foreground mb-2 block">
-              URL do formulário
+              Endpoint do formulário
             </label>
-            <p className="text-xs text-muted-foreground mb-2 truncate">
-              {displayDomain}/<span className="font-semibold text-foreground">{slugInput || "..."}</span>
-            </p>
             <div className="flex items-center gap-0 bg-secondary rounded-xl border border-border overflow-hidden">
               <span className="text-sm text-muted-foreground shrink-0 px-3 py-2.5 bg-muted/50 border-r border-border">
-                Slug:
+                {baseUrl}/
               </span>
               <div className="flex-1 flex items-center">
                 <input
@@ -221,7 +215,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
           {/* Final URL display + Copy */}
           <div className="flex items-center gap-2">
             <div className="flex-1 px-4 py-3 rounded-xl text-sm font-mono truncate bg-secondary border border-border text-foreground">
-              {displayUrl}
+              {formUrl}
             </div>
             <button
               onClick={copyLink}

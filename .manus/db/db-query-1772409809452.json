@@ -1,9 +1,0 @@
-{
-  "query": "UPDATE staff_users SET passwordHash = '$2b$12$jLR4cx3r8HztqnCjKuuQUOBgzdM5gp5ir0atV/LZ6q9MRr7Ct0nie' WHERE email = 'contato@denisbugatti.com.br';",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute UPDATE staff_users SET passwordHash = '$2b$12$jLR4cx3r8HztqnCjKuuQUOBgzdM5gp5ir0atV/LZ6q9MRr7Ct0nie' WHERE email = 'contato@denisbugatti.com.br';",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 128
-}

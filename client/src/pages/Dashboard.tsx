@@ -271,16 +271,6 @@ export default function Dashboard() {
 
   const utils = trpc.useUtils();
 
-  // ─── Auth: get current staff user role ───
-  const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
-  const staffUser = staffMeQuery.data;
-  const isMaster = staffUser?.type === "staff" && staffUser?.role === "master";
-  const isDiretor = staffUser?.type === "staff" && staffUser?.role === "diretor";
-  const isGerente = staffUser?.type === "staff" && staffUser?.role === "gerente";
-  const isCorretor = staffUser?.type === "staff" && staffUser?.role === "corretor";
-  const canEdit = isMaster || isDiretor; // Only master and diretor can edit forms
-  const canManage = isMaster; // Only master can manage settings, create forms, delete, etc.
-
   // ─── tRPC Queries ───
   const formsQuery = trpc.forms.list.useQuery(undefined);
   const workspacesQuery = trpc.workspaces.list.useQuery(undefined);
@@ -608,15 +598,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpdateSlug = async (formId: number, newSlug: string) => {
-    try {
-      await updateFormMutation.mutateAsync({ id: formId, slug: newSlug });
-      toast.success("URL atualizada!", { description: `Novo slug: "${newSlug}"` });
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao atualizar slug");
-    }
-  };
-
   const handleUseTemplate = async (template: FormTemplate) => {
     setCloningTemplate(template.id);
     try {
@@ -704,7 +685,6 @@ export default function Dashboard() {
               <span>Importar</span>
             </button>
 
-            {canManage && (
             <Link href="/editor">
               <motion.button
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
@@ -714,13 +694,11 @@ export default function Dashboard() {
                 <span>Criar formulário</span>
               </motion.button>
             </Link>
-            )}
           </div>
 
           {/* Mobile action buttons - simplified */}
           <div className="flex sm:hidden items-center gap-1.5">
             <NotificationBell />
-            {canManage && (
             <Link href="/editor">
               <motion.button
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white font-body text-sm font-semibold active:scale-[0.98] transition-all duration-200"
@@ -729,7 +707,6 @@ export default function Dashboard() {
                 <Plus size={16} />
               </motion.button>
             </Link>
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-2 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground transition-all duration-200">
@@ -737,18 +714,14 @@ export default function Dashboard() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-48">
-                {canManage && (
                 <DropdownMenuItem asChild>
                   <Link href="/configuracoes" className="flex items-center gap-2 cursor-pointer">
                     <SlidersHorizontal size={16} /> Configurações
                   </Link>
                 </DropdownMenuItem>
-                )}
-                {canManage && (
                 <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 cursor-pointer">
                   <Upload size={16} /> Importar
                 </DropdownMenuItem>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -914,8 +887,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ─── Management Links (master only) ─── */}
-            {canManage && (
+            {/* ─── Management Links ─── */}
             <div className="mt-6 pt-4 border-t border-border space-y-1">
               <h3 className="font-display text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Gestão</h3>
               <Link href="/equipe">
@@ -937,7 +909,6 @@ export default function Dashboard() {
                 </button>
               </Link>
             </div>
-            )}
 
             {/* Create folder */}
             {creatingFolder ? (
@@ -1192,8 +1163,6 @@ export default function Dashboard() {
                     form={form}
                     index={i}
                     folders={folders}
-                    canEdit={canEdit}
-                    canManage={canManage}
                     onNavigate={navigate}
                     onRequestDelete={(f) => setDeleteTarget(f)}
                     onDuplicate={handleDuplicate}
@@ -1201,7 +1170,6 @@ export default function Dashboard() {
                     onMoveToFolder={handleMoveToFolder}
                     onExport={handleExportForm}
                     onExportCsv={handleExportCsv}
-                    onUpdateSlug={handleUpdateSlug}
                   />
                 ))}
               </AnimatePresence>
@@ -1402,8 +1370,6 @@ interface FormCardProps {
   form: DashboardForm;
   index: number;
   folders: DashboardFolder[];
-  canEdit: boolean;
-  canManage: boolean;
   onNavigate: (to: string) => void;
   onRequestDelete: (form: DashboardForm) => void;
   onDuplicate: (form: DashboardForm) => void;
@@ -1411,17 +1377,13 @@ interface FormCardProps {
   onMoveToFolder: (formId: number, folderId: number | undefined) => void;
   onExport: (form: DashboardForm) => void;
   onExportCsv: (form: DashboardForm) => void;
-  onUpdateSlug: (formId: number, newSlug: string) => void;
 }
 
-function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv, onUpdateSlug }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(form.title);
-  const [isEditingSlug, setIsEditingSlug] = useState(false);
-  const [slugValue, setSlugValue] = useState(form.slug);
-  const slugInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const currentFolder = folders.find((f) => String(f.id) === form.workspaceId);
 
@@ -1431,7 +1393,7 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
       e.stopPropagation();
       return;
     }
-    onNavigate(canEdit ? `/editor/${form.id}` : `/responses/${form.id}`);
+    onNavigate(`/editor/${form.id}`);
   };
 
   const handleStartRename = (e: React.MouseEvent) => {
@@ -1503,17 +1465,14 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
-              {canEdit && (
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
                 <Pencil size={15} className="mr-2" /> Editar
               </DropdownMenuItem>
-              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/responses/${form.id}`); }}>
                 <BarChart3 size={15} className="mr-2" /> Ver respostas
               </DropdownMenuItem>
-              {canEdit && <DropdownMenuSeparator />}
+              <DropdownMenuSeparator />
 
-              {canManage && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
                   <FolderOpen size={15} className="mr-2" /> Mover para pasta
@@ -1535,19 +1494,16 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              )}
 
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/${form.slug}`); toast.success("Link copiado!"); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
                 <Share2 size={15} className="mr-2" /> Compartilhar link
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExportCsv(form); }}>
                 <BarChart3 size={15} className="mr-2" /> Exportar respostas (CSV)
               </DropdownMenuItem>
-              {canManage && (
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
                 <Download size={15} className="mr-2" /> Exportar JSON
               </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1567,56 +1523,6 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
         />
       ) : (
         <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
-      )}
-      {/* Inline slug display/edit */}
-      {isEditingSlug ? (
-        <div className="flex items-center gap-1 mb-2" onClick={(e) => e.stopPropagation()}>
-          <span className="text-xs text-muted-foreground font-body shrink-0">/</span>
-          <input
-            ref={slugInputRef}
-            value={slugValue}
-            onChange={(e) => setSlugValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-            onBlur={() => {
-              const trimmed = slugValue.trim().replace(/-+/g, '-').replace(/^-|-$/g, '');
-              if (trimmed && trimmed !== form.slug) {
-                onUpdateSlug(form.id, trimmed);
-              }
-              setIsEditingSlug(false);
-            }}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === 'Enter') {
-                const trimmed = slugValue.trim().replace(/-+/g, '-').replace(/^-|-$/g, '');
-                if (trimmed && trimmed !== form.slug) {
-                  onUpdateSlug(form.id, trimmed);
-                }
-                setIsEditingSlug(false);
-              } else if (e.key === 'Escape') {
-                setSlugValue(form.slug);
-                setIsEditingSlug(false);
-              }
-            }}
-            className="text-xs font-body text-brand bg-brand/5 border border-brand/20 rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-brand/30 w-full"
-            autoFocus
-          />
-        </div>
-      ) : (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (canEdit) {
-              setSlugValue(form.slug);
-              setIsEditingSlug(true);
-              setTimeout(() => slugInputRef.current?.focus(), 50);
-            }
-          }}
-          className={`flex items-center gap-1 text-xs text-muted-foreground font-body mb-2 px-1.5 py-0.5 rounded transition-colors ${canEdit ? 'hover:bg-brand/5 hover:text-brand cursor-pointer' : 'cursor-default'}`}
-          title={canEdit ? 'Clique para editar a URL' : `/${form.slug}`}
-        >
-          <span className="opacity-60">/</span>{form.slug}
-          {canEdit && <Pencil size={10} className="ml-1 opacity-0 group-hover:opacity-50" />}
-        </button>
       )}
       <p className="text-sm text-muted-foreground font-body line-clamp-2 mb-5 leading-relaxed min-h-[2.5rem]">{form.description || "Sem descrição"}</p>
 
@@ -1651,22 +1557,12 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
 
       {/* ─── Action buttons ─── */}
       <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-        {canEdit ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
-          >
-            <Pencil size={13} /> Editar
-          </button>
-        ) : (
-          <button
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/responses/${form.id}`); }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
-          >
-            <BarChart3 size={13} /> Ver Respostas
-          </button>
-        )}
-        {canManage && (
+        <button
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
+        >
+          <Pencil size={13} /> Editar
+        </button>
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
           className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-muted-foreground bg-secondary hover:bg-secondary/80 border border-border transition-all"
@@ -1674,8 +1570,6 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
         >
           <Copy size={13} />
         </button>
-        )}
-        {canManage && (
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
           className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200/50 transition-all"
@@ -1683,7 +1577,6 @@ function FormCard({ form, index, folders, canEdit, canManage, onNavigate, onRequ
         >
           <Trash2 size={13} />
         </button>
-        )}
       </div>
     </motion.div>
   );

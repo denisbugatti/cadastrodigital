@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,13 +19,13 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, Loader2 } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
-import { trpc } from "@/lib/trpc";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Page 1", path: "/" },
@@ -45,42 +46,36 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
-  const [, navigate] = useLocation();
-
-  // Use customAuth.me instead of Manus OAuth useAuth()
-  const staffMeQuery = trpc.customAuth.me.useQuery(undefined, { retry: 1 });
-  const staffUser = staffMeQuery.data;
-  const isLoading = staffMeQuery.isLoading;
+  const { loading, user } = useAuth();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
 
-  if (isLoading) {
+  if (loading) {
     return <DashboardLayoutSkeleton />
   }
 
-  // If not logged in via custom auth, redirect to /login
-  if (!staffUser) {
+  if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-center text-white">
-              Faça login para continuar
+            <h1 className="text-2xl font-semibold tracking-tight text-center">
+              Sign in to continue
             </h1>
-            <p className="text-sm text-gray-400 text-center max-w-sm">
-              Acesse com suas credenciais de equipe para gerenciar o sistema.
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
+              Access to this dashboard requires authentication. Continue to launch the login flow.
             </p>
           </div>
           <Button
             onClick={() => {
-              navigate("/login");
+              window.location.href = getLoginUrl();
             }}
             size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full shadow-lg hover:shadow-xl transition-all"
           >
-            Entrar
+            Sign in
           </Button>
         </div>
       </div>
@@ -95,7 +90,7 @@ export default function DashboardLayout({
         } as CSSProperties
       }
     >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} staffUser={staffUser}>
+      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -105,14 +100,13 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
-  staffUser: any;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
-  staffUser,
 }: DashboardLayoutContentProps) {
+  const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -120,16 +114,6 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
-
-  const logoutMutation = trpc.customAuth.logout.useMutation({
-    onSuccess: () => {
-      window.location.href = "/login";
-    },
-  });
-
-  const handleLogout = () => {
-    logoutMutation.mutate();
-  };
 
   useEffect(() => {
     if (isCollapsed) {
@@ -223,26 +207,26 @@ function DashboardLayoutContent({
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-9 w-9 border shrink-0">
                     <AvatarFallback className="text-xs font-medium">
-                      {staffUser?.name?.charAt(0).toUpperCase() || "?"}
+                      {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                     <p className="text-sm font-medium truncate leading-none">
-                      {staffUser?.name || "-"}
+                      {user?.name || "-"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {staffUser?.email || "-"}
+                      {user?.email || "-"}
                     </p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem
-                  onClick={handleLogout}
+                  onClick={logout}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sair</span>
+                  <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
