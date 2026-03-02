@@ -538,13 +538,16 @@
 - [x] Domínio do formulário deve ser one.cadastrodigital.com.br/slug (hardcoded custom domain)
 
 ### Validação de Respostas no ResponsesPanel (Editor)
-- [ ] Botão "Validar Respostas" na tabela de respostas do editor
-- [ ] Tela de validação campo a campo com aprovar/reprovar individual
-- [ ] Validação de arquivos anexados com preview e aprovar/reprovar
-- [ ] Justificativa obrigatória ao reprovar campo
-- [ ] Aprovar cadastro completo ao final da validação
-- [ ] Botão "Gerar PDF" só aparece quando cadastro está aprovado
+- [x] Botão "Validar Respostas" na tabela de respostas do editor
+- [x] Tela de validação campo a campo com aprovar/reprovar individual
+- [x] Validação de arquivos anexados com preview e aprovar/reprovar
+- [x] Justificativa obrigatória ao reprovar campo
+- [x] Aprovar cadastro completo ao final da validação
+- [x] Botão "Gerar PDF" só aparece quando cadastro está aprovado
 
 ### Animação de Intro
 - [x] Remover animação de loading/intro da página inicial pública
 - [x] Manter animação de loading/intro apenas para área logada (corretores/gerentes)
+
+### Bug Fixes (cont.)
+- [x] Fix invalid hook call: trpc.useUtils() called inside mutation onSuccess in ResponsesPanel ValidationDrawer

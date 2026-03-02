@@ -56,11 +56,13 @@ function ValidationDrawer({
     { staleTime: 10000 }
   );
 
+  const utils = trpc.useUtils();
+
   const validateMutation = trpc.validations.validate.useMutation({
     onSuccess: () => {
       validationsQuery.refetch();
       // Also refetch the responses list to update status badges
-      trpc.useUtils().responses.listByForm.invalidate({ formId });
+      utils.responses.listByForm.invalidate({ formId });
     },
     onError: (err) => toast.error(err.message || "Erro ao validar"),
   });
