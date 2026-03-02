@@ -27,7 +27,7 @@ interface ResponsesPanelProps {
 
 type DateFilter = "all" | "today" | "7days" | "30days";
 
-/* ─── Validation Drawer ─── */
+/* ─── Validation Drawer (Clean Redesign) ─── */
 function ValidationDrawer({
   response,
   questions,
@@ -44,13 +44,11 @@ function ValidationDrawer({
     (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
   );
 
-  // Fetch existing validations
   const validationsQuery = trpc.validations.byResponse.useQuery(
     { responseId: response.id },
     { staleTime: 5000 }
   );
 
-  // Fetch files for this response
   const filesQuery = trpc.files.listByResponse.useQuery(
     { responseId: response.id },
     { staleTime: 10000 }
@@ -61,7 +59,6 @@ function ValidationDrawer({
   const validateMutation = trpc.validations.validate.useMutation({
     onSuccess: () => {
       validationsQuery.refetch();
-      // Also refetch the responses list to update status badges
       utils.responses.listByForm.invalidate({ formId });
     },
     onError: (err) => toast.error(err.message || "Erro ao validar"),
@@ -69,11 +66,11 @@ function ValidationDrawer({
 
   const [rejectingField, setRejectingField] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const validations = validationsQuery.data ?? [];
   const files = filesQuery.data ?? [];
 
-  // Map validations by questionId
   const validationMap = useMemo(() => {
     const map: Record<string, { status: string; justification?: string }> = {};
     validations.forEach((v: any) => {
@@ -82,21 +79,15 @@ function ValidationDrawer({
     return map;
   }, [validations]);
 
-  // Progress calculation
-  const totalFields = actualQs.filter((q) => answers[q.id] !== undefined && answers[q.id] !== "").length;
-  const validatedFields = actualQs.filter(
-    (q) => validationMap[q.id]?.status === "approved" || validationMap[q.id]?.status === "rejected"
-  ).length;
-  const approvedFields = actualQs.filter((q) => validationMap[q.id]?.status === "approved").length;
-  const rejectedFields = actualQs.filter((q) => validationMap[q.id]?.status === "rejected").length;
-  const progress = totalFields > 0 ? Math.round((validatedFields / totalFields) * 100) : 0;
+  const fieldsWithAnswers = actualQs.filter((q) => answers[q.id] !== undefined && answers[q.id] !== "");
+  const totalFields = fieldsWithAnswers.length;
+  const approvedFields = fieldsWithAnswers.filter((q) => validationMap[q.id]?.status === "approved").length;
+  const rejectedFields = fieldsWithAnswers.filter((q) => validationMap[q.id]?.status === "rejected").length;
+  const validatedFields = approvedFields + rejectedFields;
+  const pendingFields = totalFields - validatedFields;
 
   const handleApprove = (questionId: string) => {
-    validateMutation.mutate({
-      responseId: response.id,
-      questionId,
-      status: "approved",
-    });
+    validateMutation.mutate({ responseId: response.id, questionId, status: "approved" });
   };
 
   const handleReject = (questionId: string) => {
@@ -107,7 +98,7 @@ function ValidationDrawer({
   const confirmReject = () => {
     if (!rejectingField) return;
     if (!justification.trim()) {
-      toast.error("Justificativa é obrigatória para reprovar");
+      toast.error("Justificativa é obrigatória");
       return;
     }
     validateMutation.mutate({
@@ -120,254 +111,233 @@ function ValidationDrawer({
     setJustification("");
   };
 
-  const handleApproveAll = () => {
-    const pending = actualQs.filter(
-      (q) =>
-        answers[q.id] !== undefined &&
-        answers[q.id] !== "" &&
-        !validationMap[q.id]
-    );
-    if (pending.length === 0) {
-      toast.info("Todos os campos já foram validados");
-      return;
-    }
-    pending.forEach((q) => {
-      validateMutation.mutate({
-        responseId: response.id,
-        questionId: q.id,
-        status: "approved",
-      });
-    });
-    toast.success(`Aprovando ${pending.length} campos...`);
-  };
-
-  // Check if a field is a file upload type
   const isFileField = (q: BuilderQuestion) => q.type === "file-upload";
+  const getFileForQuestion = (questionId: string) => files.filter((f: any) => f.questionId === questionId);
 
-  // Get file for a question
-  const getFileForQuestion = (questionId: string) => {
-    return files.filter((f: any) => f.questionId === questionId);
-  };
-
-  // Render file preview
-  const renderFilePreview = (file: any) => {
-    const isImage = file.mimeType?.startsWith("image/");
-    const isPdf = file.mimeType === "application/pdf";
-    return (
-      <div key={file.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-border/50">
-        {isImage ? (
-          <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary shrink-0">
-            <img src={file.url} alt={file.filename} className="w-full h-full object-cover" />
-          </div>
-        ) : isPdf ? (
-          <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-            <FileText size={20} className="text-red-500" />
-          </div>
-        ) : (
-          <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-            <FileIcon size={20} className="text-muted-foreground" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-foreground truncate">{file.filename || "Arquivo"}</p>
-          <p className="text-[10px] text-muted-foreground">{file.mimeType}</p>
-        </div>
-        <a
-          href={file.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-brand hover:bg-brand-lighter/50 transition-all shrink-0"
-        >
-          <ExternalLink size={14} />
-        </a>
-      </div>
-    );
+  // Status indicator dot
+  const StatusDot = ({ status }: { status?: string }) => {
+    if (status === "approved") return <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />;
+    if (status === "rejected") return <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />;
+    return <div className="w-2.5 h-2.5 rounded-full bg-gray-300 shrink-0" />;
   };
 
   return (
     <>
+      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/20 z-40"
+        className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
         onClick={onClose}
       />
+
+      {/* Drawer */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 bottom-0 w-[480px] bg-white border-l border-border shadow-2xl z-50 flex flex-col"
+        className="fixed right-0 top-0 bottom-0 w-full max-w-[520px] bg-white z-50 flex flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border shrink-0">
-          <div className="flex items-center justify-between mb-3">
+        {/* ── Header ── */}
+        <div className="px-6 pt-6 pb-5 shrink-0">
+          <div className="flex items-start justify-between mb-5">
             <div>
-              <h3 className="text-base font-display font-bold text-foreground">
-                Validação de Resposta
+              <h3 className="text-lg font-display font-bold text-gray-900 tracking-tight">
+                Validação
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {new Date(response.createdAt).toLocaleString("pt-BR")}
+              <p className="text-[13px] text-gray-400 mt-1">
+                Resposta de {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              className="p-2 -mr-2 -mt-1 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
             >
               <X size={18} />
             </button>
           </div>
 
-          {/* Progress bar */}
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs font-body mb-1.5">
-              <span className="text-muted-foreground">Progresso da validação</span>
-              <span className="font-semibold text-foreground">{progress}%</span>
+          {/* Stats row */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-display font-bold text-gray-900">{totalFields}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Total</p>
             </div>
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-brand"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5 }}
-              />
+            <div className="flex-1 bg-emerald-50 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-display font-bold text-emerald-600">{approvedFields}</p>
+              <p className="text-[11px] text-emerald-500 mt-0.5">Aprovados</p>
             </div>
-            <div className="flex items-center gap-4 mt-2 text-[11px] font-body">
-              <span className="flex items-center gap-1 text-green-600">
-                <CheckCircle2 size={12} /> {approvedFields} aprovados
-              </span>
-              <span className="flex items-center gap-1 text-red-600">
-                <XCircle size={12} /> {rejectedFields} reprovados
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Shield size={12} /> {totalFields - validatedFields} pendentes
-              </span>
+            <div className="flex-1 bg-red-50 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-display font-bold text-red-600">{rejectedFields}</p>
+              <p className="text-[11px] text-red-400 mt-0.5">Reprovados</p>
+            </div>
+            <div className="flex-1 bg-amber-50 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-display font-bold text-amber-600">{pendingFields}</p>
+              <p className="text-[11px] text-amber-500 mt-0.5">Pendentes</p>
             </div>
           </div>
-
         </div>
 
-        {/* Fields list */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-          {actualQs.map((q, i) => {
-            const answer = answers[q.id];
-            if (answer === undefined || answer === "") return null;
+        {/* Divider */}
+        <div className="h-px bg-gray-100 mx-6" />
 
+        {/* ── Fields list ── */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {fieldsWithAnswers.map((q, i) => {
+            const answer = answers[q.id];
             const validation = validationMap[q.id];
             const isFile = isFileField(q);
             const questionFiles = isFile ? getFileForQuestion(q.id) : [];
+            const isPending = !validation;
+            const isApproved = validation?.status === "approved";
+            const isRejected = validation?.status === "rejected";
 
             return (
-              <div
-                key={q.id}
-                className={`rounded-xl border p-4 transition-all ${
-                  validation?.status === "approved"
-                    ? "bg-green-50/50 border-green-200"
-                    : validation?.status === "rejected"
-                    ? "bg-red-50/50 border-red-200"
-                    : "bg-secondary/30 border-border/50"
-                }`}
-              >
-                {/* Question header */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider">
-                    {i + 1}. {q.title}
-                  </p>
-                  {validation?.status === "approved" && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full shrink-0">
-                      <CheckCircle2 size={10} /> Aprovado
-                    </span>
-                  )}
-                  {validation?.status === "rejected" && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full shrink-0">
-                      <XCircle size={10} /> Reprovado
-                    </span>
-                  )}
+              <div key={q.id} className="group">
+                {/* Field label row */}
+                <div className="flex items-center gap-2.5 mb-2">
+                  <StatusDot status={validation?.status} />
+                  <span className="text-[13px] font-medium text-gray-500">
+                    {q.title}
+                  </span>
                 </div>
 
-                {/* Answer content */}
-                {isFile && questionFiles.length > 0 ? (
-                  <div className="space-y-2 mb-3">
-                    {questionFiles.map((f: any) => renderFilePreview(f))}
+                {/* Answer card */}
+                <div
+                  className={`ml-5 rounded-xl border transition-all ${
+                    isApproved
+                      ? "border-emerald-200 bg-emerald-50/40"
+                      : isRejected
+                      ? "border-red-200 bg-red-50/40"
+                      : "border-gray-150 bg-gray-50/50 hover:border-gray-200"
+                  }`}
+                >
+                  {/* Content */}
+                  <div className="px-4 py-3">
+                    {isFile && questionFiles.length > 0 ? (
+                      <div className="space-y-2">
+                        {questionFiles.map((file: any) => {
+                          const isImage = file.mimeType?.startsWith("image/");
+                          const isPdf = file.mimeType === "application/pdf";
+                          return (
+                            <div key={file.id} className="flex items-center gap-3">
+                              {isImage ? (
+                                <button
+                                  onClick={() => setExpandedImage(file.url)}
+                                  className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0 hover:opacity-80 transition-opacity cursor-zoom-in"
+                                >
+                                  <img src={file.url} alt={file.filename} className="w-full h-full object-cover" />
+                                </button>
+                              ) : (
+                                <div className={`w-14 h-14 rounded-lg flex items-center justify-center shrink-0 ${isPdf ? "bg-red-50" : "bg-gray-100"}`}>
+                                  {isPdf ? <FileText size={22} className="text-red-400" /> : <FileIcon size={22} className="text-gray-400" />}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-700 truncate">{file.filename || "Arquivo"}</p>
+                                <p className="text-[11px] text-gray-400">{file.mimeType}</p>
+                              </div>
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-lg text-gray-400 hover:text-brand hover:bg-brand/5 transition-all shrink-0"
+                                title="Abrir arquivo"
+                              >
+                                <ExternalLink size={15} />
+                              </a>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[14px] text-gray-800 leading-relaxed">
+                        {typeof answer === "string" ? answer : JSON.stringify(answer)}
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm font-body text-foreground mb-3">
-                    {typeof answer === "string" ? answer : JSON.stringify(answer)}
-                  </p>
-                )}
 
-                {/* Rejection justification display */}
-                {validation?.status === "rejected" && validation.justification && (
-                  <div className="flex items-start gap-2 p-2.5 bg-red-50 rounded-lg border border-red-100 mb-3">
-                    <MessageSquare size={14} className="text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-700">{validation.justification}</p>
+                  {/* Rejection reason */}
+                  {isRejected && validation.justification && (
+                    <div className="mx-4 mb-3 px-3 py-2 bg-red-50 rounded-lg">
+                      <p className="text-[12px] text-red-600 leading-relaxed">
+                        <span className="font-semibold">Motivo:</span> {validation.justification}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action bar */}
+                  <div className="flex items-center border-t border-gray-100 divide-x divide-gray-100">
+                    <button
+                      onClick={() => handleApprove(q.id)}
+                      disabled={validateMutation.isPending}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-all rounded-bl-xl ${
+                        isApproved
+                          ? "text-emerald-700 bg-emerald-50"
+                          : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50"
+                      }`}
+                    >
+                      <CheckCircle2 size={15} />
+                      {isApproved ? "Aprovado" : "Aprovar"}
+                    </button>
+                    <button
+                      onClick={() => handleReject(q.id)}
+                      disabled={validateMutation.isPending}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-all rounded-br-xl ${
+                        isRejected
+                          ? "text-red-700 bg-red-50"
+                          : "text-gray-400 hover:text-red-600 hover:bg-red-50/50"
+                      }`}
+                    >
+                      <XCircle size={15} />
+                      {isRejected ? "Reprovado" : "Reprovar"}
+                    </button>
                   </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleApprove(q.id)}
-                    disabled={validateMutation.isPending}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium transition-all ${
-                      validation?.status === "approved"
-                        ? "bg-green-600 text-white"
-                        : "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
-                    }`}
-                  >
-                    <Check size={12} />
-                    {validation?.status === "approved" ? "Aprovado" : "Aprovar"}
-                  </button>
-                  <button
-                    onClick={() => handleReject(q.id)}
-                    disabled={validateMutation.isPending}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium transition-all ${
-                      validation?.status === "rejected"
-                        ? "bg-red-600 text-white"
-                        : "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
-                    }`}
-                  >
-                    <X size={12} />
-                    {validation?.status === "rejected" ? "Reprovado" : "Reprovar"}
-                  </button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Footer with overall status */}
-        <div className="px-6 py-4 border-t border-border shrink-0">
+        {/* ── Footer ── */}
+        <div className="px-6 py-4 border-t border-gray-100 shrink-0">
           {response.validationStatus === "approved" ? (
-            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200 text-green-700">
-              <ShieldCheck size={20} />
+            <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 rounded-xl">
+              <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={18} className="text-emerald-600" />
+              </div>
               <div>
-                <p className="text-sm font-semibold">Cadastro Aprovado</p>
-                <p className="text-xs opacity-80">Todos os campos foram validados. PDF disponível.</p>
+                <p className="text-sm font-semibold text-emerald-800">Cadastro Aprovado</p>
+                <p className="text-[12px] text-emerald-600">PDF disponível para download</p>
               </div>
             </div>
           ) : response.validationStatus === "rejected" ? (
-            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-200 text-red-700">
-              <ShieldAlert size={20} />
+            <div className="flex items-center gap-3 px-4 py-3 bg-red-50 rounded-xl">
+              <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <XCircle size={18} className="text-red-600" />
+              </div>
               <div>
-                <p className="text-sm font-semibold">Cadastro Reprovado</p>
-                <p className="text-xs opacity-80">Existem campos reprovados que precisam de correção.</p>
+                <p className="text-sm font-semibold text-red-800">Campos Reprovados</p>
+                <p className="text-[12px] text-red-600">O cliente precisa corrigir os itens reprovados</p>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-700">
-              <AlertTriangle size={20} />
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-50/70 rounded-xl">
+              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <Shield size={18} className="text-amber-600" />
+              </div>
               <div>
-                <p className="text-sm font-semibold">Validação Pendente</p>
-                <p className="text-xs opacity-80">Valide todos os campos para aprovar ou reprovar o cadastro.</p>
+                <p className="text-sm font-semibold text-amber-800">Validação em andamento</p>
+                <p className="text-[12px] text-amber-600">{pendingFields} campo{pendingFields !== 1 ? "s" : ""} pendente{pendingFields !== 1 ? "s" : ""} de revisão</p>
               </div>
             </div>
           )}
         </div>
       </motion.div>
 
-      {/* Rejection justification dialog */}
+      {/* ── Rejection justification modal ── */}
       <AnimatePresence>
         {rejectingField && (
           <>
@@ -375,44 +345,86 @@ function ValidationDrawer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-[60]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]"
               onClick={() => setRejectingField(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl border border-border shadow-2xl z-[61] p-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[420px] bg-white sm:rounded-2xl rounded-t-2xl border-t sm:border border-gray-200 shadow-2xl z-[61] p-6"
             >
-              <h4 className="text-base font-display font-bold text-foreground mb-2">
-                Justificativa da Reprovação
-              </h4>
-              <p className="text-sm text-muted-foreground mb-4">
-                Explique o motivo da reprovação deste campo. Esta justificativa será enviada ao cliente.
-              </p>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <XCircle size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <h4 className="text-base font-display font-bold text-gray-900">
+                    Reprovar campo
+                  </h4>
+                  <p className="text-[13px] text-gray-400">
+                    Informe o motivo ao cliente
+                  </p>
+                </div>
+              </div>
               <textarea
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
                 placeholder="Ex: Documento ilegível, informação incorreta..."
-                className="w-full px-4 py-3 rounded-xl text-sm font-body bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10 resize-none"
-                rows={4}
+                className="w-full px-4 py-3 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 resize-none transition-all"
+                rows={3}
                 autoFocus
               />
               <div className="flex items-center gap-3 mt-4">
                 <button
                   onClick={() => setRejectingField(null)}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-medium text-foreground border border-border hover:bg-secondary transition-all"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-150 transition-all"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmReject}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-white bg-red-600 hover:bg-red-700 transition-all"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-all"
                 >
-                  Confirmar Reprovação
+                  Confirmar
                 </button>
               </div>
             </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Image lightbox ── */}
+      <AnimatePresence>
+        {expandedImage && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70]"
+              onClick={() => setExpandedImage(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-8 z-[71] flex items-center justify-center"
+              onClick={() => setExpandedImage(null)}
+            >
+              <img
+                src={expandedImage}
+                alt="Preview"
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              />
+            </motion.div>
+            <button
+              onClick={() => setExpandedImage(null)}
+              className="fixed top-4 right-4 z-[72] p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all"
+            >
+              <X size={20} />
+            </button>
           </>
         )}
       </AnimatePresence>

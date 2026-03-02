@@ -552,3 +552,4 @@
 ### Bug Fixes (cont.)
 - [x] Fix invalid hook call: trpc.useUtils() called inside mutation onSuccess in ResponsesPanel ValidationDrawer
 - [x] Remover botão "Aprovar todos os pendentes" do drawer de validação (validação deve ser campo a campo)
+- [x] Redesenhar drawer de validação com design mais limpo, bonito e intuitivo
