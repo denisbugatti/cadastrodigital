@@ -252,7 +252,7 @@ function SortableQuestionItem({
                 </div>
               ))}
               {question.conditionalLogic?.defaultGoTo && question.conditionalLogic?.defaultGoTo !== "next" && (
-                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-secondary border border-border">
                   <span className="text-[10px] font-body text-muted-foreground italic">Padrão</span>
                   <ArrowRight size={9} className="text-muted-foreground/50 shrink-0" />
                   <span className="text-[10px] font-body text-muted-foreground truncate">
@@ -274,7 +274,7 @@ function SortableQuestionItem({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.1 }}
-            className="absolute right-2 top-full mt-1 z-50 bg-white rounded-xl border border-border shadow-xl py-1 min-w-[140px]"
+            className="absolute right-2 top-full mt-1 z-50 bg-card rounded-xl border border-border shadow-xl py-1 min-w-[140px]"
           >
             <button
               onClick={(e) => {
@@ -383,7 +383,7 @@ export function BuilderSidebar({
     }));
 
   return (
-    <div className="w-64 h-full flex flex-col border-r border-border bg-white relative">
+    <div className="w-64 h-full flex flex-col border-r border-border bg-card relative">
       {/* Add Content Button */}
       <div className="p-3 border-b border-border">
         <button
@@ -463,7 +463,7 @@ export function BuilderSidebar({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-14 left-3 right-3 z-50 bg-white rounded-2xl border border-border shadow-2xl max-h-[70vh] flex flex-col overflow-hidden"
+            className="absolute top-14 left-3 right-3 z-50 bg-card rounded-2xl border border-border shadow-2xl max-h-[70vh] flex flex-col overflow-hidden"
           >
             <div className="p-3 border-b border-border flex items-center gap-2">
               <Search size={15} className="text-muted-foreground shrink-0" />

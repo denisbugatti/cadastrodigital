@@ -1,6 +1,7 @@
 /**
  * Responses Page — Redesigned with clean, modern layout
  * Stats overview, improved response cards, better expanded details
+ * Fully responsive for mobile/iPhone
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
@@ -69,14 +70,15 @@ function StatCard({ icon: Icon, label, value, sublabel, color = "brand" }: {
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colorClasses[color] || colorClasses.brand}`}>
-        <Icon size={18} />
+    <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3">
+      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${colorClasses[color] || colorClasses.brand}`}>
+        <Icon size={16} className="sm:hidden" />
+        <Icon size={18} className="hidden sm:block" />
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-display font-bold text-foreground">{value}</p>
-        <p className="text-xs text-muted-foreground font-body truncate">{label}</p>
-        {sublabel && <p className="text-[10px] text-muted-foreground/70 font-body">{sublabel}</p>}
+        <p className="text-lg sm:text-xl font-display font-bold text-foreground leading-tight">{value}</p>
+        <p className="text-[10px] sm:text-xs text-muted-foreground font-body truncate">{label}</p>
+        {sublabel && <p className="text-[9px] sm:text-[10px] text-muted-foreground/70 font-body">{sublabel}</p>}
       </div>
     </div>
   );
@@ -111,8 +113,9 @@ function ValidationBadge({ status }: { status: string }) {
   const Icon = config.icon;
 
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${config.className}`}>
-      <Icon size={11} />
+    <span className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full border ${config.className}`}>
+      <Icon size={10} className="sm:hidden" />
+      <Icon size={11} className="hidden sm:block" />
       {config.label}
     </span>
   );
@@ -290,16 +293,16 @@ export default function Responses() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="container max-w-6xl py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 shrink-0 px-2 sm:px-3">
+              <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 shrink-0 px-2 sm:px-3 h-8 sm:h-9">
                 <ArrowLeft size={16} /> <span className="hidden sm:inline">Voltar</span>
               </Button>
             </Link>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-display font-bold text-foreground truncate">{form.title}</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground font-body">
+              <h1 className="text-sm sm:text-lg font-display font-bold text-foreground truncate">{form.title}</h1>
+              <p className="text-[10px] sm:text-sm text-muted-foreground font-body">
                 Respostas e análise
               </p>
             </div>
@@ -307,7 +310,7 @@ export default function Responses() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 shrink-0"
+            className="gap-1.5 shrink-0 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
             onClick={() => setShowCorretores(!showCorretores)}
           >
             <Users size={14} />
@@ -331,7 +334,7 @@ export default function Responses() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-b border-border bg-card"
           >
-            <div className="container max-w-6xl py-4 sm:py-5">
+            <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Bell size={14} className="text-brand" />
@@ -360,21 +363,21 @@ export default function Responses() {
                     return (
                       <div
                         key={corretor.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                        className={`flex items-center justify-between p-2.5 sm:p-3 rounded-lg border transition-all ${
                           isAssigned
                             ? "border-brand/20 bg-brand/5"
                             : "border-border bg-background"
                         } ${!corretor.active ? "opacity-50" : ""}`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                             isAssigned ? "bg-brand/10 text-brand" : "bg-muted text-muted-foreground"
                           }`}>
                             {corretor.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{corretor.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{corretor.email}</p>
+                            <p className="text-xs sm:text-sm font-medium text-foreground truncate">{corretor.name}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{corretor.email}</p>
                           </div>
                         </div>
                         <Switch
@@ -399,9 +402,9 @@ export default function Responses() {
       </AnimatePresence>
 
       {/* Content */}
-      <main className="container max-w-6xl py-4 sm:py-8 space-y-6">
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
         {/* ─── Stats Overview ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <StatCard
             icon={BarChart3}
             label="Total de respostas"
@@ -431,8 +434,8 @@ export default function Responses() {
         </div>
 
         {/* ─── Search & Filters ─── */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col gap-3">
+          <div className="relative w-full sm:max-w-md">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchRef}
@@ -440,7 +443,7 @@ export default function Responses() {
               placeholder="Buscar por protocolo, nome ou e-mail..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-9 h-10 font-body text-sm bg-card border-border"
+              className="pl-9 pr-9 h-9 sm:h-10 font-body text-sm bg-card border-border"
             />
             {searchInput && (
               <button
@@ -452,8 +455,8 @@ export default function Responses() {
             )}
           </div>
 
-          {/* Filter pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {/* Filter pills — scrollable on mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none">
             {[
               { id: "all", label: "Todos", count: responses?.length ?? 0 },
               { id: "complete", label: "Completas", count: stats.complete },
@@ -464,14 +467,14 @@ export default function Responses() {
               <button
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all border ${
                   activeFilter === filter.id
                     ? "bg-brand/10 text-brand border-brand/20"
                     : "bg-card text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
                 }`}
               >
                 {filter.label}
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                <span className={`px-1 sm:px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] ${
                   activeFilter === filter.id ? "bg-brand/20" : "bg-muted"
                 }`}>
                   {filter.count}
@@ -482,7 +485,7 @@ export default function Responses() {
         </div>
 
         {searchParam && (
-          <p className="text-xs text-muted-foreground font-body -mt-3">
+          <p className="text-xs text-muted-foreground font-body -mt-2 sm:-mt-3">
             {responsesLoading ? "Buscando..." : `${filteredResponses.length} resultado(s) para "${searchParam}"`}
           </p>
         )}
@@ -494,21 +497,23 @@ export default function Responses() {
 
         {/* ─── Response List ─── */}
         {filteredResponses.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-12 sm:py-20">
             {searchParam ? (
               <>
-                <Search size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-lg text-muted-foreground font-body">
+                <Search size={40} className="mx-auto text-muted-foreground/30 mb-4 sm:hidden" />
+                <Search size={48} className="mx-auto text-muted-foreground/30 mb-4 hidden sm:block" />
+                <p className="text-base sm:text-lg text-muted-foreground font-body">
                   Nenhum resultado encontrado
                 </p>
-                <p className="text-sm text-muted-foreground/70 font-body mt-2">
+                <p className="text-xs sm:text-sm text-muted-foreground/70 font-body mt-2">
                   Tente buscar por outro protocolo, nome ou e-mail.
                 </p>
               </>
             ) : activeFilter !== "all" ? (
               <>
-                <Filter size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-lg text-muted-foreground font-body">
+                <Filter size={40} className="mx-auto text-muted-foreground/30 mb-4 sm:hidden" />
+                <Filter size={48} className="mx-auto text-muted-foreground/30 mb-4 hidden sm:block" />
+                <p className="text-base sm:text-lg text-muted-foreground font-body">
                   Nenhuma resposta neste filtro
                 </p>
                 <button
@@ -520,18 +525,19 @@ export default function Responses() {
               </>
             ) : (
               <>
-                <FileText size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-lg text-muted-foreground font-body">
+                <FileText size={40} className="mx-auto text-muted-foreground/30 mb-4 sm:hidden" />
+                <FileText size={48} className="mx-auto text-muted-foreground/30 mb-4 hidden sm:block" />
+                <p className="text-base sm:text-lg text-muted-foreground font-body">
                   Nenhuma resposta ainda
                 </p>
-                <p className="text-sm text-muted-foreground/70 font-body mt-2">
+                <p className="text-xs sm:text-sm text-muted-foreground/70 font-body mt-2">
                   Compartilhe o formulário para começar a receber respostas.
                 </p>
               </>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {filteredResponses.map((response: any, index: number) => {
               const answers = (response.answers ?? {}) as Record<string, any>;
               const isExpanded = expandedId === response.id;
@@ -549,14 +555,14 @@ export default function Responses() {
                       : "border-border shadow-sm hover:shadow-md hover:border-border/80"
                   }`}
                 >
-                  {/* Response header */}
+                  {/* Response header — stacked on mobile */}
                   <div
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 cursor-pointer transition-colors gap-3"
+                    className="p-3 sm:p-5 cursor-pointer transition-colors"
                     onClick={() => setExpandedId(isExpanded ? null : response.id)}
                   >
-                    <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+                    <div className="flex items-start gap-2.5 sm:gap-4">
                       {/* Avatar / Number */}
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-sm shrink-0 ${
+                      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-display font-bold text-xs sm:text-sm shrink-0 ${
                         response.isComplete
                           ? "bg-brand/10 text-brand"
                           : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -568,57 +574,57 @@ export default function Responses() {
 
                       <div className="min-w-0 flex-1">
                         {/* Name & email row */}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="text-sm font-body font-semibold text-foreground truncate">
+                        <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-0.5">
+                          <span className="text-xs sm:text-sm font-body font-semibold text-foreground truncate max-w-[180px] sm:max-w-none">
                             {response.respondentName || "Anônimo"}
                           </span>
                           {response.respondentEmail && (
-                            <span className="flex items-center gap-1 text-xs font-body text-muted-foreground">
-                              <Mail size={11} className="shrink-0" />
-                              <span className="truncate">{response.respondentEmail}</span>
+                            <span className="flex items-center gap-1 text-[10px] sm:text-xs font-body text-muted-foreground">
+                              <Mail size={10} className="shrink-0" />
+                              <span className="truncate max-w-[140px] sm:max-w-none">{response.respondentEmail}</span>
                             </span>
                           )}
                         </div>
 
                         {/* Meta row */}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-body">
-                            <Clock size={11} />
+                        <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 mt-1">
+                          <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-muted-foreground font-body">
+                            <Clock size={10} />
                             {new Date(response.createdAt).toLocaleString("pt-BR")}
                           </span>
 
                           {response.isComplete ? (
-                            <span className="flex items-center gap-1 text-[11px] text-green-600 dark:text-green-400 font-body font-medium">
-                              <CheckCircle2 size={11} /> Completa
+                            <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-green-600 dark:text-green-400 font-body font-medium">
+                              <CheckCircle2 size={10} /> Completa
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-body font-medium">
-                              <XCircle size={11} /> Parcial
+                            <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-body font-medium">
+                              <XCircle size={10} /> Parcial
                             </span>
                           )}
 
                           {response.timeSpentSeconds && (
-                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-body">
-                              <Timer size={11} />
+                            <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-muted-foreground font-body">
+                              <Timer size={10} />
                               {formatTime(response.timeSpentSeconds)}
                             </span>
                           )}
 
                           {response.protocolCode && (
                             <span
-                              className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-brand cursor-pointer hover:opacity-80 transition-opacity"
+                              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-mono font-semibold text-brand cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCopyProtocol(response.id, response.protocolCode);
                               }}
                               title="Clique para copiar"
                             >
-                              <Hash size={11} />
+                              <Hash size={10} />
                               {response.protocolCode}
                               {copiedProtocol === response.id ? (
-                                <Check size={11} className="text-green-500" />
+                                <Check size={10} className="text-green-500" />
                               ) : (
-                                <Copy size={11} className="opacity-40" />
+                                <Copy size={10} className="opacity-40" />
                               )}
                             </span>
                           )}
@@ -626,19 +632,28 @@ export default function Responses() {
                           <ValidationBadge status={response.validationStatus || "pending"} />
                         </div>
                       </div>
+
+                      {/* Expand chevron - always visible */}
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="shrink-0 mt-1"
+                      >
+                        <ChevronDown size={16} className="text-muted-foreground" />
+                      </motion.div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    {/* Action buttons — separate row on mobile */}
+                    <div className="flex items-center gap-2 mt-2.5 sm:mt-3 ml-[46px] sm:ml-[56px]">
                       <Link href={`/validar/${response.id}`}>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1.5 text-xs h-8 px-2.5 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                          className="gap-1 sm:gap-1.5 text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-2.5 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
                           onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
-                          <CheckCircle2 size={13} />
-                          <span className="hidden sm:inline">Validar</span>
+                          <CheckCircle2 size={12} />
+                          Validar
                         </Button>
                       </Link>
 
@@ -648,7 +663,7 @@ export default function Responses() {
                           <Button
                             variant="default"
                             size="sm"
-                            className={`gap-1.5 text-xs h-8 px-2.5 ${
+                            className={`gap-1 sm:gap-1.5 text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-2.5 ${
                               isValidated
                                 ? 'bg-brand hover:bg-brand/90'
                                 : 'bg-muted text-muted-foreground cursor-not-allowed'
@@ -667,25 +682,18 @@ export default function Responses() {
                             title={isValidated ? 'Gerar ficha PDF' : 'Valide a resposta antes de gerar o PDF'}
                           >
                             {isGenerating ? (
-                              <Loader2 size={13} className="animate-spin" />
+                              <Loader2 size={12} className="animate-spin" />
                             ) : !isValidated ? (
-                              <Lock size={13} />
+                              <Lock size={12} />
                             ) : (
-                              <FileText size={13} />
+                              <FileText size={12} />
                             )}
-                            <span className="hidden sm:inline">
+                            <span>
                               {isGenerating ? 'Gerando...' : !isValidated ? 'Validar antes' : 'Gerar Ficha'}
                             </span>
                           </Button>
                         );
                       })()}
-
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronDown size={18} className="text-muted-foreground" />
-                      </motion.div>
                     </div>
                   </div>
 
@@ -699,8 +707,8 @@ export default function Responses() {
                         transition={{ duration: 0.25 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-4 sm:px-5 pb-5 border-t border-border/50">
-                          <div className="grid gap-0 mt-4">
+                        <div className="px-3 sm:px-5 pb-4 sm:pb-5 border-t border-border/50">
+                          <div className="grid gap-0 mt-3 sm:mt-4">
                             {questions
                               .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
                               .map((q: any, qIndex: number) => {
@@ -728,12 +736,12 @@ export default function Responses() {
                                     initial={{ opacity: 0, x: -8 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: qIndex * 0.03 }}
-                                    className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-border/30 last:border-0"
+                                    className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-4 py-2.5 sm:py-3 border-b border-border/30 last:border-0"
                                   >
-                                    <span className="text-xs font-body font-semibold text-muted-foreground sm:w-1/3 sm:text-right sm:pt-0.5 shrink-0 uppercase tracking-wide">
+                                    <span className="text-[10px] sm:text-xs font-body font-semibold text-muted-foreground sm:w-1/3 sm:text-right sm:pt-0.5 shrink-0 uppercase tracking-wide">
                                       {q.title}
                                     </span>
-                                    <span className="text-sm font-body text-foreground sm:flex-1 break-words">
+                                    <span className="text-xs sm:text-sm font-body text-foreground sm:flex-1 break-words">
                                       {displayValue}
                                     </span>
                                   </motion.div>

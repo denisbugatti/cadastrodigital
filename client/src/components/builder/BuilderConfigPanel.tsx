@@ -67,7 +67,7 @@ export function BuilderConfigPanel({
 
   if (!question) {
     return (
-      <div className="w-80 h-full border-l border-border flex items-center justify-center bg-white">
+      <div className="w-80 h-full border-l border-border flex items-center justify-center bg-card">
         <div className="text-center px-8">
           <Settings size={36} className="mx-auto text-muted-foreground/20 mb-4" />
           <p className="text-base text-muted-foreground/60 font-body">
@@ -97,7 +97,7 @@ export function BuilderConfigPanel({
   }
 
   return (
-    <div className="w-80 h-full border-l border-border flex flex-col bg-white">
+    <div className="w-80 h-full border-l border-border flex flex-col bg-card">
       {/* Header */}
       <div className="p-5 border-b border-border">
         <div className="flex items-center gap-2 mb-2">
@@ -120,7 +120,7 @@ export function BuilderConfigPanel({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-body font-medium transition-all ${
                   activeTab === tab.id
-                    ? "bg-white text-brand shadow-sm"
+                    ? "bg-card text-brand shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -534,7 +534,7 @@ export function BuilderConfigPanel({
                                 className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${
                                   isActive
                                     ? "bg-brand text-white shadow-sm"
-                                    : "bg-white border border-border text-muted-foreground hover:text-brand hover:border-brand/30"
+                                    : "bg-card border border-border text-muted-foreground hover:text-brand hover:border-brand/30"
                                 }`}
                                 title={iconInfo.label}
                               >
@@ -560,7 +560,7 @@ export function BuilderConfigPanel({
                 />
                 {question.motionIconUrl && (
                   <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-secondary border border-border">
-                    <div className="w-12 h-12 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center overflow-hidden">
                       <img
                         src={question.motionIconUrl}
                         alt="Motion icon"
@@ -820,7 +820,7 @@ function ConditionalLogicEditor({
                 <select
                   value={currentTarget}
                   onChange={(e) => updateBranch(choice.id, e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
                 >
                   <option value="next">Próxima pergunta (padrão)</option>
                   <option value="end">Ir para agradecimento</option>
@@ -880,7 +880,7 @@ function ConditionalLogicEditor({
                     value={sr.scoreMin ?? ""}
                     onChange={(e) => updateScoreRule(sr.id, { scoreMin: e.target.value === "" ? null : Number(e.target.value) })}
                     placeholder="Sem mínimo"
-                    className="w-full px-3 py-2 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all"
                   />
                 </div>
                 <div>
@@ -890,7 +890,7 @@ function ConditionalLogicEditor({
                     value={sr.scoreMax ?? ""}
                     onChange={(e) => updateScoreRule(sr.id, { scoreMax: e.target.value === "" ? null : Number(e.target.value) })}
                     placeholder="Sem máximo"
-                    className="w-full px-3 py-2 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all"
                   />
                 </div>
               </div>
@@ -901,7 +901,7 @@ function ConditionalLogicEditor({
                 <select
                   value={sr.goToQuestionId}
                   onChange={(e) => updateScoreRule(sr.id, { goToQuestionId: e.target.value })}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all appearance-none"
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all appearance-none"
                 >
                   <option value="next">Próxima pergunta (padrão)</option>
                   <option value="end">Ir para agradecimento</option>
@@ -960,7 +960,7 @@ function ConditionalLogicEditor({
               <select
                 value={rule.operator}
                 onChange={(e) => updateRule(rule.id, { operator: e.target.value as ConditionOperator, value: NO_VALUE_OPERATORS.has(e.target.value) ? "" : rule.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+                className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
               >
                 {availableOperators.map((op) => (
                   <option key={op} value={op}>
@@ -976,7 +976,7 @@ function ConditionalLogicEditor({
                   value={rule.value}
                   onChange={(e) => updateRule(rule.id, { value: e.target.value })}
                   placeholder="Valor para comparação..."
-                  className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                 />
               )}
 
@@ -986,7 +986,7 @@ function ConditionalLogicEditor({
                 <select
                   value={rule.goToQuestionId}
                   onChange={(e) => updateRule(rule.id, { goToQuestionId: e.target.value })}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
                 >
                   <option value="next">Próxima pergunta (padrão)</option>
                   <option value="end">Ir para agradecimento</option>
@@ -1017,7 +1017,7 @@ function ConditionalLogicEditor({
             <select
               value={logic.defaultGoTo || "next"}
               onChange={(e) => updateDefaultGoTo(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-white border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
+              className="w-full px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all appearance-none"
             >
               <option value="next">Próxima pergunta (padrão)</option>
               <option value="end">Ir para agradecimento</option>

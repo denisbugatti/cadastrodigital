@@ -112,7 +112,7 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
   ].filter(Boolean).length;
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-white">
+    <div className="h-full flex flex-col overflow-hidden bg-card">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
         {/* Header */}
         <div className="mb-2">
@@ -256,7 +256,7 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
                   { name: "Make", desc: "Crie um cenário com trigger Webhook", color: "#6D3BF5", url: "https://www.make.com/en/help/tools/webhooks" },
                   { name: "Zapier", desc: "Use o trigger Webhooks by Zapier", color: "#FF4A00", url: "https://zapier.com/apps/webhook/integrations" },
                 ].map((g) => (
-                  <a key={g.name} href={g.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-white hover:border-brand/30 hover:bg-secondary/30 transition-all group">
+                  <a key={g.name} href={g.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-brand/30 hover:bg-secondary/30 transition-all group">
                     <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: g.color }}>{g.name[0]}</span>
                     <div className="flex-1"><span className="text-sm font-semibold text-foreground block">{g.name}</span><span className="text-xs text-muted-foreground">{g.desc}</span></div>
                   </a>
@@ -457,7 +457,7 @@ function IntegrationCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-2xl border transition-all ${
-        enabled ? "border-brand/30 bg-white shadow-sm" : "border-border bg-white"
+        enabled ? "border-brand/30 bg-card shadow-sm" : "border-border bg-card"
       }`}
     >
       {/* Header */}

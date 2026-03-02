@@ -105,7 +105,7 @@ export function WorkspaceManager({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Nome do workspace (ex: Denis Bugatti)"
-                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-input border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
               />
               <div className="flex items-center gap-2">
                 <Globe size={16} className="text-muted-foreground shrink-0" />
@@ -114,7 +114,7 @@ export function WorkspaceManager({
                   value={newDomain}
                   onChange={(e) => setNewDomain(e.target.value)}
                   placeholder="dominio.com.br"
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono bg-white border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono bg-input border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
                 />
               </div>
               <div className="flex gap-2">
@@ -204,7 +204,7 @@ export function WorkspaceManager({
                         onChange={(e) =>
                           updateWorkspace(ws.id, { name: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-lg text-sm bg-white border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
+                        className="w-full px-3 py-2 rounded-lg text-sm bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                         autoFocus
                       />
                       <input
@@ -213,7 +213,7 @@ export function WorkspaceManager({
                         onChange={(e) =>
                           updateWorkspace(ws.id, { domain: e.target.value })
                         }
-                        className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-white border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
+                        className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
                       />
                     </div>
                   ) : (
@@ -254,7 +254,7 @@ export function WorkspaceManager({
                   animate={{ opacity: 1, height: "auto" }}
                   className="px-4 pb-4 overflow-hidden"
                 >
-                  <div className="p-3 rounded-xl text-sm font-mono space-y-1.5 bg-white border border-border">
+                  <div className="p-3 rounded-xl text-sm font-mono space-y-1.5 bg-secondary border border-border">
                     <p className="text-muted-foreground text-xs mb-2">Estrutura de URLs:</p>
                     <p className="text-brand flex items-center gap-1.5">
                       <ChevronRight size={12} />

@@ -37,15 +37,15 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[9999] flex flex-col bg-white"
+          className="fixed inset-0 z-[9999] flex flex-col bg-background"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* Top bar */}
+          {/* Top bar — intentionally dark for contrast in both themes */}
           <motion.div
-            className="h-12 sm:h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 bg-gray-900 text-white z-[102] relative"
+            className="h-12 sm:h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 bg-[oklch(0.15_0.01_260)] text-white z-[102] relative"
             initial={{ y: -56 }}
             animate={{ y: 0 }}
             exit={{ y: -56 }}
@@ -57,19 +57,19 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
                 <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
               </div>
-              <span className="text-xs sm:text-sm font-body text-gray-400 sm:ml-2 truncate max-w-[200px] sm:max-w-none">
+              <span className="text-xs sm:text-sm font-body text-white/50 sm:ml-2 truncate max-w-[200px] sm:max-w-none">
                 Preview — {form.title || "Formulário sem título"}
               </span>
             </div>
 
             {/* View mode toggle */}
-            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("desktop")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-body font-medium transition-all ${
                   viewMode === "desktop"
-                    ? "bg-gray-600 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? "bg-white/20 text-white shadow-sm"
+                    : "text-white/40 hover:text-white/70"
                 }`}
               >
                 <Monitor size={14} />
@@ -79,8 +79,8 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
                 onClick={() => setViewMode("mobile")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-body font-medium transition-all ${
                   viewMode === "mobile"
-                    ? "bg-gray-600 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
+                    ? "bg-white/20 text-white shadow-sm"
+                    : "text-white/40 hover:text-white/70"
                 }`}
               >
                 <Smartphone size={14} />
@@ -90,11 +90,11 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
 
             <button
               onClick={onClose}
-              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-all"
+              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
             >
               <X size={16} />
               <span className="hidden sm:inline">Fechar</span>
-              <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-[10px] font-mono text-gray-500 ml-1">
+              <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px] font-mono text-white/40 ml-1">
                 ESC
               </kbd>
             </button>
@@ -103,7 +103,7 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
           {/* Preview container */}
           <motion.div
             className={`flex-1 overflow-hidden flex items-center justify-center transition-colors duration-300 ${
-              viewMode === "mobile" ? "bg-gray-200" : "bg-gray-100"
+              viewMode === "mobile" ? "bg-secondary" : "bg-secondary/50"
             }`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -114,7 +114,7 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
               {viewMode === "desktop" ? (
                 <motion.div
                   key="desktop"
-                  className="w-full h-full bg-white overflow-hidden"
+                  className="w-full h-full bg-background overflow-hidden"
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
@@ -136,16 +136,16 @@ export function BuilderPreview({ form, isOpen, onClose }: BuilderPreviewProps) {
                     {/* Notch */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[30px] bg-black rounded-b-2xl z-10" />
                     {/* Side buttons */}
-                    <div className="absolute -left-[3px] top-[120px] w-[3px] h-[30px] bg-gray-700 rounded-l-sm" />
-                    <div className="absolute -left-[3px] top-[170px] w-[3px] h-[55px] bg-gray-700 rounded-l-sm" />
-                    <div className="absolute -left-[3px] top-[235px] w-[3px] h-[55px] bg-gray-700 rounded-l-sm" />
-                    <div className="absolute -right-[3px] top-[160px] w-[3px] h-[70px] bg-gray-700 rounded-r-sm" />
+                    <div className="absolute -left-[3px] top-[120px] w-[3px] h-[30px] bg-neutral-700 rounded-l-sm" />
+                    <div className="absolute -left-[3px] top-[170px] w-[3px] h-[55px] bg-neutral-700 rounded-l-sm" />
+                    <div className="absolute -left-[3px] top-[235px] w-[3px] h-[55px] bg-neutral-700 rounded-l-sm" />
+                    <div className="absolute -right-[3px] top-[160px] w-[3px] h-[70px] bg-neutral-700 rounded-r-sm" />
                     {/* Screen */}
-                    <div className="w-full h-full bg-white rounded-[2.4rem] overflow-hidden">
+                    <div className="w-full h-full bg-background rounded-[2.4rem] overflow-hidden">
                       <FormContainer form={formData} key={JSON.stringify(formData) + "mobile"} />
                     </div>
                     {/* Home indicator */}
-                    <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 w-[134px] h-[5px] bg-gray-600 rounded-full" />
+                    <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2 w-[134px] h-[5px] bg-neutral-600 rounded-full" />
                   </div>
                 </motion.div>
               )}

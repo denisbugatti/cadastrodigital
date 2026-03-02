@@ -103,18 +103,18 @@ function FormViewBySlug({ slug }: { slug: string }) {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black">
-        <Loader2 size={32} className="animate-spin text-blue-500" />
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <Loader2 size={32} className="animate-spin text-brand" />
       </div>
     );
   }
 
   if (error || !dbForm) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
+      <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Formulário não encontrado</h2>
-          <p className="text-gray-400">Este formulário não existe ou foi removido.</p>
+          <p className="text-muted-foreground">Este formulário não existe ou foi removido.</p>
         </div>
       </div>
     );
@@ -136,18 +136,18 @@ function FormViewById({ id }: { id: number }) {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black">
-        <Loader2 size={32} className="animate-spin text-blue-500" />
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <Loader2 size={32} className="animate-spin text-brand" />
       </div>
     );
   }
 
   if (error || !dbForm) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
+      <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Formulário não encontrado</h2>
-          <p className="text-gray-400">Este formulário não existe ou foi removido.</p>
+          <p className="text-muted-foreground">Este formulário não existe ou foi removido.</p>
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 /**
  * Client Portal — Clients view their submissions and track status.
  * Login by CPF/CNPJ, see if approved/rejected/pending.
+ * Uses semantic theme colors for dark/light mode compatibility.
  */
 
 import { useLocation } from "wouter";
@@ -23,8 +24,8 @@ export default function ClientPortal() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
       </div>
     );
   }
@@ -40,25 +41,25 @@ export default function ClientPortal() {
     pending: {
       icon: <Clock className="w-5 h-5" />,
       label: "Aguardando análise",
-      color: "text-amber-400",
+      color: "text-amber-500 dark:text-amber-400",
       bg: "bg-amber-500/10 border-amber-500/20",
     },
     in_review: {
       icon: <AlertTriangle className="w-5 h-5" />,
       label: "Em análise",
-      color: "text-blue-400",
+      color: "text-blue-500 dark:text-blue-400",
       bg: "bg-blue-500/10 border-blue-500/20",
     },
     approved: {
       icon: <CheckCircle2 className="w-5 h-5" />,
       label: "Aprovado",
-      color: "text-green-400",
+      color: "text-green-500 dark:text-green-400",
       bg: "bg-green-500/10 border-green-500/20",
     },
     rejected: {
       icon: <XCircle className="w-5 h-5" />,
       label: "Revisão necessária",
-      color: "text-red-400",
+      color: "text-red-500 dark:text-red-400",
       bg: "bg-red-500/10 border-red-500/20",
     },
   };
@@ -69,24 +70,24 @@ export default function ClientPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
+      <header className="border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-brand" />
             </div>
             <div>
-              <h1 className="text-white font-semibold text-sm">Cadastro Digital</h1>
-              <p className="text-slate-400 text-xs">{clientUser.name}</p>
+              <h1 className="text-foreground font-semibold text-sm">Cadastro Digital</h1>
+              <p className="text-muted-foreground text-xs">{clientUser.name}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="text-slate-400 hover:text-white hover:bg-white/10"
+            className="text-muted-foreground hover:text-foreground"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sair
@@ -97,19 +98,19 @@ export default function ClientPortal() {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white">Meus Cadastros</h2>
-          <p className="text-slate-400 mt-1">Acompanhe o status dos seus formulários</p>
+          <h2 className="text-2xl font-bold text-foreground">Meus Cadastros</h2>
+          <p className="text-muted-foreground mt-1">Acompanhe o status dos seus formulários</p>
         </div>
 
         {responsesQuery.isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-brand animate-spin" />
           </div>
         ) : !responsesQuery.data || responsesQuery.data.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
-            <FileText className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Nenhum cadastro encontrado</h3>
-            <p className="text-slate-400 text-sm">
+          <div className="bg-card border border-border rounded-2xl p-12 text-center">
+            <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum cadastro encontrado</h3>
+            <p className="text-muted-foreground text-sm">
               Quando você preencher um formulário, ele aparecerá aqui.
             </p>
           </div>
@@ -120,27 +121,27 @@ export default function ClientPortal() {
               return (
                 <div
                   key={response.id}
-                  className={`bg-white/5 border rounded-xl p-5 transition-all hover:bg-white/[0.07] cursor-pointer ${status.bg}`}
+                  className={`bg-card border rounded-xl p-5 transition-all hover:bg-accent/50 cursor-pointer ${status.bg}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className={`${status.color}`}>{status.icon}</div>
                       <div>
-                        <h3 className="text-white font-medium">{response.formTitle || "Formulário"}</h3>
+                        <h3 className="text-foreground font-medium">{response.formTitle || "Formulário"}</h3>
                         <div className="flex items-center gap-3 mt-1">
                           <span className={`text-xs font-medium ${status.color}`}>{status.label}</span>
                           {response.protocolCode && (
-                            <span className="text-xs text-slate-500">
-                              Protocolo: <span className="text-slate-300 font-mono">{response.protocolCode}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Protocolo: <span className="text-foreground/70 font-mono">{response.protocolCode}</span>
                             </span>
                           )}
                         </div>
-                        <p className="text-slate-500 text-xs mt-1">
+                        <p className="text-muted-foreground text-xs mt-1">
                           Enviado em {new Date(response.createdAt).toLocaleDateString("pt-BR")}
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-500" />
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
                   </div>
                 </div>
               );

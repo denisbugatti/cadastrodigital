@@ -281,7 +281,7 @@ export function ScoringPanel({
                                     )
                                   }
                                   disabled={!question.scoringEnabled}
-                                  className="w-16 px-2 py-1.5 rounded-lg text-sm text-center font-medium bg-white border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="w-16 px-2 py-1.5 rounded-lg text-sm text-center font-medium bg-input border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                                   placeholder="0"
                                 />
                               </div>

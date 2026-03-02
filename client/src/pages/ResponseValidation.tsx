@@ -1,6 +1,7 @@
 /**
  * Response Validation Page — Corretor validates each answer/document.
  * Approve with a check or reject with justification.
+ * Uses semantic theme colors for dark/light mode compatibility.
  */
 
 import { useState, useMemo } from "react";
@@ -28,19 +29,19 @@ function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "approved":
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-xs font-medium border border-green-200">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium border border-green-500/20">
           <CheckCircle2 className="w-3 h-3" /> Aprovado
         </span>
       );
     case "rejected":
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-medium border border-red-200">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium border border-red-500/20">
           <XCircle className="w-3 h-3" /> Reprovado
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-medium border border-amber-200">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium border border-amber-500/20">
           <Clock className="w-3 h-3" /> Pendente
         </span>
       );
@@ -137,18 +138,18 @@ export default function ResponseValidation() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#fafbfc] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!response) {
     return (
-      <div className="min-h-screen bg-[#fafbfc] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <AlertTriangle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Resposta não encontrada</p>
+          <AlertTriangle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-muted-foreground">Resposta não encontrada</p>
           <Button variant="outline" onClick={() => navigate(-1 as any)} className="mt-4">
             Voltar
           </Button>
@@ -164,27 +165,27 @@ export default function ResponseValidation() {
   const pendingCount = totalQuestions - approvedCount - rejectedCount;
 
   return (
-    <div className="min-h-screen bg-[#fafbfc]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4 mb-3">
             <button
               onClick={() => navigate(-1 as any)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 font-display">Validar Resposta</h1>
-              <p className="text-sm text-gray-500">
-                Protocolo: <span className="font-mono text-gray-700">{response.protocolCode || `#${response.id}`}</span>
+              <h1 className="text-xl font-bold text-foreground font-display">Validar Resposta</h1>
+              <p className="text-sm text-muted-foreground">
+                Protocolo: <span className="font-mono text-foreground/80">{response.protocolCode || `#${response.id}`}</span>
               </p>
             </div>
           </div>
 
           {/* Respondent info */}
-          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {response.respondentName && (
               <span className="flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5" /> {response.respondentName}
@@ -209,15 +210,15 @@ export default function ResponseValidation() {
           <div className="flex gap-4 mt-4">
             <div className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-gray-600">{approvedCount} aprovados</span>
+              <span className="text-muted-foreground">{approvedCount} aprovados</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-gray-600">{rejectedCount} reprovados</span>
+              <span className="text-muted-foreground">{rejectedCount} reprovados</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-gray-600">{pendingCount} pendentes</span>
+              <span className="text-muted-foreground">{pendingCount} pendentes</span>
             </div>
           </div>
         </div>
@@ -235,21 +236,21 @@ export default function ResponseValidation() {
           return (
             <div
               key={questionId}
-              className={`bg-white rounded-xl border p-5 transition-all ${
+              className={`bg-card rounded-xl border p-5 transition-all ${
                 status === "approved"
-                  ? "border-green-200 bg-green-50/30"
+                  ? "border-green-500/20 bg-green-500/5"
                   : status === "rejected"
-                    ? "border-red-200 bg-red-50/30"
-                    : "border-gray-200"
+                    ? "border-red-500/20 bg-red-500/5"
+                    : "border-border"
               }`}
             >
               {/* Question label */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <p className="text-xs text-gray-400 mb-1">
+                  <p className="text-xs text-muted-foreground/60 mb-1">
                     {question?.type === "file" ? "📎 Arquivo" : question?.type === "image" ? "🖼️ Imagem" : "📝 Resposta"}
                   </p>
-                  <h3 className="text-sm font-semibold text-gray-800">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {question?.title || question?.label || `Pergunta ${questionId}`}
                   </h3>
                 </div>
@@ -262,14 +263,14 @@ export default function ResponseValidation() {
                   <div className="flex items-center gap-3">
                     {answer.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                       <a href={answer} target="_blank" rel="noopener noreferrer" className="block">
-                        <img src={answer} alt="Documento" className="max-w-xs rounded-lg border border-gray-200" />
+                        <img src={answer} alt="Documento" className="max-w-xs rounded-lg border border-border" />
                       </a>
                     ) : (
                       <a
                         href={answer}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-blue-600 hover:bg-gray-200 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg text-sm text-brand hover:bg-secondary/80 transition-colors"
                       >
                         <Download className="w-4 h-4" />
                         Ver arquivo
@@ -277,19 +278,19 @@ export default function ResponseValidation() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    {answerStr || <span className="text-gray-400 italic">Sem resposta</span>}
+                  <p className="text-sm text-foreground/80 bg-secondary rounded-lg p-3 border border-border/50">
+                    {answerStr || <span className="text-muted-foreground italic">Sem resposta</span>}
                   </p>
                 )}
               </div>
 
               {/* Rejection justification */}
               {status === "rejected" && validation?.justification && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-                  <p className="text-xs font-medium text-red-600 mb-1 flex items-center gap-1">
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1 flex items-center gap-1">
                     <MessageSquare className="w-3 h-3" /> Justificativa:
                   </p>
-                  <p className="text-sm text-red-700">{validation.justification}</p>
+                  <p className="text-sm text-red-700 dark:text-red-300">{validation.justification}</p>
                 </div>
               )}
 
@@ -298,7 +299,7 @@ export default function ResponseValidation() {
                 <Button
                   size="sm"
                   variant={status === "approved" ? "default" : "outline"}
-                  className={status === "approved" ? "bg-green-600 hover:bg-green-700" : ""}
+                  className={status === "approved" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
                   onClick={() => handleApprove(questionId)}
                   disabled={validateMutation.isPending}
                 >
@@ -323,8 +324,8 @@ export default function ResponseValidation() {
         })}
 
         {Object.keys(answers).length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
             <p className="text-sm">Nenhuma resposta para validar</p>
           </div>
         )}

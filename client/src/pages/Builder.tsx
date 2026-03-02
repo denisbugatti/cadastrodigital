@@ -133,6 +133,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
         const success = await unpublishForm();
         if (success) {
           setIsPublished(false);
+          updateSharing({ isPublished: false });
           toast.success("Formulário despublicado", { description: "O formulário voltou para rascunho." });
         } else {
           toast.error("Erro ao despublicar", { description: "Salve o formulário primeiro." });
@@ -143,6 +144,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
         const success = await publishForm();
         if (success) {
           setIsPublished(true);
+          updateSharing({ isPublished: true });
           toast.success("Formulário publicado!", { description: "Seu formulário está ativo e recebendo respostas." });
         } else {
           toast.error("Erro ao publicar", { description: "Salve o formulário primeiro e tente novamente." });
@@ -151,7 +153,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     } finally {
       setIsPublishing(false);
     }
-  }, [isPublished, publishForm, unpublishForm, saveNow]);
+  }, [isPublished, publishForm, unpublishForm, saveNow, updateSharing]);
 
   // Handle back navigation with unsaved changes guard
   const handleBack = useCallback(() => {

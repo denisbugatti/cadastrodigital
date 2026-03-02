@@ -254,7 +254,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-white">
+    <div className="h-full flex flex-col overflow-hidden bg-card">
       {/* Section tabs */}
       <div className="flex border-b border-border shrink-0">
         {sections.map((s) => {
@@ -614,7 +614,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               </p>
 
               {/* OG Preview card */}
-              <div className="rounded-2xl overflow-hidden border border-border mb-5 shadow-sm bg-white">
+              <div className="rounded-2xl overflow-hidden border border-border mb-5 shadow-sm bg-card">
                 <div className="w-full h-32 flex items-center justify-center bg-secondary">
                   {design.ogImage ? (
                     <img

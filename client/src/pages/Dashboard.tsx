@@ -118,7 +118,7 @@ function getStatusConfig(status: DashboardForm["status"]) {
     case "draft":
       return { label: "Rascunho", dotColor: "#f59e0b", textClass: "text-amber-600", bgClass: "bg-amber-500/10 border-amber-500/20 text-amber-600" };
     case "closed":
-      return { label: "Encerrado", dotColor: "#94a3b8", textClass: "text-slate-400", bgClass: "bg-slate-500/10 border-slate-500/20 text-slate-400" };
+      return { label: "Encerrado", dotColor: "#94a3b8", textClass: "text-muted-foreground", bgClass: "bg-muted/50 border-border text-muted-foreground" };
   }
 }
 

@@ -666,3 +666,35 @@
 - [x] Adicionar campos específicos no BuilderConfigPanel (texto do botão, mostrar botão)
 - [x] Statement não gera resposta (apenas visual/divisória) — já implementado
 - [x] 10 novos testes (244 testes totais passando)
+
+### Bug Fix: Aviso "Existe um rascunho não publicado" no SharingPanel
+- [x] Investigar por que o aviso aparece e como o fluxo de publicação funciona
+- [x] Garantir que o botão de publicar funcione corretamente para aplicar mudanças
+- [x] Fix: dbFormToBuilderForm agora define isPublished baseado no status do form no DB
+- [x] Fix: handlePublish agora atualiza sharing.isPublished ao publicar/despublicar
+
+### Bug Fix: OG Tags globais do site (Settings > Social)
+- [x] Verificar se Settings > Social está salvando corretamente no banco (já funciona)
+- [x] Garantir que ogMiddleware usa os OG globais como fallback para todas as páginas (já funciona)
+- [x] OG da homepage deve usar as configurações globais de Settings > Social (já funciona)
+- [x] Nota: Para aplicar, ir em Configurações > Social, preencher campos e clicar Salvar
+
+### Bug Fix: Página de Respostas não responsiva (mobile/iPhone)
+- [x] Auditar layout da página Responses em telas pequenas
+- [x] Corrigir cards de estatísticas para mobile (padding, font-size, icon-size reduzidos)
+- [x] Corrigir lista de respostas para mobile (cards empilhados, botões em linha separada)
+- [x] Corrigir detalhes expandidos para mobile (flex-col, font-size menor)
+- [x] Header responsivo (h1 menor, botões compactos)
+- [x] Filtros com scroll horizontal no mobile (-mx-3 px-3 scrollbar-none)
+- [x] Corretores panel responsivo
+
+### Bug Fix: Modo escuro/claro inconsistente em todas as páginas
+- [x] Auditar Dashboard para cores hardcoded
+- [x] Auditar Builder/Editor para cores hardcoded (BuilderConfigPanel, BuilderSidebar, BuilderCanvas, BuilderPreview, DesignEditor, ScoringPanel, WebhookPanel, WorkspaceManager)
+- [x] Auditar Settings para cores hardcoded
+- [x] Auditar Responses para cores hardcoded (ResponsesPanel)
+- [x] Auditar StaffManagement para cores hardcoded (Corretores, PermissionsPage)
+- [x] Auditar Home/Landing page para cores hardcoded (Landing usa bg-white/X que é OK para dark bg)
+- [x] Auditar FormContainer/FormEngine para cores hardcoded (FormView bg-background)
+- [x] Corrigir todas as cores hardcoded para usar variáveis semânticas (bg-card, bg-input, bg-secondary, text-foreground, text-muted-foreground, etc.)
+- [x] Corrigido: ResponseValidation, ClientPortal, ClientRegister, AcceptInvite/Login (usam bg-white/X sobre fundo escuro = OK)

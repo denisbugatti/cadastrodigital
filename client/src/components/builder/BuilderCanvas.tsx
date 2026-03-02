@@ -110,8 +110,8 @@ export function BuilderCanvas({
                       group relative rounded-2xl border cursor-pointer transition-all duration-200
                       ${
                         isSelected
-                          ? "border-brand bg-white shadow-md ring-2 ring-brand/10"
-                          : "border-border bg-white hover:border-brand/30 hover:shadow-sm"
+                          ? "border-brand bg-card shadow-md ring-2 ring-brand/10"
+                          : "border-border bg-card hover:border-brand/30 hover:shadow-sm"
                       }
                     `}
                   >

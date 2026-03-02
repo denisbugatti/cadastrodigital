@@ -144,7 +144,7 @@ function ValidationDrawer({
   const StatusDot = ({ status }: { status?: string }) => {
     if (status === "approved") return <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />;
     if (status === "rejected") return <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />;
-    return <div className="w-2.5 h-2.5 rounded-full bg-gray-300 shrink-0" />;
+    return <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30 shrink-0" />;
   };
 
   return (
@@ -154,7 +154,7 @@ function ValidationDrawer({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+        className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-[2px] z-40"
         onClick={onClose}
       />
 
@@ -164,22 +164,22 @@ function ValidationDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-[520px] bg-white z-50 flex flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
+        className="fixed right-0 top-0 bottom-0 w-full max-w-[520px] bg-card z-50 flex flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
       >
         {/* ── Header ── */}
         <div className="px-6 pt-6 pb-5 shrink-0">
           <div className="flex items-start justify-between mb-5">
             <div>
-              <h3 className="text-lg font-display font-bold text-gray-900 tracking-tight">
+              <h3 className="text-lg font-display font-bold text-foreground tracking-tight">
                 Validação
               </h3>
-              <p className="text-[13px] text-gray-400 mt-1">
+              <p className="text-[13px] text-muted-foreground mt-1">
                 Resposta de {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 -mr-2 -mt-1 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+              className="p-2 -mr-2 -mt-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
             >
               <X size={18} />
             </button>
@@ -187,9 +187,9 @@ function ValidationDrawer({
 
           {/* Stats row */}
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-center">
-              <p className="text-2xl font-display font-bold text-gray-900">{totalFields}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Total</p>
+            <div className="flex-1 bg-secondary rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-display font-bold text-foreground">{totalFields}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Total</p>
             </div>
             <div className="flex-1 bg-emerald-50 rounded-xl px-4 py-3 text-center">
               <p className="text-2xl font-display font-bold text-emerald-600">{approvedFields}</p>
@@ -207,7 +207,7 @@ function ValidationDrawer({
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-gray-100 mx-6" />
+        <div className="h-px bg-border mx-6" />
 
         {/* ── Fields list ── */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
@@ -225,7 +225,7 @@ function ValidationDrawer({
                 {/* Field label row */}
                 <div className="flex items-center gap-2.5 mb-2">
                   <StatusDot status={validation?.status} />
-                  <span className="text-[13px] font-medium text-gray-500">
+                  <span className="text-[13px] font-medium text-muted-foreground">
                     {q.title}
                   </span>
                 </div>
@@ -237,7 +237,7 @@ function ValidationDrawer({
                       ? "border-emerald-200 bg-emerald-50/40"
                       : isRejected
                       ? "border-red-200 bg-red-50/40"
-                      : "border-gray-150 bg-gray-50/50 hover:border-gray-200"
+                      : "border-border bg-secondary/50 hover:border-border"
                   }`}
                 >
                   {/* Content */}
@@ -265,16 +265,16 @@ function ValidationDrawer({
                                       ) : isPdf ? (
                                         <FileText size={14} className="text-red-500 shrink-0" />
                                       ) : (
-                                        <FileIcon size={14} className="text-gray-400 shrink-0" />
+                                        <FileIcon size={14} className="text-muted-foreground shrink-0" />
                                       )}
-                                      <span className="text-[12px] font-medium text-gray-600 truncate">{file.filename || "Arquivo"}</span>
+                                      <span className="text-[12px] font-medium text-foreground/80 truncate">{file.filename || "Arquivo"}</span>
                                     </div>
                                     {hasUrl && (
                                       <a
                                         href={file.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-brand transition-colors shrink-0"
+                                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand transition-colors shrink-0"
                                       >
                                         <ExternalLink size={12} /> Abrir
                                       </a>
@@ -285,7 +285,7 @@ function ValidationDrawer({
                                   {hasUrl && isImage ? (
                                     <button
                                       onClick={() => setExpandedImage(file.url)}
-                                      className="block w-full rounded-lg overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-zoom-in"
+                                      className="block w-full rounded-lg overflow-hidden bg-secondary border border-border hover:border-border transition-all cursor-zoom-in"
                                     >
                                       <img
                                         src={file.url}
@@ -295,7 +295,7 @@ function ValidationDrawer({
                                       />
                                     </button>
                                   ) : hasUrl && isPdf ? (
-                                    <div className="w-full rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                                    <div className="w-full rounded-lg overflow-hidden border border-border bg-secondary">
                                       <iframe
                                         src={`${file.url}#toolbar=0&navpanes=0`}
                                         className="w-full h-[320px]"
@@ -303,18 +303,18 @@ function ValidationDrawer({
                                       />
                                     </div>
                                   ) : hasUrl ? (
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                      <FileIcon size={28} className="text-gray-300 shrink-0" />
+                                    <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border">
+                                      <FileIcon size={28} className="text-muted-foreground/40 shrink-0" />
                                       <div className="min-w-0">
-                                        <p className="text-sm text-gray-600 truncate">{file.filename || "Arquivo"}</p>
-                                        <p className="text-[11px] text-gray-400">{file.mimeType} • Clique em "Abrir" para visualizar</p>
+                                        <p className="text-sm text-foreground/80 truncate">{file.filename || "Arquivo"}</p>
+                                        <p className="text-[11px] text-muted-foreground">{file.mimeType} • Clique em "Abrir" para visualizar</p>
                                       </div>
                                     </div>
                                   ) : (
                                     <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
                                       <FileIcon size={28} className="text-amber-300 shrink-0" />
                                       <div className="min-w-0">
-                                        <p className="text-sm text-gray-600 truncate">{file.filename || "Arquivo"}</p>
+                                        <p className="text-sm text-foreground/80 truncate">{file.filename || "Arquivo"}</p>
                                         <p className="text-[11px] text-amber-600">Arquivo enviado antes da atualização (sem preview disponível)</p>
                                       </div>
                                     </div>
@@ -327,7 +327,7 @@ function ValidationDrawer({
                       }
 
                       return (
-                      <div className="text-[14px] text-gray-800 leading-relaxed">
+                      <div className="text-[14px] text-foreground leading-relaxed">
                         {(() => {
                           // Format answer nicely based on type
                           if (typeof answer === "string") return <p>{answer}</p>;
@@ -337,7 +337,7 @@ function ValidationDrawer({
                                 {answer.map((item: any, idx: number) => (
                                   <span
                                     key={idx}
-                                    className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 text-[13px] rounded-lg"
+                                    className="inline-flex items-center px-2.5 py-1 bg-secondary text-foreground/80 text-[13px] rounded-lg"
                                   >
                                     {typeof item === "object" ? (item?.label || item?.value || item?.text || Object.values(item).join(", ")) : String(item)}
                                   </span>
@@ -347,13 +347,13 @@ function ValidationDrawer({
                           }
                           if (typeof answer === "object" && answer !== null) {
                             const entries = Object.entries(answer).filter(([_, v]) => v !== null && v !== undefined && v !== "");
-                            if (entries.length === 0) return <p className="text-gray-400 italic">Sem resposta</p>;
+                            if (entries.length === 0) return <p className="text-muted-foreground italic">Sem resposta</p>;
                             return (
                               <div className="space-y-1">
                                 {entries.map(([key, val]) => (
                                   <div key={key} className="flex items-baseline gap-2">
-                                    <span className="text-[12px] text-gray-400 font-medium capitalize shrink-0">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}:</span>
-                                    <span className="text-[13px] text-gray-700">{String(val)}</span>
+                                    <span className="text-[12px] text-muted-foreground font-medium capitalize shrink-0">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}:</span>
+                                    <span className="text-[13px] text-foreground/80">{String(val)}</span>
                                   </div>
                                 ))}
                               </div>
@@ -378,14 +378,14 @@ function ValidationDrawer({
                   )}
 
                   {/* Action bar */}
-                  <div className="flex items-center border-t border-gray-100 divide-x divide-gray-100">
+                  <div className="flex items-center border-t border-border divide-x divide-border">
                     <button
                       onClick={() => handleApprove(q.id)}
                       disabled={validateMutation.isPending}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-all rounded-bl-xl ${
                         isApproved
                           ? "text-emerald-700 bg-emerald-50"
-                          : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50"
+                          : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
                       }`}
                     >
                       <CheckCircle2 size={15} />
@@ -397,7 +397,7 @@ function ValidationDrawer({
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-all rounded-br-xl ${
                         isRejected
                           ? "text-red-700 bg-red-50"
-                          : "text-gray-400 hover:text-red-600 hover:bg-red-50/50"
+                          : "text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
                       }`}
                     >
                       <XCircle size={15} />
@@ -411,7 +411,7 @@ function ValidationDrawer({
         </div>
 
         {/* ── Footer ── */}
-        <div className="px-6 py-4 border-t border-gray-100 shrink-0">
+        <div className="px-6 py-4 border-t border-border shrink-0">
           {response.validationStatus === "approved" ? (
             <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 rounded-xl">
               <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
@@ -454,7 +454,7 @@ function ValidationDrawer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]"
+              className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-[2px] z-[60]"
               onClick={() => setRejectingField(null)}
             />
             <motion.div
@@ -462,17 +462,17 @@ function ValidationDrawer({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[420px] bg-white sm:rounded-2xl rounded-t-2xl border-t sm:border border-gray-200 shadow-2xl z-[61] p-6"
+              className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[420px] bg-card sm:rounded-2xl rounded-t-2xl border-t sm:border border-border shadow-2xl z-[61] p-6"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
                   <XCircle size={20} className="text-red-500" />
                 </div>
                 <div>
-                  <h4 className="text-base font-display font-bold text-gray-900">
+                  <h4 className="text-base font-display font-bold text-foreground">
                     Reprovar campo
                   </h4>
-                  <p className="text-[13px] text-gray-400">
+                  <p className="text-[13px] text-muted-foreground">
                     Informe o motivo ao cliente
                   </p>
                 </div>
@@ -481,14 +481,14 @@ function ValidationDrawer({
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
                 placeholder="Ex: Documento ilegível, informação incorreta..."
-                className="w-full px-4 py-3 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 resize-none transition-all"
+                className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 resize-none transition-all"
                 rows={3}
                 autoFocus
               />
               <div className="flex items-center gap-3 mt-4">
                 <button
                   onClick={() => setRejectingField(null)}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-150 transition-all"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-foreground/80 bg-secondary hover:bg-secondary/80 transition-all"
                 >
                   Cancelar
                 </button>
@@ -679,7 +679,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   // Loading state
   if (!formId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-white">
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-card">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
           <div className="w-28 h-28 mx-auto mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
             <ClipboardList size={44} className="text-brand/50" />
@@ -697,7 +697,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
   if (responsesQuery.isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-white">
+      <div className="h-full flex items-center justify-center bg-card">
         <Loader2 size={32} className="text-brand animate-spin" />
       </div>
     );
@@ -706,7 +706,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   // Empty state
   if (responses.length === 0 && !searchQuery) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-white">
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-card">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
           <div className="w-28 h-28 mx-auto mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
             <ClipboardList size={44} className="text-brand/50" />
@@ -749,7 +749,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-gray-50 text-gray-600 border border-gray-100">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-secondary text-muted-foreground border border-border">
             <Shield size={11} /> Pendente
           </span>
         );
@@ -757,7 +757,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-card">
       {/* ─── Header with stats ─── */}
       <div className="border-b border-border px-6 py-4 shrink-0">
         <div className="flex items-center justify-between mb-4">
@@ -867,7 +867,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="absolute top-full right-0 mt-1 bg-white rounded-xl border border-border shadow-xl z-50 py-1 min-w-[160px]"
+                  className="absolute top-full right-0 mt-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1 min-w-[160px]"
                 >
                   {(
                     [
@@ -1034,7 +1034,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
       {/* ─── Pagination ─── */}
       {totalPages > 1 && (
-        <div className="border-t border-border px-6 py-3 flex items-center justify-between shrink-0 bg-white">
+        <div className="border-t border-border px-6 py-3 flex items-center justify-between shrink-0 bg-card">
           <p className="text-xs font-body text-muted-foreground">
             Mostrando {(currentPage - 1) * itemsPerPage + 1}–
             {Math.min(currentPage * itemsPerPage, filteredResponses.length)} de{" "}

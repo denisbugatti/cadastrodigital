@@ -137,6 +137,7 @@ function dbFormToBuilderForm(dbForm: any): BuilderForm {
       ...defaultSharingSettings,
       ...dbSharing,
       slug: dbSharing.slug ?? dbForm.slug ?? "",
+      isPublished: dbForm.status === "published",
       embedWidth: dbSharing.embedWidth ?? defaultSharingSettings.embedWidth,
       embedHeight: dbSharing.embedHeight ?? defaultSharingSettings.embedHeight,
       embedButtonText: dbSharing.embedButtonText ?? defaultSharingSettings.embedButtonText,

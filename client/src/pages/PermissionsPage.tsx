@@ -97,20 +97,20 @@ export default function PermissionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafbfc]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/dashboard")}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 font-display">Permissões por Nível</h1>
-              <p className="text-sm text-gray-500">Configure o que cada cargo pode acessar</p>
+              <h1 className="text-xl font-bold text-foreground font-display">Permissões por Nível</h1>
+              <p className="text-sm text-muted-foreground">Configure o que cada cargo pode acessar</p>
             </div>
           </div>
           <Button
@@ -124,8 +124,8 @@ export default function PermissionsPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Hierarchy Cards */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-          <h2 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-4">
+        <div className="bg-card rounded-xl border border-border p-6 mb-8">
+          <h2 className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-4">
             Hierarquia de Acesso
           </h2>
           <div className="space-y-3">
@@ -141,7 +141,7 @@ export default function PermissionsPage() {
                     <Icon className={`w-5 h-5 ${role.color}`} />
                     <div>
                       <span className={`font-semibold ${role.color}`}>{role.label}</span>
-                      <p className="text-xs text-gray-500 mt-0.5">{role.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{role.description}</p>
                     </div>
                   </div>
                 </div>
@@ -161,17 +161,17 @@ export default function PermissionsPage() {
         )}
 
         {/* Permissions Matrix */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {permissionsQuery.isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Recurso</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Recurso</th>
                     {roles.map((role) => {
                       const Icon = role.icon;
                       return (
@@ -187,8 +187,8 @@ export default function PermissionsPage() {
                 </thead>
                 <tbody>
                   {defaultPermissions.map((perm) => (
-                    <tr key={perm} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-3.5 text-sm text-gray-700">
+                    <tr key={perm} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
+                      <td className="px-6 py-3.5 text-sm text-foreground">
                         {permissionLabels[perm] || perm}
                       </td>
                       {roles.map((role) => {
@@ -203,8 +203,8 @@ export default function PermissionsPage() {
                                 granted
                                   ? "bg-emerald-500 text-white shadow-sm"
                                   : editMode && !isMaster
-                                    ? "bg-gray-100 text-gray-300 hover:bg-gray-200 cursor-pointer"
-                                    : "bg-gray-50 text-gray-200"
+                                    ? "bg-secondary text-muted-foreground/40 hover:bg-secondary/80 cursor-pointer"
+                                    : "bg-secondary/50 text-muted-foreground/30"
                               } ${isMaster ? "cursor-default" : editMode ? "cursor-pointer" : "cursor-default"}`}
                             >
                               {granted ? (
