@@ -89,7 +89,7 @@ export function BuilderConfigPanel({
 
   // Determine available tabs
   const tabs: { id: "general" | "media" | "logic"; label: string; icon: typeof Settings }[] = [
-    { id: "general", label: isSpecialScreen ? "Conteúdo" : "Geral", icon: Settings },
+    { id: "general", label: (isSpecialScreen || isStatement) ? "Conteúdo" : "Geral", icon: Settings },
     { id: "media", label: "Mídia", icon: ImagePlus },
   ];
   if (hasConditionalLogic) {
@@ -191,6 +191,34 @@ export function BuilderConfigPanel({
                     onCheckedChange={(checked) => onUpdate(question.id, { required: checked })}
                   />
                 </div>
+              )}
+
+              {/* ─── Statement specific ─── */}
+              {isStatement && (
+                <>
+                  {/* Button text */}
+                  <FieldGroup label="Texto do botão" icon={<MousePointerClick size={14} />}>
+                    <input
+                      type="text"
+                      value={question.buttonText ?? "Continuar"}
+                      onChange={(e) => onUpdate(question.id, { buttonText: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
+                      placeholder="Continuar"
+                    />
+                  </FieldGroup>
+
+                  {/* Show button toggle */}
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
+                    <Label className="text-sm font-body text-foreground flex items-center gap-2">
+                      <MousePointerClick size={16} className="text-muted-foreground" />
+                      Mostrar botão
+                    </Label>
+                    <Switch
+                      checked={question.showButton}
+                      onCheckedChange={(checked) => onUpdate(question.id, { showButton: checked })}
+                    />
+                  </div>
+                </>
               )}
 
               {/* ─── Welcome / Thank-you specific ─── */}

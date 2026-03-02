@@ -657,3 +657,12 @@
 - [x] Confirmação antes de excluir com AlertDialog
 - [x] Campo email adicionado ao backend staff.update
 - [x] Tema escuro aplicado na página de Equipe (bg-background, bg-card, text-foreground)
+
+### Feature: Tipo Statement/Capa no Builder
+- [x] Tipo statement já existia no builderTypes.ts com defaults (título, subtítulo, botão Continuar)
+- [x] Já existia no menu "Adicionar pergunta" como "Mensagem" na categoria texto
+- [x] Melhorar visual do StatementScreen — título maior (28-36px responsivo), decorações visuais, ícone com gradiente
+- [x] Suporte a imagem customizada e botão com efeito hover (ArrowRight + whileHover)
+- [x] Adicionar campos específicos no BuilderConfigPanel (texto do botão, mostrar botão)
+- [x] Statement não gera resposta (apenas visual/divisória) — já implementado
+- [x] 10 novos testes (244 testes totais passando)

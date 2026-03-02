@@ -1,8 +1,8 @@
 /**
  * FormFlow Statement / Cover Screen
  * Beautiful cover-style screen that acts as a section divider.
+ * Large title, description, decorative elements, and continue button.
  * Adapts to form design colors — works on both light and dark backgrounds.
- * Font sizes match Respondi: title 24px, subtitle 16px, button 16px.
  */
 
 import { motion } from "framer-motion";
@@ -26,114 +26,122 @@ interface StatementScreenProps {
 
 export function StatementScreen({ question, onNext, design }: StatementScreenProps) {
   const buttonColor = design?.buttonColor || "#3B82F6";
+  const buttonTextColor = design?.buttonTextColor || "#FFFFFF";
+  const questionColor = design?.questionColor || "#1E293B";
   const fontFamily = design?.fontFamily || "Plus Jakarta Sans, sans-serif";
 
   return (
-    <div className="flex flex-col items-center text-center max-w-xl mx-auto px-5 sm:px-8">
-      {/* Decorative accent line */}
+    <div className="flex flex-col items-center text-center max-w-2xl mx-auto px-5 sm:px-8">
+      {/* Decorative accent dots */}
       <motion.div
-        className="w-12 h-1 rounded-full mb-8"
-        style={{ backgroundColor: buttonColor }}
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-      />
+        className="flex items-center gap-1.5 mb-8"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `${buttonColor}40` }} />
+        <div className="w-10 h-1.5 rounded-full" style={{ backgroundColor: buttonColor }} />
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `${buttonColor}40` }} />
+      </motion.div>
 
-      {/* Icon with glow */}
+      {/* Icon / Image */}
       {question.imageUrl ? (
         <motion.img
           src={question.imageUrl}
           alt=""
-          className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-6"
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 18, delay: 0.15 }}
+          className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-8 rounded-2xl"
+          initial={{ opacity: 0, scale: 0.7, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
         />
       ) : (
         <motion.div
-          className="mb-6 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center"
+          className="mb-8 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center"
           style={{
-            backgroundColor: `${buttonColor}15`,
-            border: `1px solid ${buttonColor}30`,
+            background: `linear-gradient(135deg, ${buttonColor}20, ${buttonColor}08)`,
+            border: `1.5px solid ${buttonColor}25`,
           }}
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 18, delay: 0.15 }}
+          initial={{ opacity: 0, scale: 0.7, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
         >
-          <Sparkles size={24} style={{ color: buttonColor }} />
+          <Sparkles size={28} style={{ color: buttonColor }} />
         </motion.div>
       )}
 
-      {/* Title — 24px matching Respondi */}
+      {/* Title — Large cover-style */}
       <motion.h2
         className="font-display tracking-tight leading-tight"
         style={{
           fontFamily,
-          fontSize: "24px",
-          fontWeight: 400,
-          lineHeight: "28.8px",
+          fontSize: "clamp(28px, 5vw, 36px)",
+          fontWeight: 600,
+          lineHeight: 1.2,
+          color: questionColor,
         }}
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
         {question.title}
       </motion.h2>
 
-      {/* Subtitle / Description — 16px */}
+      {/* Subtitle / Description */}
       {question.subtitle && (
         <motion.p
-          className="mt-4 leading-relaxed opacity-60 max-w-md"
+          className="mt-5 leading-relaxed max-w-lg"
           style={{
             fontFamily,
-            fontSize: "16px",
+            fontSize: "clamp(16px, 2.5vw, 18px)",
             fontWeight: 400,
+            color: questionColor,
+            opacity: 0.55,
           }}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 0.6, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 0.55, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.5 }}
         >
           {question.subtitle}
         </motion.p>
       )}
 
-      {/* Button if showButton is true */}
+      {/* Continue Button */}
       {question.showButton !== false && question.buttonText && (
         <motion.div
-          className="mt-7 flex items-center justify-center gap-3"
+          className="mt-9"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.button
             onClick={onNext}
-            className="px-7 py-3 rounded-lg font-medium shadow-lg flex items-center gap-2.5 transition-all"
+            className="group px-8 py-3.5 rounded-xl font-medium shadow-lg flex items-center gap-3 transition-all"
             style={{
               backgroundColor: buttonColor,
-              color: "#FFFFFF",
+              color: buttonTextColor,
               fontFamily,
               fontSize: "16px",
-              fontWeight: 400,
+              fontWeight: 500,
             }}
-            whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}
+            whileHover={{ scale: 1.04, boxShadow: `0 10px 35px ${buttonColor}40` }}
             whileTap={{ scale: 0.96 }}
           >
             {question.buttonText}
-            <ArrowRight size={16} />
+            <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
           </motion.button>
         </motion.div>
       )}
 
-      {/* Hint — OK to continue */}
+      {/* Hint — press Enter or OK */}
       {(!question.showButton || !question.buttonText) && (
         <motion.p
-          className="mt-8 opacity-40"
-          style={{ fontFamily, fontSize: "14px" }}
+          className="mt-10"
+          style={{ fontFamily, fontSize: "14px", color: questionColor, opacity: 0.35 }}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.4 }}
+          animate={{ opacity: 0.35 }}
           transition={{ delay: 0.6 }}
         >
-          Clique em <strong>OK</strong> para continuar
+          Pressione <strong>Enter ↵</strong> para continuar
         </motion.p>
       )}
     </div>
