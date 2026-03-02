@@ -253,9 +253,43 @@ function ValidationDrawer({
                         })}
                       </div>
                     ) : (
-                      <p className="text-[14px] text-gray-800 leading-relaxed">
-                        {typeof answer === "string" ? answer : JSON.stringify(answer)}
-                      </p>
+                      <div className="text-[14px] text-gray-800 leading-relaxed">
+                        {(() => {
+                          // Format answer nicely based on type
+                          if (typeof answer === "string") return <p>{answer}</p>;
+                          if (Array.isArray(answer)) {
+                            return (
+                              <div className="flex flex-wrap gap-1.5">
+                                {answer.map((item: any, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 text-[13px] rounded-lg"
+                                  >
+                                    {typeof item === "object" ? (item?.label || item?.value || item?.text || Object.values(item).join(", ")) : String(item)}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          }
+                          if (typeof answer === "object" && answer !== null) {
+                            const entries = Object.entries(answer).filter(([_, v]) => v !== null && v !== undefined && v !== "");
+                            if (entries.length === 0) return <p className="text-gray-400 italic">Sem resposta</p>;
+                            return (
+                              <div className="space-y-1">
+                                {entries.map(([key, val]) => (
+                                  <div key={key} className="flex items-baseline gap-2">
+                                    <span className="text-[12px] text-gray-400 font-medium capitalize shrink-0">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}:</span>
+                                    <span className="text-[13px] text-gray-700">{String(val)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                          if (typeof answer === "boolean") return <p>{answer ? "Sim" : "N\u00e3o"}</p>;
+                          if (typeof answer === "number") return <p>{answer}</p>;
+                          return <p>{String(answer)}</p>;
+                        })()}
+                      </div>
                     )}
                   </div>
 
