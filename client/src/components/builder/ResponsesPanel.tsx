@@ -1,7 +1,7 @@
 /**
  * FormFlow Responses Panel — Real Data Dashboard
- * Tabela de respostas reais do backend com validação campo a campo,
- * justificativa para reprovação, e geração de PDF apenas quando aprovado.
+ * Mobile-first responsive design with cards on small screens, table on desktop.
+ * Validation drawer, field-by-field review, PDF generation.
  */
 
 import { useState, useMemo, useCallback } from "react";
@@ -13,6 +13,7 @@ import {
   CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
   Lock, Loader2, Check, AlertTriangle, MessageSquare,
   ExternalLink, Image as ImageIcon, File as FileIcon,
+  MoreHorizontal, Clock, User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -27,7 +28,7 @@ interface ResponsesPanelProps {
 
 type DateFilter = "all" | "today" | "7days" | "30days";
 
-/* ─── Validation Drawer (Clean Redesign) ─── */
+/* ─── Validation Drawer (Mobile-optimized) ─── */
 function ValidationDrawer({
   response,
   questions,
@@ -114,22 +115,17 @@ function ValidationDrawer({
   const isFileField = (q: BuilderQuestion) => q.type === "file-upload";
   const getFileForQuestion = (questionId: string) => files.filter((f: any) => f.questionId === questionId);
 
-  // Parse file answer from the answers JSON (new format: {url, filename, mimeType})
   const parseFileAnswer = (answer: any): { url: string; filename: string; mimeType: string } | null => {
     if (!answer) return null;
-    // If it's already an object with url
     if (typeof answer === "object" && answer.url) return answer;
-    // If it's a JSON string
     if (typeof answer === "string") {
       try {
         const parsed = JSON.parse(answer);
         if (parsed && typeof parsed === "object" && parsed.url) return parsed;
       } catch {
-        // Not JSON — legacy filename-only value
         if (answer && !answer.startsWith("{") && !answer.startsWith("http")) {
           return { url: "", filename: answer, mimeType: "" };
         }
-        // Direct URL
         if (answer.startsWith("http")) {
           const ext = answer.split(".").pop()?.toLowerCase() || "";
           const mimeMap: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", pdf: "application/pdf" };
@@ -140,7 +136,6 @@ function ValidationDrawer({
     return null;
   };
 
-  // Status indicator dot
   const StatusDot = ({ status }: { status?: string }) => {
     if (status === "approved") return <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />;
     if (status === "rejected") return <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />;
@@ -158,23 +153,23 @@ function ValidationDrawer({
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Drawer — full screen on mobile, side panel on desktop */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-[520px] bg-card z-50 flex flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
+        className="fixed right-0 top-0 bottom-0 w-full sm:max-w-[520px] bg-card z-50 flex flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
       >
         {/* ── Header ── */}
-        <div className="px-6 pt-6 pb-5 shrink-0">
-          <div className="flex items-start justify-between mb-5">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-5 shrink-0">
+          <div className="flex items-start justify-between mb-4 sm:mb-5">
             <div>
-              <h3 className="text-lg font-display font-bold text-foreground tracking-tight">
+              <h3 className="text-base sm:text-lg font-display font-bold text-foreground tracking-tight">
                 Validação
               </h3>
-              <p className="text-[13px] text-muted-foreground mt-1">
-                Resposta de {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+              <p className="text-xs sm:text-[13px] text-muted-foreground mt-1">
+                {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             </div>
             <button
@@ -185,32 +180,31 @@ function ValidationDrawer({
             </button>
           </div>
 
-          {/* Stats row */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-secondary rounded-xl px-4 py-3 text-center">
-              <p className="text-2xl font-display font-bold text-foreground">{totalFields}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Total</p>
+          {/* Stats row — 2x2 on small mobile, 4 cols on wider */}
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+            <div className="bg-secondary rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
+              <p className="text-lg sm:text-2xl font-display font-bold text-foreground">{totalFields}</p>
+              <p className="text-[9px] sm:text-[11px] text-muted-foreground">Total</p>
             </div>
-            <div className="flex-1 bg-emerald-50 rounded-xl px-4 py-3 text-center">
-              <p className="text-2xl font-display font-bold text-emerald-600">{approvedFields}</p>
-              <p className="text-[11px] text-emerald-500 mt-0.5">Aprovados</p>
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
+              <p className="text-lg sm:text-2xl font-display font-bold text-emerald-600">{approvedFields}</p>
+              <p className="text-[9px] sm:text-[11px] text-emerald-500">OK</p>
             </div>
-            <div className="flex-1 bg-red-50 rounded-xl px-4 py-3 text-center">
-              <p className="text-2xl font-display font-bold text-red-600">{rejectedFields}</p>
-              <p className="text-[11px] text-red-400 mt-0.5">Reprovados</p>
+            <div className="bg-red-50 dark:bg-red-950/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
+              <p className="text-lg sm:text-2xl font-display font-bold text-red-600">{rejectedFields}</p>
+              <p className="text-[9px] sm:text-[11px] text-red-400">Reprov.</p>
             </div>
-            <div className="flex-1 bg-amber-50 rounded-xl px-4 py-3 text-center">
-              <p className="text-2xl font-display font-bold text-amber-600">{pendingFields}</p>
-              <p className="text-[11px] text-amber-500 mt-0.5">Pendentes</p>
+            <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
+              <p className="text-lg sm:text-2xl font-display font-bold text-amber-600">{pendingFields}</p>
+              <p className="text-[9px] sm:text-[11px] text-amber-500">Pend.</p>
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-border mx-6" />
+        <div className="h-px bg-border mx-4 sm:mx-6" />
 
         {/* ── Fields list ── */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-4">
           {fieldsWithAnswers.map((q, i) => {
             const answer = answers[q.id];
             const validation = validationMap[q.id];
@@ -222,101 +216,80 @@ function ValidationDrawer({
 
             return (
               <div key={q.id} className="group">
-                {/* Field label row */}
-                <div className="flex items-center gap-2.5 mb-2">
+                {/* Field label */}
+                <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                   <StatusDot status={validation?.status} />
-                  <span className="text-[13px] font-medium text-muted-foreground">
+                  <span className="text-xs sm:text-[13px] font-medium text-muted-foreground truncate">
                     {q.title}
                   </span>
                 </div>
 
                 {/* Answer card */}
                 <div
-                  className={`ml-5 rounded-xl border transition-all ${
+                  className={`ml-4 sm:ml-5 rounded-xl border transition-all ${
                     isApproved
-                      ? "border-emerald-200 bg-emerald-50/40"
+                      ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20"
                       : isRejected
-                      ? "border-red-200 bg-red-50/40"
+                      ? "border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20"
                       : "border-border bg-secondary/50 hover:border-border"
                   }`}
                 >
-                  {/* Content */}
-                  <div className="px-4 py-3">
+                  <div className="px-3 sm:px-4 py-2.5 sm:py-3">
                     {(() => {
-                      // Check if this field has a file answer (from answer JSON or files table)
                       const fileFromAnswer = isFile ? parseFileAnswer(answer) : null;
                       const dbFiles = isFile ? questionFiles : [];
                       const allFiles = fileFromAnswer ? [fileFromAnswer] : dbFiles;
 
                       if (isFile && allFiles.length > 0) {
                         return (
-                          <div className="space-y-3">
+                          <div className="space-y-2 sm:space-y-3">
                             {allFiles.map((file: any, fIdx: number) => {
                               const isImage = file.mimeType?.startsWith("image/");
                               const isPdf = file.mimeType === "application/pdf";
                               const hasUrl = !!file.url;
-                              return (
-                                <div key={file.id || fIdx} className="space-y-2">
-                                  {/* File info row */}
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      {isImage ? (
-                                        <ImageIcon size={14} className="text-blue-500 shrink-0" />
-                                      ) : isPdf ? (
-                                        <FileText size={14} className="text-red-500 shrink-0" />
-                                      ) : (
-                                        <FileIcon size={14} className="text-muted-foreground shrink-0" />
-                                      )}
-                                      <span className="text-[12px] font-medium text-foreground/80 truncate">{file.filename || "Arquivo"}</span>
-                                    </div>
-                                    {hasUrl && (
-                                      <a
-                                        href={file.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-brand transition-colors shrink-0"
-                                      >
-                                        <ExternalLink size={12} /> Abrir
-                                      </a>
-                                    )}
-                                  </div>
 
-                                  {/* Inline expanded preview */}
-                                  {hasUrl && isImage ? (
-                                    <button
-                                      onClick={() => setExpandedImage(file.url)}
-                                      className="block w-full rounded-lg overflow-hidden bg-secondary border border-border hover:border-border transition-all cursor-zoom-in"
-                                    >
+                              return (
+                                <div key={fIdx}>
+                                  {isImage && hasUrl ? (
+                                    <div className="space-y-2">
                                       <img
                                         src={file.url}
                                         alt={file.filename}
-                                        className="w-full max-h-[280px] object-contain"
-                                        loading="lazy"
+                                        className="w-full max-h-40 sm:max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => setExpandedImage(file.url)}
                                       />
-                                    </button>
-                                  ) : hasUrl && isPdf ? (
-                                    <div className="w-full rounded-lg overflow-hidden border border-border bg-secondary">
-                                      <iframe
-                                        src={`${file.url}#toolbar=0&navpanes=0`}
-                                        className="w-full h-[320px]"
-                                        title={file.filename || "PDF Preview"}
-                                      />
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => setExpandedImage(file.url)}
+                                          className="flex items-center gap-1 text-[11px] text-brand hover:underline"
+                                        >
+                                          <ImageIcon size={11} /> Ampliar
+                                        </button>
+                                        <a
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                                        >
+                                          <ExternalLink size={11} /> Abrir
+                                        </a>
+                                      </div>
                                     </div>
                                   ) : hasUrl ? (
-                                    <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg border border-border">
-                                      <FileIcon size={28} className="text-muted-foreground/40 shrink-0" />
-                                      <div className="min-w-0">
-                                        <p className="text-sm text-foreground/80 truncate">{file.filename || "Arquivo"}</p>
-                                        <p className="text-[11px] text-muted-foreground">{file.mimeType} • Clique em "Abrir" para visualizar</p>
-                                      </div>
-                                    </div>
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 p-2.5 rounded-lg bg-card border border-border hover:border-brand/30 transition-all"
+                                    >
+                                      <FileIcon size={16} className="text-brand shrink-0" />
+                                      <span className="text-xs sm:text-sm text-foreground truncate">{file.filename}</span>
+                                      <ExternalLink size={12} className="text-muted-foreground shrink-0 ml-auto" />
+                                    </a>
                                   ) : (
-                                    <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                                      <FileIcon size={28} className="text-amber-300 shrink-0" />
-                                      <div className="min-w-0">
-                                        <p className="text-sm text-foreground/80 truncate">{file.filename || "Arquivo"}</p>
-                                        <p className="text-[11px] text-amber-600">Arquivo enviado antes da atualização (sem preview disponível)</p>
-                                      </div>
+                                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-card border border-border">
+                                      <FileIcon size={16} className="text-muted-foreground shrink-0" />
+                                      <span className="text-xs sm:text-sm text-muted-foreground truncate">{file.filename}</span>
                                     </div>
                                   )}
                                 </div>
@@ -326,127 +299,60 @@ function ValidationDrawer({
                         );
                       }
 
+                      // Text answer
+                      const displayValue = typeof answer === "object" ? JSON.stringify(answer) : String(answer);
                       return (
-                      <div className="text-[14px] text-foreground leading-relaxed">
-                        {(() => {
-                          // Format answer nicely based on type
-                          if (typeof answer === "string") return <p>{answer}</p>;
-                          if (Array.isArray(answer)) {
-                            return (
-                              <div className="flex flex-wrap gap-1.5">
-                                {answer.map((item: any, idx: number) => (
-                                  <span
-                                    key={idx}
-                                    className="inline-flex items-center px-2.5 py-1 bg-secondary text-foreground/80 text-[13px] rounded-lg"
-                                  >
-                                    {typeof item === "object" ? (item?.label || item?.value || item?.text || Object.values(item).join(", ")) : String(item)}
-                                  </span>
-                                ))}
-                              </div>
-                            );
-                          }
-                          if (typeof answer === "object" && answer !== null) {
-                            const entries = Object.entries(answer).filter(([_, v]) => v !== null && v !== undefined && v !== "");
-                            if (entries.length === 0) return <p className="text-muted-foreground italic">Sem resposta</p>;
-                            return (
-                              <div className="space-y-1">
-                                {entries.map(([key, val]) => (
-                                  <div key={key} className="flex items-baseline gap-2">
-                                    <span className="text-[12px] text-muted-foreground font-medium capitalize shrink-0">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}:</span>
-                                    <span className="text-[13px] text-foreground/80">{String(val)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          }
-                          if (typeof answer === "boolean") return <p>{answer ? "Sim" : "N\u00e3o"}</p>;
-                          if (typeof answer === "number") return <p>{answer}</p>;
-                          return <p>{String(answer)}</p>;
-                        })()}
-                      </div>
+                        <p className="text-xs sm:text-sm text-foreground font-body leading-relaxed break-words">
+                          {displayValue}
+                        </p>
                       );
                     })()}
                   </div>
 
-                  {/* Rejection reason */}
-                  {isRejected && validation.justification && (
-                    <div className="mx-4 mb-3 px-3 py-2 bg-red-50 rounded-lg">
-                      <p className="text-[12px] text-red-600 leading-relaxed">
-                        <span className="font-semibold">Motivo:</span> {validation.justification}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Action bar */}
-                  <div className="flex items-center border-t border-border divide-x divide-border">
-                    <button
-                      onClick={() => handleApprove(q.id)}
-                      disabled={validateMutation.isPending}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-all rounded-bl-xl ${
-                        isApproved
-                          ? "text-emerald-700 bg-emerald-50"
-                          : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
-                      }`}
-                    >
-                      <CheckCircle2 size={15} />
-                      {isApproved ? "Aprovado" : "Aprovar"}
-                    </button>
-                    <button
-                      onClick={() => handleReject(q.id)}
-                      disabled={validateMutation.isPending}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-all rounded-br-xl ${
-                        isRejected
-                          ? "text-red-700 bg-red-50"
-                          : "text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
-                      }`}
-                    >
-                      <XCircle size={15} />
-                      {isRejected ? "Reprovado" : "Reprovar"}
-                    </button>
+                  {/* Action buttons */}
+                  <div className="px-3 sm:px-4 py-2 border-t border-border/50 flex items-center gap-2">
+                    {isPending ? (
+                      <>
+                        <button
+                          onClick={() => handleApprove(q.id)}
+                          disabled={validateMutation.isPending}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-body font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 transition-all"
+                        >
+                          <Check size={12} /> Aprovar
+                        </button>
+                        <button
+                          onClick={() => handleReject(q.id)}
+                          disabled={validateMutation.isPending}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-body font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800 transition-all"
+                        >
+                          <X size={12} /> Reprovar
+                        </button>
+                      </>
+                    ) : isApproved ? (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 size={13} /> Aprovado
+                      </div>
+                    ) : isRejected ? (
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 mb-1">
+                          <XCircle size={13} /> Reprovado
+                        </div>
+                        {validation?.justification && (
+                          <p className="text-[11px] text-muted-foreground italic ml-5">
+                            "{validation.justification}"
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-
-        {/* ── Footer ── */}
-        <div className="px-6 py-4 border-t border-border shrink-0">
-          {response.validationStatus === "approved" ? (
-            <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 rounded-xl">
-              <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={18} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-emerald-800">Cadastro Aprovado</p>
-                <p className="text-[12px] text-emerald-600">PDF disponível para download</p>
-              </div>
-            </div>
-          ) : response.validationStatus === "rejected" ? (
-            <div className="flex items-center gap-3 px-4 py-3 bg-red-50 rounded-xl">
-              <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <XCircle size={18} className="text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-red-800">Campos Reprovados</p>
-                <p className="text-[12px] text-red-600">O cliente precisa corrigir os itens reprovados</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 px-4 py-3 bg-amber-50/70 rounded-xl">
-              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <Shield size={18} className="text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-amber-800">Validação em andamento</p>
-                <p className="text-[12px] text-amber-600">{pendingFields} campo{pendingFields !== 1 ? "s" : ""} pendente{pendingFields !== 1 ? "s" : ""} de revisão</p>
-              </div>
-            </div>
-          )}
-        </div>
       </motion.div>
 
-      {/* ── Rejection justification modal ── */}
+      {/* ── Reject justification modal ── */}
       <AnimatePresence>
         {rejectingField && (
           <>
@@ -454,49 +360,41 @@ function ValidationDrawer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-[2px] z-[60]"
+              className="fixed inset-0 bg-black/40 z-[60]"
               onClick={() => setRejectingField(null)}
             />
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[420px] bg-card sm:rounded-2xl rounded-t-2xl border-t sm:border border-border shadow-2xl z-[61] p-6"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-4 right-4 sm:left-auto sm:right-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bottom-4 sm:bottom-auto sm:w-[400px] bg-card rounded-2xl border border-border shadow-2xl z-[61] p-5"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                  <XCircle size={20} className="text-red-500" />
-                </div>
-                <div>
-                  <h4 className="text-base font-display font-bold text-foreground">
-                    Reprovar campo
-                  </h4>
-                  <p className="text-[13px] text-muted-foreground">
-                    Informe o motivo ao cliente
-                  </p>
-                </div>
-              </div>
+              <h4 className="text-sm font-display font-bold text-foreground mb-1">
+                Motivo da reprovação
+              </h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Informe o motivo para o cliente corrigir.
+              </p>
               <textarea
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
-                placeholder="Ex: Documento ilegível, informação incorreta..."
-                className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 resize-none transition-all"
-                rows={3}
+                placeholder="Ex: Documento ilegível, envie novamente..."
+                className="w-full px-3 py-2.5 rounded-xl text-sm font-body bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/30 resize-none h-24 transition-colors"
                 autoFocus
               />
-              <div className="flex items-center gap-3 mt-4">
+              <div className="flex gap-2 mt-3">
                 <button
                   onClick={() => setRejectingField(null)}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-foreground/80 bg-secondary hover:bg-secondary/80 transition-all"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:bg-secondary transition-all"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmReject}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-all"
+                  disabled={!justification.trim() || validateMutation.isPending}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-all"
                 >
-                  Confirmar
+                  Reprovar
                 </button>
               </div>
             </motion.div>
@@ -519,7 +417,7 @@ function ValidationDrawer({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-8 z-[71] flex items-center justify-center"
+              className="fixed inset-4 sm:inset-8 z-[71] flex items-center justify-center"
               onClick={() => setExpandedImage(null)}
             >
               <img
@@ -541,6 +439,121 @@ function ValidationDrawer({
   );
 }
 
+/* ─── Response Card (Mobile) ─── */
+function ResponseCard({
+  response,
+  questions,
+  onValidate,
+  onGeneratePdf,
+  isGenerating,
+  getStatusBadge,
+}: {
+  response: any;
+  questions: BuilderQuestion[];
+  onValidate: (id: number) => void;
+  onGeneratePdf: (id: number) => void;
+  isGenerating: boolean;
+  getStatusBadge: (status: string | null | undefined) => React.ReactNode;
+}) {
+  const answers = (response.answers ?? {}) as Record<string, any>;
+  const isValidated = response.validationStatus === "approved";
+
+  // Show first 2-3 meaningful answers as preview
+  const previewFields = questions
+    .filter((q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement")
+    .slice(0, 3)
+    .map((q) => ({
+      label: q.title,
+      value: answers[q.id],
+    }))
+    .filter((f) => f.value);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card border border-border rounded-xl overflow-hidden hover:border-brand/20 transition-all"
+    >
+      {/* Card header */}
+      <div className="px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+            <Clock size={14} className="text-muted-foreground" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              {new Date(response.createdAt).toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+              })}
+              <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                {new Date(response.createdAt).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </p>
+          </div>
+        </div>
+        {getStatusBadge(response.validationStatus)}
+      </div>
+
+      {/* Preview fields */}
+      {previewFields.length > 0 && (
+        <div className="px-4 pb-2 space-y-1.5">
+          {previewFields.map((field, i) => (
+            <div key={i} className="flex items-baseline gap-2">
+              <span className="text-[11px] text-muted-foreground shrink-0 w-[90px] truncate">
+                {field.label}
+              </span>
+              <span className="text-xs text-foreground font-medium truncate">
+                {typeof field.value === "object" ? JSON.stringify(field.value) : String(field.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-2">
+        <button
+          onClick={() => onValidate(response.id)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-medium text-brand bg-brand-lighter/50 hover:bg-brand-lighter border border-brand/20 transition-all"
+        >
+          <Shield size={13} />
+          Validar
+        </button>
+        <button
+          onClick={() => {
+            if (!isValidated) {
+              toast.info("Validação necessária", {
+                description: "Valide todas as respostas antes de gerar o PDF.",
+              });
+              return;
+            }
+            onGeneratePdf(response.id);
+          }}
+          disabled={isGenerating}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-medium transition-all ${
+            isValidated
+              ? "text-white bg-brand hover:bg-brand/90"
+              : "text-muted-foreground bg-muted border border-border cursor-not-allowed"
+          }`}
+        >
+          {isGenerating ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : !isValidated ? (
+            <Lock size={13} />
+          ) : (
+            <FileText size={13} />
+          )}
+          Gerar PDF
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── Main Panel ─── */
 export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], formId }: ResponsesPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -559,7 +572,6 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     [questions]
   );
 
-  // Fetch real responses from backend
   const responsesQuery = trpc.responses.listByForm.useQuery(
     { formId: formId!, search: searchQuery || undefined },
     { enabled: !!formId, staleTime: 10000 }
@@ -568,7 +580,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const responses = responsesQuery.data ?? [];
   const utils = trpc.useUtils();
 
-  // Columns to show in table (max 4 for readability + date + status)
+  // Columns for desktop table (max 4)
   const visibleColumns = useMemo(() => {
     return actualQuestions.slice(0, 4);
   }, [actualQuestions]);
@@ -576,14 +588,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   // Filter responses
   const filteredResponses = useMemo(() => {
     let filtered = [...responses];
-
-    // Date filter
     const now = new Date();
     if (dateFilter === "today") {
-      filtered = filtered.filter((r: any) => {
-        const d = new Date(r.createdAt);
-        return d.toDateString() === now.toDateString();
-      });
+      filtered = filtered.filter((r: any) => new Date(r.createdAt).toDateString() === now.toDateString());
     } else if (dateFilter === "7days") {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       filtered = filtered.filter((r: any) => new Date(r.createdAt) >= weekAgo);
@@ -592,7 +599,6 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
       filtered = filtered.filter((r: any) => new Date(r.createdAt) >= monthAgo);
     }
 
-    // Sort
     filtered.sort((a: any, b: any) => {
       if (sortField === "createdAt") {
         const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -679,15 +685,16 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   // Loading state
   if (!formId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-card">
+      <div className="h-full flex flex-col items-center justify-center p-6 sm:p-8 bg-card">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
-          <div className="w-28 h-28 mx-auto mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
-            <ClipboardList size={44} className="text-brand/50" />
+          <div className="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
+            <ClipboardList size={36} className="text-brand/50 sm:hidden" />
+            <ClipboardList size={44} className="text-brand/50 hidden sm:block" />
           </div>
-          <h3 className="text-xl font-display font-bold text-foreground mb-3">
+          <h3 className="text-lg sm:text-xl font-display font-bold text-foreground mb-2 sm:mb-3">
             Salve o formulário primeiro
           </h3>
-          <p className="text-base text-muted-foreground mb-8">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Publique o formulário para começar a receber respostas.
           </p>
         </motion.div>
@@ -706,15 +713,16 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   // Empty state
   if (responses.length === 0 && !searchQuery) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-card">
+      <div className="h-full flex flex-col items-center justify-center p-6 sm:p-8 bg-card">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
-          <div className="w-28 h-28 mx-auto mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
-            <ClipboardList size={44} className="text-brand/50" />
+          <div className="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
+            <ClipboardList size={36} className="text-brand/50 sm:hidden" />
+            <ClipboardList size={44} className="text-brand/50 hidden sm:block" />
           </div>
-          <h3 className="text-xl font-display font-bold text-foreground mb-3">
+          <h3 className="text-lg sm:text-xl font-display font-bold text-foreground mb-2 sm:mb-3">
             Nenhuma resposta ainda
           </h3>
-          <p className="text-base text-muted-foreground mb-8">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Compartilhe o formulário para começar a receber respostas.
           </p>
         </motion.div>
@@ -726,24 +734,23 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     ? responses.find((r: any) => r.id === validatingResponseId)
     : null;
 
-  // Get validation status label and style
   const getStatusBadge = (status: string | null | undefined) => {
     switch (status) {
       case "approved":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-green-50 text-green-700 border border-green-100">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">
             <ShieldCheck size={11} /> Aprovado
           </span>
         );
       case "rejected":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-red-50 text-red-700 border border-red-100">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-800">
             <ShieldAlert size={11} /> Reprovado
           </span>
         );
       case "in_review":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-blue-50 text-blue-700 border border-blue-100">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
             <Shield size={11} /> Em revisão
           </span>
         );
@@ -758,20 +765,20 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
   return (
     <div className="h-full flex flex-col bg-card">
-      {/* ─── Header with stats ─── */}
-      <div className="border-b border-border px-6 py-4 shrink-0">
-        <div className="flex items-center justify-between mb-4">
+      {/* ─── Header ─── */}
+      <div className="border-b border-border px-4 sm:px-6 py-3 sm:py-4 shrink-0">
+        {/* Title row */}
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h2 className="text-lg font-display font-bold text-foreground">Respostas</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {filteredResponses.length} resposta{filteredResponses.length !== 1 ? "s" : ""} encontrada
-              {filteredResponses.length !== 1 ? "s" : ""}
+            <h2 className="text-base sm:text-lg font-display font-bold text-foreground">Respostas</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              {filteredResponses.length} resposta{filteredResponses.length !== 1 ? "s" : ""} encontrada{filteredResponses.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => responsesQuery.refetch()}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:bg-secondary transition-all"
+              className="p-2 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl text-muted-foreground border border-border hover:bg-secondary transition-all"
               title="Atualizar"
             >
               <Loader2
@@ -781,16 +788,17 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
             </button>
             <button
               onClick={exportCSV}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium text-foreground border border-border hover:bg-secondary hover:border-brand/20 transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-body font-medium text-foreground border border-border hover:bg-secondary hover:border-brand/20 transition-all"
             >
-              <FileSpreadsheet size={15} />
-              Exportar CSV
+              <FileSpreadsheet size={14} />
+              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="sm:hidden">CSV</span>
             </button>
           </div>
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-5 gap-3 mb-4">
+        {/* Stats cards — 2x2 on mobile, 5 cols on desktop */}
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-3 sm:mb-4">
           {[
             { label: "Total", value: responses.length, color: "text-brand" },
             {
@@ -815,16 +823,21 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
               ).length,
               color: "text-amber-600",
             },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-secondary/50 rounded-xl px-3 py-2.5 border border-border/50">
-              <p className="text-[10px] font-body text-muted-foreground">{stat.label}</p>
-              <p className={`text-xl font-display font-bold ${stat.color}`}>{stat.value}</p>
+          ].map((stat, i) => (
+            <div
+              key={stat.label}
+              className={`bg-secondary/50 rounded-lg sm:rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 border border-border/50 ${
+                i >= 3 ? "hidden sm:block" : ""
+              }`}
+            >
+              <p className="text-[9px] sm:text-[10px] font-body text-muted-foreground truncate">{stat.label}</p>
+              <p className={`text-lg sm:text-xl font-display font-bold ${stat.color}`}>{stat.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Filters row */}
-        <div className="flex items-center gap-3">
+        {/* Filters — stacked on mobile */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           {/* Search */}
           <div className="flex-1 relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -836,7 +849,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                 setCurrentPage(1);
               }}
               placeholder="Buscar nas respostas..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-sm font-body bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/30 transition-colors"
+              className="w-full pl-9 pr-4 py-2 rounded-lg sm:rounded-xl text-sm font-body bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/30 transition-colors"
             />
           </div>
 
@@ -844,7 +857,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
           <div className="relative">
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium border transition-all ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
                 dateFilter !== "all"
                   ? "bg-brand-lighter text-brand border-brand/20"
                   : "text-muted-foreground border-border hover:bg-secondary"
@@ -900,9 +913,34 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         </div>
       </div>
 
-      {/* ─── Table ─── */}
+      {/* ─── Content: Cards on mobile, Table on desktop ─── */}
       <div className="flex-1 overflow-auto custom-scrollbar">
-        <table className="w-full">
+        {/* Mobile: Card list */}
+        <div className="sm:hidden p-3 space-y-2.5">
+          {paginatedResponses.map((resp: any) => (
+            <ResponseCard
+              key={resp.id}
+              response={resp}
+              questions={questions}
+              onValidate={setValidatingResponseId}
+              onGeneratePdf={handleGenerateFicha}
+              isGenerating={generatingId === resp.id}
+              getStatusBadge={getStatusBadge}
+            />
+          ))}
+
+          {filteredResponses.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Filter size={28} className="text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-body text-muted-foreground">
+                Nenhuma resposta encontrada.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: Table */}
+        <table className="w-full hidden sm:table">
           <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-10">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[140px]">
@@ -976,7 +1014,6 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                   <td className="px-4 py-3">{getStatusBadge(resp.validationStatus)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {/* Validate button */}
                       <button
                         onClick={() => setValidatingResponseId(resp.id)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body font-medium text-brand bg-brand-lighter/50 hover:bg-brand-lighter border border-brand/20 transition-all"
@@ -985,8 +1022,6 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                         <Shield size={12} />
                         Validar
                       </button>
-
-                      {/* Generate PDF button */}
                       <button
                         onClick={() => {
                           if (!isValidated) {
@@ -1012,7 +1047,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                         ) : (
                           <FileText size={12} />
                         )}
-                        {isGenerating ? "..." : !isValidated ? "PDF" : "PDF"}
+                        {isGenerating ? "..." : "PDF"}
                       </button>
                     </div>
                   </td>
@@ -1022,8 +1057,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
           </tbody>
         </table>
 
+        {/* Desktop empty state */}
         {filteredResponses.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="hidden sm:flex flex-col items-center justify-center py-20 text-center">
             <Filter size={32} className="text-muted-foreground/20 mb-4" />
             <p className="text-sm font-body text-muted-foreground">
               Nenhuma resposta encontrada com os filtros atuais.
@@ -1034,13 +1070,11 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
       {/* ─── Pagination ─── */}
       {totalPages > 1 && (
-        <div className="border-t border-border px-6 py-3 flex items-center justify-between shrink-0 bg-card">
-          <p className="text-xs font-body text-muted-foreground">
-            Mostrando {(currentPage - 1) * itemsPerPage + 1}–
-            {Math.min(currentPage * itemsPerPage, filteredResponses.length)} de{" "}
-            {filteredResponses.length}
+        <div className="border-t border-border px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shrink-0 bg-card">
+          <p className="text-[10px] sm:text-xs font-body text-muted-foreground">
+            {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredResponses.length)} de {filteredResponses.length}
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -1048,19 +1082,32 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
             >
               <ChevronLeft size={16} />
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-8 h-8 rounded-lg text-xs font-body font-medium transition-all ${
-                  page === currentPage
-                    ? "bg-brand text-white"
-                    : "text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              // Smart page numbers: show pages around current
+              let page: number;
+              if (totalPages <= 5) {
+                page = i + 1;
+              } else if (currentPage <= 3) {
+                page = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                page = totalPages - 4 + i;
+              } else {
+                page = currentPage - 2 + i;
+              }
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-[11px] sm:text-xs font-body font-medium transition-all ${
+                    page === currentPage
+                      ? "bg-brand text-white"
+                      : "text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}

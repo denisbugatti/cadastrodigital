@@ -698,3 +698,13 @@
 - [x] Auditar FormContainer/FormEngine para cores hardcoded (FormView bg-background)
 - [x] Corrigir todas as cores hardcoded para usar variáveis semânticas (bg-card, bg-input, bg-secondary, text-foreground, text-muted-foreground, etc.)
 - [x] Corrigido: ResponseValidation, ClientPortal, ClientRegister, AcceptInvite/Login (usam bg-white/X sobre fundo escuro = OK)
+
+### Bug Fix: ResponsesPanel (Editor) péssima experiência no mobile
+- [x] Tabela de respostas fica cortada no mobile — cards empilhados com preview de campos
+- [x] Redesenhar para mobile-first: ResponseCard component com data, status badge, preview fields, botões
+- [x] Stats cards responsivos: grid-cols-3 no mobile, grid-cols-5 no desktop
+- [x] Busca e filtros adaptados para mobile: empilhados verticalmente
+- [x] Validation Drawer full-screen no mobile (w-full sm:max-w-[520px])
+- [x] Reject modal como bottom sheet no mobile
+- [x] Paginação compacta no mobile
+- [x] Todos os 244 testes passando
