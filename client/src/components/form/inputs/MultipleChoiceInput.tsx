@@ -119,6 +119,9 @@ export function MultipleChoiceInput({
             transition={{
               delay: 0.25 + i * 0.04,
               duration: 0.3,
+              x: validationError && !value
+                ? { duration: 0.4, ease: "easeInOut" }
+                : { type: "spring", stiffness: 300, damping: 25 },
               type: "spring",
               stiffness: 300,
               damping: 25,

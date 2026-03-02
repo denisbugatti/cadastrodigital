@@ -529,3 +529,6 @@
 ### Geração de PDF restrita a respostas validadas
 - [x] Desabilitar botão "Gerar Ficha" quando resposta não está validada
 - [x] Mostrar tooltip/mensagem explicando que precisa validar antes de gerar PDF
+
+### Bug Fixes
+- [x] Fix Framer Motion spring animation error on editor page (keyframes 0,-4,4,-4,4,0 not supported with spring)
