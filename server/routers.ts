@@ -634,7 +634,10 @@ export const appRouter = router({
       }),
 
     exportCsv: ownerFallbackProcedure
-      .input(z.object({ formId: z.number() }))
+      .input(z.object({
+        formId: z.number(),
+        validationStatus: z.enum(["all", "pending", "in_review", "approved", "rejected"]).optional().default("all"),
+      }))
       .query(async ({ ctx, input }) => {
         // Verify ownership
         const form = await db.getFormById(input.formId);
@@ -642,7 +645,11 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
         }
 
-        const responses = await db.getResponsesByForm(input.formId);
+        let responses = await db.getResponsesByForm(input.formId);
+        // Filter by validation status if specified
+        if (input.validationStatus && input.validationStatus !== "all") {
+          responses = responses.filter((r: any) => r.validationStatus === input.validationStatus);
+        }
         const questions: any[] = form.questions ?? [];
 
         // Build CSV header: fixed columns + one column per question

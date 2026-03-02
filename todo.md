@@ -575,3 +575,13 @@
 
 ### Bug Fixes (cont.)
 - [x] Menu de configurações não abre (reescrito sem DashboardLayout genérico, layout próprio com botão voltar)
+
+### Configurações - Funcionalidades Reais
+- [x] Backend: tabela de permissões por papel (Gerente/Corretor) no banco de dados (já existia)
+- [x] Backend: tRPC procedures para CRUD de permissões por papel (já existia)
+- [x] Frontend: Settings aba Permissões conectada ao backend real
+- [x] Backend: exportação CSV de respostas com filtros por status e formulário (apenas master)
+- [x] Frontend: Settings aba Exportação com seleção de formulário, filtros e download CSV
+- [x] Backend: tRPC procedure para convite de novos usuários (gerar link ou enviar email) (já existia)
+- [x] Frontend: Settings aba Usuários com listagem real e funcionalidade de convite
+- [x] Restrição: apenas master pode acessar exportação (via ownerFallbackProcedure)
