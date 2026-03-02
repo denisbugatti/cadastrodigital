@@ -13,7 +13,7 @@ import {
   CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
   Lock, Loader2, Check, AlertTriangle, MessageSquare,
   ExternalLink, Image as ImageIcon, File as FileIcon,
-  MoreHorizontal, Clock, User, Phone,
+  MoreHorizontal, Clock, User, Phone, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -448,6 +448,7 @@ function ResponseCard({
   isGenerating,
   getStatusBadge,
   formatWhatsAppLink,
+  staffUsers = [],
 }: {
   response: any;
   questions: BuilderQuestion[];
@@ -456,6 +457,7 @@ function ResponseCard({
   isGenerating: boolean;
   getStatusBadge: (status: string | null | undefined) => React.ReactNode;
   formatWhatsAppLink: (phone: string) => string | null;
+  staffUsers?: any[];
 }) {
   const answers = (response.answers ?? {}) as Record<string, any>;
   const isValidated = response.validationStatus === "approved";
@@ -544,6 +546,17 @@ function ResponseCard({
         </div>
       )}
 
+      {/* Reviewer info */}
+      {response.reviewedBy && (
+        <div className="px-4 pb-1.5 flex items-center gap-1.5">
+          <Users size={11} className="text-muted-foreground" />
+          <span className="text-[11px] text-muted-foreground">Responsável:</span>
+          <span className="text-[11px] font-medium text-foreground">
+            {staffUsers.find((s: any) => s.id === response.reviewedBy)?.name || "Staff #" + response.reviewedBy}
+          </span>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-2">
         <button
@@ -589,7 +602,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCorretorPicker, setShowCorretorPicker] = useState(false);
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
   const [validatingResponseId, setValidatingResponseId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -606,6 +621,16 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const responsesQuery = trpc.responses.listByForm.useQuery(
     { formId: formId!, search: searchQuery || undefined },
     { enabled: !!formId, staleTime: 10000 }
+  );
+
+  // Staff users for corretor filter (reviewedBy)
+  const staffQuery = trpc.staff.list.useQuery(undefined, { staleTime: 60000 });
+  const staffUsers = staffQuery.data ?? [];
+
+  // Form corretores (assigned to this form)
+  const formCorretoresQuery = trpc.corretores.byForm.useQuery(
+    { formId: formId! },
+    { enabled: !!formId, staleTime: 60000 }
   );
 
   const responses = responsesQuery.data ?? [];
@@ -657,6 +682,33 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     return actualQuestions.slice(0, 3);
   }, [actualQuestions, smartFields]);
 
+  // Build combined list of people for the corretor/reviewer filter
+  const filterPeople = useMemo(() => {
+    const people: { id: string; name: string; type: string }[] = [];
+    const seen = new Set<string>();
+
+    // Staff users who reviewed responses
+    for (const staff of staffUsers) {
+      const key = `staff-${staff.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        people.push({ id: `staff-${staff.id}`, name: staff.name, type: staff.role || "staff" });
+      }
+    }
+
+    // Form corretores (legacy)
+    const formCorretores = formCorretoresQuery.data ?? [];
+    for (const c of formCorretores) {
+      const key = `corretor-${(c as any).id}`;
+      if (!seen.has(key) && !staffUsers.some((s: any) => s.id === (c as any).staffUserId)) {
+        seen.add(key);
+        people.push({ id: key, name: (c as any).name, type: "corretor" });
+      }
+    }
+
+    return people;
+  }, [staffUsers, formCorretoresQuery.data]);
+
   // Filter responses
   const filteredResponses = useMemo(() => {
     let filtered = [...responses];
@@ -667,6 +719,16 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         filtered = filtered.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
       } else {
         filtered = filtered.filter((r: any) => r.validationStatus === statusFilter);
+      }
+    }
+
+    // Corretor/reviewer filter
+    if (corretorFilter !== "all") {
+      if (corretorFilter === "unassigned") {
+        filtered = filtered.filter((r: any) => !r.reviewedBy);
+      } else if (corretorFilter.startsWith("staff-")) {
+        const staffId = parseInt(corretorFilter.replace("staff-", ""));
+        filtered = filtered.filter((r: any) => r.reviewedBy === staffId);
       }
     }
 
@@ -693,7 +755,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     });
 
     return filtered;
-  }, [responses, dateFilter, statusFilter, sortField, sortDir]);
+  }, [responses, dateFilter, statusFilter, corretorFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
   const paginatedResponses = filteredResponses.slice(
@@ -978,10 +1040,102 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
             />
           </div>
 
+          {/* Corretor/Reviewer filter */}
+          {filterPeople.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowCorretorPicker(!showCorretorPicker);
+                  setShowDatePicker(false);
+                }}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
+                  corretorFilter !== "all"
+                    ? "bg-brand-lighter text-brand border-brand/20"
+                    : "text-muted-foreground border-border hover:bg-secondary"
+                }`}
+              >
+                <Users size={14} />
+                <span className="truncate max-w-[100px] sm:max-w-[140px]">
+                  {corretorFilter === "all"
+                    ? "Responsável"
+                    : corretorFilter === "unassigned"
+                    ? "Sem responsável"
+                    : filterPeople.find((p) => p.id === corretorFilter)?.name || "Responsável"}
+                </span>
+                <ChevronDown size={12} />
+              </button>
+
+              <AnimatePresence>
+                {showCorretorPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="absolute top-full right-0 mt-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1 min-w-[200px] max-h-[280px] overflow-y-auto custom-scrollbar"
+                  >
+                    <button
+                      onClick={() => {
+                        setCorretorFilter("all");
+                        setShowCorretorPicker(false);
+                        setCurrentPage(1);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
+                        corretorFilter === "all"
+                          ? "bg-brand-lighter text-brand font-medium"
+                          : "text-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      Todos os responsáveis
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCorretorFilter("unassigned");
+                        setShowCorretorPicker(false);
+                        setCurrentPage(1);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
+                        corretorFilter === "unassigned"
+                          ? "bg-brand-lighter text-brand font-medium"
+                          : "text-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      Sem responsável
+                    </button>
+                    <div className="border-t border-border my-1" />
+                    {filterPeople.map((person) => (
+                      <button
+                        key={person.id}
+                        onClick={() => {
+                          setCorretorFilter(person.id);
+                          setShowCorretorPicker(false);
+                          setCurrentPage(1);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm font-body transition-colors flex items-center gap-2 ${
+                          corretorFilter === person.id
+                            ? "bg-brand-lighter text-brand font-medium"
+                            : "text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
+                          {person.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="truncate">{person.name}</span>
+                        <span className="text-[10px] text-muted-foreground ml-auto capitalize shrink-0">{person.type}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
           {/* Date filter */}
           <div className="relative">
             <button
-              onClick={() => setShowDatePicker(!showDatePicker)}
+              onClick={() => {
+                setShowDatePicker(!showDatePicker);
+                setShowCorretorPicker(false);
+              }}
               className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
                 dateFilter !== "all"
                   ? "bg-brand-lighter text-brand border-brand/20"
@@ -1052,6 +1206,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
               isGenerating={generatingId === resp.id}
               getStatusBadge={getStatusBadge}
               formatWhatsAppLink={formatWhatsAppLink}
+              staffUsers={staffUsers}
             />
           ))}
 
@@ -1097,6 +1252,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
               ))}
               <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[110px]">
                 Validação
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[130px]">
+                Responsável
               </th>
               <th className="text-right px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[180px]">
                 Ações
@@ -1157,6 +1315,20 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                     );
                   })}
                   <td className="px-4 py-3">{getStatusBadge(resp.validationStatus)}</td>
+                  <td className="px-4 py-3">
+                    {resp.reviewedBy ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center text-[9px] font-semibold text-brand shrink-0">
+                          {(staffUsers.find((s: any) => s.id === resp.reviewedBy)?.name || "?").charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-xs font-body text-foreground truncate max-w-[90px]">
+                          {staffUsers.find((s: any) => s.id === resp.reviewedBy)?.name || "Staff #" + resp.reviewedBy}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button

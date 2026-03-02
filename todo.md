@@ -722,3 +722,17 @@
 - [x] Funciona tanto no mobile (pills) quanto no desktop (stats cards clicáveis)
 - [x] Paginação reseta ao trocar filtro
 - [x] Clicar novamente no mesmo filtro volta para "Todos"
+
+### Feature: Notificação push quando nova resposta chegar ao formulário
+- [x] Verificar infraestrutura existente de push notifications (VAPID, service worker) — JÁ IMPLEMENTADO
+- [x] Disparar notificação push para o owner quando nova resposta for submetida — notifyOwnerNewResponse() já chamada em routers.ts
+- [x] Incluir informações úteis na notificação (nome do formulário, nome do respondente) — já inclui
+- [x] Email para corretores ativos do formulário — notifyCorretoresNewSubmission() já implementado
+
+### Feature: Filtro por corretor/responsável no ResponsesPanel
+- [x] Verificar se respostas têm campo de responsável/corretor atribuído (reviewedBy = staff_users.id)
+- [x] Adicionar dropdown de filtro por corretor no ResponsesPanel (entre busca e data)
+- [x] Coluna "Responsável" na tabela desktop + info no card mobile
+- [x] Listar staff users + corretores no dropdown com avatar e role
+- [x] Opções: Todos, Sem responsável, e cada staff/corretor individualmente
+- [x] Todos os 244 testes passando
