@@ -555,3 +555,4 @@
 - [x] Redesenhar drawer de validação com design mais limpo, bonito e intuitivo
 - [x] Formatar exibição de respostas no drawer de validação (remover JSON bruto, aspas, colchetes)
 - [x] Preview expandido de anexos (imagens/PDFs) diretamente no drawer de validação sem abrir outra aba
+- [x] Remover animação splash do logo FormFlow no início do site (formulário público)
