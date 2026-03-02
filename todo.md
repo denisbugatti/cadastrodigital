@@ -572,3 +572,6 @@
 - [x] Salvar imagem de capa no campo design do formulário (design.ogImage)
 - [x] Integrar imagem de capa com middleware OG para preview do WhatsApp
 - [x] Preview da imagem de capa no SharingPanel (já existia no DesignEditor seção social)
+
+### Bug Fixes (cont.)
+- [x] Menu de configurações não abre (reescrito sem DashboardLayout genérico, layout próprio com botão voltar)
