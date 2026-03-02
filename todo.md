@@ -534,3 +534,7 @@
 - [x] Feature: Adicionar páginas extras ao PDF — permitir anexar documentos/imagens adicionais ao Cadastro de Interesse gerado
 - [x] Bug: Usuário não consegue acessar configurações e editar formulário — DashboardLayout usava Manus OAuth em vez de customAuth
 - [x] Bug: Após login com Manus OAuth, formulários não aparecem e acesso fica limitado — DashboardLayout e Settings agora usam customAuth.me e redirecionam para /login
+- [x] Bug: Configurações não acessíveis — require('cookie') ESM error + cores hardcoded para tema escuro reescritas com variáveis semânticas
+- [x] Bug: Edição de formulário — senha do master user estava incorreta no DB, resetada para Denis@2025
+- [x] Bug: Convite de usuário — email Resend em modo teste, agora mostra link copiável quando email falha + aviso sobre verificação de domínio
+- [x] Pixel-perfect: Settings reescrita com cores semânticas, DashboardLayout sem sidebar genérica, convites com botão copiar link

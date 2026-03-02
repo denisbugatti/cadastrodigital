@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { parse as parseCookieHeader } from "cookie";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, router } from "./_core/trpc";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
@@ -318,7 +319,6 @@ export const customAuthRouter = router({
 // Helper to parse cookies from header
 function parseCookies(cookieHeader: string | undefined): Map<string, string> {
   if (!cookieHeader) return new Map();
-  const { parse } = require("cookie");
-  const parsed = parse(cookieHeader);
+  const parsed = parseCookieHeader(cookieHeader);
   return new Map(Object.entries(parsed));
 }

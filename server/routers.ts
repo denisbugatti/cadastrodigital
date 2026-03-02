@@ -192,13 +192,13 @@ export const appRouter = router({
           expiresAt,
         });
         const inviteUrl = `${input.origin}/aceitar-convite?token=${token}`;
-        await sendInviteEmail({
+        const emailSent = await sendInviteEmail({
           to: input.email,
           inviterName: ctx.user.name || "Administrador",
           role: input.role,
           inviteUrl,
         });
-        return { success: true, token };
+        return { success: true, token, inviteUrl, emailSent };
       }),
 
     invites: ownerFallbackProcedure.query(async ({ ctx }) => {
