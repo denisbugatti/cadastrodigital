@@ -539,3 +539,4 @@
 - [x] Bug: Convite de usuário — email Resend em modo teste, agora mostra link copiável quando email falha + aviso sobre verificação de domínio
 - [x] Pixel-perfect: Settings reescrita com cores semânticas, DashboardLayout sem sidebar genérica, convites com botão copiar link
 - [x] Bug: Editor page crashes with "Rendered more hooks than during the previous render" — moved useEffect before conditional loading return
+- [x] Bug: Usuário não consegue acessar editor e configurações — versão publicada com código antigo + DB connection failing. ownerFallback agora nunca lança exceção (synthetic fallback). Precisa publicar novo checkpoint.
