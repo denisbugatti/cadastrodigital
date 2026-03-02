@@ -38,8 +38,8 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Use the current origin as the base URL — automatically reflects the real domain
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://one.cadastrodigital.com.br";
+  // Fixed domain for form URLs — always use the custom domain
+  const baseUrl = "https://one.cadastrodigital.com.br";
 
   const formUrl = `${baseUrl}/${sharing.slug}`;
 
@@ -172,8 +172,8 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
               Endpoint do formulário
             </label>
             <div className="flex items-center gap-0 bg-secondary rounded-xl border border-border overflow-hidden">
-              <span className="text-sm text-muted-foreground shrink-0 px-3 py-2.5 bg-muted/50 border-r border-border">
-                {baseUrl}/
+              <span className="text-xs text-muted-foreground shrink-0 px-3 py-2.5 bg-muted/50 border-r border-border font-mono">
+                one.cadastrodigital.com.br/
               </span>
               <div className="flex-1 flex items-center">
                 <input

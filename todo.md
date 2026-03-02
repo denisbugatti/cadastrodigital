@@ -532,3 +532,7 @@
 
 ### Bug Fixes
 - [x] Fix Framer Motion spring animation error on editor page (keyframes 0,-4,4,-4,4,0 not supported with spring)
+
+### SharingPanel Fixes
+- [x] Slug não aparece para edição no SharingPanel (slug was visible but domain prefix was wrong)
+- [x] Domínio do formulário deve ser one.cadastrodigital.com.br/slug (hardcoded custom domain)
