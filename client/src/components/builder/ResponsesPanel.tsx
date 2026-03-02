@@ -246,14 +246,6 @@ function ValidationDrawer({
             </div>
           </div>
 
-          {/* Approve All button */}
-          <button
-            onClick={handleApproveAll}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-semibold text-white bg-green-600 hover:bg-green-700 transition-all"
-          >
-            <CheckCircle2 size={16} />
-            Aprovar todos os pendentes
-          </button>
         </div>
 
         {/* Fields list */}
