@@ -616,7 +616,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 h-full bg-background"
             >
-              <ResponsesPanel formTitle={form.title} responseCount={0} questions={form.questions} />
+              <ResponsesPanel formTitle={form.title} responseCount={0} questions={form.questions} formId={currentDbFormId} />
             </motion.div>
           )}
         </AnimatePresence>

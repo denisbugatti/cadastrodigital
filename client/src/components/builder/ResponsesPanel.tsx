@@ -1,259 +1,461 @@
 /**
- * FormFlow Responses Panel — Full Dashboard
- * Tabela de respostas com filtros por data, busca, e exportação CSV/Excel.
- * Usa dados simulados (localStorage) já que não há backend.
+ * FormFlow Responses Panel — Real Data Dashboard
+ * Tabela de respostas reais do backend com validação campo a campo,
+ * justificativa para reprovação, e geração de PDF apenas quando aprovado.
  */
 
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ClipboardList, Share2, Download, Search, Calendar,
+  ClipboardList, Download, Search, Calendar,
   ChevronDown, ChevronLeft, ChevronRight, Filter,
-  Eye, Trash2, X, FileSpreadsheet, ArrowUpDown,
+  Eye, X, FileSpreadsheet, ArrowUpDown, FileText,
+  CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
+  Lock, Loader2, Check, AlertTriangle, MessageSquare,
+  ExternalLink, Image as ImageIcon, File as FileIcon,
 } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import type { BuilderQuestion } from "@/lib/builderTypes";
 
 interface ResponsesPanelProps {
   formTitle: string;
   responseCount: number;
   questions?: BuilderQuestion[];
+  formId?: number;
 }
 
-// Simulated response data
-interface SimulatedResponse {
-  id: string;
-  submittedAt: string;
-  answers: Record<string, string>;
-  status: "complete" | "partial";
-}
+type DateFilter = "all" | "today" | "7days" | "30days";
 
-function generateSampleResponses(questions: BuilderQuestion[]): SimulatedResponse[] {
+/* ─── Validation Drawer ─── */
+function ValidationDrawer({
+  response,
+  questions,
+  onClose,
+  formId,
+}: {
+  response: any;
+  questions: BuilderQuestion[];
+  onClose: () => void;
+  formId: number;
+}) {
+  const answers = (response.answers ?? {}) as Record<string, any>;
   const actualQs = questions.filter(
-    q => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
-  );
-  if (actualQs.length === 0) return [];
-
-  const names = [
-    "Maria Silva", "João Santos", "Ana Oliveira", "Pedro Costa",
-    "Juliana Lima", "Carlos Souza", "Fernanda Almeida", "Ricardo Pereira",
-    "Beatriz Rodrigues", "Lucas Ferreira", "Camila Gomes", "Rafael Martins",
-  ];
-  const emails = names.map(n => n.toLowerCase().replace(" ", ".") + "@email.com");
-  const cpfs = [
-    "123.456.789-09", "987.654.321-00", "456.789.123-45", "321.654.987-12",
-    "789.123.456-78", "654.987.321-34", "147.258.369-01", "963.852.741-56",
-    "258.369.147-89", "741.852.963-23", "369.147.258-67", "852.963.741-90",
-  ];
-  const phones = [
-    "(11) 99999-1234", "(21) 98888-5678", "(31) 97777-9012", "(41) 96666-3456",
-    "(51) 95555-7890", "(61) 94444-2345", "(71) 93333-6789", "(81) 92222-0123",
-    "(91) 91111-4567", "(11) 90000-8901", "(21) 99876-5432", "(31) 98765-4321",
-  ];
-
-  return Array.from({ length: 12 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-    date.setHours(Math.floor(Math.random() * 14) + 8);
-    date.setMinutes(Math.floor(Math.random() * 60));
-
-    const answers: Record<string, string> = {};
-    actualQs.forEach(q => {
-      if (q.type === "name") answers[q.id] = names[i];
-      else if (q.type === "email") answers[q.id] = emails[i];
-      else if (q.type === "cpf") answers[q.id] = cpfs[i];
-      else if (q.type === "phone") answers[q.id] = phones[i];
-      else if (q.type === "multiple-choice" && q.choices.length > 0) {
-        const choice = q.choices[Math.floor(Math.random() * q.choices.length)];
-        answers[q.id] = choice.label;
-      }
-      else if (q.type === "date") {
-        const d = new Date(1970 + Math.floor(Math.random() * 40), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
-        answers[q.id] = d.toLocaleDateString("pt-BR");
-      }
-      else if (q.type === "currency") answers[q.id] = `R$ ${(3000 + Math.floor(Math.random() * 20000)).toLocaleString("pt-BR")},00`;
-      else if (q.type === "number") answers[q.id] = String(Math.floor(Math.random() * 100000000));
-      else if (q.type === "short-text") answers[q.id] = ["Brasileiro(a)", "Engenheiro(a)", "Advogado(a)", "Médico(a)", "Professor(a)"][Math.floor(Math.random() * 5)];
-      else if (q.type === "address") answers[q.id] = ["São Paulo, SP", "Rio de Janeiro, RJ", "Belo Horizonte, MG", "Curitiba, PR"][Math.floor(Math.random() * 4)];
-      else if (q.type === "cnpj") answers[q.id] = "12.345.678/0001-90";
-      else if (q.type === "file-upload") answers[q.id] = "arquivo.pdf";
-      else answers[q.id] = "—";
-    });
-
-    return {
-      id: `resp_${i + 1}`,
-      submittedAt: date.toISOString(),
-      answers,
-      status: (Math.random() > 0.15 ? "complete" : "partial") as "complete" | "partial",
-    };
-  }).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-}
-
-type DateFilter = "all" | "today" | "7days" | "30days" | "custom";
-
-/* ─── Pie Chart Component ─── */
-function ResponsePieChart({ responses, questions }: { responses: SimulatedResponse[]; questions: BuilderQuestion[] }) {
-  // Find the multiple-choice question that has PF/PJ
-  const pfPjQ = questions.find(q => 
-    q.type === "multiple-choice" && 
-    q.choices.some(c => c.label.toLowerCase().includes("pessoa") || c.label.toLowerCase().includes("cpf") || c.label.toLowerCase().includes("cnpj"))
+    (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
   );
 
-  const data = useMemo(() => {
-    if (!pfPjQ) {
-      // Fallback: count complete vs partial
-      const complete = responses.filter(r => r.status === "complete").length;
-      const partial = responses.filter(r => r.status === "partial").length;
-      return [
-        { label: "Completas", value: complete, color: "#10B981" },
-        { label: "Parciais", value: partial, color: "#F59E0B" },
-      ];
-    }
-    // Count per choice
-    const counts: Record<string, number> = {};
-    pfPjQ.choices.forEach(c => { counts[c.label] = 0; });
-    responses.forEach(r => {
-      const answer = r.answers[pfPjQ.id];
-      if (answer && counts[answer] !== undefined) counts[answer]++;
-    });
-    const colors = ["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"];
-    return Object.entries(counts).map(([label, value], i) => ({
-      label,
-      value,
-      color: colors[i % colors.length],
-    }));
-  }, [responses, pfPjQ]);
+  // Fetch existing validations
+  const validationsQuery = trpc.validations.byResponse.useQuery(
+    { responseId: response.id },
+    { staleTime: 5000 }
+  );
 
-  const total = data.reduce((s, d) => s + d.value, 0);
-  if (total === 0) return null;
+  // Fetch files for this response
+  const filesQuery = trpc.files.listByResponse.useQuery(
+    { responseId: response.id },
+    { staleTime: 10000 }
+  );
 
-  // SVG pie chart
-  let cumulativeAngle = 0;
-  const segments = data.map(d => {
-    const angle = (d.value / total) * 360;
-    const startAngle = cumulativeAngle;
-    cumulativeAngle += angle;
-    return { ...d, startAngle, angle };
+  const validateMutation = trpc.validations.validate.useMutation({
+    onSuccess: () => {
+      validationsQuery.refetch();
+      // Also refetch the responses list to update status badges
+      trpc.useUtils().responses.listByForm.invalidate({ formId });
+    },
+    onError: (err) => toast.error(err.message || "Erro ao validar"),
   });
 
-  function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-    const rad = ((angleDeg - 90) * Math.PI) / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  }
+  const [rejectingField, setRejectingField] = useState<string | null>(null);
+  const [justification, setJustification] = useState("");
 
-  function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
-    const start = polarToCartesian(cx, cy, r, endAngle);
-    const end = polarToCartesian(cx, cy, r, startAngle);
-    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-    return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
-  }
+  const validations = validationsQuery.data ?? [];
+  const files = filesQuery.data ?? [];
 
-  return (
-    <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-      <p className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-        {pfPjQ ? "Distribuição PF / PJ" : "Status das Respostas"}
-      </p>
-      <div className="flex items-center gap-4">
-        <svg viewBox="0 0 100 100" className="w-20 h-20 shrink-0">
-          {segments.map((seg, i) => (
-            <path
-              key={i}
-              d={seg.angle >= 359.99
-                ? `M 50 5 A 45 45 0 1 1 49.99 5 Z`
-                : arcPath(50, 50, 45, seg.startAngle, seg.startAngle + seg.angle)
-              }
-              fill={seg.color}
-              className="transition-all duration-300"
-            />
-          ))}
-          <circle cx="50" cy="50" r="25" fill="white" />
-          <text x="50" y="53" textAnchor="middle" className="text-[11px] font-bold fill-current">{total}</text>
-        </svg>
-        <div className="flex flex-col gap-1.5">
-          {data.map(d => (
-            <div key={d.label} className="flex items-center gap-2 text-xs font-body">
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="text-muted-foreground">{d.label}</span>
-              <span className="font-semibold text-foreground ml-auto">{d.value}</span>
-              <span className="text-muted-foreground/50">({Math.round(d.value / total * 100)}%)</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Bar Chart Component ─── */
-function ResponseBarChart({ responses }: { responses: SimulatedResponse[] }) {
-  const dailyData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const now = new Date();
-    // Last 7 days
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-      counts[key] = 0;
-    }
-    responses.forEach(r => {
-      const d = new Date(r.submittedAt);
-      const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-      if (counts[key] !== undefined) counts[key]++;
+  // Map validations by questionId
+  const validationMap = useMemo(() => {
+    const map: Record<string, { status: string; justification?: string }> = {};
+    validations.forEach((v: any) => {
+      map[v.questionId] = { status: v.status, justification: v.justification };
     });
-    return Object.entries(counts).map(([date, count]) => ({ date, count }));
-  }, [responses]);
+    return map;
+  }, [validations]);
 
-  const maxCount = Math.max(...dailyData.map(d => d.count), 1);
+  // Progress calculation
+  const totalFields = actualQs.filter((q) => answers[q.id] !== undefined && answers[q.id] !== "").length;
+  const validatedFields = actualQs.filter(
+    (q) => validationMap[q.id]?.status === "approved" || validationMap[q.id]?.status === "rejected"
+  ).length;
+  const approvedFields = actualQs.filter((q) => validationMap[q.id]?.status === "approved").length;
+  const rejectedFields = actualQs.filter((q) => validationMap[q.id]?.status === "rejected").length;
+  const progress = totalFields > 0 ? Math.round((validatedFields / totalFields) * 100) : 0;
+
+  const handleApprove = (questionId: string) => {
+    validateMutation.mutate({
+      responseId: response.id,
+      questionId,
+      status: "approved",
+    });
+  };
+
+  const handleReject = (questionId: string) => {
+    setRejectingField(questionId);
+    setJustification("");
+  };
+
+  const confirmReject = () => {
+    if (!rejectingField) return;
+    if (!justification.trim()) {
+      toast.error("Justificativa é obrigatória para reprovar");
+      return;
+    }
+    validateMutation.mutate({
+      responseId: response.id,
+      questionId: rejectingField,
+      status: "rejected",
+      justification: justification.trim(),
+    });
+    setRejectingField(null);
+    setJustification("");
+  };
+
+  const handleApproveAll = () => {
+    const pending = actualQs.filter(
+      (q) =>
+        answers[q.id] !== undefined &&
+        answers[q.id] !== "" &&
+        !validationMap[q.id]
+    );
+    if (pending.length === 0) {
+      toast.info("Todos os campos já foram validados");
+      return;
+    }
+    pending.forEach((q) => {
+      validateMutation.mutate({
+        responseId: response.id,
+        questionId: q.id,
+        status: "approved",
+      });
+    });
+    toast.success(`Aprovando ${pending.length} campos...`);
+  };
+
+  // Check if a field is a file upload type
+  const isFileField = (q: BuilderQuestion) => q.type === "file-upload";
+
+  // Get file for a question
+  const getFileForQuestion = (questionId: string) => {
+    return files.filter((f: any) => f.questionId === questionId);
+  };
+
+  // Render file preview
+  const renderFilePreview = (file: any) => {
+    const isImage = file.mimeType?.startsWith("image/");
+    const isPdf = file.mimeType === "application/pdf";
+    return (
+      <div key={file.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-border/50">
+        {isImage ? (
+          <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary shrink-0">
+            <img src={file.url} alt={file.filename} className="w-full h-full object-cover" />
+          </div>
+        ) : isPdf ? (
+          <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+            <FileText size={20} className="text-red-500" />
+          </div>
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+            <FileIcon size={20} className="text-muted-foreground" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-foreground truncate">{file.filename || "Arquivo"}</p>
+          <p className="text-[10px] text-muted-foreground">{file.mimeType}</p>
+        </div>
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-brand hover:bg-brand-lighter/50 transition-all shrink-0"
+        >
+          <ExternalLink size={14} />
+        </a>
+      </div>
+    );
+  };
 
   return (
-    <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-      <p className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-        Respostas por dia (últimos 7 dias)
-      </p>
-      <div className="flex items-end gap-1.5 h-20">
-        {dailyData.map(d => (
-          <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
-            <motion.div
-              className="w-full rounded-t-md min-h-[2px]"
-              style={{
-                backgroundColor: d.count > 0 ? "#3B82F6" : "#E2E8F0",
-                height: `${Math.max((d.count / maxCount) * 100, 3)}%`,
-              }}
-              initial={{ height: 0 }}
-              animate={{ height: `${Math.max((d.count / maxCount) * 100, 3)}%` }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            />
-            <span className="text-[9px] font-body text-muted-foreground/60 leading-none">
-              {d.date.split("/")[0]}/{d.date.split("/")[1]}
-            </span>
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        className="fixed right-0 top-0 bottom-0 w-[480px] bg-white border-l border-border shadow-2xl z-50 flex flex-col"
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-base font-display font-bold text-foreground">
+                Validação de Resposta
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {new Date(response.createdAt).toLocaleString("pt-BR")}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            >
+              <X size={18} />
+            </button>
           </div>
-        ))}
-      </div>
-    </div>
+
+          {/* Progress bar */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-xs font-body mb-1.5">
+              <span className="text-muted-foreground">Progresso da validação</span>
+              <span className="font-semibold text-foreground">{progress}%</span>
+            </div>
+            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-brand"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+            <div className="flex items-center gap-4 mt-2 text-[11px] font-body">
+              <span className="flex items-center gap-1 text-green-600">
+                <CheckCircle2 size={12} /> {approvedFields} aprovados
+              </span>
+              <span className="flex items-center gap-1 text-red-600">
+                <XCircle size={12} /> {rejectedFields} reprovados
+              </span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Shield size={12} /> {totalFields - validatedFields} pendentes
+              </span>
+            </div>
+          </div>
+
+          {/* Approve All button */}
+          <button
+            onClick={handleApproveAll}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-semibold text-white bg-green-600 hover:bg-green-700 transition-all"
+          >
+            <CheckCircle2 size={16} />
+            Aprovar todos os pendentes
+          </button>
+        </div>
+
+        {/* Fields list */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+          {actualQs.map((q, i) => {
+            const answer = answers[q.id];
+            if (answer === undefined || answer === "") return null;
+
+            const validation = validationMap[q.id];
+            const isFile = isFileField(q);
+            const questionFiles = isFile ? getFileForQuestion(q.id) : [];
+
+            return (
+              <div
+                key={q.id}
+                className={`rounded-xl border p-4 transition-all ${
+                  validation?.status === "approved"
+                    ? "bg-green-50/50 border-green-200"
+                    : validation?.status === "rejected"
+                    ? "bg-red-50/50 border-red-200"
+                    : "bg-secondary/30 border-border/50"
+                }`}
+              >
+                {/* Question header */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider">
+                    {i + 1}. {q.title}
+                  </p>
+                  {validation?.status === "approved" && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full shrink-0">
+                      <CheckCircle2 size={10} /> Aprovado
+                    </span>
+                  )}
+                  {validation?.status === "rejected" && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full shrink-0">
+                      <XCircle size={10} /> Reprovado
+                    </span>
+                  )}
+                </div>
+
+                {/* Answer content */}
+                {isFile && questionFiles.length > 0 ? (
+                  <div className="space-y-2 mb-3">
+                    {questionFiles.map((f: any) => renderFilePreview(f))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-body text-foreground mb-3">
+                    {typeof answer === "string" ? answer : JSON.stringify(answer)}
+                  </p>
+                )}
+
+                {/* Rejection justification display */}
+                {validation?.status === "rejected" && validation.justification && (
+                  <div className="flex items-start gap-2 p-2.5 bg-red-50 rounded-lg border border-red-100 mb-3">
+                    <MessageSquare size={14} className="text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-700">{validation.justification}</p>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleApprove(q.id)}
+                    disabled={validateMutation.isPending}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium transition-all ${
+                      validation?.status === "approved"
+                        ? "bg-green-600 text-white"
+                        : "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+                    }`}
+                  >
+                    <Check size={12} />
+                    {validation?.status === "approved" ? "Aprovado" : "Aprovar"}
+                  </button>
+                  <button
+                    onClick={() => handleReject(q.id)}
+                    disabled={validateMutation.isPending}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium transition-all ${
+                      validation?.status === "rejected"
+                        ? "bg-red-600 text-white"
+                        : "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                    }`}
+                  >
+                    <X size={12} />
+                    {validation?.status === "rejected" ? "Reprovado" : "Reprovar"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer with overall status */}
+        <div className="px-6 py-4 border-t border-border shrink-0">
+          {response.validationStatus === "approved" ? (
+            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200 text-green-700">
+              <ShieldCheck size={20} />
+              <div>
+                <p className="text-sm font-semibold">Cadastro Aprovado</p>
+                <p className="text-xs opacity-80">Todos os campos foram validados. PDF disponível.</p>
+              </div>
+            </div>
+          ) : response.validationStatus === "rejected" ? (
+            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-200 text-red-700">
+              <ShieldAlert size={20} />
+              <div>
+                <p className="text-sm font-semibold">Cadastro Reprovado</p>
+                <p className="text-xs opacity-80">Existem campos reprovados que precisam de correção.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-700">
+              <AlertTriangle size={20} />
+              <div>
+                <p className="text-sm font-semibold">Validação Pendente</p>
+                <p className="text-xs opacity-80">Valide todos os campos para aprovar ou reprovar o cadastro.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Rejection justification dialog */}
+      <AnimatePresence>
+        {rejectingField && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-[60]"
+              onClick={() => setRejectingField(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl border border-border shadow-2xl z-[61] p-6"
+            >
+              <h4 className="text-base font-display font-bold text-foreground mb-2">
+                Justificativa da Reprovação
+              </h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Explique o motivo da reprovação deste campo. Esta justificativa será enviada ao cliente.
+              </p>
+              <textarea
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
+                placeholder="Ex: Documento ilegível, informação incorreta..."
+                className="w-full px-4 py-3 rounded-xl text-sm font-body bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10 resize-none"
+                rows={4}
+                autoFocus
+              />
+              <div className="flex items-center gap-3 mt-4">
+                <button
+                  onClick={() => setRejectingField(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-medium text-foreground border border-border hover:bg-secondary transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmReject}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-white bg-red-600 hover:bg-red-700 transition-all"
+                >
+                  Confirmar Reprovação
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
-export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }: ResponsesPanelProps) {
+/* ─── Main Panel ─── */
+export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], formId }: ResponsesPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedResponse, setSelectedResponse] = useState<string | null>(null);
+  const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
+  const [validatingResponseId, setValidatingResponseId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<string>("submittedAt");
+  const [sortField, setSortField] = useState<string>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [generatingId, setGeneratingId] = useState<number | null>(null);
   const itemsPerPage = 10;
 
   const actualQuestions = useMemo(
-    () => questions.filter(q => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"),
+    () => questions.filter((q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"),
     [questions]
   );
 
-  const responses = useMemo(() => generateSampleResponses(questions), [questions]);
+  // Fetch real responses from backend
+  const responsesQuery = trpc.responses.listByForm.useQuery(
+    { formId: formId!, search: searchQuery || undefined },
+    { enabled: !!formId, staleTime: 10000 }
+  );
 
-  // Columns to show in table (max 5 for readability + date)
+  const responses = responsesQuery.data ?? [];
+  const utils = trpc.useUtils();
+
+  // Columns to show in table (max 4 for readability + date + status)
   const visibleColumns = useMemo(() => {
-    const cols = actualQuestions.slice(0, 5);
-    return cols;
+    return actualQuestions.slice(0, 4);
   }, [actualQuestions]);
 
   // Filter responses
@@ -263,39 +465,31 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
     // Date filter
     const now = new Date();
     if (dateFilter === "today") {
-      filtered = filtered.filter(r => {
-        const d = new Date(r.submittedAt);
+      filtered = filtered.filter((r: any) => {
+        const d = new Date(r.createdAt);
         return d.toDateString() === now.toDateString();
       });
     } else if (dateFilter === "7days") {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(r => new Date(r.submittedAt) >= weekAgo);
+      filtered = filtered.filter((r: any) => new Date(r.createdAt) >= weekAgo);
     } else if (dateFilter === "30days") {
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(r => new Date(r.submittedAt) >= monthAgo);
-    }
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(r =>
-        Object.values(r.answers).some(v => v.toLowerCase().includes(q))
-      );
+      filtered = filtered.filter((r: any) => new Date(r.createdAt) >= monthAgo);
     }
 
     // Sort
-    filtered.sort((a, b) => {
-      if (sortField === "submittedAt") {
-        const diff = new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+    filtered.sort((a: any, b: any) => {
+      if (sortField === "createdAt") {
+        const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         return sortDir === "asc" ? diff : -diff;
       }
-      const va = a.answers[sortField] || "";
-      const vb = b.answers[sortField] || "";
-      return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+      const va = (a.answers as any)?.[sortField] || "";
+      const vb = (b.answers as any)?.[sortField] || "";
+      return sortDir === "asc" ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
     });
 
     return filtered;
-  }, [responses, dateFilter, searchQuery, sortField, sortDir]);
+  }, [responses, dateFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
   const paginatedResponses = filteredResponses.slice(
@@ -305,25 +499,57 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDir(d => d === "asc" ? "desc" : "asc");
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
       setSortDir("desc");
     }
   };
 
+  // Generate PDF
+  const handleGenerateFicha = useCallback(
+    async (responseId: number) => {
+      setGeneratingId(responseId);
+      try {
+        const result = await utils.responses.generateFicha.fetch({ responseId });
+        const byteCharacters = atob(result.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = result.filename || "ficha.pdf";
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success("PDF gerado com sucesso!");
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao gerar PDF");
+      } finally {
+        setGeneratingId(null);
+      }
+    },
+    [utils]
+  );
+
   // Export CSV
   const exportCSV = useCallback(() => {
-    const headers = ["Data", ...actualQuestions.map(q => q.title), "Status"];
-    const rows = filteredResponses.map(r => [
-      new Date(r.submittedAt).toLocaleString("pt-BR"),
-      ...actualQuestions.map(q => r.answers[q.id] || ""),
-      r.status === "complete" ? "Completo" : "Parcial",
-    ]);
+    const headers = ["Data", ...actualQuestions.map((q) => q.title), "Status Validação"];
+    const rows = filteredResponses.map((r: any) => {
+      const answers = (r.answers ?? {}) as Record<string, any>;
+      return [
+        new Date(r.createdAt).toLocaleString("pt-BR"),
+        ...actualQuestions.map((q) => answers[q.id] || ""),
+        r.validationStatus || "pending",
+      ];
+    });
 
     const csvContent = [
-      headers.map(h => `"${h}"`).join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(",")),
+      headers.map((h) => `"${h}"`).join(","),
+      ...rows.map((row) => row.map((cell: any) => `"${cell}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
@@ -335,8 +561,8 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
     URL.revokeObjectURL(url);
   }, [filteredResponses, actualQuestions, formTitle]);
 
-  // Empty state
-  if (actualQuestions.length === 0) {
+  // Loading state
+  if (!formId) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 bg-white">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
@@ -344,17 +570,76 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
             <ClipboardList size={44} className="text-brand/50" />
           </div>
           <h3 className="text-xl font-display font-bold text-foreground mb-3">
-            Este formulário ainda não tem perguntas.
+            Salve o formulário primeiro
           </h3>
           <p className="text-base text-muted-foreground mb-8">
-            Adicione perguntas no Editor para começar a receber respostas.
+            Publique o formulário para começar a receber respostas.
           </p>
         </motion.div>
       </div>
     );
   }
 
-  const selectedResp = selectedResponse ? responses.find(r => r.id === selectedResponse) : null;
+  if (responsesQuery.isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-white">
+        <Loader2 size={32} className="text-brand animate-spin" />
+      </div>
+    );
+  }
+
+  // Empty state
+  if (responses.length === 0 && !searchQuery) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 bg-white">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
+          <div className="w-28 h-28 mx-auto mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
+            <ClipboardList size={44} className="text-brand/50" />
+          </div>
+          <h3 className="text-xl font-display font-bold text-foreground mb-3">
+            Nenhuma resposta ainda
+          </h3>
+          <p className="text-base text-muted-foreground mb-8">
+            Compartilhe o formulário para começar a receber respostas.
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const validatingResponse = validatingResponseId
+    ? responses.find((r: any) => r.id === validatingResponseId)
+    : null;
+
+  // Get validation status label and style
+  const getStatusBadge = (status: string | null | undefined) => {
+    switch (status) {
+      case "approved":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-green-50 text-green-700 border border-green-100">
+            <ShieldCheck size={11} /> Aprovado
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-red-50 text-red-700 border border-red-100">
+            <ShieldAlert size={11} /> Reprovado
+          </span>
+        );
+      case "in_review":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-blue-50 text-blue-700 border border-blue-100">
+            <Shield size={11} /> Em revisão
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-gray-50 text-gray-600 border border-gray-100">
+            <Shield size={11} /> Pendente
+          </span>
+        );
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -364,10 +649,21 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
           <div>
             <h2 className="text-lg font-display font-bold text-foreground">Respostas</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {filteredResponses.length} resposta{filteredResponses.length !== 1 ? "s" : ""} encontrada{filteredResponses.length !== 1 ? "s" : ""}
+              {filteredResponses.length} resposta{filteredResponses.length !== 1 ? "s" : ""} encontrada
+              {filteredResponses.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => responsesQuery.refetch()}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:bg-secondary transition-all"
+              title="Atualizar"
+            >
+              <Loader2
+                size={14}
+                className={responsesQuery.isFetching ? "animate-spin" : ""}
+              />
+            </button>
             <button
               onClick={exportCSV}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-body font-medium text-foreground border border-border hover:bg-secondary hover:border-brand/20 transition-all"
@@ -379,29 +675,40 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-5 gap-3 mb-4">
           {[
             { label: "Total", value: responses.length, color: "text-brand" },
-            { label: "Completas", value: responses.filter(r => r.status === "complete").length, color: "text-emerald-600" },
-            { label: "Parciais", value: responses.filter(r => r.status === "partial").length, color: "text-amber-600" },
-            { label: "Hoje", value: responses.filter(r => new Date(r.submittedAt).toDateString() === new Date().toDateString()).length, color: "text-blue-600" },
-          ].map(stat => (
-            <div key={stat.label} className="bg-secondary/50 rounded-xl px-4 py-3 border border-border/50">
-              <p className="text-xs font-body text-muted-foreground">{stat.label}</p>
-              <p className={`text-2xl font-display font-bold ${stat.color}`}>{stat.value}</p>
+            {
+              label: "Aprovados",
+              value: responses.filter((r: any) => r.validationStatus === "approved").length,
+              color: "text-emerald-600",
+            },
+            {
+              label: "Reprovados",
+              value: responses.filter((r: any) => r.validationStatus === "rejected").length,
+              color: "text-red-600",
+            },
+            {
+              label: "Em revisão",
+              value: responses.filter((r: any) => r.validationStatus === "in_review").length,
+              color: "text-blue-600",
+            },
+            {
+              label: "Pendentes",
+              value: responses.filter(
+                (r: any) => !r.validationStatus || r.validationStatus === "pending"
+              ).length,
+              color: "text-amber-600",
+            },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-secondary/50 rounded-xl px-3 py-2.5 border border-border/50">
+              <p className="text-[10px] font-body text-muted-foreground">{stat.label}</p>
+              <p className={`text-xl font-display font-bold ${stat.color}`}>{stat.value}</p>
             </div>
           ))}
         </div>
 
-        {/* ─── Charts ─── */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Pie chart - PF vs PJ */}
-          <ResponsePieChart responses={responses} questions={actualQuestions} />
-          {/* Bar chart - Responses per day */}
-          <ResponseBarChart responses={responses} />
-        </div>
-
-      {/* Filters row */}
+        {/* Filters row */}
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="flex-1 relative">
@@ -409,7 +716,10 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
             <input
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Buscar nas respostas..."
               className="w-full pl-9 pr-4 py-2 rounded-xl text-sm font-body bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/30 transition-colors"
             />
@@ -426,9 +736,13 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
               }`}
             >
               <Calendar size={14} />
-              {dateFilter === "all" ? "Período" :
-               dateFilter === "today" ? "Hoje" :
-               dateFilter === "7days" ? "7 dias" : "30 dias"}
+              {dateFilter === "all"
+                ? "Período"
+                : dateFilter === "today"
+                ? "Hoje"
+                : dateFilter === "7days"
+                ? "7 dias"
+                : "30 dias"}
               <ChevronDown size={12} />
             </button>
 
@@ -440,17 +754,25 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
                   exit={{ opacity: 0, y: -4 }}
                   className="absolute top-full right-0 mt-1 bg-white rounded-xl border border-border shadow-xl z-50 py-1 min-w-[160px]"
                 >
-                  {([
-                    ["all", "Todos os períodos"],
-                    ["today", "Hoje"],
-                    ["7days", "Últimos 7 dias"],
-                    ["30days", "Últimos 30 dias"],
-                  ] as [DateFilter, string][]).map(([key, label]) => (
+                  {(
+                    [
+                      ["all", "Todos os períodos"],
+                      ["today", "Hoje"],
+                      ["7days", "Últimos 7 dias"],
+                      ["30days", "Últimos 30 dias"],
+                    ] as [DateFilter, string][]
+                  ).map(([key, label]) => (
                     <button
                       key={key}
-                      onClick={() => { setDateFilter(key); setShowDatePicker(false); setCurrentPage(1); }}
+                      onClick={() => {
+                        setDateFilter(key);
+                        setShowDatePicker(false);
+                        setCurrentPage(1);
+                      }}
                       className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
-                        dateFilter === key ? "bg-brand-lighter text-brand font-medium" : "text-foreground hover:bg-secondary"
+                        dateFilter === key
+                          ? "bg-brand-lighter text-brand font-medium"
+                          : "text-foreground hover:bg-secondary"
                       }`}
                     >
                       {label}
@@ -468,75 +790,129 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
         <table className="w-full">
           <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-10">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[160px]">
-                <button onClick={() => handleSort("submittedAt")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[140px]">
+                <button
+                  onClick={() => handleSort("createdAt")}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
                   Data
-                  <ArrowUpDown size={11} className={sortField === "submittedAt" ? "text-brand" : ""} />
+                  <ArrowUpDown size={11} className={sortField === "createdAt" ? "text-brand" : ""} />
                 </button>
               </th>
-              {visibleColumns.map(q => (
-                <th key={q.id} className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border">
-                  <button onClick={() => handleSort(q.id)} className="flex items-center gap-1 hover:text-foreground transition-colors max-w-[180px] truncate">
+              {visibleColumns.map((q) => (
+                <th
+                  key={q.id}
+                  className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border"
+                >
+                  <button
+                    onClick={() => handleSort(q.id)}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors max-w-[160px] truncate"
+                  >
                     {q.title}
-                    <ArrowUpDown size={11} className={`shrink-0 ${sortField === q.id ? "text-brand" : ""}`} />
+                    <ArrowUpDown
+                      size={11}
+                      className={`shrink-0 ${sortField === q.id ? "text-brand" : ""}`}
+                    />
                   </button>
                 </th>
               ))}
-              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[100px]">
-                Status
+              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[110px]">
+                Validação
               </th>
-              <th className="text-right px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[80px]">
+              <th className="text-right px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[180px]">
                 Ações
               </th>
             </tr>
           </thead>
           <tbody>
-            {paginatedResponses.map((resp, idx) => (
-              <motion.tr
-                key={resp.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: idx * 0.03 }}
-                className="border-b border-border/50 hover:bg-secondary/30 transition-colors group"
-              >
-                <td className="px-4 py-3 text-sm font-body text-muted-foreground whitespace-nowrap">
-                  {new Date(resp.submittedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
-                  <span className="ml-1 text-xs text-muted-foreground/50">
-                    {new Date(resp.submittedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </td>
-                {visibleColumns.map(q => (
-                  <td key={q.id} className="px-4 py-3 text-sm font-body text-foreground max-w-[200px] truncate">
-                    {resp.answers[q.id] || "—"}
+            {paginatedResponses.map((resp: any, idx: number) => {
+              const answers = (resp.answers ?? {}) as Record<string, any>;
+              const isValidated = resp.validationStatus === "approved";
+              const isGenerating = generatingId === resp.id;
+
+              return (
+                <motion.tr
+                  key={resp.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="border-b border-border/50 hover:bg-secondary/30 transition-colors group"
+                >
+                  <td className="px-4 py-3 text-sm font-body text-muted-foreground whitespace-nowrap">
+                    {new Date(resp.createdAt).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                    <span className="ml-1 text-xs text-muted-foreground/50">
+                      {new Date(resp.createdAt).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </td>
-                ))}
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-body font-medium ${
-                    resp.status === "complete"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                      : "bg-amber-50 text-amber-700 border border-amber-100"
-                  }`}>
-                    {resp.status === "complete" ? "Completo" : "Parcial"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => setSelectedResponse(resp.id)}
-                    className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-brand hover:bg-brand-lighter/50 transition-all opacity-0 group-hover:opacity-100"
-                    title="Ver detalhes"
-                  >
-                    <Eye size={14} />
-                  </button>
-                </td>
-              </motion.tr>
-            ))}
+                  {visibleColumns.map((q) => (
+                    <td
+                      key={q.id}
+                      className="px-4 py-3 text-sm font-body text-foreground max-w-[180px] truncate"
+                    >
+                      {answers[q.id] || "—"}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3">{getStatusBadge(resp.validationStatus)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {/* Validate button */}
+                      <button
+                        onClick={() => setValidatingResponseId(resp.id)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body font-medium text-brand bg-brand-lighter/50 hover:bg-brand-lighter border border-brand/20 transition-all"
+                        title="Validar respostas"
+                      >
+                        <Shield size={12} />
+                        Validar
+                      </button>
+
+                      {/* Generate PDF button */}
+                      <button
+                        onClick={() => {
+                          if (!isValidated) {
+                            toast.info("Validação necessária", {
+                              description: "Valide todas as respostas antes de gerar o PDF.",
+                            });
+                            return;
+                          }
+                          handleGenerateFicha(resp.id);
+                        }}
+                        disabled={isGenerating}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body font-medium transition-all ${
+                          isValidated
+                            ? "text-white bg-brand hover:bg-brand/90"
+                            : "text-muted-foreground bg-muted cursor-not-allowed"
+                        }`}
+                        title={isValidated ? "Gerar ficha PDF" : "Valide a resposta antes"}
+                      >
+                        {isGenerating ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : !isValidated ? (
+                          <Lock size={12} />
+                        ) : (
+                          <FileText size={12} />
+                        )}
+                        {isGenerating ? "..." : !isValidated ? "PDF" : "PDF"}
+                      </button>
+                    </div>
+                  </td>
+                </motion.tr>
+              );
+            })}
           </tbody>
         </table>
 
         {filteredResponses.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Filter size={32} className="text-muted-foreground/20 mb-4" />
-            <p className="text-sm font-body text-muted-foreground">Nenhuma resposta encontrada com os filtros atuais.</p>
+            <p className="text-sm font-body text-muted-foreground">
+              Nenhuma resposta encontrada com os filtros atuais.
+            </p>
           </div>
         )}
       </div>
@@ -545,17 +921,19 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
       {totalPages > 1 && (
         <div className="border-t border-border px-6 py-3 flex items-center justify-between shrink-0 bg-white">
           <p className="text-xs font-body text-muted-foreground">
-            Mostrando {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredResponses.length)} de {filteredResponses.length}
+            Mostrando {(currentPage - 1) * itemsPerPage + 1}–
+            {Math.min(currentPage * itemsPerPage, filteredResponses.length)} de{" "}
+            {filteredResponses.length}
           </p>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft size={16} />
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
@@ -569,7 +947,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
               </button>
             ))}
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
@@ -579,67 +957,15 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [] }
         </div>
       )}
 
-      {/* ─── Response Detail Drawer ─── */}
+      {/* ─── Validation Drawer ─── */}
       <AnimatePresence>
-        {selectedResp && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 z-40"
-              onClick={() => setSelectedResponse(null)}
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-border shadow-2xl z-50 flex flex-col"
-            >
-              {/* Drawer header */}
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
-                <div>
-                  <h3 className="text-base font-display font-bold text-foreground">Detalhes da Resposta</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(selectedResp.submittedAt).toLocaleString("pt-BR")}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedResponse(null)}
-                  className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Drawer content */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
-                {/* Status badge */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-body font-medium ${
-                    selectedResp.status === "complete"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                      : "bg-amber-50 text-amber-700 border border-amber-100"
-                  }`}>
-                    {selectedResp.status === "complete" ? "Resposta completa" : "Resposta parcial"}
-                  </span>
-                </div>
-
-                {/* All answers */}
-                {actualQuestions.map((q, i) => (
-                  <div key={q.id} className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-                    <p className="text-[11px] font-body font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                      {i + 1}. {q.title}
-                    </p>
-                    <p className="text-sm font-body text-foreground">
-                      {selectedResp.answers[q.id] || <span className="text-muted-foreground/40 italic">Não respondido</span>}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </>
+        {validatingResponse && (
+          <ValidationDrawer
+            response={validatingResponse}
+            questions={questions}
+            onClose={() => setValidatingResponseId(null)}
+            formId={formId!}
+          />
         )}
       </AnimatePresence>
     </div>

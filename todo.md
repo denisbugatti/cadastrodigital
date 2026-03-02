@@ -536,3 +536,15 @@
 ### SharingPanel Fixes
 - [x] Slug não aparece para edição no SharingPanel (slug was visible but domain prefix was wrong)
 - [x] Domínio do formulário deve ser one.cadastrodigital.com.br/slug (hardcoded custom domain)
+
+### Validação de Respostas no ResponsesPanel (Editor)
+- [ ] Botão "Validar Respostas" na tabela de respostas do editor
+- [ ] Tela de validação campo a campo com aprovar/reprovar individual
+- [ ] Validação de arquivos anexados com preview e aprovar/reprovar
+- [ ] Justificativa obrigatória ao reprovar campo
+- [ ] Aprovar cadastro completo ao final da validação
+- [ ] Botão "Gerar PDF" só aparece quando cadastro está aprovado
+
+### Animação de Intro
+- [x] Remover animação de loading/intro da página inicial pública
+- [x] Manter animação de loading/intro apenas para área logada (corretores/gerentes)

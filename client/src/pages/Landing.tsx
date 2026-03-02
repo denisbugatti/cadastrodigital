@@ -22,22 +22,14 @@ const ACCENT = "#70BEFA";
 const BG = "#0a0a0a";
 const CARD_BG = "#141414";
 
-/* ─── Reveal on Scroll (lightweight) ─── */
-const Reveal = memo(({ children, className = "", delay = 0 }: {
+/* ─── Reveal wrapper (no animation on public landing) ─── */
+const Reveal = memo(({ children, className = "", delay: _delay = 0 }: {
   children: React.ReactNode; className?: string; delay?: number;
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 28 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={className}
-    >
+    <div className={className}>
       {children}
-    </motion.div>
+    </div>
   );
 });
 
