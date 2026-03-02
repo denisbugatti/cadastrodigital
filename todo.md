@@ -562,3 +562,7 @@
 ### Preview de Link de Compartilhamento (Open Graph)
 - [x] Configurar OG meta tags dinâmicos para formulários compartilhados (título, descrição, imagem)
 - [x] Garantir que WhatsApp, Facebook, etc. mostrem preview correto ao compartilhar link do formulário
+
+### Animação Splash
+- [x] Remover animação splash do logo no formulário público (desktop/browser)
+- [x] Manter animação splash apenas na abertura do web app mobile (PWA standalone)

@@ -83,8 +83,20 @@ export function FormContainer({ form }: FormContainerProps) {
   const engine = useFormEngine(form);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [shakeKey, setShakeKey] = useState(0);
-  const [showLoading, setShowLoading] = useState(false);
+  // Show splash only when opened as PWA (standalone mode on mobile)
+  const isPWA = typeof window !== "undefined" && (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true
+  );
+  const [showLoading, setShowLoading] = useState(isPWA);
   const [hasRestoredFromSave, setHasRestoredFromSave] = useState(false);
+
+  // Auto-dismiss splash after 1.8s (only runs when isPWA)
+  useEffect(() => {
+    if (!showLoading) return;
+    const timer = setTimeout(() => setShowLoading(false), 1800);
+    return () => clearTimeout(timer);
+  }, [showLoading]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const d = form.design;
