@@ -146,7 +146,7 @@ export default function Settings() {
 
 // ─── Appearance Tab ───
 function AppearanceTab() {
-  const { theme, toggleTheme } = useTheme();
+  const { mode, setMode } = useTheme();
 
   const themeOptions = [
     {
@@ -175,6 +175,19 @@ function AppearanceTab() {
         border: "border-gray-700",
       },
     },
+    {
+      value: "system" as const,
+      label: "Sistema",
+      description: "Segue a preferência do seu dispositivo automaticamente",
+      icon: Monitor,
+      preview: {
+        bg: "bg-gradient-to-r from-white to-gray-900",
+        card: "bg-gradient-to-r from-gray-50 to-gray-800",
+        text: "bg-gray-500",
+        accent: "bg-blue-500",
+        border: "border-gray-400",
+      },
+    },
   ];
 
   return (
@@ -188,22 +201,22 @@ function AppearanceTab() {
             <div>
               <CardTitle className="text-foreground font-display text-lg">Tema da Interface</CardTitle>
               <CardDescription className="font-body text-sm">
-                Escolha entre o modo claro ou escuro para o painel administrativo
+                Escolha entre o modo claro, escuro ou automático do sistema
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {themeOptions.map((option) => {
-              const isActive = theme === option.value;
+              const isActive = mode === option.value;
               const Icon = option.icon;
               return (
                 <button
                   key={option.value}
                   onClick={() => {
-                    if (theme !== option.value && toggleTheme) {
-                      toggleTheme();
+                    if (mode !== option.value) {
+                      setMode(option.value);
                       toast.success(`Tema ${option.label.toLowerCase()} ativado`);
                     }
                   }}

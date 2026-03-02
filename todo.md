@@ -617,3 +617,10 @@
 - [x] Upload de imagem de capa por formulário (S3 via siteSettings.uploadImage)
 - [x] ogMiddleware já servia OG tags específicos de cada formulário (design.ogTitle/ogDescription/ogImage)
 - [x] 6 novos testes adicionados (212 testes totais passando)
+
+### Feature: Opção "Sistema" no toggle de tema
+- [x] Adicionar terceira opção "Sistema" ao ThemeContext (light/dark/system)
+- [x] Detectar prefers-color-scheme do dispositivo e reagir a mudanças em tempo real (addEventListener)
+- [x] Atualizar aba Aparência nas Configurações com 3 opções visuais (Claro, Escuro, Sistema) em grid 3 colunas
+- [x] Persistir preferência no localStorage (theme-mode) com migração da chave antiga
+- [x] 19 testes atualizados para cobrir sistema (219 testes totais passando)

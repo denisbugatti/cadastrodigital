@@ -1,9 +1,16 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-type Theme = "light" | "dark";
+type ThemeMode = "light" | "dark" | "system";
+type ResolvedTheme = "light" | "dark";
 
 interface ThemeContextType {
-  theme: Theme;
+  /** The user's preference: light, dark, or system */
+  mode: ThemeMode;
+  /** The actual applied theme after resolving "system" */
+  theme: ResolvedTheme;
+  /** Set the theme mode (light/dark/system) */
+  setMode: (mode: ThemeMode) => void;
+  /** Legacy toggle between light and dark */
   toggleTheme?: () => void;
   switchable: boolean;
 }
@@ -12,8 +19,20 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  defaultTheme?: Theme;
+  defaultTheme?: ThemeMode;
   switchable?: boolean;
+}
+
+/** Detect the system's preferred color scheme */
+function getSystemTheme(): ResolvedTheme {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/** Resolve a mode to an actual theme */
+function resolveTheme(mode: ThemeMode): ResolvedTheme {
+  if (mode === "system") return getSystemTheme();
+  return mode;
 }
 
 export function ThemeProvider({
@@ -21,35 +40,79 @@ export function ThemeProvider({
   defaultTheme = "light",
   switchable = false,
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [mode, setModeState] = useState<ThemeMode>(() => {
     if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
+      const stored = localStorage.getItem("theme-mode");
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        return stored;
+      }
+      // Migrate from old "theme" key
+      const oldStored = localStorage.getItem("theme");
+      if (oldStored === "light" || oldStored === "dark") {
+        return oldStored;
+      }
     }
     return defaultTheme;
   });
 
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme(mode));
+
+  // Apply the resolved theme to the DOM
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
+    if (resolvedTheme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
+  }, [resolvedTheme]);
 
+  // Persist the mode
+  useEffect(() => {
     if (switchable) {
-      localStorage.setItem("theme", theme);
+      localStorage.setItem("theme-mode", mode);
+      // Clean up old key
+      localStorage.removeItem("theme");
     }
-  }, [theme, switchable]);
+  }, [mode, switchable]);
 
+  // Listen for system theme changes when mode is "system"
+  useEffect(() => {
+    if (mode !== "system") {
+      setResolvedTheme(resolveTheme(mode));
+      return;
+    }
+
+    // Set initial resolved theme
+    setResolvedTheme(getSystemTheme());
+
+    // Listen for changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      setResolvedTheme(e.matches ? "dark" : "light");
+    };
+
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [mode]);
+
+  const setMode = useCallback((newMode: ThemeMode) => {
+    if (!switchable) return;
+    setModeState(newMode);
+  }, [switchable]);
+
+  // Legacy toggleTheme for backward compatibility
   const toggleTheme = switchable
     ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+        setModeState(prev => {
+          if (prev === "system") return "dark";
+          return prev === "light" ? "dark" : "light";
+        });
       }
     : undefined;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ mode, theme: resolvedTheme, setMode, toggleTheme, switchable }}>
       {children}
     </ThemeContext.Provider>
   );
