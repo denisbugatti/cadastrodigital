@@ -75,25 +75,30 @@ export function ogMiddleware() {
       const form = await getFormBySlug(slug);
       if (!form) return next();
 
-      const title = escapeHtml(form.title || "Cadastro Digital");
-      const description = escapeHtml(
-        form.description ||
-        "Preencha o formulário de forma segura e digital."
-      );
-      // Use form's design cover image if available, otherwise default
+      // Extract OG fields from design, with fallbacks to form title/description
+      let ogTitle = form.title || "Cadastro Digital";
+      let ogDescription = form.description || "Preencha o formulário de forma segura e digital.";
       let ogImage = DEFAULT_OG_IMAGE;
+
       try {
         if (form.design && typeof form.design === "object") {
           const design = form.design as any;
-          if (design.coverImage) {
-            ogImage = design.coverImage;
-          } else if (design.logo) {
-            ogImage = design.logo;
+          // Prefer explicit OG fields set in the editor's "Compartilhamento" section
+          if (design.ogTitle) ogTitle = design.ogTitle;
+          if (design.ogDescription) ogDescription = design.ogDescription;
+          // Image priority: ogImage > logoUrl > default
+          if (design.ogImage) {
+            ogImage = design.ogImage;
+          } else if (design.logoUrl) {
+            ogImage = design.logoUrl;
           }
         }
       } catch {
         // ignore parse errors
       }
+
+      const title = escapeHtml(ogTitle);
+      const description = escapeHtml(ogDescription);
 
       const url = `${BASE_URL}/${slug}`;
 

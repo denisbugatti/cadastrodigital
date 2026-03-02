@@ -566,3 +566,9 @@
 ### Animação Splash
 - [x] Remover animação splash do logo no formulário público (desktop/browser)
 - [x] Manter animação splash apenas na abertura do web app mobile (PWA standalone)
+
+### Imagem de Capa para Preview WhatsApp
+- [x] Adicionar campo de upload de imagem de capa no editor de design do formulário (já existia na seção social)
+- [x] Salvar imagem de capa no campo design do formulário (design.ogImage)
+- [x] Integrar imagem de capa com middleware OG para preview do WhatsApp
+- [x] Preview da imagem de capa no SharingPanel (já existia no DesignEditor seção social)
