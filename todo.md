@@ -714,3 +714,11 @@
 - [x] Cards mobile: mostrar Data, CPF/CNPJ, Nome, Telefone (link WhatsApp), status, botões
 - [x] Telefone clicável abre conversa no WhatsApp (wa.me link com +55)
 - [x] Smart field detection: busca por tipo (cpf, cnpj, name, phone) e por título (keywords)
+
+### Feature: Filtros rápidos por status no ResponsesPanel
+- [x] Stats cards agora são clicáveis como filtros (desktop): ring-2 com cor do status quando ativo
+- [x] Pills de filtro rápido no mobile: Todos, Aprovados, Reprovados, Revisão, Pendentes
+- [x] Filtro ativo tem destaque visual com cor do status (bg + border)
+- [x] Funciona tanto no mobile (pills) quanto no desktop (stats cards clicáveis)
+- [x] Paginação reseta ao trocar filtro
+- [x] Clicar novamente no mesmo filtro volta para "Todos"

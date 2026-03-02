@@ -588,6 +588,7 @@ function ResponseCard({
 export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], formId }: ResponsesPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
   const [validatingResponseId, setValidatingResponseId] = useState<number | null>(null);
@@ -659,6 +660,17 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   // Filter responses
   const filteredResponses = useMemo(() => {
     let filtered = [...responses];
+
+    // Status filter
+    if (statusFilter !== "all") {
+      if (statusFilter === "pending") {
+        filtered = filtered.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
+      } else {
+        filtered = filtered.filter((r: any) => r.validationStatus === statusFilter);
+      }
+    }
+
+    // Date filter
     const now = new Date();
     if (dateFilter === "today") {
       filtered = filtered.filter((r: any) => new Date(r.createdAt).toDateString() === now.toDateString());
@@ -681,7 +693,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     });
 
     return filtered;
-  }, [responses, dateFilter, sortField, sortDir]);
+  }, [responses, dateFilter, statusFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
   const paginatedResponses = filteredResponses.slice(
@@ -868,24 +880,30 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
           </div>
         </div>
 
-        {/* Stats cards — 2x2 on mobile, 5 cols on desktop */}
+        {/* Stats cards — clickable as filters */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-3 sm:mb-4">
           {[
-            { label: "Total", value: responses.length, color: "text-brand" },
+            { label: "Total", value: responses.length, color: "text-brand", filterKey: "all", activeRing: "ring-brand/40" },
             {
               label: "Aprovados",
               value: responses.filter((r: any) => r.validationStatus === "approved").length,
               color: "text-emerald-600",
+              filterKey: "approved",
+              activeRing: "ring-emerald-500/40",
             },
             {
               label: "Reprovados",
               value: responses.filter((r: any) => r.validationStatus === "rejected").length,
               color: "text-red-600",
+              filterKey: "rejected",
+              activeRing: "ring-red-500/40",
             },
             {
               label: "Em revisão",
               value: responses.filter((r: any) => r.validationStatus === "in_review").length,
               color: "text-blue-600",
+              filterKey: "in_review",
+              activeRing: "ring-blue-500/40",
             },
             {
               label: "Pendentes",
@@ -893,17 +911,53 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                 (r: any) => !r.validationStatus || r.validationStatus === "pending"
               ).length,
               color: "text-amber-600",
+              filterKey: "pending",
+              activeRing: "ring-amber-500/40",
             },
           ].map((stat, i) => (
-            <div
+            <button
               key={stat.label}
-              className={`bg-secondary/50 rounded-lg sm:rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 border border-border/50 ${
+              onClick={() => {
+                setStatusFilter(statusFilter === stat.filterKey ? "all" : stat.filterKey);
+                setCurrentPage(1);
+              }}
+              className={`text-left bg-secondary/50 rounded-lg sm:rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 border transition-all cursor-pointer hover:bg-secondary/80 ${
                 i >= 3 ? "hidden sm:block" : ""
+              } ${
+                statusFilter === stat.filterKey
+                  ? `border-current ${stat.activeRing} ring-2`
+                  : "border-border/50"
               }`}
             >
               <p className="text-[9px] sm:text-[10px] font-body text-muted-foreground truncate">{stat.label}</p>
               <p className={`text-lg sm:text-xl font-display font-bold ${stat.color}`}>{stat.value}</p>
-            </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Quick status filter pills — visible on mobile for hidden stats */}
+        <div className="flex sm:hidden gap-1.5 mb-3 overflow-x-auto -mx-3 px-3 scrollbar-none">
+          {[
+            { label: "Todos", key: "all", color: "text-brand", activeBg: "bg-brand/10 border-brand/30" },
+            { label: "Aprovados", key: "approved", color: "text-emerald-600", activeBg: "bg-emerald-500/10 border-emerald-500/30" },
+            { label: "Reprovados", key: "rejected", color: "text-red-600", activeBg: "bg-red-500/10 border-red-500/30" },
+            { label: "Revisão", key: "in_review", color: "text-blue-600", activeBg: "bg-blue-500/10 border-blue-500/30" },
+            { label: "Pendentes", key: "pending", color: "text-amber-600", activeBg: "bg-amber-500/10 border-amber-500/30" },
+          ].map((pill) => (
+            <button
+              key={pill.key}
+              onClick={() => {
+                setStatusFilter(pill.key);
+                setCurrentPage(1);
+              }}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-body font-medium border transition-all ${
+                statusFilter === pill.key
+                  ? `${pill.color} ${pill.activeBg}`
+                  : "text-muted-foreground border-border/50 hover:bg-secondary"
+              }`}
+            >
+              {pill.label}
+            </button>
           ))}
         </div>
 
