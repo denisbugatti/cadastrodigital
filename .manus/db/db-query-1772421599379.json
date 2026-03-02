@@ -1,0 +1,49 @@
+{
+  "query": "SELECT * FROM files LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT * FROM files LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "fileKey": "uploads/yRH4hSb1-BANNER.png",
+      "url": "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/yRH4hSb1-BANNER.png",
+      "filename": "BANNER.png",
+      "mimeType": "image/png",
+      "sizeBytes": "832860",
+      "uploadedBy": "1",
+      "formId": "NULL",
+      "responseId": "NULL",
+      "context": "design",
+      "createdAt": "2026-03-01 18:04:52"
+    },
+    {
+      "id": "2",
+      "fileKey": "uploads/h4fFgSML-BANNER.png",
+      "url": "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/h4fFgSML-BANNER.png",
+      "filename": "BANNER.png",
+      "mimeType": "image/png",
+      "sizeBytes": "832860",
+      "uploadedBy": "1",
+      "formId": "NULL",
+      "responseId": "NULL",
+      "context": "design",
+      "createdAt": "2026-03-01 18:06:31"
+    },
+    {
+      "id": "3",
+      "fileKey": "uploads/S_QOc1tZ-IMG_0971.jpeg",
+      "url": "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/S_QOc1tZ-IMG_0971.jpeg",
+      "filename": "IMG_0971.jpeg",
+      "mimeType": "image/jpeg",
+      "sizeBytes": "23219",
+      "uploadedBy": "1",
+      "formId": "NULL",
+      "responseId": "NULL",
+      "context": "design",
+      "createdAt": "2026-03-01 18:08:44"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfileKey\turl\tfilename\tmimeType\tsizeBytes\tuploadedBy\tformId\tresponseId\tcontext\tcreatedAt\n1\tuploads/yRH4hSb1-BANNER.png\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/yRH4hSb1-BANNER.png\tBANNER.png\timage/png\t832860\t1\tNULL\tNULL\tdesign\t2026-03-01 18:04:52\n2\tuploads/h4fFgSML-BANNER.png\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/h4fFgSML-BANNER.png\tBANNER.png\timage/png\t832860\t1\tNULL\tNULL\tdesign\t2026-03-01 18:06:31\n3\tuploads/S_QOc1tZ-IMG_0971.jpeg\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/S_QOc1tZ-IMG_0971.jpeg\tIMG_0971.jpeg\timage/jpeg\t23219\t1\tNULL\tNULL\tdesign\t2026-03-01 18:08:44\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

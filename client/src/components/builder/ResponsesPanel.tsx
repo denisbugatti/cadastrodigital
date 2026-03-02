@@ -114,6 +114,32 @@ function ValidationDrawer({
   const isFileField = (q: BuilderQuestion) => q.type === "file-upload";
   const getFileForQuestion = (questionId: string) => files.filter((f: any) => f.questionId === questionId);
 
+  // Parse file answer from the answers JSON (new format: {url, filename, mimeType})
+  const parseFileAnswer = (answer: any): { url: string; filename: string; mimeType: string } | null => {
+    if (!answer) return null;
+    // If it's already an object with url
+    if (typeof answer === "object" && answer.url) return answer;
+    // If it's a JSON string
+    if (typeof answer === "string") {
+      try {
+        const parsed = JSON.parse(answer);
+        if (parsed && typeof parsed === "object" && parsed.url) return parsed;
+      } catch {
+        // Not JSON — legacy filename-only value
+        if (answer && !answer.startsWith("{") && !answer.startsWith("http")) {
+          return { url: "", filename: answer, mimeType: "" };
+        }
+        // Direct URL
+        if (answer.startsWith("http")) {
+          const ext = answer.split(".").pop()?.toLowerCase() || "";
+          const mimeMap: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", pdf: "application/pdf" };
+          return { url: answer, filename: answer.split("/").pop() || "arquivo", mimeType: mimeMap[ext] || "application/octet-stream" };
+        }
+      }
+    }
+    return null;
+  };
+
   // Status indicator dot
   const StatusDot = ({ status }: { status?: string }) => {
     if (status === "approved") return <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />;
@@ -216,70 +242,91 @@ function ValidationDrawer({
                 >
                   {/* Content */}
                   <div className="px-4 py-3">
-                    {isFile && questionFiles.length > 0 ? (
-                      <div className="space-y-3">
-                        {questionFiles.map((file: any) => {
-                          const isImage = file.mimeType?.startsWith("image/");
-                          const isPdf = file.mimeType === "application/pdf";
-                          return (
-                            <div key={file.id} className="space-y-2">
-                              {/* File info row */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {isImage ? (
-                                    <ImageIcon size={14} className="text-blue-500 shrink-0" />
-                                  ) : isPdf ? (
-                                    <FileText size={14} className="text-red-500 shrink-0" />
-                                  ) : (
-                                    <FileIcon size={14} className="text-gray-400 shrink-0" />
-                                  )}
-                                  <span className="text-[12px] font-medium text-gray-600 truncate">{file.filename || "Arquivo"}</span>
-                                </div>
-                                <a
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-brand transition-colors shrink-0"
-                                >
-                                  <ExternalLink size={12} /> Abrir
-                                </a>
-                              </div>
+                    {(() => {
+                      // Check if this field has a file answer (from answer JSON or files table)
+                      const fileFromAnswer = isFile ? parseFileAnswer(answer) : null;
+                      const dbFiles = isFile ? questionFiles : [];
+                      const allFiles = fileFromAnswer ? [fileFromAnswer] : dbFiles;
 
-                              {/* Inline expanded preview */}
-                              {isImage ? (
-                                <button
-                                  onClick={() => setExpandedImage(file.url)}
-                                  className="block w-full rounded-lg overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-zoom-in"
-                                >
-                                  <img
-                                    src={file.url}
-                                    alt={file.filename}
-                                    className="w-full max-h-[280px] object-contain"
-                                    loading="lazy"
-                                  />
-                                </button>
-                              ) : isPdf ? (
-                                <div className="w-full rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
-                                  <iframe
-                                    src={`${file.url}#toolbar=0&navpanes=0`}
-                                    className="w-full h-[320px]"
-                                    title={file.filename || "PDF Preview"}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                  <FileIcon size={28} className="text-gray-300 shrink-0" />
-                                  <div className="min-w-0">
-                                    <p className="text-sm text-gray-600 truncate">{file.filename || "Arquivo"}</p>
-                                    <p className="text-[11px] text-gray-400">{file.mimeType} • Clique em "Abrir" para visualizar</p>
+                      if (isFile && allFiles.length > 0) {
+                        return (
+                          <div className="space-y-3">
+                            {allFiles.map((file: any, fIdx: number) => {
+                              const isImage = file.mimeType?.startsWith("image/");
+                              const isPdf = file.mimeType === "application/pdf";
+                              const hasUrl = !!file.url;
+                              return (
+                                <div key={file.id || fIdx} className="space-y-2">
+                                  {/* File info row */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      {isImage ? (
+                                        <ImageIcon size={14} className="text-blue-500 shrink-0" />
+                                      ) : isPdf ? (
+                                        <FileText size={14} className="text-red-500 shrink-0" />
+                                      ) : (
+                                        <FileIcon size={14} className="text-gray-400 shrink-0" />
+                                      )}
+                                      <span className="text-[12px] font-medium text-gray-600 truncate">{file.filename || "Arquivo"}</span>
+                                    </div>
+                                    {hasUrl && (
+                                      <a
+                                        href={file.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-brand transition-colors shrink-0"
+                                      >
+                                        <ExternalLink size={12} /> Abrir
+                                      </a>
+                                    )}
                                   </div>
+
+                                  {/* Inline expanded preview */}
+                                  {hasUrl && isImage ? (
+                                    <button
+                                      onClick={() => setExpandedImage(file.url)}
+                                      className="block w-full rounded-lg overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all cursor-zoom-in"
+                                    >
+                                      <img
+                                        src={file.url}
+                                        alt={file.filename}
+                                        className="w-full max-h-[280px] object-contain"
+                                        loading="lazy"
+                                      />
+                                    </button>
+                                  ) : hasUrl && isPdf ? (
+                                    <div className="w-full rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                                      <iframe
+                                        src={`${file.url}#toolbar=0&navpanes=0`}
+                                        className="w-full h-[320px]"
+                                        title={file.filename || "PDF Preview"}
+                                      />
+                                    </div>
+                                  ) : hasUrl ? (
+                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                      <FileIcon size={28} className="text-gray-300 shrink-0" />
+                                      <div className="min-w-0">
+                                        <p className="text-sm text-gray-600 truncate">{file.filename || "Arquivo"}</p>
+                                        <p className="text-[11px] text-gray-400">{file.mimeType} • Clique em "Abrir" para visualizar</p>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                                      <FileIcon size={28} className="text-amber-300 shrink-0" />
+                                      <div className="min-w-0">
+                                        <p className="text-sm text-gray-600 truncate">{file.filename || "Arquivo"}</p>
+                                        <p className="text-[11px] text-amber-600">Arquivo enviado antes da atualização (sem preview disponível)</p>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+
+                      return (
                       <div className="text-[14px] text-gray-800 leading-relaxed">
                         {(() => {
                           // Format answer nicely based on type
@@ -317,7 +364,8 @@ function ValidationDrawer({
                           return <p>{String(answer)}</p>;
                         })()}
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
 
                   {/* Rejection reason */}

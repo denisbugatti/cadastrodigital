@@ -1,0 +1,157 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'files' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'files' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "FILE_ID"
+    },
+    {
+      "COLUMN_NAME": "FILE_NAME"
+    },
+    {
+      "COLUMN_NAME": "fileKey"
+    },
+    {
+      "COLUMN_NAME": "url"
+    },
+    {
+      "COLUMN_NAME": "FILE_TYPE"
+    },
+    {
+      "COLUMN_NAME": "filename"
+    },
+    {
+      "COLUMN_NAME": "TABLESPACE_NAME"
+    },
+    {
+      "COLUMN_NAME": "mimeType"
+    },
+    {
+      "COLUMN_NAME": "TABLE_CATALOG"
+    },
+    {
+      "COLUMN_NAME": "sizeBytes"
+    },
+    {
+      "COLUMN_NAME": "TABLE_SCHEMA"
+    },
+    {
+      "COLUMN_NAME": "uploadedBy"
+    },
+    {
+      "COLUMN_NAME": "TABLE_NAME"
+    },
+    {
+      "COLUMN_NAME": "formId"
+    },
+    {
+      "COLUMN_NAME": "LOGFILE_GROUP_NAME"
+    },
+    {
+      "COLUMN_NAME": "responseId"
+    },
+    {
+      "COLUMN_NAME": "LOGFILE_GROUP_NUMBER"
+    },
+    {
+      "COLUMN_NAME": "context"
+    },
+    {
+      "COLUMN_NAME": "ENGINE"
+    },
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "FULLTEXT_KEYS"
+    },
+    {
+      "COLUMN_NAME": "DELETED_ROWS"
+    },
+    {
+      "COLUMN_NAME": "UPDATE_COUNT"
+    },
+    {
+      "COLUMN_NAME": "FREE_EXTENTS"
+    },
+    {
+      "COLUMN_NAME": "TOTAL_EXTENTS"
+    },
+    {
+      "COLUMN_NAME": "EXTENT_SIZE"
+    },
+    {
+      "COLUMN_NAME": "INITIAL_SIZE"
+    },
+    {
+      "COLUMN_NAME": "MAXIMUM_SIZE"
+    },
+    {
+      "COLUMN_NAME": "AUTOEXTEND_SIZE"
+    },
+    {
+      "COLUMN_NAME": "CREATION_TIME"
+    },
+    {
+      "COLUMN_NAME": "LAST_UPDATE_TIME"
+    },
+    {
+      "COLUMN_NAME": "LAST_ACCESS_TIME"
+    },
+    {
+      "COLUMN_NAME": "RECOVER_TIME"
+    },
+    {
+      "COLUMN_NAME": "TRANSACTION_COUNTER"
+    },
+    {
+      "COLUMN_NAME": "VERSION"
+    },
+    {
+      "COLUMN_NAME": "ROW_FORMAT"
+    },
+    {
+      "COLUMN_NAME": "TABLE_ROWS"
+    },
+    {
+      "COLUMN_NAME": "AVG_ROW_LENGTH"
+    },
+    {
+      "COLUMN_NAME": "DATA_LENGTH"
+    },
+    {
+      "COLUMN_NAME": "MAX_DATA_LENGTH"
+    },
+    {
+      "COLUMN_NAME": "INDEX_LENGTH"
+    },
+    {
+      "COLUMN_NAME": "DATA_FREE"
+    },
+    {
+      "COLUMN_NAME": "CREATE_TIME"
+    },
+    {
+      "COLUMN_NAME": "UPDATE_TIME"
+    },
+    {
+      "COLUMN_NAME": "CHECK_TIME"
+    },
+    {
+      "COLUMN_NAME": "CHECKSUM"
+    },
+    {
+      "COLUMN_NAME": "STATUS"
+    },
+    {
+      "COLUMN_NAME": "EXTRA"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nFILE_ID\nFILE_NAME\nfileKey\nurl\nFILE_TYPE\nfilename\nTABLESPACE_NAME\nmimeType\nTABLE_CATALOG\nsizeBytes\nTABLE_SCHEMA\nuploadedBy\nTABLE_NAME\nformId\nLOGFILE_GROUP_NAME\nresponseId\nLOGFILE_GROUP_NUMBER\ncontext\nENGINE\ncreatedAt\nFULLTEXT_KEYS\nDELETED_ROWS\nUPDATE_COUNT\nFREE_EXTENTS\nTOTAL_EXTENTS\nEXTENT_SIZE\nINITIAL_SIZE\nMAXIMUM_SIZE\nAUTOEXTEND_SIZE\nCREATION_TIME\nLAST_UPDATE_TIME\nLAST_ACCESS_TIME\nRECOVER_TIME\nTRANSACTION_COUNTER\nVERSION\nROW_FORMAT\nTABLE_ROWS\nAVG_ROW_LENGTH\nDATA_LENGTH\nMAX_DATA_LENGTH\nINDEX_LENGTH\nDATA_FREE\nCREATE_TIME\nUPDATE_TIME\nCHECK_TIME\nCHECKSUM\nSTATUS\nEXTRA\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

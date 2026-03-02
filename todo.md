@@ -556,3 +556,5 @@
 - [x] Formatar exibição de respostas no drawer de validação (remover JSON bruto, aspas, colchetes)
 - [x] Preview expandido de anexos (imagens/PDFs) diretamente no drawer de validação sem abrir outra aba
 - [x] Remover animação splash do logo FormFlow no início do site (formulário público)
+- [x] Corrigir anexos no drawer de validação - agora detecta URLs do S3 nas respostas e mostra preview inline
+- [x] FileUploadInput agora faz upload real para S3 via tRPC (antes só salvava o nome do arquivo)
