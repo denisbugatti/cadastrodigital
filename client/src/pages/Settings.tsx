@@ -9,12 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import {
   Shield, Users, Download, ArrowLeft, SlidersHorizontal,
   Loader2, UserPlus, Mail, Phone, CheckCircle2, XCircle,
-  Clock, FileDown, Filter
+  Clock, FileDown, Filter, Palette, Sun, Moon, Monitor
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // ─── Permission definitions ───
 const PERMISSION_DEFS: Record<string, { label: string; description: string }> = {
@@ -68,7 +69,7 @@ export default function Settings() {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">Configurações</h1>
-              <p className="text-xs text-muted-foreground font-body">Gerencie permissões, usuários e exportações</p>
+              <p className="text-xs text-muted-foreground font-body">Gerencie permissões, usuários e aparência</p>
             </div>
           </div>
         </div>
@@ -76,8 +77,15 @@ export default function Settings() {
 
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <Tabs defaultValue="permissoes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-secondary border border-border rounded-xl p-1 h-auto">
+        <Tabs defaultValue="aparencia" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-secondary border border-border rounded-xl p-1 h-auto">
+            <TabsTrigger
+              value="aparencia"
+              className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
+            >
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Aparência</span>
+            </TabsTrigger>
             <TabsTrigger
               value="permissoes"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
@@ -101,6 +109,10 @@ export default function Settings() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="aparencia" className="mt-6">
+            <AppearanceTab />
+          </TabsContent>
+
           <TabsContent value="permissoes" className="mt-6">
             <PermissionsTab />
           </TabsContent>
@@ -114,6 +126,138 @@ export default function Settings() {
           </TabsContent>
         </Tabs>
       </main>
+    </div>
+  );
+}
+
+// ─── Appearance Tab ───
+function AppearanceTab() {
+  const { theme, toggleTheme } = useTheme();
+
+  const themeOptions = [
+    {
+      value: "light" as const,
+      label: "Claro",
+      description: "Interface clara com fundo branco e texto escuro",
+      icon: Sun,
+      preview: {
+        bg: "bg-white",
+        card: "bg-gray-50",
+        text: "bg-gray-800",
+        accent: "bg-blue-500",
+        border: "border-gray-200",
+      },
+    },
+    {
+      value: "dark" as const,
+      label: "Escuro",
+      description: "Interface escura que reduz o cansaço visual",
+      icon: Moon,
+      preview: {
+        bg: "bg-gray-900",
+        card: "bg-gray-800",
+        text: "bg-gray-200",
+        accent: "bg-blue-400",
+        border: "border-gray-700",
+      },
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center">
+              <Palette className="h-5 w-5 text-brand" />
+            </div>
+            <div>
+              <CardTitle className="text-foreground font-display text-lg">Tema da Interface</CardTitle>
+              <CardDescription className="font-body text-sm">
+                Escolha entre o modo claro ou escuro para o painel administrativo
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {themeOptions.map((option) => {
+              const isActive = theme === option.value;
+              const Icon = option.icon;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    if (theme !== option.value && toggleTheme) {
+                      toggleTheme();
+                      toast.success(`Tema ${option.label.toLowerCase()} ativado`);
+                    }
+                  }}
+                  className={`group relative p-4 rounded-2xl border-2 transition-all duration-300 text-left ${
+                    isActive
+                      ? "border-brand bg-brand/5 shadow-md"
+                      : "border-border hover:border-brand/30 hover:bg-secondary/50"
+                  }`}
+                >
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="absolute top-3 right-3">
+                      <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center">
+                        <CheckCircle2 className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mini preview */}
+                  <div className={`w-full h-24 rounded-xl ${option.preview.bg} ${option.preview.border} border overflow-hidden p-3 mb-4`}>
+                    {/* Mini header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${option.preview.accent}`} />
+                      <div className={`h-2 w-16 rounded-full ${option.preview.text} opacity-30`} />
+                    </div>
+                    {/* Mini cards */}
+                    <div className="flex gap-2">
+                      <div className={`flex-1 h-10 rounded-lg ${option.preview.card} ${option.preview.border} border`}>
+                        <div className={`h-1.5 w-8 rounded-full ${option.preview.text} opacity-20 mt-2 ml-2`} />
+                        <div className={`h-1.5 w-12 rounded-full ${option.preview.text} opacity-10 mt-1 ml-2`} />
+                      </div>
+                      <div className={`flex-1 h-10 rounded-lg ${option.preview.card} ${option.preview.border} border`}>
+                        <div className={`h-1.5 w-10 rounded-full ${option.preview.text} opacity-20 mt-2 ml-2`} />
+                        <div className={`h-1.5 w-6 rounded-full ${option.preview.text} opacity-10 mt-1 ml-2`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Label */}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      isActive ? "bg-brand/10" : "bg-secondary"
+                    }`}>
+                      <Icon className={`h-4 w-4 ${isActive ? "text-brand" : "text-muted-foreground"}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-body font-semibold ${isActive ? "text-brand" : "text-foreground"}`}>
+                        {option.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-body">
+                        {option.description}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Info note */}
+          <div className="mt-4 p-3 rounded-xl bg-secondary/50 border border-border">
+            <p className="text-xs text-muted-foreground font-body flex items-center gap-2">
+              <Monitor className="h-3.5 w-3.5 shrink-0" />
+              Sua preferência é salva automaticamente e será lembrada na próxima vez que acessar.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -162,14 +306,14 @@ function PermissionsTab() {
   return (
     <div className="space-y-4">
       {ROLES_CONFIG.map(({ role, label, color, icon: Icon }) => (
-        <Card key={role} className="bg-background border border-border rounded-2xl shadow-sm">
+        <Card key={role} className="bg-card border border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                color === "amber" ? "bg-amber-100" : "bg-blue-100"
+                color === "amber" ? "bg-amber-500/10" : "bg-blue-500/10"
               }`}>
                 <Icon className={`h-4.5 w-4.5 ${
-                  color === "amber" ? "text-amber-600" : "text-blue-600"
+                  color === "amber" ? "text-amber-500" : "text-blue-500"
                 }`} />
               </div>
               <div>
@@ -252,10 +396,10 @@ function UsersTab() {
   };
 
   const roleColors: Record<string, string> = {
-    master: "bg-purple-100 text-purple-700",
-    diretor: "bg-red-100 text-red-700",
-    gerente: "bg-amber-100 text-amber-700",
-    corretor: "bg-blue-100 text-blue-700",
+    master: "bg-purple-500/10 text-purple-500",
+    diretor: "bg-red-500/10 text-red-500",
+    gerente: "bg-amber-500/10 text-amber-500",
+    corretor: "bg-blue-500/10 text-blue-500",
   };
 
   const roleLabels: Record<string, string> = {
@@ -276,7 +420,7 @@ function UsersTab() {
   return (
     <div className="space-y-4">
       {/* Staff Users List */}
-      <Card className="bg-background border border-border rounded-2xl shadow-sm">
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
@@ -318,7 +462,7 @@ function UsersTab() {
                   ) : (
                     <XCircle className="h-4 w-4 text-red-400" />
                   )}
-                  <span className={`px-2.5 py-1 rounded-lg text-xs font-body font-semibold ${roleColors[user.role] || "bg-gray-100 text-gray-700"}`}>
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-body font-semibold ${roleColors[user.role] || "bg-secondary text-muted-foreground"}`}>
                     {roleLabels[user.role] || user.role}
                   </span>
                   {user.role !== "master" && (
@@ -328,7 +472,7 @@ function UsersTab() {
                           deleteUser.mutate({ id: user.id });
                         }
                       }}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-destructive/10 transition-colors"
                       title="Remover"
                     >
                       <XCircle size={14} />
@@ -343,7 +487,7 @@ function UsersTab() {
 
       {/* Pending Invites */}
       {(pendingInvites as any[])?.length > 0 && (
-        <Card className="bg-background border border-border rounded-2xl shadow-sm">
+        <Card className="bg-card border border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-foreground font-display text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-amber-500" />
@@ -355,7 +499,7 @@ function UsersTab() {
               {(pendingInvites as any[])?.map((invite: any) => (
                 <div
                   key={invite.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 border border-amber-200/50"
+                  className="flex items-center justify-between p-3 rounded-xl bg-amber-500/5 border border-amber-500/20"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Mail className="h-4 w-4 text-amber-500 shrink-0" />
@@ -366,7 +510,7 @@ function UsersTab() {
                       </p>
                     </div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-lg text-xs font-body font-semibold ${roleColors[invite.role] || "bg-gray-100 text-gray-700"}`}>
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-body font-semibold ${roleColors[invite.role] || "bg-secondary text-muted-foreground"}`}>
                     {roleLabels[invite.role] || invite.role}
                   </span>
                 </div>
@@ -502,11 +646,11 @@ function ExportTab() {
   const formsList = (forms as any[]) || [];
 
   return (
-    <Card className="bg-background border border-border rounded-2xl shadow-sm">
+    <Card className="bg-card border border-border rounded-2xl shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center">
-            <FileDown className="h-5 w-5 text-green-600" />
+          <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
+            <FileDown className="h-5 w-5 text-green-500" />
           </div>
           <div>
             <CardTitle className="text-foreground font-display text-lg">Exportar Respostas</CardTitle>
@@ -582,8 +726,8 @@ function ExportTab() {
 
           {/* Last export info */}
           {csvData && (
-            <div className="p-3 rounded-xl bg-green-50 border border-green-200/50">
-              <p className="text-sm font-body text-green-700 flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+              <p className="text-sm font-body text-green-600 dark:text-green-400 flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
                 Última exportação: {csvData.totalResponses} respostas em "{csvData.filename}"
               </p>

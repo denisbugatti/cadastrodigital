@@ -438,15 +438,15 @@ export default function Responses() {
                           )}
                           {/* Validation status badge */}
                           {response.validationStatus === 'approved' ? (
-                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-green-700 font-body font-semibold bg-green-50 px-1.5 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-green-600 font-body font-semibold bg-green-500/10 px-1.5 py-0.5 rounded-full">
                               <ShieldCheck size={11} /> Validado
                             </span>
                           ) : response.validationStatus === 'rejected' ? (
-                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-red-700 font-body font-semibold bg-red-50 px-1.5 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-red-600 font-body font-semibold bg-red-500/10 px-1.5 py-0.5 rounded-full">
                               <ShieldAlert size={11} /> Rejeitado
                             </span>
                           ) : response.validationStatus === 'in_review' ? (
-                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-700 font-body font-semibold bg-blue-50 px-1.5 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-[11px] sm:text-xs text-blue-600 font-body font-semibold bg-blue-500/10 px-1.5 py-0.5 rounded-full">
                               <ShieldAlert size={11} /> Em revisão
                             </span>
                           ) : (
@@ -464,7 +464,7 @@ export default function Responses() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1.5 text-xs sm:text-sm px-2.5 sm:px-3 border-amber-300 text-amber-700 hover:bg-amber-50"
+                          className="gap-1.5 text-xs sm:text-sm px-2.5 sm:px-3 border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
                           onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
                           <CheckCircle2 size={14} />

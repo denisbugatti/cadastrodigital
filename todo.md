@@ -585,3 +585,10 @@
 - [x] Backend: tRPC procedure para convite de novos usuários (gerar link ou enviar email) (já existia)
 - [x] Frontend: Settings aba Usuários com listagem real e funcionalidade de convite
 - [x] Restrição: apenas master pode acessar exportação (via ownerFallbackProcedure)
+
+### Tema Escuro/Claro (Toggle de Tema)
+- [x] Adicionar variáveis CSS dark mode no index.css (.dark { ... })
+- [x] Habilitar switchable no ThemeProvider (persistir no localStorage)
+- [x] Adicionar aba "Aparência" nas Configurações com toggle de tema
+- [x] Garantir que Dashboard, Editor, Settings e componentes funcionem em ambos os temas
+- [x] Testar transição suave entre temas

@@ -90,6 +90,42 @@
   --sidebar-ring: oklch(0.55 0.2 260);
 }
 
+.dark {
+  --radius: 0.75rem;
+  --background: oklch(0.145 0.015 260);
+  --foreground: oklch(0.92 0.01 260);
+  --card: oklch(0.18 0.015 260);
+  --card-foreground: oklch(0.92 0.01 260);
+  --popover: oklch(0.18 0.015 260);
+  --popover-foreground: oklch(0.92 0.01 260);
+  --primary: oklch(0.6 0.2 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.22 0.015 260);
+  --secondary-foreground: oklch(0.85 0.01 260);
+  --muted: oklch(0.22 0.015 260);
+  --muted-foreground: oklch(0.6 0.02 260);
+  --accent: oklch(0.25 0.015 260);
+  --accent-foreground: oklch(0.92 0.01 260);
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.28 0.015 260);
+  --input: oklch(0.28 0.015 260);
+  --ring: oklch(0.6 0.2 260);
+  --chart-1: oklch(0.6 0.2 260);
+  --chart-2: oklch(0.65 0.15 195);
+  --chart-3: oklch(0.6 0.18 290);
+  --chart-4: oklch(0.65 0.12 155);
+  --chart-5: oklch(0.7 0.15 75);
+  --sidebar: oklch(0.16 0.015 260);
+  --sidebar-foreground: oklch(0.92 0.01 260);
+  --sidebar-primary: oklch(0.6 0.2 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.25 0.015 260);
+  --sidebar-accent-foreground: oklch(0.92 0.01 260);
+  --sidebar-border: oklch(0.28 0.015 260);
+  --sidebar-ring: oklch(0.6 0.2 260);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -197,14 +233,18 @@
 
   /* Clean card style */
   .clean-card {
-    background: oklch(1 0 0);
-    border: 1px solid oklch(0.91 0.005 260);
+    background: var(--card);
+    border: 1px solid var(--border);
     box-shadow: 0 1px 3px oklch(0 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.02);
   }
 
   .clean-card:hover {
     border-color: oklch(0.85 0.01 260);
     box-shadow: 0 4px 12px oklch(0 0 0 / 0.06), 0 2px 4px oklch(0 0 0 / 0.03);
+  }
+
+  .dark .clean-card:hover {
+    border-color: oklch(0.35 0.015 260);
   }
 
   /* Subtle brand shadow */
@@ -228,7 +268,7 @@
     animation: float 6s ease-in-out infinite;
   }
 
-  /* Custom scrollbar for light theme */
+  /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
   }
@@ -242,13 +282,19 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: oklch(0.72 0.01 260);
   }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: oklch(0.35 0.015 260);
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.45 0.015 260);
+  }
 
   /* Kbd styling */
   .kbd-style {
     @apply px-1.5 py-0.5 rounded text-[11px] font-medium;
-    background: oklch(0.96 0.005 260);
-    color: oklch(0.5 0.02 260);
-    border: 1px solid oklch(0.88 0.005 260);
+    background: var(--secondary);
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
   }
 
   /* Hide scrollbar */

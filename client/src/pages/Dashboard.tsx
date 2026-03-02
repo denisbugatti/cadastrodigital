@@ -114,11 +114,11 @@ interface DashboardFolder {
 function getStatusConfig(status: DashboardForm["status"]) {
   switch (status) {
     case "published":
-      return { label: "Publicado", dotColor: "#22c55e", textClass: "text-green-600", bgClass: "bg-green-50 border-green-200 text-green-700" };
+      return { label: "Publicado", dotColor: "#22c55e", textClass: "text-green-600", bgClass: "bg-green-500/10 border-green-500/20 text-green-600" };
     case "draft":
-      return { label: "Rascunho", dotColor: "#f59e0b", textClass: "text-amber-600", bgClass: "bg-amber-50 border-amber-200 text-amber-700" };
+      return { label: "Rascunho", dotColor: "#f59e0b", textClass: "text-amber-600", bgClass: "bg-amber-500/10 border-amber-500/20 text-amber-600" };
     case "closed":
-      return { label: "Encerrado", dotColor: "#94a3b8", textClass: "text-slate-400", bgClass: "bg-slate-50 border-slate-200 text-slate-600" };
+      return { label: "Encerrado", dotColor: "#94a3b8", textClass: "text-slate-400", bgClass: "bg-slate-500/10 border-slate-500/20 text-slate-400" };
   }
 }
 
@@ -641,7 +641,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-6">
           {/* Mobile: hamburger + logo */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
@@ -723,7 +723,7 @@ export default function Dashboard() {
                   <MoreHorizontal size={18} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-48">
+              <DropdownMenuContent align="end" className="bg-popover border-border shadow-lg w-48">
                 <DropdownMenuItem asChild>
                   <Link href="/configuracoes" className="flex items-center gap-2 cursor-pointer">
                     <SlidersHorizontal size={16} /> Configurações
@@ -781,7 +781,7 @@ export default function Dashboard() {
         <motion.aside
           className={`${
             mobileSidebarOpen
-              ? "fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-2xl pt-4 px-4 pb-8 overflow-y-auto"
+              ? "fixed top-0 left-0 h-full w-72 bg-background z-50 shadow-2xl pt-4 px-4 pb-8 overflow-y-auto"
               : "hidden lg:block w-60 shrink-0"
           }`}
           initial={mobileSidebarOpen ? { x: "-100%" } : false}
@@ -870,7 +870,7 @@ export default function Dashboard() {
                           e.stopPropagation();
                           setDeleteFolderTarget(folder);
                         }}
-                        className="p-1 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500"
+                        className="p-1 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
                         title="Excluir"
                       >
                         <Trash2 size={12} />
@@ -1002,7 +1002,7 @@ export default function Dashboard() {
                     className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-body font-medium border transition-all duration-200 whitespace-nowrap ${
                       isActive
                         ? "bg-brand/10 border-brand/30 text-brand shadow-sm"
-                        : "bg-white border-border text-muted-foreground hover:text-foreground hover:border-brand/20 hover:bg-secondary/50"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-brand/20 hover:bg-secondary/50"
                     }`}
                   >
                     {filter.id !== "all" && (
@@ -1027,7 +1027,7 @@ export default function Dashboard() {
                   {sortOptions.find((s) => s.id === sortBy)?.label}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
+              <DropdownMenuContent align="end" className="bg-popover border-border shadow-lg w-52">
                 {sortOptions.map((option) => (
                   <DropdownMenuItem
                     key={option.id}
@@ -1076,7 +1076,7 @@ export default function Dashboard() {
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-body font-medium border transition-all duration-200 ${
                   showTemplates
                     ? "bg-brand/10 border-brand/30 text-brand shadow-sm"
-                    : "bg-white border-border text-muted-foreground hover:text-foreground hover:border-brand/20 hover:bg-secondary/50"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-brand/20 hover:bg-secondary/50"
                 }`}
               >
                 <LayoutTemplate size={16} />
@@ -1105,7 +1105,7 @@ export default function Dashboard() {
                         key={template.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="group relative rounded-2xl border border-border bg-white overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
+                        className="group relative rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
                         onClick={() => !isCloning && handleUseTemplate(template)}
                       >
                         {/* Gradient header */}
@@ -1221,7 +1221,7 @@ export default function Dashboard() {
 
       {/* Delete Form Dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="bg-white border-border shadow-2xl max-w-md">
+        <AlertDialogContent className="bg-card border-border shadow-2xl max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
@@ -1257,7 +1257,7 @@ export default function Dashboard() {
 
       {/* Delete Folder Dialog */}
       <AlertDialog open={!!deleteFolderTarget} onOpenChange={(open) => !open && setDeleteFolderTarget(null)}>
-        <AlertDialogContent className="bg-white border-border shadow-2xl max-w-md">
+        <AlertDialogContent className="bg-card border-border shadow-2xl max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
@@ -1290,7 +1290,7 @@ export default function Dashboard() {
 
       {/* ─── Duplicate Form Dialog ─── */}
       <Dialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
-        <DialogContent className="bg-white border-border shadow-2xl max-w-md">
+        <DialogContent className="bg-card border-border shadow-2xl max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-bold text-foreground">
               Duplicar formulário
@@ -1479,7 +1479,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                 <MoreHorizontal size={16} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-52">
+            <DropdownMenuContent align="end" className="bg-popover border-border shadow-lg w-52">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
                 <Pencil size={15} className="mr-2" /> Editar
               </DropdownMenuItem>
@@ -1492,7 +1492,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                 <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
                   <FolderOpen size={15} className="mr-2" /> Mover para pasta
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="bg-white border-border shadow-lg w-48">
+                <DropdownMenuSubContent className="bg-popover border-border shadow-lg w-48">
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, undefined); }}>
                     <X size={14} className="mr-2 text-muted-foreground" /> Sem pasta
                   </DropdownMenuItem>

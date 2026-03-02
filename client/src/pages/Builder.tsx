@@ -239,7 +239,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
       />
 
       {/* ─── Top Bar ─── */}
-      <header className="h-12 sm:h-14 border-b border-border bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 z-50">
+      <header className="h-12 sm:h-14 border-b border-border bg-background flex items-center justify-between px-2 sm:px-4 shrink-0 z-50">
         {/* Left: Back + Form name */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button
@@ -294,8 +294,8 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
             }}
             className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-medium transition-all ${
               isSaved
-                ? "text-green-600 bg-green-50 hover:bg-green-100"
-                : "text-amber-600 bg-amber-50 hover:bg-amber-100 animate-pulse"
+                ? "text-green-600 bg-green-500/10 hover:bg-green-500/20"
+                : "text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 animate-pulse"
             }`}
           >
             {isSaved ? (
@@ -318,7 +318,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                 <MoreVertical size={18} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border-border shadow-lg w-56">
+            <DropdownMenuContent align="end" className="bg-popover border-border shadow-lg w-56">
               <DropdownMenuItem onClick={handleSaveVersion}>
                 <Save size={15} className="mr-2" />
                 Criar ponto de restauração
@@ -355,7 +355,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
             disabled={isPublishing}
             className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-body font-semibold transition-all ${
               isPublished
-                ? "text-green-700 bg-green-100 hover:bg-green-200 border border-green-300"
+                ? "text-green-600 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30"
                 : "text-white bg-brand hover:bg-brand-dark brand-shadow"
             } ${isPublishing ? "opacity-60 cursor-not-allowed" : ""}`}
           >
@@ -445,7 +445,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-white max-h-[50vh] md:max-h-none">
+              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background max-h-[50vh] md:max-h-none">
                 <DesignPanel design={form.design} onUpdate={updateDesign} />
               </div>
 
@@ -522,7 +522,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-white max-h-[50vh] md:max-h-none">
+              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background max-h-[50vh] md:max-h-none">
                 <SharingPanel
                   sharing={form.sharing}
                   formTitle={form.title}
@@ -647,13 +647,13 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white border-l border-border shadow-2xl z-[61] flex flex-col"
+              className="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-background border-l border-border shadow-2xl z-[61] flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                    <History size={18} className="text-blue-600" />
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <BarChart3 size={18} className="text-blue-600" />
                   </div>
                   <div>
                     <h3 className="font-display text-base font-bold text-foreground">Histórico de versões</h3>
@@ -706,7 +706,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                                 {version.label}
                               </span>
                               {index === 0 && (
-                                <span className="text-[10px] font-body font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-md uppercase">
+                                <span className="text-[10px] font-body font-bold text-green-600 bg-green-500/10 px-1.5 py-0.5 rounded-md uppercase">
                                   Mais recente
                                 </span>
                               )}
@@ -727,14 +727,14 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleRestoreVersion(version)}
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-500/10 transition-colors"
                               title="Restaurar esta versão"
                             >
                               <RotateCcw size={14} />
                             </button>
                             <button
                               onClick={() => handleDeleteVersion(version.id)}
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
                               title="Excluir esta versão"
                             >
                               <Trash2 size={14} />
@@ -769,7 +769,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
 
       {/* Mobile Bottom Bar - Content tab only */}
       {activeTab === "content" && (
-        <div className="md:hidden flex items-center justify-around border-t border-border bg-white py-2 px-4 shrink-0 safe-area-bottom">
+        <div className="md:hidden flex items-center justify-around border-t border-border bg-background py-2 px-4 shrink-0 safe-area-bottom">
           <button
             onClick={() => setMobileSidebarOpen(true)}
             className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
