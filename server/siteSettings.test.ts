@@ -168,3 +168,91 @@ describe("db site settings helpers", () => {
     expect(typeof db.upsertSiteSettings).toBe("function");
   });
 });
+
+// ─── Form-Level OG Tags Tests ───
+describe("form-level OG tags in ogMiddleware", () => {
+  it("should skip known app routes for crawler requests", async () => {
+    const mod = await import("./ogMiddleware");
+    const middleware = mod.ogMiddleware();
+    const appRoutes = ["dashboard", "editor", "responses", "configuracoes", "login"];
+    for (const route of appRoutes) {
+      const req = {
+        method: "GET",
+        path: `/${route}`,
+        headers: { "user-agent": "WhatsApp/2.23.20.0" },
+      } as any;
+      const res = {} as any;
+      const next = vi.fn();
+      await middleware(req, res, next);
+      expect(next).toHaveBeenCalled();
+    }
+  });
+
+  it("should pass through non-slug paths (multi-segment)", async () => {
+    const mod = await import("./ogMiddleware");
+    const middleware = mod.ogMiddleware();
+    const req = {
+      method: "GET",
+      path: "/api/trpc/forms.list",
+      headers: { "user-agent": "WhatsApp/2.23.20.0" },
+    } as any;
+    const res = {} as any;
+    const next = vi.fn();
+    await middleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("should pass through for unknown slugs (form not found)", async () => {
+    const mod = await import("./ogMiddleware");
+    const middleware = mod.ogMiddleware();
+    const req = {
+      method: "GET",
+      path: "/nonexistent-form-slug-xyz",
+      headers: { "user-agent": "WhatsApp/2.23.20.0" },
+    } as any;
+    const res = {
+      status: () => res,
+      set: () => res,
+      end: () => res,
+    } as any;
+    const next = vi.fn();
+    await middleware(req, res, next);
+    // Should either serve OG tags (if form found) or call next (if not found)
+    // Since this is a non-existent slug, it should call next
+    expect(next).toHaveBeenCalled();
+  });
+});
+
+// ─── FormDesignSettings OG Fields Tests ───
+describe("FormDesignSettings OG fields", () => {
+  it("should include ogTitle, ogDescription, ogImage in design defaults", async () => {
+    const { defaultDesignSettings } = await import("../client/src/lib/builderTypes");
+    expect(defaultDesignSettings).toHaveProperty("ogTitle");
+    expect(defaultDesignSettings).toHaveProperty("ogDescription");
+    expect(defaultDesignSettings).toHaveProperty("ogImage");
+    expect(defaultDesignSettings.ogTitle).toBe("");
+    expect(defaultDesignSettings.ogDescription).toBe("");
+    expect(defaultDesignSettings.ogImage).toBe("");
+  });
+
+  it("should include ogTitle, ogDescription, ogImage in FormDesignSettings interface", async () => {
+    // Verify the type exists by checking the default object has the right keys
+    const { defaultDesignSettings } = await import("../client/src/lib/builderTypes");
+    const keys = Object.keys(defaultDesignSettings);
+    expect(keys).toContain("ogTitle");
+    expect(keys).toContain("ogDescription");
+    expect(keys).toContain("ogImage");
+    expect(keys).toContain("buttonColor");
+    expect(keys).toContain("backgroundColor");
+    expect(keys).toContain("fontFamily");
+  });
+});
+
+// ─── SharingPanel Component Tests ───
+describe("SharingPanel accepts design props", () => {
+  it("should export SharingPanel from the module", async () => {
+    const mod = await import("../client/src/components/builder/SharingPanel");
+    expect(mod.SharingPanel).toBeDefined();
+    expect(typeof mod.SharingPanel).toBe("function");
+  });
+});

@@ -610,3 +610,10 @@
 ### Fix: Splash screen apenas no PWA (web app instalado)
 - [x] Remover splash/logo de carregamento ao abrir no navegador normal
 - [x] Manter splash apenas quando aberto como PWA standalone (display-mode: standalone + navigator.standalone)
+
+### Feature: OG Tags por formulário (compartilhamento individual)
+- [x] Campos ogTitle, ogDescription, ogImage já existiam no FormDesignSettings (builderTypes.ts)
+- [x] Criar seção "Compartilhamento social" no SharingPanel com preview do WhatsApp em tempo real
+- [x] Upload de imagem de capa por formulário (S3 via siteSettings.uploadImage)
+- [x] ogMiddleware já servia OG tags específicos de cada formulário (design.ogTitle/ogDescription/ogImage)
+- [x] 6 novos testes adicionados (212 testes totais passando)

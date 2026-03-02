@@ -1,26 +1,28 @@
 /**
- * FormFlow Sharing Panel (Light Theme)
- * Link sharing, social media, embed code generation.
+ * FormFlow Sharing Panel
+ * Link sharing, social media, embed code generation, and OG tag configuration.
  * Uses window.location.origin as the base URL so it automatically
  * reflects the real domain (e.g., one.cadastrodigital.com.br).
  */
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Copy, Check, ExternalLink, Facebook, Twitter, Linkedin,
   Code, Monitor, Maximize, MousePointer, Layers,
-  CheckCircle2, XCircle, Loader2,
+  CheckCircle2, XCircle, Loader2, Globe, ImageIcon, Upload, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import type { SharingSettings, EmbedMode } from "@/lib/builderTypes";
+import type { SharingSettings, EmbedMode, FormDesignSettings } from "@/lib/builderTypes";
 
 interface SharingPanelProps {
   sharing: SharingSettings;
   formTitle: string;
   formId?: number;
   onUpdate: (updates: Partial<SharingSettings>) => void;
+  design: FormDesignSettings;
+  onUpdateDesign: (updates: Partial<FormDesignSettings>) => void;
 }
 
 const embedModes: { id: EmbedMode; label: string; icon: typeof Monitor; description: string }[] = [
@@ -30,7 +32,7 @@ const embedModes: { id: EmbedMode; label: string; icon: typeof Monitor; descript
   { id: "button-popup", label: "Botão para janela", icon: Layers, description: "Botão que abre popup" },
 ];
 
-export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPanelProps) {
+export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onUpdateDesign }: SharingPanelProps) {
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showCode, setShowCode] = useState(false);
@@ -38,10 +40,17 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // OG image upload state
+  const [isUploadingOgImage, setIsUploadingOgImage] = useState(false);
+  const ogImageInputRef = useRef<HTMLInputElement>(null);
+
   // Fixed domain for form URLs — always use the custom domain
   const baseUrl = "https://one.cadastrodigital.com.br";
 
   const formUrl = `${baseUrl}/${sharing.slug}`;
+
+  // Upload image mutation (reuse siteSettings.uploadImage)
+  const uploadImageMutation = trpc.siteSettings.uploadImage.useMutation();
 
   // Sync slugInput when sharing.slug changes externally
   useEffect(() => {
@@ -144,8 +153,63 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
     window.open(shareUrl, "_blank", "width=600,height=400");
   };
 
+  // OG image upload handler
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem.");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB.");
+      return;
+    }
+
+    setIsUploadingOgImage(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data:image/xxx;base64, prefix
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageMutation.mutateAsync({
+        base64,
+        filename: file.name,
+        mimeType: file.type,
+      });
+
+      onUpdateDesign({ ogImage: result.url });
+      toast.success("Imagem de compartilhamento atualizada!");
+    } catch (err) {
+      toast.error("Erro ao enviar imagem. Tente novamente.");
+      console.error("[OG Image Upload]", err);
+    } finally {
+      setIsUploadingOgImage(false);
+      // Reset input
+      if (ogImageInputRef.current) {
+        ogImageInputRef.current.value = "";
+      }
+    }
+  };
+
+  // Computed OG values (with fallbacks)
+  const ogTitle = design.ogTitle || formTitle || "Cadastro Digital";
+  const ogDescription = design.ogDescription || "Preencha o formulário de forma segura e digital.";
+  const ogImage = design.ogImage || design.logoUrl || "";
+
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-white">
+    <div className="h-full flex flex-col overflow-hidden bg-background">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
         {/* Link Section */}
         <motion.div
@@ -160,7 +224,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
           </p>
 
           {!sharing.isPublished && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-body mb-4 bg-amber-50 text-amber-700 border border-amber-200">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-body mb-4 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
               <span>⚠</span>
               Existe um rascunho não publicado
             </div>
@@ -259,6 +323,170 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
             >
               <ExternalLink size={18} /> WhatsApp
             </button>
+          </div>
+        </motion.div>
+
+        {/* Divider */}
+        <div className="border-t border-border" />
+
+        {/* ═══ Social Sharing / OG Tags Section ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Globe size={18} className="text-brand" />
+            <h4 className="text-lg font-display font-bold text-foreground">
+              Compartilhamento social
+            </h4>
+          </div>
+          <p className="text-sm text-muted-foreground mb-5">
+            Configure como o link aparece ao compartilhar no WhatsApp, Facebook e outras redes.
+          </p>
+
+          {/* WhatsApp Preview Card */}
+          <div className="mb-6">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Preview do WhatsApp
+            </p>
+            <div className="rounded-xl border border-border overflow-hidden bg-secondary/50 max-w-sm">
+              {/* Image preview */}
+              {ogImage ? (
+                <div className="w-full h-[180px] bg-muted relative">
+                  <img
+                    src={ogImage}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-[180px] bg-muted flex items-center justify-center">
+                  <div className="text-center">
+                    <ImageIcon size={32} className="text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground/60">Sem imagem de capa</p>
+                  </div>
+                </div>
+              )}
+              {/* Text preview */}
+              <div className="p-3">
+                <p className="text-xs text-muted-foreground mb-0.5 truncate">
+                  one.cadastrodigital.com.br
+                </p>
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {ogTitle}
+                </p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                  {ogDescription}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* OG Title */}
+          <div className="mb-4">
+            <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
+              Título da página
+            </label>
+            <input
+              type="text"
+              value={design.ogTitle ?? ""}
+              onChange={(e) => onUpdateDesign({ ogTitle: e.target.value })}
+              placeholder={formTitle || "Título do formulário"}
+              className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
+            />
+            <p className="text-xs text-muted-foreground mt-1 ml-1">
+              Se vazio, usa o nome do formulário.
+            </p>
+          </div>
+
+          {/* OG Description */}
+          <div className="mb-4">
+            <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
+              Descrição da página
+            </label>
+            <textarea
+              value={design.ogDescription ?? ""}
+              onChange={(e) => onUpdateDesign({ ogDescription: e.target.value })}
+              placeholder="Preencha o formulário de forma segura e digital."
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 resize-none"
+            />
+          </div>
+
+          {/* OG Image */}
+          <div className="mb-4">
+            <label className="text-sm font-body font-medium text-foreground mb-1.5 block">
+              Imagem de capa
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Imagem exibida ao compartilhar o link em redes sociais. Recomendado: 1200x630px.
+            </p>
+
+            {design.ogImage ? (
+              <div className="relative rounded-xl border border-border overflow-hidden bg-muted">
+                <img
+                  src={design.ogImage}
+                  alt="Imagem de capa"
+                  className="w-full h-[160px] object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+                <div className="absolute bottom-2 right-2 flex gap-2">
+                  <button
+                    onClick={() => ogImageInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-brand bg-background/90 backdrop-blur-sm border border-border hover:bg-background transition-all"
+                  >
+                    Trocar
+                  </button>
+                  <button
+                    onClick={() => onUpdateDesign({ ogImage: "" })}
+                    className="p-1.5 rounded-lg text-destructive bg-background/90 backdrop-blur-sm border border-border hover:bg-background transition-all"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => ogImageInputRef.current?.click()}
+                disabled={isUploadingOgImage}
+                className="w-full flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-xl border-2 border-dashed border-border hover:border-brand/40 bg-secondary/30 hover:bg-secondary/50 transition-all cursor-pointer"
+              >
+                {isUploadingOgImage ? (
+                  <Loader2 size={24} className="text-brand animate-spin" />
+                ) : (
+                  <Upload size={24} className="text-muted-foreground/60" />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {isUploadingOgImage ? "Enviando..." : "Clique para enviar imagem"}
+                </span>
+              </button>
+            )}
+
+            {/* OG Image URL input */}
+            <div className="mt-2">
+              <input
+                type="text"
+                value={design.ogImage ?? ""}
+                onChange={(e) => onUpdateDesign({ ogImage: e.target.value })}
+                placeholder="https://exemplo.com/imagem.jpg"
+                className="w-full px-4 py-2 rounded-xl text-xs font-mono bg-secondary border border-border text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40"
+              />
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={ogImageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleOgImageUpload}
+              className="hidden"
+            />
           </div>
         </motion.div>
 
@@ -368,7 +596,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
             <div className="rounded-2xl p-6 border border-border flex items-center justify-center min-h-[120px] bg-secondary/30">
               {sharing.embedMode === "normal" && (
                 <div
-                  className="w-full rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-white border border-border"
+                  className="w-full rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-card border border-border"
                   style={{
                     height: `${Math.min(parseInt(sharing.embedHeight) || 100, 120)}px`,
                   }}
@@ -377,7 +605,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate }: SharingPa
                 </div>
               )}
               {sharing.embedMode === "fullscreen" && (
-                <div className="w-full h-[120px] rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-white border border-border">
+                <div className="w-full h-[120px] rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-card border border-border">
                   Seu formulário aqui (tela cheia)
                 </div>
               )}

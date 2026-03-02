@@ -528,6 +528,8 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                   formTitle={form.title}
                   formId={currentDbFormId}
                   onUpdate={updateSharing}
+                  design={form.design}
+                  onUpdateDesign={updateDesign}
                 />
                 <div className="border-t border-border">
                   <WebhookPanel
