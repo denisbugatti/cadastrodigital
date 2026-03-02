@@ -122,10 +122,22 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // Hide splash screen once React has mounted
-      // Skip splash entirely on form-filling routes (/f/)
+      // Only show splash in PWA standalone mode (installed on iPhone/Android)
+      // Skip splash entirely on form-filling routes and regular browser
       (function() {
         var splash = document.getElementById('splash-screen');
         if (!splash) return;
+
+        // Check if running as PWA (standalone or fullscreen)
+        var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+          || window.matchMedia('(display-mode: fullscreen)').matches
+          || window.navigator.standalone === true;
+
+        // If NOT running as PWA, remove splash immediately
+        if (!isStandalone) {
+          splash.remove();
+          return;
+        }
 
         var path = window.location.pathname;
         if (path.startsWith('/f/') || path.startsWith('/form/') || path.startsWith('/form-preview')) {

@@ -310,3 +310,26 @@ export const formCorretores = mysqlTable("form_corretores", {
 
 export type FormCorretor = typeof formCorretores.$inferSelect;
 export type InsertFormCorretor = typeof formCorretores.$inferInsert;
+
+
+/**
+ * Site settings — global configuration for the site (OG tags, branding, etc.).
+ * Only one row should exist (singleton pattern with key="default").
+ */
+export const siteSettings = mysqlTable("site_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Unique key for the settings row (e.g., "default") */
+  key: varchar("key", { length: 64 }).notNull().unique(),
+  /** OG title shown when sharing on WhatsApp/social media */
+  ogTitle: varchar("ogTitle", { length: 500 }),
+  /** OG description shown when sharing */
+  ogDescription: text("ogDescription"),
+  /** OG image URL shown when sharing */
+  ogImage: text("ogImage"),
+  /** Site URL for OG tags */
+  ogUrl: varchar("ogUrl", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SiteSettings = typeof siteSettings.$inferSelect;
+export type InsertSiteSettings = typeof siteSettings.$inferInsert;

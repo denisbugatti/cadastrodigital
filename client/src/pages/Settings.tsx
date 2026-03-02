@@ -6,14 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Shield, Users, Download, ArrowLeft, SlidersHorizontal,
   Loader2, UserPlus, Mail, Phone, CheckCircle2, XCircle,
-  Clock, FileDown, Filter, Palette, Sun, Moon, Monitor
+  Clock, FileDown, Filter, Palette, Sun, Moon, Monitor,
+  Globe, Upload, Image as ImageIcon, X, Save, ExternalLink
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -78,7 +81,7 @@ export default function Settings() {
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Tabs defaultValue="aparencia" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-secondary border border-border rounded-xl p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-5 bg-secondary border border-border rounded-xl p-1 h-auto">
             <TabsTrigger
               value="aparencia"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
@@ -101,6 +104,13 @@ export default function Settings() {
               <span className="hidden sm:inline">Usuários</span>
             </TabsTrigger>
             <TabsTrigger
+              value="social"
+              className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">Social</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="exportacao"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
             >
@@ -119,6 +129,10 @@ export default function Settings() {
 
           <TabsContent value="usuarios" className="mt-6">
             <UsersTab />
+          </TabsContent>
+
+          <TabsContent value="social" className="mt-6">
+            <SocialTab />
           </TabsContent>
 
           <TabsContent value="exportacao" className="mt-6">
@@ -736,5 +750,290 @@ function ExportTab() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+
+// ─── Social / OG Tags Tab ───
+function SocialTab() {
+  const { data: settings, isLoading } = trpc.siteSettings.get.useQuery();
+  const utils = trpc.useUtils();
+  const updateSettings = trpc.siteSettings.update.useMutation({
+    onSuccess: () => {
+      utils.siteSettings.get.invalidate();
+      toast.success("Configurações de compartilhamento salvas!");
+    },
+    onError: (err) => {
+      toast.error("Erro ao salvar: " + err.message);
+    },
+  });
+  const uploadImage = trpc.siteSettings.uploadImage.useMutation({
+    onError: (err) => {
+      toast.error("Erro ao enviar imagem: " + err.message);
+    },
+  });
+
+  const [ogTitle, setOgTitle] = useState("");
+  const [ogDescription, setOgDescription] = useState("");
+  const [ogImage, setOgImage] = useState("");
+  const [ogUrl, setOgUrl] = useState("");
+  const [initialized, setInitialized] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize form fields from server data
+  if (settings && !initialized) {
+    setOgTitle(settings.ogTitle ?? "");
+    setOgDescription(settings.ogDescription ?? "");
+    setOgImage(settings.ogImage ?? "");
+    setOgUrl(settings.ogUrl ?? "");
+    setInitialized(true);
+  }
+
+  const handleSave = useCallback(() => {
+    updateSettings.mutate({
+      ogTitle: ogTitle || undefined,
+      ogDescription: ogDescription || undefined,
+      ogImage: ogImage || undefined,
+      ogUrl: ogUrl || undefined,
+    });
+  }, [ogTitle, ogDescription, ogImage, ogUrl, updateSettings]);
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith("image/")) {
+      toast.error("Apenas imagens são permitidas");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem deve ter no máximo 5MB");
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(",")[1];
+        const result = await uploadImage.mutateAsync({
+          base64,
+          filename: file.name,
+          mimeType: file.type,
+        });
+        setOgImage(result.url);
+        setImageUploading(false);
+        toast.success("Imagem enviada com sucesso!");
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setImageUploading(false);
+    }
+
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [uploadImage]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* WhatsApp Preview Card */}
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center">
+              <Globe className="h-5 w-5 text-brand" />
+            </div>
+            <div>
+              <CardTitle className="text-foreground font-display text-lg">Compartilhamento Social</CardTitle>
+              <CardDescription className="font-body text-sm">
+                Configure como o link aparece ao compartilhar no WhatsApp e redes sociais
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Preview */}
+          <div>
+            <Label className="text-sm font-body font-medium text-muted-foreground mb-3 block">
+              Ao compartilhar...
+            </Label>
+            <p className="text-xs text-muted-foreground mb-3 font-body">
+              Essas informações aparecem quando o link é compartilhado em redes sociais.
+            </p>
+            <div className="max-w-md mx-auto">
+              <div className="rounded-xl overflow-hidden border border-border bg-card shadow-sm">
+                {/* Image preview */}
+                <div className="aspect-[1.91/1] bg-secondary relative overflow-hidden">
+                  {ogImage ? (
+                    <img
+                      src={ogImage}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+                    </div>
+                  )}
+                </div>
+                {/* Text preview */}
+                <div className="p-3 space-y-1">
+                  <p className="text-sm font-semibold text-brand font-body line-clamp-1">
+                    {ogTitle || "Cadastro Digital | One Innovation"}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-body line-clamp-2">
+                    {ogDescription || "Empreendimentos inovadores nas melhores localizações de São Paulo..."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Fields */}
+          <div className="space-y-4">
+            {/* Title */}
+            <div className="space-y-2">
+              <Label htmlFor="og-title" className="text-sm font-body font-medium text-foreground">
+                Título da página
+              </Label>
+              <Input
+                id="og-title"
+                value={ogTitle}
+                onChange={(e) => setOgTitle(e.target.value)}
+                placeholder="Cadastro Digital | One Innovation"
+                className="bg-secondary border-border"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="og-description" className="text-sm font-body font-medium text-foreground">
+                Descrição da página
+              </Label>
+              <Textarea
+                id="og-description"
+                value={ogDescription}
+                onChange={(e) => setOgDescription(e.target.value)}
+                placeholder="Empreendimentos inovadores nas melhores localizações de São Paulo..."
+                className="bg-secondary border-border min-h-[80px] resize-none"
+                rows={3}
+              />
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label className="text-sm font-body font-medium text-foreground">
+                Imagem de capa
+              </Label>
+              <p className="text-xs text-muted-foreground font-body">
+                Imagem exibida ao compartilhar o link em redes sociais.
+              </p>
+              {ogImage ? (
+                <div className="space-y-2">
+                  <div className="relative rounded-xl overflow-hidden border border-border bg-secondary max-w-sm">
+                    <img
+                      src={ogImage}
+                      alt="OG Image"
+                      className="w-full h-40 object-cover"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={imageUploading}
+                    >
+                      {imageUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
+                      Trocar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setOgImage("")}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Remover
+                    </Button>
+                  </div>
+                  <Input
+                    value={ogImage}
+                    onChange={(e) => setOgImage(e.target.value)}
+                    placeholder="https://..."
+                    className="bg-secondary border-border text-xs"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={imageUploading}
+                    className="w-full max-w-sm h-32 rounded-xl border-2 border-dashed border-border bg-secondary/50 hover:bg-secondary hover:border-brand/30 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {imageUploading ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                    ) : (
+                      <>
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground font-body">Clique para enviar uma imagem</span>
+                        <span className="text-xs text-muted-foreground/60 font-body">PNG, JPG até 5MB</span>
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-muted-foreground font-body">Ou cole a URL da imagem:</p>
+                  <Input
+                    value={ogImage}
+                    onChange={(e) => setOgImage(e.target.value)}
+                    placeholder="https://..."
+                    className="bg-secondary border-border text-xs max-w-sm"
+                  />
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground font-body">
+              As alterações serão aplicadas ao compartilhar o link do site.
+            </p>
+            <Button
+              onClick={handleSave}
+              disabled={updateSettings.isPending}
+              className="bg-brand hover:bg-brand/90 text-white"
+            >
+              {updateSettings.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

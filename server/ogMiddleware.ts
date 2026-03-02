@@ -8,7 +8,7 @@
  */
 
 import { type Request, type Response, type NextFunction } from "express";
-import { getFormBySlug } from "./db";
+import { getFormBySlug, getSiteSettings } from "./db";
 
 // User-agent patterns for known social media crawlers
 const CRAWLER_UA_PATTERNS = [
@@ -45,7 +45,31 @@ function escapeHtml(str: string): string {
 
 const DEFAULT_OG_IMAGE =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/formflow-icon-512_f2d6e9c0.png";
+const DEFAULT_OG_TITLE = "Cadastro Digital | One Innovation";
+const DEFAULT_OG_DESCRIPTION = "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.";
 const BASE_URL = "https://one.cadastrodigital.com.br";
+
+// Cache site settings to avoid DB hits on every crawler request
+let _cachedSiteSettings: any = null;
+let _settingsCacheExpiry = 0;
+const SETTINGS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedSiteSettings() {
+  const now = Date.now();
+  if (_cachedSiteSettings && now < _settingsCacheExpiry) {
+    return _cachedSiteSettings;
+  }
+  try {
+    const settings = await getSiteSettings();
+    if (settings) {
+      _cachedSiteSettings = settings;
+      _settingsCacheExpiry = now + SETTINGS_CACHE_TTL;
+    }
+    return settings;
+  } catch {
+    return _cachedSiteSettings; // Return stale cache on error
+  }
+}
 
 export function ogMiddleware() {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -56,8 +80,48 @@ export function ogMiddleware() {
     const ua = req.headers["user-agent"];
     if (!isCrawler(ua)) return next();
 
-    // Extract potential slug from path (must be /:slug pattern — single segment, no dots)
     const path = req.path;
+
+    // Handle homepage OG tags for crawlers
+    if (path === "/" || path === "") {
+      try {
+        const settings = await getCachedSiteSettings();
+        const title = escapeHtml(settings?.ogTitle || DEFAULT_OG_TITLE);
+        const description = escapeHtml(settings?.ogDescription || DEFAULT_OG_DESCRIPTION);
+        const image = escapeHtml(settings?.ogImage || DEFAULT_OG_IMAGE);
+        const url = escapeHtml(settings?.ogUrl || BASE_URL);
+
+        const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title}</title>
+  <meta name="description" content="${description}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:image" content="${image}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:site_name" content="Cadastro Digital" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${image}" />
+  <meta http-equiv="refresh" content="0;url=${url}" />
+</head>
+<body>
+  <p>Redirecionando para <a href="${url}">${title}</a>...</p>
+</body>
+</html>`;
+        return res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(html);
+      } catch {
+        return next();
+      }
+    }
+
+    // Extract potential slug from path (must be /:slug pattern — single segment, no dots)
     const slugMatch = path.match(/^\/([a-z0-9][a-z0-9_-]{0,60})$/i);
     if (!slugMatch) return next();
 

@@ -71,6 +71,13 @@
       "when": 1772415194268,
       "tag": "0009_smart_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1772478128899,
+      "tag": "0010_open_slyde",
+      "breakpoints": true
     }
   ]
 }

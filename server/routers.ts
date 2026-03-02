@@ -1039,6 +1039,53 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── Site Settings (OG tags, branding) ───
+  siteSettings: router({
+    get: publicProcedure.query(async () => {
+      const settings = await db.getSiteSettings();
+      if (!settings) {
+        // Return defaults
+        return {
+          ogTitle: "Cadastro Digital | One Innovation",
+          ogDescription: "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
+          ogImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/formflow-icon-512_f2d6e9c0.png",
+          ogUrl: "https://one.cadastrodigital.com.br",
+        };
+      }
+      return {
+        ogTitle: settings.ogTitle ?? "Cadastro Digital | One Innovation",
+        ogDescription: settings.ogDescription ?? "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
+        ogImage: settings.ogImage ?? "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/formflow-icon-512_f2d6e9c0.png",
+        ogUrl: settings.ogUrl ?? "https://one.cadastrodigital.com.br",
+      };
+    }),
+
+    update: ownerFallbackProcedure
+      .input(z.object({
+        ogTitle: z.string().max(500).optional(),
+        ogDescription: z.string().max(2000).optional(),
+        ogImage: z.string().max(2000).optional(),
+        ogUrl: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.upsertSiteSettings(input);
+        return { success: true };
+      }),
+
+    uploadImage: ownerFallbackProcedure
+      .input(z.object({
+        base64: z.string(),
+        filename: z.string(),
+        mimeType: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const buffer = Buffer.from(input.base64, "base64");
+        const key = `og-images/${nanoid(12)}-${input.filename}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        return { url };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

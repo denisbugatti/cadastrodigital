@@ -11,6 +11,7 @@ import {
   pushSubscriptions, InsertPushSubscription,
   corretores, InsertCorretor,
   formCorretores, InsertFormCorretor,
+  siteSettings, InsertSiteSettings,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -717,5 +718,44 @@ export async function getStaffCorretoresWithForms() {
         };
       })
       .filter((c: any) => c.formSlug != null);
+  });
+}
+
+
+/* ─── Site Settings ─── */
+
+export async function getSiteSettings() {
+  return withDbRetry(async (db) => {
+    const result = await db.select().from(siteSettings).where(eq(siteSettings.key, "default")).limit(1);
+    return result.length > 0 ? result[0] : null;
+  });
+}
+
+export async function upsertSiteSettings(data: {
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: string | null;
+  ogUrl?: string | null;
+}) {
+  return withDbRetry(async (db) => {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, "default")).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings)
+        .set({
+          ogTitle: data.ogTitle ?? existing[0].ogTitle,
+          ogDescription: data.ogDescription ?? existing[0].ogDescription,
+          ogImage: data.ogImage ?? existing[0].ogImage,
+          ogUrl: data.ogUrl ?? existing[0].ogUrl,
+        })
+        .where(eq(siteSettings.key, "default"));
+    } else {
+      await db.insert(siteSettings).values({
+        key: "default",
+        ogTitle: data.ogTitle ?? "Cadastro Digital | One Innovation",
+        ogDescription: data.ogDescription ?? "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
+        ogImage: data.ogImage ?? null,
+        ogUrl: data.ogUrl ?? "https://one.cadastrodigital.com.br",
+      });
+    }
   });
 }

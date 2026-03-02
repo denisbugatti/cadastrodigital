@@ -598,3 +598,15 @@
 - [x] Identificar causa raiz: ownerFallbackProcedure falhava quando DB demorava a responder, sem fallback adequado
 - [x] Corrigir: getOrCreateOwnerUser agora NUNCA falha — usa 4 camadas de fallback (cache → DB retry → stale cache → synthetic owner)
 - [x] Cache TTL aumentado para 30 min, retry com backoff exponencial, 3 testes de resiliência adicionados (193 testes passando)
+
+### Feature: Configurações de Compartilhamento Social (OG Tags)
+- [x] Adicionar aba "Social" nas Configurações com preview de como o link aparece no WhatsApp
+- [x] Campos editáveis: título da página, descrição, imagem de capa (upload para S3)
+- [x] Backend: salvar OG tags no banco de dados (tabela site_settings)
+- [x] Backend: servir OG meta tags dinamicamente no HTML baseado nas configurações salvas (ogMiddleware atualizado)
+- [x] Preview em tempo real do card de compartilhamento
+- [x] 13 testes novos para siteSettings (206 testes totais passando)
+
+### Fix: Splash screen apenas no PWA (web app instalado)
+- [x] Remover splash/logo de carregamento ao abrir no navegador normal
+- [x] Manter splash apenas quando aberto como PWA standalone (display-mode: standalone + navigator.standalone)
