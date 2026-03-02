@@ -624,3 +624,9 @@
 - [x] Atualizar aba Aparência nas Configurações com 3 opções visuais (Claro, Escuro, Sistema) em grid 3 colunas
 - [x] Persistir preferência no localStorage (theme-mode) com migração da chave antiga
 - [x] 19 testes atualizados para cobrir sistema (219 testes totais passando)
+
+### Bug: OG tags não aparecem no WhatsApp
+- [x] Investigar: produção não tinha o código mais recente do ogMiddleware (precisa publicar)
+- [x] ogMiddleware funciona corretamente no dev (confirmado via curl com WhatsApp UA)
+- [x] Atualizar index.html estático com OG tags corretas da One Innovation como fallback
+- [x] Título, descrição e twitter:card atualizados no HTML estático
