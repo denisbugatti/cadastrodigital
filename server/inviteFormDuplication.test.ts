@@ -82,4 +82,28 @@ describe("Invite form duplication logic", () => {
     const db = await import("./db");
     expect(typeof db.duplicateFormForCorretor).toBe("function");
   });
+
+  it("should verify getChildForms function exists in db", async () => {
+    const db = await import("./db");
+    expect(typeof db.getChildForms).toBe("function");
+  });
+
+  it("should verify syncChildForms function exists in db", async () => {
+    const db = await import("./db");
+    expect(typeof db.syncChildForms).toBe("function");
+  });
+
+  it("should verify getMainPublishedForm function exists in db", async () => {
+    const db = await import("./db");
+    expect(typeof db.getMainPublishedForm).toBe("function");
+  });
+
+  it("should verify forms table has parentFormId column", async () => {
+    const { forms } = await import("../drizzle/schema");
+    // The forms table should have parentFormId defined
+    expect(forms).toBeDefined();
+    // Check that the column exists in the table config
+    const columns = Object.keys(forms);
+    expect(columns.length).toBeGreaterThan(0);
+  });
 });

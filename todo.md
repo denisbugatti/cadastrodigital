@@ -1015,3 +1015,9 @@
 - [x] Adicionar filtro por data de criação na página de respostas do corretor
 - [x] Adicionar filtro por data de edição na página de respostas do corretor
 - [x] Manter filtro por status existente
+
+## Sincronização do Formulário Principal com Cópias dos Corretores
+- [x] Adicionar campo parentFormId na tabela forms para rastrear cópias
+- [x] Ao salvar/atualizar o formulário principal, propagar campos/design para todas as cópias
+- [x] Manter slug e assignedCorretorId individuais de cada cópia (não sobrescrever)
+- [x] Sincronizar: perguntas, design, configurações, mas preservar nome/slug/corretor da cópia

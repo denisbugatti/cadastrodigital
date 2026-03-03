@@ -170,6 +170,8 @@ export const forms = mysqlTable("forms", {
   responseCount: int("responseCount").default(0).notNull(),
   /** Staff user assigned to this form (staff_users.id of the corretor) */
   assignedCorretorId: int("assignedCorretorId"),
+  /** Parent form ID — if this form is a copy of another form, this tracks the original */
+  parentFormId: int("parentFormId"),
   /** Last seen response count — used to calculate unread badge */
   lastSeenResponseCount: int("lastSeenResponseCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

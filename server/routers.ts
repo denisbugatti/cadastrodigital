@@ -578,6 +578,29 @@ export const appRouter = router({
           (data as any).slug = newSlug;
         }
         await db.updateForm(id, data);
+
+        // Sync changes to child forms (copies assigned to corretores)
+        // Only sync syncable fields: questions, design, description, webhook, color, status
+        const syncableFields: Record<string, any> = {};
+        if (data.questions !== undefined) syncableFields.questions = data.questions;
+        if (data.design !== undefined) syncableFields.design = data.design;
+        if (data.description !== undefined) syncableFields.description = data.description;
+        if (data.webhook !== undefined) syncableFields.webhook = data.webhook;
+        if (data.color !== undefined) syncableFields.color = data.color;
+        if (data.status !== undefined) syncableFields.status = data.status;
+
+        if (Object.keys(syncableFields).length > 0) {
+          try {
+            const syncResult = await db.syncChildForms(id, syncableFields);
+            if (syncResult.synced > 0) {
+              console.log(`[FormSync] Synced ${syncResult.synced} child forms of parent ${id}`);
+            }
+          } catch (err) {
+            console.error("[FormSync] Failed to sync child forms:", err);
+            // Don't fail the parent update if sync fails
+          }
+        }
+
         return { success: true };
       }),
 
@@ -1110,6 +1133,21 @@ export const appRouter = router({
           questions: snapshot.questions,
           design: snapshot.design,
         });
+
+        // Sync restored version to child forms
+        try {
+          const syncResult = await db.syncChildForms(version.formId, {
+            questions: snapshot.questions,
+            design: snapshot.design,
+            description: snapshot.description,
+          });
+          if (syncResult.synced > 0) {
+            console.log(`[FormSync] Version restore synced ${syncResult.synced} child forms of parent ${version.formId}`);
+          }
+        } catch (err) {
+          console.error("[FormSync] Failed to sync child forms on version restore:", err);
+        }
+
         return { success: true };
       }),
   }),

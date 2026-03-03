@@ -340,6 +340,7 @@ export async function duplicateFormForCorretor(
       color: o.color,
       responseCount: 0,
       assignedCorretorId: staffUserId,
+      parentFormId: sourceFormId,
     });
     return { id: result[0].insertId, slug };
   });
@@ -356,12 +357,59 @@ export async function getMainPublishedForm(userId: number) {
         and(
           eq(forms.userId, userId),
           eq(forms.status, "published"),
-          isNull(forms.assignedCorretorId)
+          isNull(forms.assignedCorretorId),
+          isNull(forms.parentFormId)
         )
       )
       .orderBy(forms.createdAt)
       .limit(1);
     return result[0] ?? null;
+  });
+}
+
+/**
+ * Get all child forms (copies) of a parent form.
+ */
+export async function getChildForms(parentFormId: number) {
+  return withDbRetry(async (db) => {
+    return db.select().from(forms).where(eq(forms.parentFormId, parentFormId));
+  });
+}
+
+/**
+ * Sync changes from a parent form to all its child copies.
+ * Propagates: questions, design, description, webhook, color, workspaceId, status.
+ * Preserves: title, slug, assignedCorretorId, parentFormId, responseCount, sharing (slug part).
+ */
+export async function syncChildForms(parentFormId: number, syncData: {
+  questions?: any;
+  design?: any;
+  description?: string | null;
+  webhook?: any;
+  color?: string | null;
+  status?: string;
+}) {
+  return withDbRetry(async (db) => {
+    const children = await db.select().from(forms).where(eq(forms.parentFormId, parentFormId));
+    if (children.length === 0) return { synced: 0 };
+
+    // Build update data — only include fields that were actually changed
+    const updateData: Record<string, any> = {};
+    if (syncData.questions !== undefined) updateData.questions = syncData.questions;
+    if (syncData.design !== undefined) updateData.design = syncData.design;
+    if (syncData.description !== undefined) updateData.description = syncData.description;
+    if (syncData.webhook !== undefined) updateData.webhook = syncData.webhook;
+    if (syncData.color !== undefined) updateData.color = syncData.color;
+    if (syncData.status !== undefined) updateData.status = syncData.status;
+
+    if (Object.keys(updateData).length === 0) return { synced: 0 };
+
+    // Update all children at once
+    await db.update(forms)
+      .set(updateData)
+      .where(eq(forms.parentFormId, parentFormId));
+
+    return { synced: children.length };
   });
 }
 

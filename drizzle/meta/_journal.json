@@ -127,6 +127,13 @@
       "when": 1772570772408,
       "tag": "0017_magical_dracula",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1772571440117,
+      "tag": "0018_foamy_kingpin",
+      "breakpoints": true
     }
   ]
 }
