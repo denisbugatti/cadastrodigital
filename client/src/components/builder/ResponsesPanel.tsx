@@ -14,6 +14,7 @@ import {
   Lock, Loader2, Check, AlertTriangle, MessageSquare,
   ExternalLink, Image as ImageIcon, File as FileIcon,
   MoreHorizontal, Clock, User, Phone, Users,
+  MailCheck, Pause, Send, MailPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -168,9 +169,16 @@ function ValidationDrawer({
               <h3 className="text-base sm:text-lg font-display font-bold text-foreground tracking-tight">
                 Validação
               </h3>
-              <p className="text-xs sm:text-[13px] text-muted-foreground mt-1">
-                {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                {response.protocolCode && (
+                  <span className="text-xs font-mono text-brand font-semibold bg-brand/10 px-2 py-0.5 rounded-md">
+                    #{response.protocolCode}
+                  </span>
+                )}
+                <p className="text-xs sm:text-[13px] text-muted-foreground">
+                  {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -349,6 +357,39 @@ function ValidationDrawer({
               </div>
             );
           })}
+
+          {/* ── Approve All Button ── */}
+          {pendingFields > 0 && (
+            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50">
+              <button
+                onClick={() => {
+                  const pendingQs = fieldsWithAnswers.filter((q) => !validationMap[q.id]);
+                  pendingQs.forEach((q) => {
+                    handleApprove(q.id);
+                  });
+                }}
+                disabled={validateMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-sm"
+              >
+                {validateMutation.isPending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={16} />
+                )}
+                Aprovar Todos ({pendingFields} pendente{pendingFields > 1 ? "s" : ""})
+              </button>
+            </div>
+          )}
+
+          {/* All approved indicator */}
+          {pendingFields === 0 && totalFields > 0 && approvedFields === totalFields && (
+            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50">
+              <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 size={16} />
+                Todas as respostas aprovadas
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -439,6 +480,101 @@ function ValidationDrawer({
   );
 }
 
+/* ─── Cadence Panel (inline per response) ─── */
+function CadencePanelInline({ responseId }: { responseId: number }) {
+  const utils = trpc.useUtils();
+  const { data: cadences, isLoading } = trpc.cadence.getByResponse.useQuery(
+    { responseId },
+    { staleTime: 15000 }
+  );
+  const stopMutation = trpc.cadence.stop.useMutation({
+    onSuccess: () => {
+      utils.cadence.getByResponse.invalidate({ responseId });
+      toast.success("Cadência pausada!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  if (isLoading) return null;
+  if (!cadences || cadences.length === 0) return null;
+
+  return (
+    <div className="px-4 pb-2 space-y-1.5">
+      {cadences.map((c: any) => {
+        const isActive = c.active && !c.stoppedReason;
+        const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
+        const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
+
+        return (
+          <div
+            key={c.id}
+            className={`rounded-lg border p-2 ${
+              isActive
+                ? c.cadenceType === "abandono"
+                  ? "border-amber-500/20 bg-amber-500/5"
+                  : "border-red-500/20 bg-red-500/5"
+                : "border-border bg-muted/30"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1.5">
+                {isActive ? (
+                  <MailCheck size={11} className={c.cadenceType === "abandono" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"} />
+                ) : (
+                  <Pause size={11} className="text-muted-foreground" />
+                )}
+                <span className={`text-[10px] font-semibold ${
+                  isActive
+                    ? c.cadenceType === "abandono" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
+                    : "text-muted-foreground"
+                }`}>
+                  Cadência: {typeLabel}
+                </span>
+              </div>
+              {isActive && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    stopMutation.mutate({ cadenceId: c.id });
+                  }}
+                  disabled={stopMutation.isPending}
+                  className="text-[9px] text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-0.5"
+                >
+                  <Pause size={9} /> Pausar
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    isActive
+                      ? c.cadenceType === "abandono" ? "bg-amber-500" : "bg-red-500"
+                      : "bg-muted-foreground/30"
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="text-[9px] text-muted-foreground font-mono shrink-0">
+                {c.sequenceNumber}/{c.maxSequence}
+              </span>
+            </div>
+            {c.stoppedReason && (
+              <div className="mt-1 text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1">
+                <CheckCircle2 size={9} />
+                {c.stoppedReason === "form_completed" ? "Cadastro completado" :
+                 c.stoppedReason === "form_approved" ? "Cadastro aprovado" :
+                 c.stoppedReason === "manual" ? "Pausado manualmente" :
+                 c.stoppedReason === "max_reached" ? "Ciclo completo" : c.stoppedReason}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ─── Response Card (Mobile) ─── */
 function ResponseCard({
   response,
@@ -496,6 +632,11 @@ function ResponseCard({
             <Clock size={14} className="text-muted-foreground" />
           </div>
           <div className="min-w-0">
+            {response.protocolCode && (
+              <p className="text-[11px] font-mono text-brand font-semibold tracking-wide mb-0.5">
+                #{response.protocolCode}
+              </p>
+            )}
             <p className="text-sm font-medium text-foreground">
               {new Date(response.createdAt).toLocaleDateString("pt-BR", {
                 day: "2-digit",
@@ -556,6 +697,9 @@ function ResponseCard({
           </span>
         </div>
       )}
+
+      {/* Cadence info */}
+      <CadencePanelInline responseId={response.id} />
 
       {/* Actions */}
       <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-2">
@@ -1224,6 +1368,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         <table className="w-full hidden sm:table">
           <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-10">
             <tr>
+              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[120px]">
+                Protocolo
+              </th>
               <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[140px]">
                 <button
                   onClick={() => handleSort("createdAt")}
@@ -1275,6 +1422,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                   transition={{ delay: idx * 0.03 }}
                   className="border-b border-border/50 hover:bg-secondary/30 transition-colors group"
                 >
+                  <td className="px-4 py-3 text-xs font-mono text-brand font-semibold whitespace-nowrap">
+                    {resp.protocolCode ? `#${resp.protocolCode}` : "—"}
+                  </td>
                   <td className="px-4 py-3 text-sm font-body text-muted-foreground whitespace-nowrap">
                     {new Date(resp.createdAt).toLocaleDateString("pt-BR", {
                       day: "2-digit",

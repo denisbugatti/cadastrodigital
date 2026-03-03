@@ -962,3 +962,12 @@
 - [ ] Micro-interações e animações — hover, tap, loading states, empty states
 - [ ] Estados de loading com skeletons elegantes
 - [x] Design consistente dark mode com accent azul (#70BEFA)
+
+## Bug Fix — Acesso restrito no login
+- [x] Corrigir "Acesso restrito" na página /configuracoes — causa era senha alterada por engano durante debug
+- [x] Restaurar senha do admin para a senha correta (WdZQ7eQJXJ) — foi alterada por engano durante debug
+
+## Melhorias no ResponsesPanel
+- [x] Adicionar número do protocolo no card de cada resposta (mobile card + desktop table + ValidationDrawer header)
+- [x] Transferir aba de cadência para o painel de respostas (CadencePanelInline dentro de cada ResponseCard)
+- [x] Adicionar botão "Aprovar Todos" no final de todas as perguntas no ValidationDrawer + indicador "Todas aprovadas"

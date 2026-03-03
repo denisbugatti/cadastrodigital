@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, email, name, role, active, passwordHash FROM staff_users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, email, name, role, active, passwordHash FROM staff_users;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "contato@denisbugatti.com.br",
+      "name": "Denis Bugatti",
+      "role": "master",
+      "active": "1",
+      "passwordHash": "$2b$10$uu/9glyatjh3JpMG74Z8pesOk0VnmLuRjRuVHb10SGsy13HXo46ca"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tactive\tpasswordHash\n1\tcontato@denisbugatti.com.br\tDenis Bugatti\tmaster\t1\t$2b$10$uu/9glyatjh3JpMG74Z8pesOk0VnmLuRjRuVHb10SGsy13HXo46ca\n",
+  "stderr": "",
+  "execution_time_ms": 354
+}
