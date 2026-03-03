@@ -30,11 +30,11 @@ function FloatingPaths({ position }: { position: number }) {
             d={path.d}
             stroke="currentColor"
             strokeWidth={path.width}
-            strokeOpacity={0.04 + path.id * 0.008}
-            initial={{ pathLength: 0.3, opacity: 0.3 }}
+            strokeOpacity={0.08 + path.id * 0.015}
+            initial={{ pathLength: 0.3, opacity: 0.4 }}
             animate={{
               pathLength: 1,
-              opacity: [0.1, 0.3, 0.1],
+              opacity: [0.2, 0.5, 0.2],
               pathOffset: [0, 1, 0],
             }}
             transition={{
@@ -52,7 +52,8 @@ function FloatingPaths({ position }: { position: number }) {
 /**
  * BackgroundPaths with parallax scroll effect.
  * Two layers of floating paths move at different speeds on scroll,
- * creating depth. Opacity is kept very low so text remains fully readable.
+ * creating depth. Opacity is balanced for visibility while keeping text readable.
+ * A radial gradient overlay darkens the center for maximum text contrast.
  */
 export const BackgroundPaths = memo(({ className = "" }: { className?: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,26 +80,34 @@ export const BackgroundPaths = memo(({ className = "" }: { className?: string })
 
   return (
     <div ref={containerRef} className={`absolute inset-0 overflow-hidden ${className}`}>
-      {/* Back layer — slower, more transparent */}
+      {/* Back layer — slower */}
       <div
         className="absolute inset-0 will-change-transform"
         style={{
-          color: "rgba(112, 190, 250, 0.35)",
+          color: "rgba(112, 190, 250, 0.55)",
           transform: `translate3d(0, ${layer1Y}px, 0)`,
         }}
       >
         <FloatingPaths position={1} />
       </div>
-      {/* Front layer — faster, slightly more visible */}
+      {/* Front layer — faster, more visible */}
       <div
         className="absolute inset-0 will-change-transform"
         style={{
-          color: "rgba(112, 190, 250, 0.5)",
+          color: "rgba(112, 190, 250, 0.75)",
           transform: `translate3d(0, ${layer2Y}px, 0)`,
         }}
       >
         <FloatingPaths position={-1} />
       </div>
+
+      {/* Radial gradient overlay — darkens center for text contrast, lines visible at edges */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.4) 50%, transparent 80%)",
+        }}
+      />
     </div>
   );
 });

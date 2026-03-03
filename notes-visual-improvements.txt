@@ -1,0 +1,9 @@
+Visual Improvements v3 - Final Observations:
+1. BackgroundPaths: Lines are more visible now with increased opacity (0.55/0.75 color layers, 0.08+0.015*i strokeOpacity).
+   The radial gradient overlay darkens the center, keeping text perfectly readable.
+   Lines are clearly visible at the edges/borders of the hero section.
+2. GlowingEffect cards: Both Sobre (4 cards) and Serviços (3 cards) sections display correctly.
+3. Scroll-reveal animations: The Reveal component now uses framer-motion with fade-in + slide-up.
+   Cards appear with smooth animation as user scrolls into view.
+4. Process section (01-04 steps) is visible and well-structured.
+5. No compilation errors, TypeScript clean, all sections rendering correctly.

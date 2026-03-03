@@ -890,3 +890,8 @@
 - [x] Criar componente GlowingEffect em /components/ui/glowing-effect.tsx
 - [x] Aplicar GlowingEffect nos cards das seções Sobre e Serviços da Landing Page
 - [x] Adaptar cores do glow ao tema dark da One Innovation
+
+## Melhorias Visuais Landing Page v3
+- [x] Aumentar opacidade das linhas do BackgroundPaths para melhor visibilidade
+- [x] Adicionar gradiente radial central no hero para contraste máximo no texto
+- [x] Reativar animações scroll-reveal (Reveal) com framer-motion fade-in suave
