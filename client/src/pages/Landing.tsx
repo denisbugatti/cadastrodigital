@@ -143,9 +143,9 @@ function PreencherModal({ open, onClose }: { open: boolean; onClose: () => void 
       (c: any) => c.name.toLowerCase().includes(corretorName.toLowerCase())
     );
     if (corretor?.formSlug) {
-      navigate(`/f/${corretor.formSlug}`);
+      navigate(`/${corretor.formSlug}`);
     } else {
-      navigate("/f/vitoria");
+      navigate("/vitoria");
     }
     onClose();
   };

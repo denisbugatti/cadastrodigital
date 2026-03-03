@@ -3,10 +3,11 @@
  * If the slug matches a published form, renders it via FormViewBySlug.
  * Otherwise, shows the 404 page.
  * 
+ * Supports ?continue=responseId to resume a partially completed form.
  * This enables clean URLs like one.cadastrodigital.com.br/vitoria
  */
 
-import { useParams } from "wouter";
+import { useParams, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import NotFound from "./NotFound";
 import { FormContainer } from "@/components/form/FormContainer";
@@ -16,11 +17,16 @@ import type { FormData, Question } from "@/lib/formTypes";
 // Known internal routes that should NOT be treated as form slugs
 const INTERNAL_PATHS = new Set([
   "form", "editor", "landing", "form-preview", "responses", "corretores", "404", "f",
+  "portal", "cadastro-cliente", "login", "aceitar-convite", "dashboard", "equipe",
+  "configuracoes", "validar",
 ]);
 
 export default function SlugResolver() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug ?? "";
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const continueResponseId = searchParams.get("continue");
 
   // Skip known internal routes
   if (INTERNAL_PATHS.has(slug)) {
@@ -30,6 +36,12 @@ export default function SlugResolver() {
   const { data: dbForm, isLoading, error } = trpc.forms.getBySlug.useQuery(
     { slug },
     { enabled: !!slug, retry: 1 }
+  );
+
+  // Load partial response if ?continue= is provided
+  const { data: partialResponse } = trpc.responses.getForContinue.useQuery(
+    { id: Number(continueResponseId) },
+    { enabled: !!continueResponseId && !isNaN(Number(continueResponseId)), retry: 1 }
   );
 
   const form = useMemo<FormData | null>(() => {
@@ -119,9 +131,22 @@ export default function SlugResolver() {
     return <NotFound />;
   }
 
+  // Build initial answers from partial response if continuing
+  const initialAnswers = partialResponse && !partialResponse.isComplete
+    ? (partialResponse.answers as Record<string, unknown>)
+    : undefined;
+
+  const continueId = partialResponse && !partialResponse.isComplete
+    ? partialResponse.id
+    : undefined;
+
   return (
     <div className="form-viewport-lock h-screen w-screen overflow-hidden">
-      <FormContainer form={form} />
+      <FormContainer
+        form={form}
+        initialAnswers={initialAnswers}
+        continueResponseId={continueId}
+      />
     </div>
   );
 }

@@ -23,6 +23,8 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface FormContainerProps {
   form: FormData;
+  initialAnswers?: Record<string, unknown>;
+  continueResponseId?: number;
 }
 
 /* Typeform-style vertical slide variants */
@@ -80,7 +82,7 @@ function clearSavedResponses(formId: string) {
   }
 }
 
-export function FormContainer({ form }: FormContainerProps) {
+export function FormContainer({ form, initialAnswers, continueResponseId }: FormContainerProps) {
   const engine = useFormEngine(form);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [shakeKey, setShakeKey] = useState(0);
@@ -127,8 +129,36 @@ export function FormContainer({ form }: FormContainerProps) {
   const arrowColor = isLightBg ? questionColor : "#FFFFFF";
 
   // ─── Restore saved responses on mount ───
+  // Priority: initialAnswers (from DB via ?continue=) > localStorage
   useEffect(() => {
     if (hasRestoredFromSave) return;
+
+    // If we have initialAnswers from the database (continue flow), use those
+    if (initialAnswers && typeof initialAnswers === "object" && Object.keys(initialAnswers).length > 0) {
+      Object.entries(initialAnswers).forEach(([qId, value]) => {
+        if (value !== null && value !== undefined && value !== "") {
+          engine.setResponse(qId, value as string | number | boolean | string[] | Record<string, string> | null);
+        }
+      });
+      // Find the last answered question to resume from there
+      const answeredIds = new Set(Object.keys(initialAnswers).filter(k => {
+        const v = initialAnswers[k];
+        return v !== null && v !== undefined && v !== "";
+      }));
+      let lastAnsweredIdx = 0;
+      form.questions.forEach((q, idx) => {
+        if (answeredIds.has(q.id)) lastAnsweredIdx = idx;
+      });
+      // Go to the question after the last answered one
+      const resumeIdx = Math.min(lastAnsweredIdx + 1, form.questions.length - 1);
+      if (resumeIdx > 0) {
+        engine.goToIndex(resumeIdx);
+      }
+      setHasRestoredFromSave(true);
+      return;
+    }
+
+    // Fallback: restore from localStorage
     const saved = getSavedResponses(form.id);
     if (saved && typeof saved === "object") {
       const { responses: savedResps, currentIndex: savedIdx } = saved as {
@@ -147,11 +177,12 @@ export function FormContainer({ form }: FormContainerProps) {
       }
     }
     setHasRestoredFromSave(true);
-  }, [form.id, form.questions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form.id, form.questions.length, initialAnswers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Auto-save responses on every change ───
   // Submit responses to database when form is completed
   const submitResponseMutation = trpc.responses.submit.useMutation();
+  const updateResponseMutation = trpc.responses.update.useMutation();
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [protocolCode, setProtocolCode] = useState<string | null>(null);
   const [totalScore, setTotalScore] = useState<number | null>(null);
@@ -210,20 +241,33 @@ export function FormContainer({ form }: FormContainerProps) {
           if (q?.type === "email" && typeof v.value === "string") respondentEmail = v.value;
         });
 
-        submitResponseMutation.mutate({
-          formId: form._dbFormId,
-          answers: answersObj,
-          respondentName,
-          respondentEmail,
-          isComplete: true,
-        }, {
-          onSuccess: (data) => {
-            // Capture the protocol code from the server response
-            if (data?.protocolCode) {
-              setProtocolCode(data.protocolCode);
-            }
-          },
-        });
+        // If continuing an existing response, update it instead of creating a new one
+        if (continueResponseId) {
+          updateResponseMutation.mutate({
+            id: continueResponseId,
+            answers: answersObj,
+            isComplete: true,
+          }, {
+            onSuccess: () => {
+              // For continued responses, protocol code was already generated
+            },
+          });
+        } else {
+          submitResponseMutation.mutate({
+            formId: form._dbFormId,
+            answers: answersObj,
+            respondentName,
+            respondentEmail,
+            isComplete: true,
+          }, {
+            onSuccess: (data) => {
+              // Capture the protocol code from the server response
+              if (data?.protocolCode) {
+                setProtocolCode(data.protocolCode);
+              }
+            },
+          });
+        }
         setHasSubmitted(true);
       }
       return;

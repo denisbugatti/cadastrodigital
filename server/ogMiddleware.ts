@@ -131,6 +131,7 @@ export function ogMiddleware() {
     const appRoutes = [
       "login", "dashboard", "editor", "responses", "equipe",
       "configuracoes", "validar", "aceitar-convite", "404",
+      "portal", "cadastro-cliente",
       "api", "assets", "sw.js", "manifest.json", "robots.txt",
     ];
     if (appRoutes.includes(slug.toLowerCase())) return next();

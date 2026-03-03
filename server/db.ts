@@ -358,6 +358,7 @@ export async function getResponsesByCpfCnpj(cpfCnpj: string) {
       isComplete: formResponses.isComplete,
       createdAt: formResponses.createdAt,
       formTitle: forms.title,
+      formSlug: forms.slug,
     }).from(formResponses)
       .leftJoin(forms, eq(formResponses.formId, forms.id))
       .where(eq(formResponses.respondentCpfCnpj, cpfCnpj))

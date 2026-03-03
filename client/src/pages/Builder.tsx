@@ -160,19 +160,19 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     if (!isSaved) {
       setShowUnsavedDialog(true);
     } else {
-      navigate("/form");
+      navigate("/dashboard");
     }
   }, [isSaved, navigate]);
 
   const handleDiscardAndLeave = useCallback(() => {
     setShowUnsavedDialog(false);
-    navigate("/form");
+    navigate("/dashboard");
   }, [navigate]);
 
   const handleSaveAndLeave = useCallback(() => {
     saveNow();
     setShowUnsavedDialog(false);
-    navigate("/form");
+    navigate("/dashboard");
   }, [saveNow, navigate]);
 
   // Version history

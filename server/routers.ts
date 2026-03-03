@@ -588,6 +588,23 @@ export const appRouter = router({
         return db.getResponseById(input.id);
       }),
 
+    // Public endpoint for clients to load their partial response to continue filling
+    getForContinue: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const response = await db.getResponseById(input.id);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        // Only return answers and current index, not sensitive data
+        return {
+          id: response.id,
+          formId: response.formId,
+          answers: response.answers ?? {},
+          isComplete: response.isComplete,
+        };
+      }),
+
     update: publicProcedure
       .input(z.object({
         id: z.number(),

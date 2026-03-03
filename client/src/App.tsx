@@ -14,6 +14,8 @@ import AcceptInvite from "./pages/AcceptInvite";
 import StaffManagement from "./pages/StaffManagement";
 import ResponseValidation from "./pages/ResponseValidation";
 import Settings from "./pages/Settings";
+import ClientPortal from "./pages/ClientPortal";
+import ClientRegister from "./pages/ClientRegister";
 
 function Router() {
   return (
@@ -21,9 +23,13 @@ function Router() {
       {/* Auth routes */}
       <Route path={"/login"} component={Login} />
       <Route path={"/aceitar-convite"} component={AcceptInvite} />
+      <Route path={"/cadastro-cliente"} component={ClientRegister} />
 
       {/* Landing page as home */}
       <Route path={"/"} component={Landing} />
+
+      {/* Client portal */}
+      <Route path={"/portal"} component={ClientPortal} />
 
       {/* Staff dashboard */}
       <Route path={"/dashboard"} component={Dashboard} />

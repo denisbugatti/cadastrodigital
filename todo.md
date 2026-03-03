@@ -753,3 +753,22 @@
 - [x] Toast de sucesso/erro ao reenviar
 - [x] Loading spinner durante o envio
 - [x] Todos os 244 testes passando
+
+### Deep Audit: Botões e funcionalidades quebradas
+- [x] Auditar todas as páginas para botões que não funcionam
+- [x] Auditar toasts "Feature coming soon" — nenhum encontrado (limpo)
+- [x] Verificar OG tags (site-wide e por formulário) — middleware OK, homepage + slugs funcionam
+- [x] FIX: Builder navegava para /form (inexistente) — corrigido para /dashboard
+- [x] FIX: ClientPortal rota /portal adicionada ao App.tsx
+- [x] FIX: ClientRegister rota /cadastro-cliente adicionada ao App.tsx
+- [x] FIX: Login navega para /portal e /cadastro-cliente — rotas agora existem
+- [x] FIX: Landing navegava para /f/:slug — corrigido para /:slug
+- [x] FIX: PermissionsPage e Corretores são usados inline dentro de Settings/StaffManagement (não precisam de rota)
+- [x] Implementar portal do cliente para continuar formulários incompletos
+- [x] Backend: responses.getForContinue procedure para carregar respostas parciais
+- [x] FormContainer: suporta initialAnswers + continueResponseId para retomar formulários
+- [x] SlugResolver: suporta ?continue=responseId na URL
+- [x] ClientPortal: redesenhado com stats, lista de formulários, botão Continuar
+- [x] Adicionar rotas faltantes no App.tsx (/portal, /cadastro-cliente)
+- [x] Adicionar rotas no ogMiddleware appRoutes list
+- [x] Todos os 244 testes passando
