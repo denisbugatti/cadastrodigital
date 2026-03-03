@@ -12,6 +12,7 @@ import * as db from "./db";
 import {
   sendCadenceEmail,
   sendRejectionCadenceEmail,
+  sendWeeklySummaryEmail,
 } from "./emailService";
 import { notifyOwner } from "./_core/notification";
 import { sendPushToUser, sendPushToStaffUser } from "./pushNotification";
@@ -23,6 +24,7 @@ const CHECK_INTERVAL_MS = 60 * 1000;
 let lastEnrollDate = "";
 let lastProcessDate = "";
 let lastInactivityCheckDate = "";
+let lastWeeklySummaryDate = "";
 
 /**
  * Get the current site URL from environment or fallback.
@@ -260,6 +262,87 @@ async function runInactivityCheck(): Promise<void> {
 }
 
 /**
+ * Check if it's time to run the weekly summary email.
+ * Runs every Monday at 12:00 UTC (9:00 AM BRT).
+ */
+function shouldRunWeeklySummary(now: Date): boolean {
+  const dateKey = now.toISOString().slice(0, 10);
+  if (dateKey === lastWeeklySummaryDate) return false;
+
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
+  const utcDay = now.getUTCDay(); // 0=Sun, 1=Mon
+
+  // Run at 12:00 UTC on Monday (1)
+  return utcHour === 12 && utcMinute === 0 && utcDay === 1;
+}
+
+/**
+ * Send weekly summary email to admin with statistics.
+ */
+async function runWeeklySummary(): Promise<void> {
+  console.log("[Cron] Generating weekly summary email...");
+  try {
+    const stats = await db.getWeeklyStats();
+
+    // Get admin email from environment
+    const { ENV } = await import("./_core/env");
+    const { getUserByOpenId } = await import("./db");
+    const ownerUser = await getUserByOpenId(ENV.ownerOpenId);
+
+    if (!ownerUser?.email) {
+      console.warn("[Cron] No owner email found, skipping weekly summary.");
+      return;
+    }
+
+    const sent = await sendWeeklySummaryEmail({
+      to: ownerUser.email,
+      stats,
+    });
+
+    if (sent) {
+      console.log(`[Cron] Weekly summary email sent to ${ownerUser.email}`);
+    } else {
+      console.warn("[Cron] Failed to send weekly summary email.");
+    }
+
+    // Also send push notification as a reminder
+    try {
+      await sendPushToUser(ownerUser.id, {
+        title: `\ud83d\udcca Resumo Semanal Dispon\u00edvel`,
+        body: `${stats.responses.newThisWeek} novas respostas, ${stats.validation.approvalRate}% aprovação. Confira seu email!`,
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-72x72.png",
+        url: "/performance",
+        tag: "weekly-summary",
+        data: {
+          type: "weekly_summary",
+          timestamp: Date.now(),
+        },
+      });
+    } catch (pushErr: any) {
+      console.warn("[Cron] Failed to send push for weekly summary:", pushErr?.message?.substring(0, 100));
+    }
+
+    // Also notify via Manus notification service
+    const periodStart = stats.period.start.toLocaleDateString("pt-BR");
+    const periodEnd = stats.period.end.toLocaleDateString("pt-BR");
+    await notifyOwner({
+      title: `\ud83d\udcca Resumo Semanal (${periodStart} — ${periodEnd})`,
+      content: [
+        `Novas respostas: ${stats.responses.newThisWeek}`,
+        `Total: ${stats.responses.total} | Aprovadas: ${stats.responses.approved} | Reprovadas: ${stats.responses.rejected} | Pendentes: ${stats.responses.pending}`,
+        `Valida\u00e7\u00f5es: ${stats.validation.totalValidated} | Taxa aprova\u00e7\u00e3o: ${stats.validation.approvalRate}%`,
+        `Top corretores: ${stats.corretores.slice(0, 3).map(c => `${c.name} (${c.validationsCount})`).join(", ") || "Nenhum"}`,
+      ].join("\n"),
+    });
+
+  } catch (err) {
+    console.error("[Cron] Weekly summary error:", (err as Error).message);
+  }
+}
+
+/**
  * The main tick function called every minute.
  */
 async function tick(): Promise<void> {
@@ -279,6 +362,11 @@ async function tick(): Promise<void> {
     lastInactivityCheckDate = now.toISOString().slice(0, 10);
     await runInactivityCheck();
   }
+
+  if (shouldRunWeeklySummary(now)) {
+    lastWeeklySummaryDate = now.toISOString().slice(0, 10);
+    await runWeeklySummary();
+  }
 }
 
 /**
@@ -287,7 +375,7 @@ async function tick(): Promise<void> {
  */
 export function startCronScheduler(): void {
   console.log(
-    "[Cron] Scheduler started. Enrollment: daily at 9am BRT. Processing: Mon/Wed/Fri at 9am BRT. Inactivity check: daily at 10am BRT."
+    "[Cron] Scheduler started. Enrollment: daily at 9am BRT. Processing: Mon/Wed/Fri at 9am BRT. Inactivity check: daily at 10am BRT. Weekly summary: Mon at 9am BRT."
   );
 
   // Run the tick every minute

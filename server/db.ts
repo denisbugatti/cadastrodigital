@@ -2075,3 +2075,130 @@ export async function getInactiveCorretores(inactiveDays: number = 7): Promise<A
     return inactiveList;
   }
 }
+
+/* ─── Weekly Statistics for Admin Summary Email ─── */
+
+export interface WeeklyStats {
+  period: { start: Date; end: Date };
+  responses: {
+    total: number;
+    newThisWeek: number;
+    approved: number;
+    rejected: number;
+    pending: number;
+  };
+  validation: {
+    totalValidated: number;
+    approvalRate: number;
+    rejectionRate: number;
+  };
+  corretores: Array<{
+    id: number;
+    name: string;
+    email: string;
+    validationsCount: number;
+    approvedCount: number;
+    rejectedCount: number;
+  }>;
+  forms: {
+    totalForms: number;
+    totalPublished: number;
+  };
+}
+
+/**
+ * Collect weekly statistics for the admin summary email.
+ * Covers the last 7 days from the given date.
+ */
+export async function getWeeklyStats(asOfDate: Date = new Date()): Promise<WeeklyStats> {
+  const db = getDb();
+
+  const weekEnd = asOfDate;
+  const weekStart = new Date(asOfDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  // Total responses
+  const allResponses = await db.select({ id: formResponses.id, validationStatus: formResponses.validationStatus, createdAt: formResponses.createdAt })
+    .from(formResponses);
+
+  const newThisWeek = allResponses.filter((r: any) => r.createdAt && r.createdAt >= weekStart && r.createdAt <= weekEnd).length;
+  const approved = allResponses.filter((r: any) => r.validationStatus === "approved").length;
+  const rejected = allResponses.filter((r: any) => r.validationStatus === "rejected").length;
+  const pending = allResponses.filter((r: any) => r.validationStatus === "pending" || r.validationStatus === "in_review").length;
+
+  // Validations this week
+  const weekValidations = await db.select({
+    id: responseValidations.id,
+    status: responseValidations.status,
+    validatedBy: responseValidations.validatedBy,
+    validatedAt: responseValidations.validatedAt,
+  })
+    .from(responseValidations)
+    .where(and(
+      gte(responseValidations.validatedAt, weekStart),
+      lte(responseValidations.validatedAt, weekEnd),
+    ));
+
+  const totalValidated = weekValidations.length;
+  const weekApproved = weekValidations.filter((v: any) => v.status === "approved").length;
+  const weekRejected = weekValidations.filter((v: any) => v.status === "rejected").length;
+  const approvalRate = totalValidated > 0 ? Math.round((weekApproved / totalValidated) * 100) : 0;
+  const rejectionRate = totalValidated > 0 ? Math.round((weekRejected / totalValidated) * 100) : 0;
+
+  // Corretores performance this week
+  const activeCorretores = await db.select({
+    id: staffUsers.id,
+    name: staffUsers.name,
+    email: staffUsers.email,
+  })
+    .from(staffUsers)
+    .where(and(
+      eq(staffUsers.role, "corretor" as any),
+      eq(staffUsers.active, true),
+    ));
+
+  const corretoresStats: WeeklyStats["corretores"] = [];
+  for (const corretor of activeCorretores) {
+    const corretorValidations = weekValidations.filter((v: any) => v.validatedBy === corretor.id);
+    const corretorApproved = corretorValidations.filter((v: any) => v.status === "approved").length;
+    const corretorRejected = corretorValidations.filter((v: any) => v.status === "rejected").length;
+
+    corretoresStats.push({
+      id: corretor.id,
+      name: corretor.name,
+      email: corretor.email,
+      validationsCount: corretorValidations.length,
+      approvedCount: corretorApproved,
+      rejectedCount: corretorRejected,
+    });
+  }
+
+  // Sort by validations count (most active first)
+  corretoresStats.sort((a, b) => b.validationsCount - a.validationsCount);
+
+  // Forms stats
+  const allForms = await db.select({ id: forms.id, status: forms.status })
+    .from(forms);
+  const totalForms = allForms.length;
+  const totalPublished = allForms.filter((f: any) => f.status === "published").length;
+
+  return {
+    period: { start: weekStart, end: weekEnd },
+    responses: {
+      total: allResponses.length,
+      newThisWeek,
+      approved,
+      rejected,
+      pending,
+    },
+    validation: {
+      totalValidated,
+      approvalRate,
+      rejectionRate,
+    },
+    corretores: corretoresStats,
+    forms: {
+      totalForms,
+      totalPublished,
+    },
+  };
+}

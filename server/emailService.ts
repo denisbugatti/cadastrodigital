@@ -332,3 +332,188 @@ export async function sendFollowUpEmail(params: FollowUpEmailParams): Promise<bo
     totalInSequence: 1,
   });
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL: Weekly Summary Report for Admin
+   Sent every Monday at 9am BRT with weekly statistics.
+   Uses inline HTML (not Resend template) for dynamic data tables.
+   ═══════════════════════════════════════════════════════════════ */
+
+import type { WeeklyStats } from "./db";
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function buildWeeklySummaryHtml(stats: WeeklyStats): string {
+  const periodStr = `${formatDate(stats.period.start)} — ${formatDate(stats.period.end)}`;
+
+  const corretorRows = stats.corretores.length > 0
+    ? stats.corretores.map((c, i) => `
+        <tr style="border-bottom: 1px solid #1e293b;">
+          <td style="padding: 12px 16px; color: #94a3b8; font-size: 14px;">${i + 1}</td>
+          <td style="padding: 12px 16px; color: #f1f5f9; font-size: 14px; font-weight: 500;">${c.name}</td>
+          <td style="padding: 12px 16px; color: #f1f5f9; font-size: 14px; text-align: center;">${c.validationsCount}</td>
+          <td style="padding: 12px 16px; color: #22c55e; font-size: 14px; text-align: center;">${c.approvedCount}</td>
+          <td style="padding: 12px 16px; color: #ef4444; font-size: 14px; text-align: center;">${c.rejectedCount}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #64748b; font-size: 14px;">Nenhum corretor ativo no período</td></tr>`;
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #0a0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div style="max-width: 640px; margin: 0 auto; padding: 32px 16px;">
+
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #6366f1); padding: 12px 24px; border-radius: 12px; margin-bottom: 16px;">
+        <span style="color: white; font-size: 24px; font-weight: 700;">📊</span>
+      </div>
+      <h1 style="color: #f1f5f9; font-size: 24px; font-weight: 700; margin: 8px 0 4px;">Resumo Semanal</h1>
+      <p style="color: #64748b; font-size: 14px; margin: 0;">One Innovation — ${periodStr}</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="margin-bottom: 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: separate; border-spacing: 8px;">
+        <tr>
+          <td style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 20px; text-align: center; width: 50%;">
+            <div style="color: #3b82f6; font-size: 32px; font-weight: 800; line-height: 1;">${stats.responses.total}</div>
+            <div style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Total Respostas</div>
+          </td>
+          <td style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 20px; text-align: center; width: 50%;">
+            <div style="color: #22c55e; font-size: 32px; font-weight: 800; line-height: 1;">+${stats.responses.newThisWeek}</div>
+            <div style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Novas esta semana</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Validation Stats -->
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+      <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px;">Validações da Semana</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="text-align: center; padding: 8px;">
+            <div style="color: #f1f5f9; font-size: 28px; font-weight: 700;">${stats.validation.totalValidated}</div>
+            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Validadas</div>
+          </td>
+          <td style="text-align: center; padding: 8px;">
+            <div style="color: #22c55e; font-size: 28px; font-weight: 700;">${stats.validation.approvalRate}%</div>
+            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Aprovação</div>
+          </td>
+          <td style="text-align: center; padding: 8px;">
+            <div style="color: #ef4444; font-size: 28px; font-weight: 700;">${stats.validation.rejectionRate}%</div>
+            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Reprovação</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Status Breakdown -->
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+      <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px;">Status das Respostas</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding: 8px 0;">
+            <span style="display: inline-block; width: 10px; height: 10px; background: #22c55e; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
+            <span style="color: #94a3b8; font-size: 14px;">Aprovadas</span>
+          </td>
+          <td style="text-align: right; padding: 8px 0;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.responses.approved}</span></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0;">
+            <span style="display: inline-block; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
+            <span style="color: #94a3b8; font-size: 14px;">Reprovadas</span>
+          </td>
+          <td style="text-align: right; padding: 8px 0;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.responses.rejected}</span></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0;">
+            <span style="display: inline-block; width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
+            <span style="color: #94a3b8; font-size: 14px;">Pendentes</span>
+          </td>
+          <td style="text-align: right; padding: 8px 0;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.responses.pending}</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Corretores Ranking -->
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+      <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px;">🏆 Ranking de Corretores</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid #1e293b;">
+            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">#</th>
+            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">Corretor</th>
+            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">Total</th>
+            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">✓</th>
+            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">✗</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${corretorRows}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Formulários -->
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+      <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 12px;">Formulários</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding: 4px 0;"><span style="color: #94a3b8; font-size: 14px;">Total de formulários</span></td>
+          <td style="text-align: right;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.forms.totalForms}</span></td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0;"><span style="color: #94a3b8; font-size: 14px;">Publicados</span></td>
+          <td style="text-align: right;"><span style="color: #22c55e; font-size: 14px; font-weight: 600;">${stats.forms.totalPublished}</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding: 16px 0; border-top: 1px solid #1e293b;">
+      <p style="color: #475569; font-size: 12px; margin: 0;">One Innovation — Cadastro Digital</p>
+      <p style="color: #334155; font-size: 11px; margin: 4px 0 0;">Relatório gerado automaticamente toda segunda-feira</p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendWeeklySummaryEmail(params: {
+  to: string;
+  stats: WeeklyStats;
+}): Promise<boolean> {
+  const resend = getResendClient();
+  if (!resend) return false;
+
+  const periodStr = `${formatDate(params.stats.period.start)} — ${formatDate(params.stats.period.end)}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: [params.to],
+      subject: `📊 Resumo Semanal — ${periodStr} | ${params.stats.responses.newThisWeek} novas respostas`,
+      html: buildWeeklySummaryHtml(params.stats),
+    });
+
+    if (error) {
+      console.error("[Email] Weekly summary send error:", error);
+      return false;
+    }
+    console.log(`[Email] Weekly summary sent to ${params.to} (id: ${data?.id})`);
+    return true;
+  } catch (err) {
+    console.error("[Email] Weekly summary failed:", (err as Error).message);
+    return false;
+  }
+}
+
+// Export for testing
+export { buildWeeklySummaryHtml };

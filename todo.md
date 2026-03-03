@@ -1042,3 +1042,10 @@
 - [x] Enviar notificação push ao admin quando corretor estiver inativo
 - [x] Integrar verificação no cron scheduler existente (execução diária)
 - [x] Evitar notificações duplicadas (rastrear última notificação enviada)
+
+## Email Semanal de Resumo ao Admin
+- [x] Criar função de coleta de estatísticas semanais (total respostas, taxa validação, corretores mais ativos)
+- [x] Criar template HTML de email com design profissional para o resumo semanal
+- [x] Enviar email via Resend ao admin toda segunda-feira às 9h BRT
+- [x] Integrar job semanal no cron scheduler existente
+- [x] Incluir métricas: novas respostas, aprovadas, reprovadas, pendentes, top corretores
