@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { BackgroundPaths } from "@/components/ui/background-paths";
 
 /* ─── Constants ─── */
 const ACCENT = "#70BEFA";
@@ -321,33 +322,16 @@ export default function Landing() {
 
       {/* ─── HERO ─── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* Background orbs - CSS only, GPU accelerated, NO blur */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div
-            className="orb absolute w-[600px] h-[600px] rounded-full"
-            style={{
-              background: "radial-gradient(circle, rgba(112,190,250,0.08) 0%, transparent 70%)",
-              top: "5%", left: "10%",
-              animation: "float-a 12s ease-in-out infinite",
-            }}
-          />
-          <div
-            className="orb absolute w-[500px] h-[500px] rounded-full"
-            style={{
-              background: "radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)",
-              bottom: "10%", right: "5%",
-              animation: "float-b 15s ease-in-out infinite",
-            }}
-          />
-          {/* Subtle grid */}
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-              backgroundSize: "60px 60px",
-            }}
-          />
-        </div>
+        {/* Animated background paths */}
+        <BackgroundPaths />
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.025] pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
 
         <div className="relative z-10 max-w-5xl mx-auto px-5 text-center">
           <Reveal>

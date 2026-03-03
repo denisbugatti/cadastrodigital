@@ -873,3 +873,9 @@
 - [x] Seleção em lote com ações de pausar/encerrar
 - [x] Barra de progresso visual (emails enviados / total)
 - [x] 311 testes passando (30 novos para cadence management)
+
+## Integração BackgroundPaths na Landing Page
+- [x] Criar componente BackgroundPaths em /components/ui/background-paths.tsx
+- [x] Integrar animação de linhas flutuantes SVG na seção hero da Landing
+- [x] Adaptar cores ao tema dark da One Innovation (azul #70BEFA com opacidade balanceada)
+- [x] Manter todos os textos existentes da seção
