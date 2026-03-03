@@ -175,7 +175,7 @@ function EditorWithDbForm({ formId }: { formId: number }) {
             O formulário solicitado não existe ou você não tem acesso.
           </p>
           <a href="/form" className="text-brand hover:underline font-body font-medium">
-            Voltar ao Dashboard
+            Voltar aos Formulários
           </a>
         </div>
       </div>

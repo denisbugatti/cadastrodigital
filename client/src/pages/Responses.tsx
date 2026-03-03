@@ -272,7 +272,7 @@ export default function Responses() {
           <p className="text-lg text-muted-foreground font-body mb-4">Formulário não encontrado</p>
           <Link href="/">
             <Button variant="outline">
-              <ArrowLeft size={16} className="mr-2" /> Voltar ao Dashboard
+              <ArrowLeft size={16} className="mr-2" /> Voltar aos Formulários
             </Button>
           </Link>
         </div>
@@ -303,7 +303,7 @@ export default function Responses() {
             <div className="min-w-0">
               <h1 className="text-sm sm:text-lg font-display font-bold text-foreground truncate">{form.title}</h1>
               <p className="text-[10px] sm:text-sm text-muted-foreground font-body">
-                Respostas e análise
+                Dashboard
               </p>
             </div>
           </div>

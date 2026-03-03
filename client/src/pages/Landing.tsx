@@ -498,7 +498,7 @@ export default function Landing() {
               {
                 icon: <Users className="w-8 h-8" />,
                 title: "Gestão de Corretores",
-                desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com dashboard completo.",
+                desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics.",
               },
               {
                 icon: <CheckCircle className="w-8 h-8" />,

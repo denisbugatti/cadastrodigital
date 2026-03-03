@@ -623,7 +623,7 @@ export default function Dashboard() {
         color: template.color,
       });
       toast.success("Template clonado!", {
-        description: `"${formData.title}" foi adicionado ao seu dashboard.`,
+        description: `"${formData.title}" foi adicionado aos seus formulários.`,
       });
       setShowTemplates(false);
       navigate(`/editor/${result.id}`);
@@ -1484,7 +1484,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                 <Pencil size={15} className="mr-2" /> Editar
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/responses/${form.id}`); }}>
-                <BarChart3 size={15} className="mr-2" /> Ver respostas
+                <BarChart3 size={15} className="mr-2" /> Dashboard
               </DropdownMenuItem>
               <DropdownMenuSeparator />
 

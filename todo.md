@@ -817,3 +817,8 @@
 
 ## Logo nos Templates de Email
 - [x] Trocar logo nos 11 templates do Resend pelo logo branco sem fundo da One Innovation + redesign completo com fundo azul #0D8BD9
+
+## Reorganizar Navegação: Dashboard → Respostas de cada formulário
+- [x] Renomear aba "Dashboard" (lista de formulários) para "Formulários"
+- [x] Mover conceito de "Dashboard" para dentro de cada formulário (página de respostas/analytics)
+- [x] Atualizar navegação, rotas e referências
