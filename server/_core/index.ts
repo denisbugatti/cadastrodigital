@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { warmUpDb } from "../db";
 import { runSeeds } from "../seedMaster";
 import { ogMiddleware } from "../ogMiddleware";
+import { startCronScheduler } from "../cronScheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -63,6 +64,8 @@ async function startServer() {
         try { await runSeeds(); } catch (e: any) {
           console.warn("[Server] Seed failed:", e?.message?.substring(0, 80));
         }
+        // Start the email cadence cron scheduler after DB is ready
+        startCronScheduler();
       }
     })
     .catch(() => console.warn("[Server] DB warm-up failed, will retry on first request"));

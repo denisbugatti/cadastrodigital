@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
- * Tests for the email service templates and cadence logic.
- * We mock Resend so no real emails are sent.
+ * Tests for the email service — Resend Template-based.
+ * Tests that the correct template IDs and variables are passed.
  */
 
 // Mock Resend before importing the module
@@ -32,14 +32,14 @@ import {
 // Get the mock send function
 const { __mockSend: mockSend } = await import("resend") as any;
 
-describe("Email Service — One Innovation Design", () => {
+describe("Email Service — Resend Templates", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSend.mockResolvedValue({ data: { id: "test-id" }, error: null });
   });
 
   describe("sendInviteEmail", () => {
-    it("should send invite email with correct subject and recipient", async () => {
+    it("should send invite email with correct template ID and variables", async () => {
       const result = await sendInviteEmail({
         to: "corretor@test.com",
         inviterName: "João Silva",
@@ -55,15 +55,17 @@ describe("Email Service — One Innovation Design", () => {
       expect(call.to).toEqual(["corretor@test.com"]);
       expect(call.from).toContain("One Innovation");
       expect(call.from).toContain("one@cadastrodigital.com.br");
-      expect(call.subject).toContain("Bem-vindo(a)");
       expect(call.subject).toContain("João Silva");
-      expect(call.html).toContain("Maria Santos");
-      expect(call.html).toContain("Corretor(a)");
-      expect(call.html).toContain("https://example.com/invite/abc123");
-      expect(call.html).toContain("One Innovation");
+      expect(call.template_id).toBe("41d689fb-2ed7-469a-9e3d-6204085bd5bc");
+      expect(call.template_data).toEqual({
+        INVITEE_NAME: "Maria Santos",
+        INVITER_NAME: "João Silva",
+        ROLE_DISPLAY: "Corretor(a)",
+        INVITE_URL: "https://example.com/invite/abc123",
+      });
     });
 
-    it("should use generic greeting when inviteeName is not provided", async () => {
+    it("should use 'Olá' when inviteeName is not provided", async () => {
       await sendInviteEmail({
         to: "gerente@test.com",
         inviterName: "Admin",
@@ -72,32 +74,33 @@ describe("Email Service — One Innovation Design", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.html).toContain("Olá!");
-      expect(call.html).toContain("Gerente");
+      expect(call.template_data.INVITEE_NAME).toBe("Olá");
+      expect(call.template_data.ROLE_DISPLAY).toBe("Gerente");
     });
 
-    it("should include One Innovation dark design elements", async () => {
-      await sendInviteEmail({
-        to: "test@test.com",
-        inviterName: "Admin",
-        role: "diretor",
-        inviteUrl: "https://example.com/invite/xyz",
-      });
-
-      const call = mockSend.mock.calls[0][0];
-      // Dark background
-      expect(call.html).toContain("#0a0a0f");
-      // Blue accent
-      expect(call.html).toContain("#0D8BD9");
-      // Montserrat font
-      expect(call.html).toContain("Montserrat");
-      // Logo
-      expect(call.html).toContain("one-innovation-logo");
+    it("should map role labels correctly", async () => {
+      for (const [role, expected] of [
+        ["diretor", "Diretor(a)"],
+        ["gerente", "Gerente"],
+        ["corretor", "Corretor(a)"],
+        ["custom_role", "custom_role"],
+      ]) {
+        vi.clearAllMocks();
+        mockSend.mockResolvedValue({ data: { id: "test-id" }, error: null });
+        await sendInviteEmail({
+          to: "t@t.com",
+          inviterName: "A",
+          role,
+          inviteUrl: "http://x.com",
+        });
+        const call = mockSend.mock.calls[0][0];
+        expect(call.template_data.ROLE_DISPLAY).toBe(expected);
+      }
     });
   });
 
   describe("sendProtocolEmail", () => {
-    it("should send protocol email with code and pending status", async () => {
+    it("should send protocol email with correct template and variables", async () => {
       const result = await sendProtocolEmail({
         to: "cliente@test.com",
         respondentName: "Carlos Oliveira",
@@ -109,14 +112,15 @@ describe("Email Service — One Innovation Design", () => {
       const call = mockSend.mock.calls[0][0];
       expect(call.to).toEqual(["cliente@test.com"]);
       expect(call.subject).toContain("ABC-123");
-      expect(call.html).toContain("Carlos Oliveira");
-      expect(call.html).toContain("ABC-123");
-      expect(call.html).toContain("pendente de aprovação");
-      expect(call.html).toContain("Falta pouco");
-      expect(call.html).toContain("Envie o protocolo para seu corretor");
+      expect(call.template_id).toBe("1d4c3ca1-026d-42ef-83c7-3b37cedcb802");
+      expect(call.template_data).toEqual({
+        CLIENT_NAME: "Carlos Oliveira",
+        PROTOCOL_CODE: "ABC-123",
+        FORM_TITLE: "Cadastro One Innovation",
+      });
     });
 
-    it("should include text version", async () => {
+    it("should use 'Olá' when respondentName is not provided", async () => {
       await sendProtocolEmail({
         to: "cliente@test.com",
         protocolCode: "XYZ-789",
@@ -124,13 +128,12 @@ describe("Email Service — One Innovation Design", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.text).toContain("XYZ-789");
-      expect(call.text).toContain("Formulário Teste");
+      expect(call.template_data.CLIENT_NAME).toBe("Olá");
     });
   });
 
   describe("sendApprovalEmail", () => {
-    it("should send approval email with congratulations", async () => {
+    it("should send approval email with correct template", async () => {
       const result = await sendApprovalEmail({
         to: "cliente@test.com",
         clientName: "Ana Paula",
@@ -140,35 +143,33 @@ describe("Email Service — One Innovation Design", () => {
       const call = mockSend.mock.calls[0][0];
       expect(call.subject).toContain("Parabéns");
       expect(call.subject).toContain("Ana Paula");
-      expect(call.html).toContain("aprovado com sucesso");
-      expect(call.html).toContain("Ana Paula");
-      // Green color for approval
-      expect(call.html).toContain("#16a34a");
+      expect(call.subject).toContain("aprovado");
+      expect(call.template_id).toBe("bd17dc65-aa61-4ba9-8444-4f9baa841c2e");
+      expect(call.template_data).toEqual({ CLIENT_NAME: "Ana Paula" });
     });
   });
 
   describe("sendRejectionEmail", () => {
-    it("should send rejection email with reason and amber styling", async () => {
+    it("should send rejection email with reason and form URL", async () => {
       const result = await sendRejectionEmail({
         to: "cliente@test.com",
         clientName: "Pedro",
-        reason: "CPF inválido. RG ilegível.",
-        formUrl: "https://example.com/form/1?continue=5",
+        reason: "CPF inválido",
+        formUrl: "https://example.com/form/123",
       });
 
       expect(result).toBe(true);
       const call = mockSend.mock.calls[0][0];
       expect(call.subject).toContain("Revisão necessária");
-      expect(call.html).toContain("Pedro");
-      expect(call.html).toContain("CPF inválido. RG ilegível.");
-      // Amber color for rejection
-      expect(call.html).toContain("#f59e0b");
-      // CTA button
-      expect(call.html).toContain("Corrigir meu cadastro");
-      expect(call.html).toContain("https://example.com/form/1?continue=5");
+      expect(call.template_id).toBe("9a49a11e-5022-4e3d-bf2b-cdeb80e13ac9");
+      expect(call.template_data).toEqual({
+        CLIENT_NAME: "Pedro",
+        REASON: "CPF inválido",
+        FORM_URL: "https://example.com/form/123",
+      });
     });
 
-    it("should work without formUrl", async () => {
+    it("should handle missing formUrl with empty string", async () => {
       await sendRejectionEmail({
         to: "cliente@test.com",
         clientName: "Pedro",
@@ -176,30 +177,33 @@ describe("Email Service — One Innovation Design", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.html).not.toContain("Corrigir meu cadastro");
+      expect(call.template_data.FORM_URL).toBe("");
     });
   });
 
   describe("sendCadenceEmail", () => {
-    it("should send cadence email with variation 1", async () => {
-      const result = await sendCadenceEmail({
+    it("should use V1 template for sequence 1", async () => {
+      await sendCadenceEmail({
         to: "cliente@test.com",
         clientName: "Lucas",
         formTitle: "Cadastro Premium",
-        formUrl: "https://example.com/form/1?continue=10",
+        formUrl: "https://example.com/form/1",
         sequenceNumber: 1,
         totalInSequence: 24,
       });
 
-      expect(result).toBe(true);
       const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("dd26aab4-fdf6-4d3f-97f3-5915686d4a67");
       expect(call.subject).toContain("quase pronto");
-      expect(call.html).toContain("Lucas");
-      expect(call.html).toContain("Cadastro Premium");
-      expect(call.html).toContain("Continuar meu cadastro");
+      expect(call.subject).toContain("Cadastro Premium");
+      expect(call.template_data).toEqual({
+        CLIENT_NAME: "Lucas",
+        FORM_TITLE: "Cadastro Premium",
+        FORM_URL: "https://example.com/form/1",
+      });
     });
 
-    it("should send cadence email with variation 2", async () => {
+    it("should use V2 template for sequence 2", async () => {
       await sendCadenceEmail({
         to: "cliente@test.com",
         formTitle: "Cadastro",
@@ -209,11 +213,11 @@ describe("Email Service — One Innovation Design", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("9cb9b98c-7330-4280-9f15-258cbaaeca48");
       expect(call.subject).toContain("oportunidade");
-      expect(call.html).toContain("Finalizar cadastro agora");
     });
 
-    it("should send cadence email with variation 3", async () => {
+    it("should use V3 template for sequence 3", async () => {
       await sendCadenceEmail({
         to: "cliente@test.com",
         formTitle: "Cadastro",
@@ -223,32 +227,55 @@ describe("Email Service — One Innovation Design", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("0d780f6f-08cf-45d6-9f7c-bf8afeb58358");
       expect(call.subject).toContain("Lembrete");
-      expect(call.html).toContain("Completar cadastro");
     });
 
-    it("should rotate variations cyclically", async () => {
-      // Sequence 4 should be variation 1 again
+    it("should rotate variations cyclically (seq 4 = V1, seq 5 = V2, seq 6 = V3)", async () => {
+      const expectedTemplates = [
+        "dd26aab4-fdf6-4d3f-97f3-5915686d4a67", // V1
+        "9cb9b98c-7330-4280-9f15-258cbaaeca48", // V2
+        "0d780f6f-08cf-45d6-9f7c-bf8afeb58358", // V3
+      ];
+
+      for (let seq = 4; seq <= 6; seq++) {
+        vi.clearAllMocks();
+        mockSend.mockResolvedValue({ data: { id: `id-${seq}` }, error: null });
+
+        await sendCadenceEmail({
+          to: "t@t.com",
+          formTitle: "F",
+          formUrl: "http://x.com",
+          sequenceNumber: seq,
+          totalInSequence: 24,
+        });
+
+        const call = mockSend.mock.calls[0][0];
+        expect(call.template_id).toBe(expectedTemplates[(seq - 1) % 3]);
+      }
+    });
+
+    it("should use 'Olá' when clientName is not provided", async () => {
       await sendCadenceEmail({
-        to: "cliente@test.com",
-        formTitle: "Cadastro",
-        formUrl: "https://example.com/form/1",
-        sequenceNumber: 4,
+        to: "t@t.com",
+        formTitle: "F",
+        formUrl: "http://x.com",
+        sequenceNumber: 1,
         totalInSequence: 24,
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.subject).toContain("quase pronto");
+      expect(call.template_data.CLIENT_NAME).toBe("Olá");
     });
   });
 
   describe("sendRejectionCadenceEmail", () => {
-    it("should send rejection cadence with reason and amber styling", async () => {
+    it("should use rejection V1 template for sequence 1", async () => {
       const result = await sendRejectionCadenceEmail({
         to: "cliente@test.com",
         clientName: "Fernanda",
         formTitle: "Cadastro One",
-        formUrl: "https://example.com/form/1?continue=5",
+        formUrl: "https://example.com/form/1",
         reason: "Comprovante de renda desatualizado",
         sequenceNumber: 1,
         totalInSequence: 24,
@@ -256,29 +283,64 @@ describe("Email Service — One Innovation Design", () => {
 
       expect(result).toBe(true);
       const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("73360690-8866-4c88-9a65-b8dc053c1ef1");
       expect(call.subject).toContain("ajuste necessário");
-      expect(call.html).toContain("Fernanda");
-      expect(call.html).toContain("Comprovante de renda desatualizado");
-      expect(call.html).toContain("#f59e0b");
+      expect(call.template_data.REASON).toBe("Comprovante de renda desatualizado");
     });
 
-    it("should rotate rejection cadence variations", async () => {
+    it("should use rejection V2 template for sequence 2", async () => {
       await sendRejectionCadenceEmail({
-        to: "cliente@test.com",
-        formTitle: "Cadastro",
-        formUrl: "https://example.com/form/1",
-        reason: "Documento ilegível",
+        to: "t@t.com",
+        formTitle: "F",
+        formUrl: "http://x.com",
+        reason: "R",
         sequenceNumber: 2,
         totalInSequence: 24,
       });
 
       const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("7771cbf0-4b04-4254-824a-21ac3440a1ed");
       expect(call.subject).toContain("quase aprovado");
+    });
+
+    it("should use rejection V3 template for sequence 3", async () => {
+      await sendRejectionCadenceEmail({
+        to: "t@t.com",
+        formTitle: "F",
+        formUrl: "http://x.com",
+        reason: "R",
+        sequenceNumber: 3,
+        totalInSequence: 24,
+      });
+
+      const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("ac1d6bb6-499e-4ab1-8794-62518cc7e0bd");
+      expect(call.subject).toContain("Não perca sua vaga");
+    });
+
+    it("should include all required template data", async () => {
+      await sendRejectionCadenceEmail({
+        to: "t@t.com",
+        clientName: "Maria",
+        formTitle: "Cadastro One",
+        formUrl: "http://example.com/form",
+        reason: "RG vencido",
+        sequenceNumber: 1,
+        totalInSequence: 24,
+      });
+
+      const call = mockSend.mock.calls[0][0];
+      expect(call.template_data).toEqual({
+        CLIENT_NAME: "Maria",
+        FORM_TITLE: "Cadastro One",
+        FORM_URL: "http://example.com/form",
+        REASON: "RG vencido",
+      });
     });
   });
 
   describe("sendFollowUpEmail (legacy)", () => {
-    it("should delegate to sendCadenceEmail with sequence 1", async () => {
+    it("should delegate to sendCadenceEmail with sequence 1 (V1 template)", async () => {
       const result = await sendFollowUpEmail({
         to: "cliente@test.com",
         clientName: "Test",
@@ -288,12 +350,14 @@ describe("Email Service — One Innovation Design", () => {
 
       expect(result).toBe(true);
       expect(mockSend).toHaveBeenCalledOnce();
+      const call = mockSend.mock.calls[0][0];
+      expect(call.template_id).toBe("dd26aab4-fdf6-4d3f-97f3-5915686d4a67");
     });
   });
 
   describe("Error handling", () => {
     it("should return false when Resend returns an error", async () => {
-      mockSend.mockResolvedValueOnce({ data: null, error: { message: "Invalid API key" } });
+      mockSend.mockResolvedValueOnce({ data: null, error: { message: "Invalid template" } });
 
       const result = await sendApprovalEmail({
         to: "test@test.com",
@@ -316,8 +380,8 @@ describe("Email Service — One Innovation Design", () => {
     });
   });
 
-  describe("Design consistency", () => {
-    it("all emails should use the same design tokens", async () => {
+  describe("Sender consistency", () => {
+    it("all emails should use the same sender", async () => {
       const emails = [
         () => sendInviteEmail({ to: "t@t.com", inviterName: "A", role: "corretor", inviteUrl: "http://x.com" }),
         () => sendProtocolEmail({ to: "t@t.com", protocolCode: "X", formTitle: "F" }),
@@ -332,16 +396,8 @@ describe("Email Service — One Innovation Design", () => {
         mockSend.mockResolvedValue({ data: { id: "test-id" }, error: null });
         await sendFn();
         const call = mockSend.mock.calls[0][0];
-        // All should have dark bg
-        expect(call.html).toContain("#0a0a0f");
-        // All should have Montserrat
-        expect(call.html).toContain("Montserrat");
-        // All should have the logo
-        expect(call.html).toContain("one-innovation-logo");
-        // All should have One Innovation footer
-        expect(call.html).toContain("One Innovation");
-        // All should come from the same sender
         expect(call.from).toContain("one@cadastrodigital.com.br");
+        expect(call.from).toContain("One Innovation");
       }
     });
   });

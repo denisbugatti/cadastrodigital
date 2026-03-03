@@ -807,3 +807,10 @@
 - [x] Sistema de cadência: tabela no banco para rastrear envios
 - [x] Endpoint de cron para disparar cadência automaticamente
 - [x] Testes para todos os templates e lógica de cadência
+
+## Migração Templates Resend + Cron Cadência
+- [x] Pesquisar API de templates do Resend
+- [x] Criar os 11 templates no Resend via API (6 email types + variações + corretor)
+- [x] Atualizar emailService.ts para usar templates do Resend
+- [x] Configurar cron interno para cadência de emails às 9h BRT (enrollIncomplete + processDue)
+- [x] Testes e validação (276 testes passando)
