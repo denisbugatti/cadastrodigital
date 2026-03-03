@@ -895,3 +895,8 @@
 - [x] Aumentar opacidade das linhas do BackgroundPaths para melhor visibilidade
 - [x] Adicionar gradiente radial central no hero para contraste máximo no texto
 - [x] Reativar animações scroll-reveal (Reveal) com framer-motion fade-in suave
+
+## Melhorias Visuais Landing Page v4
+- [x] Personalizar cores do GlowingEffect para tons de azul (#70BEFA, #3b82f6, #60a5fa, #2563eb)
+- [x] AnimatedCounter já estava ativo na seção de estatísticas (verificado e funcionando)
+- [x] Adicionar smooth scroll no menu de navegação (Sobre, Serviços, Processo, FAQ) + botão Saiba mais

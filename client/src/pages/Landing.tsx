@@ -249,10 +249,23 @@ const Nav = memo(({ onPreencher }: { onPreencher: () => void }) => {
           <span className="text-white font-semibold text-sm tracking-wide">CADASTRO DIGITAL</span>
         </div>
         <div className="hidden md:flex items-center gap-8">
-          <a href="#sobre" className="text-white/50 hover:text-white text-sm transition-colors">Sobre</a>
-          <a href="#servicos" className="text-white/50 hover:text-white text-sm transition-colors">Serviços</a>
-          <a href="#processo" className="text-white/50 hover:text-white text-sm transition-colors">Processo</a>
-          <a href="#faq" className="text-white/50 hover:text-white text-sm transition-colors">FAQ</a>
+          {[
+            { id: "sobre", label: "Sobre" },
+            { id: "servicos", label: "Serviços" },
+            { id: "processo", label: "Processo" },
+            { id: "faq", label: "FAQ" },
+          ].map((link) => (
+            <button
+              key={link.id}
+              onClick={() => {
+                const el = document.getElementById(link.id);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="text-white/50 hover:text-white text-sm transition-colors cursor-pointer bg-transparent border-none"
+            >
+              {link.label}
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -394,12 +407,15 @@ export default function Landing() {
                   <ArrowRight className="w-5 h-5" />
                 </span>
               </button>
-              <a
-                href="#sobre"
-                className="px-6 py-4 rounded-xl text-base font-medium text-white/60 hover:text-white border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 hover:bg-white/[0.03]"
+              <button
+                onClick={() => {
+                  const el = document.getElementById("sobre");
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="px-6 py-4 rounded-xl text-base font-medium text-white/60 hover:text-white border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 hover:bg-white/[0.03] bg-transparent cursor-pointer"
               >
                 Saiba mais
-              </a>
+              </button>
             </div>
           </Reveal>
 
