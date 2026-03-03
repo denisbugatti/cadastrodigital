@@ -884,3 +884,9 @@
 - [x] Adicionar efeito parallax (scroll) nas linhas do BackgroundPaths (2 camadas: 0.15x e 0.35x)
 - [x] Reduzir opacidade/contraste das linhas para não competir com o texto
 - [x] Garantir legibilidade total do texto hero sobre as linhas animadas
+
+## GlowingEffect nos Cards de Serviços
+- [x] Instalar dependência `motion` (motion/react)
+- [x] Criar componente GlowingEffect em /components/ui/glowing-effect.tsx
+- [x] Aplicar GlowingEffect nos cards das seções Sobre e Serviços da Landing Page
+- [x] Adaptar cores do glow ao tema dark da One Innovation

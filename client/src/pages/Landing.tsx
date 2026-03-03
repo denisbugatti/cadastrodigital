@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { BackgroundPaths } from "@/components/ui/background-paths";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 
 /* ─── Constants ─── */
 const ACCENT = "#70BEFA";
@@ -414,48 +415,44 @@ export default function Landing() {
             </div>
           </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Reveal delay={0.1}>
-              <GlowCard className="p-8 h-full">
-                <Shield className="w-10 h-10 text-[#70BEFA] mb-5" />
-                <h3 className="text-xl font-semibold text-white mb-3">Proteção Total LGPD</h3>
-                <p className="text-white/45 leading-relaxed">
-                  Todos os dados e documentos são coletados e armazenados em conformidade total com a
-                  Lei Geral de Proteção de Dados. Nenhuma informação é compartilhada com terceiros.
-                </p>
-              </GlowCard>
-            </Reveal>
-            <Reveal delay={0.2}>
-              <GlowCard className="p-8 h-full">
-                <Eye className="w-10 h-10 text-[#70BEFA] mb-5" />
-                <h3 className="text-xl font-semibold text-white mb-3">Confidencialidade Garantida</h3>
-                <p className="text-white/45 leading-relaxed">
-                  O cliente não precisa enviar documentos para corretores. Tudo é feito diretamente
-                  na plataforma, com acesso restrito e rastreável.
-                </p>
-              </GlowCard>
-            </Reveal>
-            <Reveal delay={0.15}>
-              <GlowCard className="p-8 h-full">
-                <Zap className="w-10 h-10 text-[#70BEFA] mb-5" />
-                <h3 className="text-xl font-semibold text-white mb-3">Processo 100% Digital</h3>
-                <p className="text-white/45 leading-relaxed">
-                  Sem papel, sem deslocamento. O cliente preenche o cadastro de qualquer lugar,
-                  a qualquer hora, pelo celular ou computador.
-                </p>
-              </GlowCard>
-            </Reveal>
-            <Reveal delay={0.25}>
-              <GlowCard className="p-8 h-full">
-                <FileCheck className="w-10 h-10 text-[#70BEFA] mb-5" />
-                <h3 className="text-xl font-semibold text-white mb-3">Validação Inteligente</h3>
-                <p className="text-white/45 leading-relaxed">
-                  Cada documento e informação é validado individualmente. Se algo estiver
-                  ilegível ou incorreto, o cliente é notificado automaticamente.
-                </p>
-              </GlowCard>
-            </Reveal>
-          </div>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+            {[
+              { icon: <Shield className="h-5 w-5" />, title: "Proteção Total LGPD", desc: "Todos os dados e documentos são coletados e armazenados em conformidade total com a Lei Geral de Proteção de Dados. Nenhuma informação é compartilhada com terceiros." },
+              { icon: <Eye className="h-5 w-5" />, title: "Confidencialidade Garantida", desc: "O cliente não precisa enviar documentos para corretores. Tudo é feito diretamente na plataforma, com acesso restrito e rastreável." },
+              { icon: <Zap className="h-5 w-5" />, title: "Processo 100% Digital", desc: "Sem papel, sem deslocamento. O cliente preenche o cadastro de qualquer lugar, a qualquer hora, pelo celular ou computador." },
+              { icon: <FileCheck className="h-5 w-5" />, title: "Validação Inteligente", desc: "Cada documento e informação é validado individualmente. Se algo estiver ilegível ou incorreto, o cliente é notificado automaticamente." },
+            ].map((item, i) => (
+              <Reveal key={i} delay={i * 0.1}>
+                <li className="min-h-[14rem] list-none">
+                  <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-white/[0.08] p-2 md:rounded-[1.5rem] md:p-3">
+                    <GlowingEffect
+                      spread={40}
+                      glow={true}
+                      disabled={false}
+                      proximity={64}
+                      inactiveZone={0.01}
+                      borderWidth={3}
+                    />
+                    <div className="relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-xl border-[0.75px] border-white/[0.06] p-6 shadow-sm" style={{ background: CARD_BG }}>
+                      <div className="relative flex flex-1 flex-col justify-between gap-3">
+                        <div className="w-fit rounded-lg border-[0.75px] border-white/[0.08] bg-white/[0.04] p-2 text-[#70BEFA]">
+                          {item.icon}
+                        </div>
+                        <div className="space-y-3">
+                          <h3 className="pt-0.5 text-xl leading-[1.375rem] font-semibold tracking-[-0.04em] md:text-2xl md:leading-[1.875rem] text-white">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm leading-[1.125rem] md:text-base md:leading-[1.375rem] text-white/45">
+                            {item.desc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </Reveal>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -472,35 +469,43 @@ export default function Landing() {
             </div>
           </Reveal>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <ul className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
             {[
-              {
-                icon: <FileText className="w-8 h-8" />,
-                title: "Cadastro Digital",
-                desc: "Formulários inteligentes que se adaptam ao perfil do cliente. Coleta segura de dados pessoais, documentos e comprovantes.",
-              },
-              {
-                icon: <Users className="w-8 h-8" />,
-                title: "Gestão de Corretores",
-                desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics.",
-              },
-              {
-                icon: <CheckCircle className="w-8 h-8" />,
-                title: "Aprovação Rápida",
-                desc: "Validação individual de cada resposta e documento. O cliente recebe notificação automática do status.",
-              },
+              { icon: <FileText className="h-5 w-5" />, title: "Cadastro Digital", desc: "Formulários inteligentes que se adaptam ao perfil do cliente. Coleta segura de dados pessoais, documentos e comprovantes." },
+              { icon: <Users className="h-5 w-5" />, title: "Gestão de Corretores", desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics." },
+              { icon: <CheckCircle className="h-5 w-5" />, title: "Aprovação Rápida", desc: "Validação individual de cada resposta e documento. O cliente recebe notificação automática do status." },
             ].map((item, i) => (
               <Reveal key={i} delay={i * 0.1}>
-                <GlowCard className="p-8 text-center h-full">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#70BEFA]/10 text-[#70BEFA] mb-5">
-                    {item.icon}
+                <li className="min-h-[14rem] list-none">
+                  <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-white/[0.08] p-2 md:rounded-[1.5rem] md:p-3">
+                    <GlowingEffect
+                      spread={40}
+                      glow={true}
+                      disabled={false}
+                      proximity={64}
+                      inactiveZone={0.01}
+                      borderWidth={3}
+                    />
+                    <div className="relative flex h-full flex-col items-center justify-between gap-6 overflow-hidden rounded-xl border-[0.75px] border-white/[0.06] p-6 text-center shadow-sm" style={{ background: CARD_BG }}>
+                      <div className="relative flex flex-1 flex-col items-center justify-between gap-3">
+                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl border-[0.75px] border-white/[0.08] bg-[#70BEFA]/10 text-[#70BEFA]">
+                          {item.icon}
+                        </div>
+                        <div className="space-y-3 text-center">
+                          <h3 className="pt-0.5 text-xl leading-[1.375rem] font-semibold tracking-[-0.04em] md:text-2xl md:leading-[1.875rem] text-white">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm leading-[1.125rem] md:text-base md:leading-[1.375rem] text-white/45">
+                            {item.desc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-3">{item.title}</h3>
-                  <p className="text-white/45 text-sm leading-relaxed">{item.desc}</p>
-                </GlowCard>
+                </li>
               </Reveal>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
