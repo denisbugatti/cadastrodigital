@@ -829,3 +829,9 @@
 - [x] Painel de cadência de email visível no card do cliente
 - [x] Filtros avançados (por data, status de aprovação, corretor responsável)
 - [x] Geração de PDF do cadastro completo do cliente
+
+## Melhorias Dashboard Respostas v2
+- [x] Paginação nos cards de respostas (12 por página, com navegação)
+- [x] Número de protocolo visível na página inicial do card (sem precisar expandir)
+- [x] Após validar respostas, visualizar todas no card expandido
+- [x] Timeline de atividades no card expandido (emails enviados, aprovação, rejeição, etc.)

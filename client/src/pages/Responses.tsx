@@ -1,7 +1,8 @@
 /**
- * Dashboard de Respostas — Redesign Completo
- * Cards verticais, busca por protocolo, painel de cadência,
- * filtros avançados (data, status, corretor), geração de PDF.
+ * Dashboard de Respostas — Redesign Completo v2
+ * Cards verticais com protocolo visível, paginação,
+ * timeline de atividades, respostas visíveis após validação,
+ * busca por protocolo, filtros avançados.
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
@@ -46,12 +47,21 @@ import {
   Play,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
   SlidersHorizontal,
+  History,
+  Send,
+  UserCheck,
+  FileCheck,
+  AlertTriangle,
+  MailPlus,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ResponseCharts } from "@/components/ResponseCharts";
+
+const ITEMS_PER_PAGE = 12;
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -129,6 +139,119 @@ function ValidationBadge({ status }: { status: string }) {
   );
 }
 
+// ─── Activity Timeline Component ───
+function ActivityTimeline({ responseId }: { responseId: number }) {
+  const { data: timeline, isLoading } = trpc.activity.getTimeline.useQuery(
+    { responseId },
+    { staleTime: 30_000 }
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
+        <Loader2 size={12} className="animate-spin" /> Carregando timeline...
+      </div>
+    );
+  }
+
+  if (!timeline || timeline.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground/60 py-3">
+        <History size={12} />
+        <span>Nenhuma atividade registrada ainda</span>
+      </div>
+    );
+  }
+
+  const activityConfig: Record<string, { icon: any; color: string }> = {
+    response_created: { icon: FileText, color: "text-brand" },
+    response_completed: { icon: CheckCircle2, color: "text-green-500" },
+    protocol_email_sent: { icon: Send, color: "text-blue-500" },
+    field_approved: { icon: CheckCircle2, color: "text-green-500" },
+    field_rejected: { icon: XCircle, color: "text-red-500" },
+    overall_approved: { icon: ShieldCheck, color: "text-green-600 dark:text-green-400" },
+    overall_rejected: { icon: ShieldAlert, color: "text-red-600 dark:text-red-400" },
+    approval_email_sent: { icon: MailCheck, color: "text-green-500" },
+    rejection_email_sent: { icon: MailX, color: "text-red-500" },
+    cadence_started: { icon: MailPlus, color: "text-amber-500" },
+    cadence_email_sent: { icon: Send, color: "text-amber-500" },
+    cadence_stopped: { icon: Pause, color: "text-muted-foreground" },
+  };
+
+  // Show max 10 items initially, expand to show all
+  const [showAll, setShowAll] = useState(false);
+  const visibleItems = showAll ? timeline : timeline.slice(0, 8);
+
+  return (
+    <div className="relative">
+      {/* Timeline line */}
+      <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
+
+      <div className="space-y-0">
+        {visibleItems.map((item: any, i: number) => {
+          const config = activityConfig[item.activityType] || { icon: History, color: "text-muted-foreground" };
+          const Icon = config.icon;
+
+          return (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.03 }}
+              className="flex gap-3 py-1.5 relative"
+            >
+              {/* Dot */}
+              <div className={`w-[23px] h-[23px] rounded-full flex items-center justify-center shrink-0 bg-card border border-border z-10 ${config.color}`}>
+                <Icon size={11} />
+              </div>
+
+              {/* Content */}
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-[11px] sm:text-xs text-foreground font-body leading-relaxed">
+                  {item.description}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground/70 font-body">
+                    {new Date(item.createdAt).toLocaleString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  {item.performedByName && (
+                    <span className="text-[9px] sm:text-[10px] text-muted-foreground/70 font-body flex items-center gap-0.5">
+                      <UserCheck size={8} /> {item.performedByName}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {timeline.length > 8 && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="text-[11px] text-brand hover:underline font-body mt-1 ml-8"
+        >
+          Ver mais {timeline.length - 8} atividades...
+        </button>
+      )}
+      {showAll && timeline.length > 8 && (
+        <button
+          onClick={() => setShowAll(false)}
+          className="text-[11px] text-brand hover:underline font-body mt-1 ml-8"
+        >
+          Mostrar menos
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Cadence Panel inside Response Card ───
 function CadencePanel({ responseId }: { responseId: number }) {
   const utils = trpc.useUtils();
@@ -149,14 +272,7 @@ function CadencePanel({ responseId }: { responseId: number }) {
     );
   }
 
-  if (!cadences || cadences.length === 0) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground/60 py-1">
-        <MailX size={12} />
-        <span>Sem cadência de email ativa</span>
-      </div>
-    );
-  }
+  if (!cadences || cadences.length === 0) return null;
 
   return (
     <div className="space-y-2">
@@ -164,26 +280,29 @@ function CadencePanel({ responseId }: { responseId: number }) {
         const isActive = c.active && !c.stoppedReason;
         const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
         const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
-        const typeColor = c.cadenceType === "abandono" ? "amber" : "red";
 
         return (
           <div
             key={c.id}
-            className={`rounded-lg border p-2.5 sm:p-3 ${
+            className={`rounded-lg border p-2.5 ${
               isActive
-                ? `border-${typeColor}-500/20 bg-${typeColor}-500/5`
+                ? c.cadenceType === "abandono"
+                  ? "border-amber-500/20 bg-amber-500/5"
+                  : "border-red-500/20 bg-red-500/5"
                 : "border-border bg-muted/30"
             }`}
           >
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div className="flex items-center gap-1.5">
                 {isActive ? (
-                  <MailCheck size={13} className={`text-${typeColor}-600 dark:text-${typeColor}-400`} />
+                  <MailCheck size={13} className={c.cadenceType === "abandono" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"} />
                 ) : (
                   <Pause size={13} className="text-muted-foreground" />
                 )}
                 <span className={`text-[11px] font-semibold ${
-                  isActive ? `text-${typeColor}-600 dark:text-${typeColor}-400` : "text-muted-foreground"
+                  isActive
+                    ? c.cadenceType === "abandono" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
+                    : "text-muted-foreground"
                 }`}>
                   Cadência: {typeLabel}
                 </span>
@@ -252,14 +371,12 @@ function CadencePanel({ responseId }: { responseId: number }) {
 
 // ─── Extract phone from answers ───
 function extractPhone(answers: Record<string, any>, questions: any[]): string | null {
-  // Try to find phone question
   const phoneQ = questions.find((q: any) =>
     q.type === "phone" ||
     (q.title && /telefone|celular|whatsapp|phone/i.test(q.title))
   );
   if (phoneQ && answers[phoneQ.id]) return String(answers[phoneQ.id]);
 
-  // Fallback: look in all answers for phone-like values
   for (const val of Object.values(answers)) {
     if (typeof val === "string" && /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(val.trim())) {
       return val;
@@ -304,6 +421,9 @@ function ResponseCard({
     ? "border-l-brand"
     : "border-l-amber-500";
 
+  // Tab state for expanded view
+  const [activeTab, setActiveTab] = useState<"respostas" | "timeline">("respostas");
+
   return (
     <motion.div
       layout
@@ -317,10 +437,10 @@ function ResponseCard({
           : "shadow-sm hover:shadow-md"
       }`}
     >
-      {/* ─── Card Header ─── */}
+      {/* ─── Card Header (Always Visible) ─── */}
       <div className="p-4 sm:p-5 cursor-pointer" onClick={onToggle}>
-        {/* Top row: Avatar + Name + Status */}
-        <div className="flex items-start justify-between gap-3 mb-3">
+        {/* Top row: Avatar + Name + Protocol Badge + Status */}
+        <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-display font-bold text-sm shrink-0 ${
               isValidated
@@ -339,7 +459,7 @@ function ResponseCard({
               <h3 className="text-sm sm:text-base font-display font-bold text-foreground truncate">
                 {response.respondentName || "Anônimo"}
               </h3>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <ValidationBadge status={response.validationStatus || "pending"} />
                 {response.isComplete ? (
                   <span className="text-[10px] text-green-600 dark:text-green-400 font-medium flex items-center gap-0.5">
@@ -362,51 +482,47 @@ function ResponseCard({
           </motion.div>
         </div>
 
+        {/* ─── Protocol Badge (Prominent on closed card) ─── */}
+        {response.protocolCode && (
+          <div
+            className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-brand/5 border border-brand/15 cursor-pointer hover:bg-brand/10 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCopyProtocol(response.id, response.protocolCode);
+            }}
+            title="Clique para copiar o protocolo"
+          >
+            <Hash size={14} className="shrink-0 text-brand" />
+            <span className="font-mono font-bold text-sm text-brand tracking-wider">
+              {response.protocolCode}
+            </span>
+            <span className="text-[10px] text-muted-foreground ml-auto">Protocolo</span>
+            {copiedProtocol === response.id ? (
+              <Check size={14} className="text-green-500 shrink-0" />
+            ) : (
+              <Copy size={14} className="text-muted-foreground/40 shrink-0" />
+            )}
+          </div>
+        )}
+
         {/* ─── Info Grid ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-          {/* Email */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {response.respondentEmail && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
               <Mail size={13} className="shrink-0 text-muted-foreground/60" />
               <span className="truncate">{response.respondentEmail}</span>
             </div>
           )}
-
-          {/* Phone */}
           {phone && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
               <Phone size={13} className="shrink-0 text-muted-foreground/60" />
               <span>{phone}</span>
             </div>
           )}
-
-          {/* Protocol */}
-          {response.protocolCode && (
-            <div
-              className="flex items-center gap-2 text-xs font-body cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCopyProtocol(response.id, response.protocolCode);
-              }}
-              title="Clique para copiar"
-            >
-              <Hash size={13} className="shrink-0 text-brand" />
-              <span className="font-mono font-semibold text-brand">{response.protocolCode}</span>
-              {copiedProtocol === response.id ? (
-                <Check size={12} className="text-green-500" />
-              ) : (
-                <Copy size={12} className="text-muted-foreground/40" />
-              )}
-            </div>
-          )}
-
-          {/* Date */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
             <Calendar size={13} className="shrink-0 text-muted-foreground/60" />
             <span>{new Date(response.createdAt).toLocaleString("pt-BR")}</span>
           </div>
-
-          {/* Time spent */}
           {response.timeSpentSeconds && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
               <Timer size={13} className="shrink-0 text-muted-foreground/60" />
@@ -415,8 +531,8 @@ function ResponseCard({
           )}
         </div>
 
-        {/* ─── Cadence Panel ─── */}
-        <div className="border-t border-border/50 pt-2.5 mt-1" onClick={(e) => e.stopPropagation()}>
+        {/* ─── Cadence Panel (compact on closed card) ─── */}
+        <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
           <CadencePanel responseId={response.id} />
         </div>
 
@@ -465,7 +581,7 @@ function ResponseCard({
         </div>
       </div>
 
-      {/* ─── Expanded Details ─── */}
+      {/* ─── Expanded Details (Tabs: Respostas + Timeline) ─── */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -475,49 +591,146 @@ function ResponseCard({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-border/50">
-              <h4 className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mt-4 mb-3">
-                Respostas do formulário
-              </h4>
-              <div className="grid gap-0">
-                {questions
-                  .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
-                  .map((q: any, qIndex: number) => {
-                    const answer = answers[q.id];
-                    if (answer === undefined || answer === null || answer === "") return null;
+            <div className="border-t border-border/50">
+              {/* Tab Navigation */}
+              <div className="flex border-b border-border/50">
+                <button
+                  onClick={() => setActiveTab("respostas")}
+                  className={`flex-1 px-4 py-2.5 text-xs font-semibold font-body transition-colors flex items-center justify-center gap-1.5 ${
+                    activeTab === "respostas"
+                      ? "text-brand border-b-2 border-brand bg-brand/5"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <FileText size={13} />
+                  Respostas
+                </button>
+                <button
+                  onClick={() => setActiveTab("timeline")}
+                  className={`flex-1 px-4 py-2.5 text-xs font-semibold font-body transition-colors flex items-center justify-center gap-1.5 ${
+                    activeTab === "timeline"
+                      ? "text-brand border-b-2 border-brand bg-brand/5"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <History size={13} />
+                  Timeline
+                </button>
+              </div>
 
-                    let displayValue: string;
-                    if (Array.isArray(answer)) {
-                      displayValue = answer.join(", ");
-                    } else if (typeof answer === "object") {
-                      if (answer.url) {
-                        displayValue = `📎 ${answer.filename || "Arquivo"}`;
-                      } else {
-                        displayValue = Object.entries(answer)
-                          .map(([k, v]) => `${k}: ${v}`)
-                          .join(" | ");
-                      }
-                    } else {
-                      displayValue = String(answer);
-                    }
+              {/* Tab Content */}
+              <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                {activeTab === "respostas" ? (
+                  <>
+                    {!isValidated && (
+                      <div className="flex items-center gap-2 mt-4 mb-3 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                        <Lock size={14} className="text-amber-500 shrink-0" />
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-body">
+                          As respostas completas ficam visíveis após a validação do cadastro.
+                        </p>
+                      </div>
+                    )}
 
-                    return (
-                      <motion.div
-                        key={q.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: qIndex * 0.03 }}
-                        className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-4 py-2.5 sm:py-3 border-b border-border/30 last:border-0"
-                      >
-                        <span className="text-[10px] sm:text-xs font-body font-semibold text-muted-foreground sm:w-1/3 sm:text-right sm:pt-0.5 shrink-0 uppercase tracking-wide">
-                          {q.title}
-                        </span>
-                        <span className="text-xs sm:text-sm font-body text-foreground sm:flex-1 break-words">
-                          {displayValue}
-                        </span>
-                      </motion.div>
-                    );
-                  })}
+                    {isValidated ? (
+                      <div className="mt-4">
+                        <h4 className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                          Respostas do formulário
+                        </h4>
+                        <div className="grid gap-0">
+                          {questions
+                            .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
+                            .map((q: any, qIndex: number) => {
+                              const answer = answers[q.id];
+                              if (answer === undefined || answer === null || answer === "") return null;
+
+                              let displayValue: string;
+                              if (Array.isArray(answer)) {
+                                displayValue = answer.join(", ");
+                              } else if (typeof answer === "object") {
+                                if (answer.url) {
+                                  displayValue = `📎 ${answer.filename || "Arquivo"}`;
+                                } else {
+                                  displayValue = Object.entries(answer)
+                                    .map(([k, v]) => `${k}: ${v}`)
+                                    .join(" | ");
+                                }
+                              } else {
+                                displayValue = String(answer);
+                              }
+
+                              return (
+                                <motion.div
+                                  key={q.id}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: qIndex * 0.03 }}
+                                  className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-4 py-2.5 sm:py-3 border-b border-border/30 last:border-0"
+                                >
+                                  <span className="text-[10px] sm:text-xs font-body font-semibold text-muted-foreground sm:w-1/3 sm:text-right sm:pt-0.5 shrink-0 uppercase tracking-wide">
+                                    {q.title}
+                                  </span>
+                                  <span className="text-xs sm:text-sm font-body text-foreground sm:flex-1 break-words">
+                                    {displayValue}
+                                  </span>
+                                </motion.div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <h4 className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                          Resumo
+                        </h4>
+                        <div className="grid gap-0">
+                          {/* Show only basic info for non-validated */}
+                          {questions
+                            .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
+                            .slice(0, 3)
+                            .map((q: any, qIndex: number) => {
+                              const answer = answers[q.id];
+                              if (answer === undefined || answer === null || answer === "") return null;
+
+                              let displayValue: string;
+                              if (Array.isArray(answer)) {
+                                displayValue = answer.join(", ");
+                              } else if (typeof answer === "object") {
+                                displayValue = answer.url ? `📎 ${answer.filename || "Arquivo"}` : "...";
+                              } else {
+                                displayValue = String(answer);
+                              }
+
+                              return (
+                                <div
+                                  key={q.id}
+                                  className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-4 py-2 border-b border-border/30 last:border-0"
+                                >
+                                  <span className="text-[10px] sm:text-xs font-body font-semibold text-muted-foreground sm:w-1/3 sm:text-right shrink-0 uppercase tracking-wide">
+                                    {q.title}
+                                  </span>
+                                  <span className="text-xs sm:text-sm font-body text-foreground sm:flex-1 break-words">
+                                    {displayValue}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          {questions.filter((q: any) => q.type !== "welcome" && q.type !== "thank-you").length > 3 && (
+                            <p className="text-[10px] text-muted-foreground/60 font-body py-2 italic">
+                              + {questions.filter((q: any) => q.type !== "welcome" && q.type !== "thank-you").length - 3} campos ocultos — valide para visualizar todas as respostas
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="mt-4">
+                    <h4 className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                      Histórico de atividades
+                    </h4>
+                    <ActivityTimeline responseId={response.id} />
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -535,6 +748,73 @@ function formatTimeHelper(seconds: number) {
   return sec > 0 ? `${min}min ${sec}s` : `${min}min`;
 }
 
+// ─── Pagination Component ───
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  // Generate page numbers to show
+  const pages: (number | "...")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push("...");
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1 sm:gap-1.5 mt-6 sm:mt-8">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card border border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      {pages.map((page, i) =>
+        page === "..." ? (
+          <span key={`dots-${i}`} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-xs text-muted-foreground">
+            ...
+          </span>
+        ) : (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-xs font-semibold transition-all ${
+              currentPage === page
+                ? "bg-brand text-white shadow-md shadow-brand/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-card border border-border"
+            }`}
+          >
+            {page}
+          </button>
+        )
+      )}
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card border border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+}
+
 // ─── Main Component ───
 export default function Responses() {
   const params = useParams<{ formId: string }>();
@@ -549,6 +829,7 @@ export default function Responses() {
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const searchParam = useMemo(() => debouncedSearch.trim() || undefined, [debouncedSearch]);
 
@@ -595,6 +876,7 @@ export default function Responses() {
   const handleCopyProtocol = useCallback((responseId: number, code: string) => {
     navigator.clipboard.writeText(code).then(() => {
       setCopiedProtocol(responseId);
+      toast.success("Protocolo copiado!");
       setTimeout(() => setCopiedProtocol(null), 2000);
     }).catch(() => {
       const textArea = document.createElement("textarea");
@@ -606,6 +888,7 @@ export default function Responses() {
       try {
         document.execCommand("copy");
         setCopiedProtocol(responseId);
+        toast.success("Protocolo copiado!");
         setTimeout(() => setCopiedProtocol(null), 2000);
       } catch {
         // Silently fail
@@ -667,7 +950,6 @@ export default function Responses() {
     if (!responses) return [];
     let result = [...responses];
 
-    // Status filter
     if (statusFilter === "complete") result = result.filter((r: any) => r.isComplete);
     else if (statusFilter === "partial") result = result.filter((r: any) => !r.isComplete);
     else if (statusFilter === "approved") result = result.filter((r: any) => r.validationStatus === "approved");
@@ -675,7 +957,6 @@ export default function Responses() {
     else if (statusFilter === "pending") result = result.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
     else if (statusFilter === "in_review") result = result.filter((r: any) => r.validationStatus === "in_review");
 
-    // Date filter
     if (dateFilter !== "all") {
       const now = new Date();
       let cutoff: Date;
@@ -691,7 +972,6 @@ export default function Responses() {
       result = result.filter((r: any) => new Date(r.createdAt) >= cutoff);
     }
 
-    // Corretor filter (by reviewedBy)
     if (corretorFilter !== "all") {
       const corretorId = Number(corretorFilter);
       result = result.filter((r: any) => r.reviewedBy === corretorId);
@@ -699,6 +979,18 @@ export default function Responses() {
 
     return result;
   }, [responses, statusFilter, dateFilter, corretorFilter]);
+
+  // ─── Pagination ───
+  const totalPages = Math.ceil(filteredResponses.length / ITEMS_PER_PAGE);
+  const paginatedResponses = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredResponses.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredResponses, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, dateFilter, corretorFilter, searchParam]);
 
   const isLoading = formLoading || responsesLoading;
 
@@ -730,7 +1022,6 @@ export default function Responses() {
 
   const questions: any[] = (form as any).questions ?? [];
 
-  // Count active filters
   const activeFilterCount = [
     statusFilter !== "all",
     dateFilter !== "all",
@@ -907,7 +1198,6 @@ export default function Responses() {
               )}
             </div>
 
-            {/* Toggle advanced filters */}
             <Button
               variant={showAdvancedFilters ? "default" : "outline"}
               size="sm"
@@ -923,7 +1213,6 @@ export default function Responses() {
               )}
             </Button>
 
-            {/* Toggle charts */}
             <Button
               variant={showCharts ? "default" : "outline"}
               size="sm"
@@ -965,7 +1254,6 @@ export default function Responses() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Status filter */}
                     <div>
                       <label className="text-[11px] font-body font-medium text-muted-foreground mb-1 block">
                         Status de Aprovação
@@ -985,7 +1273,6 @@ export default function Responses() {
                       </select>
                     </div>
 
-                    {/* Date filter */}
                     <div>
                       <label className="text-[11px] font-body font-medium text-muted-foreground mb-1 block">
                         Período
@@ -1002,7 +1289,6 @@ export default function Responses() {
                       </select>
                     </div>
 
-                    {/* Corretor filter */}
                     <div>
                       <label className="text-[11px] font-body font-medium text-muted-foreground mb-1 block">
                         Corretor Responsável
@@ -1074,17 +1360,22 @@ export default function Responses() {
           )}
         </AnimatePresence>
 
-        {/* ─── Results count ─── */}
+        {/* ─── Results count + pagination info ─── */}
         {filteredResponses.length > 0 && (
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground font-body">
               {filteredResponses.length} resposta{filteredResponses.length !== 1 ? "s" : ""}
               {activeFilterCount > 0 ? " (filtrado)" : ""}
+              {totalPages > 1 && (
+                <span className="ml-1">
+                  — Página {currentPage} de {totalPages}
+                </span>
+              )}
             </p>
           </div>
         )}
 
-        {/* ─── Response Cards (Vertical) ─── */}
+        {/* ─── Response Cards (Vertical) with Pagination ─── */}
         {filteredResponses.length === 0 ? (
           <div className="text-center py-12 sm:py-20">
             {searchParam ? (
@@ -1127,22 +1418,35 @@ export default function Responses() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-            {filteredResponses.map((response: any, index: number) => (
-              <ResponseCard
-                key={response.id}
-                response={response}
-                index={index}
-                questions={questions}
-                isExpanded={expandedId === response.id}
-                onToggle={() => setExpandedId(expandedId === response.id ? null : response.id)}
-                onGenerateFicha={handleGenerateFicha}
-                isGenerating={generatingId === response.id}
-                copiedProtocol={copiedProtocol}
-                onCopyProtocol={handleCopyProtocol}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+              {paginatedResponses.map((response: any, index: number) => (
+                <ResponseCard
+                  key={response.id}
+                  response={response}
+                  index={index}
+                  questions={questions}
+                  isExpanded={expandedId === response.id}
+                  onToggle={() => setExpandedId(expandedId === response.id ? null : response.id)}
+                  onGenerateFicha={handleGenerateFicha}
+                  isGenerating={generatingId === response.id}
+                  copiedProtocol={copiedProtocol}
+                  onCopyProtocol={handleCopyProtocol}
+                />
+              ))}
+            </div>
+
+            {/* ─── Pagination ─── */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                setExpandedId(null); // Collapse any expanded card when changing page
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </>
         )}
       </main>
     </div>

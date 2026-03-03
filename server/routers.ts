@@ -352,6 +352,19 @@ export const appRouter = router({
             reviewedAt: allValidated ? new Date() : undefined,
           });
 
+          // Log individual field validation
+          db.logActivity({
+            responseId: input.responseId,
+            formId: response.formId,
+            activityType: input.status === "approved" ? "field_approved" : "field_rejected",
+            description: input.status === "approved"
+              ? `Campo "${input.questionId}" aprovado`
+              : `Campo "${input.questionId}" rejeitado: ${input.justification || "Sem justificativa"}`,
+            metadata: { questionId: input.questionId, status: input.status, justification: input.justification },
+            performedBy: ctx.user.id,
+            performedByName: ctx.user.name || undefined,
+          }).catch(() => {});
+
           // Send email notifications based on status
           if (allApproved && response.respondentEmail) {
             await sendApprovalEmail({
@@ -360,6 +373,23 @@ export const appRouter = router({
             });
             // Stop any active cadences for this response
             await db.stopCadencesForResponse(input.responseId, "form_approved");
+
+            // Log overall approval
+            db.logActivity({
+              responseId: input.responseId,
+              formId: response.formId,
+              activityType: "overall_approved",
+              description: `Cadastro aprovado! Email de aprovação enviado para ${response.respondentEmail}`,
+              performedBy: ctx.user.id,
+              performedByName: ctx.user.name || undefined,
+            }).catch(() => {});
+            db.logActivity({
+              responseId: input.responseId,
+              formId: response.formId,
+              activityType: "approval_email_sent",
+              description: `Email de aprovação enviado para ${response.respondentEmail}`,
+              metadata: { email: response.respondentEmail },
+            }).catch(() => {});
           } else if (hasRejection && response.respondentEmail) {
             const rejections = allValidations.filter((v: any) => v.status === "rejected");
             const reasons = rejections.map((v: any) => v.justification || "Documento/dado precisa de revisão").join("; ");
@@ -377,6 +407,31 @@ export const appRouter = router({
               recipientName: response.respondentName || undefined,
               rejectionReason: reasons,
             });
+
+            // Log overall rejection
+            db.logActivity({
+              responseId: input.responseId,
+              formId: response.formId,
+              activityType: "overall_rejected",
+              description: `Cadastro rejeitado. Motivo: ${reasons}`,
+              performedBy: ctx.user.id,
+              performedByName: ctx.user.name || undefined,
+              metadata: { reasons },
+            }).catch(() => {});
+            db.logActivity({
+              responseId: input.responseId,
+              formId: response.formId,
+              activityType: "rejection_email_sent",
+              description: `Email de rejeição enviado para ${response.respondentEmail}`,
+              metadata: { email: response.respondentEmail, reasons },
+            }).catch(() => {});
+            db.logActivity({
+              responseId: input.responseId,
+              formId: response.formId,
+              activityType: "cadence_started",
+              description: `Cadência de reprovação iniciada (3x/semana por 2 meses)`,
+              metadata: { cadenceType: "reprovacao" },
+            }).catch(() => {});
           }
         }
         return { success: true };
@@ -579,6 +634,27 @@ export const appRouter = router({
           }
         }
 
+        // Log activity: response created
+        db.logActivity({
+          responseId: result.id,
+          formId: input.formId,
+          activityType: "response_created",
+          description: input.isComplete !== false
+            ? `Cadastro completo enviado por ${input.respondentName || input.respondentEmail || "Anônimo"}`
+            : `Cadastro iniciado por ${input.respondentName || input.respondentEmail || "Anônimo"}`,
+        }).catch(() => {});
+
+        // Log protocol email sent
+        if (input.respondentEmail && result.protocolCode && input.isComplete !== false) {
+          db.logActivity({
+            responseId: result.id,
+            formId: input.formId,
+            activityType: "protocol_email_sent",
+            description: `Email de protocolo ${result.protocolCode} enviado para ${input.respondentEmail}`,
+            metadata: { protocolCode: result.protocolCode, email: input.respondentEmail },
+          }).catch(() => {});
+        }
+
         return result;
       }),
 
@@ -641,6 +717,14 @@ export const appRouter = router({
               });
               // Stop any active abandono cadences for this response
               await db.stopCadencesForResponse(id, "form_completed");
+
+              // Log activity: response completed
+              db.logActivity({
+                responseId: id,
+                formId: response.formId,
+                activityType: "response_completed",
+                description: `Cadastro completado por ${respondent}`,
+              }).catch(() => {});
             }
           } catch (err) {
             console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
@@ -1380,6 +1464,16 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const responses = await db.getIncompleteResponsesForFollowUp(input?.minAgeHours ?? 24);
         return { count: responses.length };
+      }),
+  }),
+
+  // ─── Activity Timeline ───
+  activity: router({
+    /** Get timeline for a specific response */
+    getTimeline: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getActivityTimeline(input.responseId);
       }),
   }),
 });

@@ -48,6 +48,9 @@ vi.mock("./db", () => ({
   getActiveCorretoresByForm: vi.fn(),
   setFormCorretores: vi.fn(),
   toggleFormCorretorNotification: vi.fn(),
+  // Activity log functions
+  logActivity: vi.fn().mockResolvedValue({ id: 1 }),
+  getActivityTimeline: vi.fn().mockResolvedValue([]),
 }));
 
 // ─── Mock storage module ───

@@ -13,6 +13,7 @@ import {
   formCorretores, InsertFormCorretor,
   siteSettings, InsertSiteSettings,
   emailCadence, InsertEmailCadence,
+  activityLog, InsertActivityLog,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1067,4 +1068,59 @@ export async function getCadencesByResponse(responseId: number) {
     .from(emailCadence)
     .where(eq(emailCadence.responseId, responseId))
     .orderBy(desc(emailCadence.createdAt));
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTIVITY LOG — Timeline tracking for response events
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Log an activity event for a response.
+ */
+export async function logActivity(data: {
+  responseId: number;
+  formId: number;
+  activityType: InsertActivityLog["activityType"];
+  description?: string;
+  metadata?: Record<string, any>;
+  performedBy?: number;
+  performedByName?: string;
+}) {
+  const db = getDb();
+  const result = await db.insert(activityLog).values({
+    responseId: data.responseId,
+    formId: data.formId,
+    activityType: data.activityType,
+    description: data.description || null,
+    metadata: data.metadata || null,
+    performedBy: data.performedBy || null,
+    performedByName: data.performedByName || null,
+  });
+  return (result as any)[0]?.insertId;
+}
+
+/**
+ * Get all activity events for a response (for timeline display).
+ * Returns newest first.
+ */
+export async function getActivityTimeline(responseId: number) {
+  const db = getDb();
+  return db
+    .select()
+    .from(activityLog)
+    .where(eq(activityLog.responseId, responseId))
+    .orderBy(desc(activityLog.createdAt));
+}
+
+/**
+ * Get activity events for multiple responses (batch query for card list).
+ */
+export async function getActivityTimelineByForm(formId: number) {
+  const db = getDb();
+  return db
+    .select()
+    .from(activityLog)
+    .where(eq(activityLog.formId, formId))
+    .orderBy(desc(activityLog.createdAt));
 }

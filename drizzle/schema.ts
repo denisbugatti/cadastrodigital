@@ -376,3 +376,45 @@ export const emailCadence = mysqlTable("email_cadence", {
 
 export type EmailCadence = typeof emailCadence.$inferSelect;
 export type InsertEmailCadence = typeof emailCadence.$inferInsert;
+
+/**
+ * Activity log — tracks all events for a response (timeline).
+ * Used to display a chronological history of actions on each response card.
+ */
+export const activityLog = mysqlTable("activity_log", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Which response this activity belongs to */
+  responseId: int("responseId").notNull(),
+  /** Which form this belongs to */
+  formId: int("formId").notNull(),
+  /** Type of activity */
+  activityType: mysqlEnum("activityType", [
+    "response_created",
+    "response_completed",
+    "validation_started",
+    "field_approved",
+    "field_rejected",
+    "overall_approved",
+    "overall_rejected",
+    "cadence_started",
+    "cadence_email_sent",
+    "cadence_stopped",
+    "follow_up_sent",
+    "pdf_generated",
+    "rejection_email_sent",
+    "approval_email_sent",
+    "protocol_email_sent",
+  ]).notNull(),
+  /** Human-readable description */
+  description: text("description"),
+  /** Additional metadata (JSON) */
+  metadata: json("metadata").$type<Record<string, any>>(),
+  /** Who performed this action (staff_users.id, null for system actions) */
+  performedBy: int("performedBy"),
+  /** Name of who performed (cached for display) */
+  performedByName: varchar("performedByName", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ActivityLog = typeof activityLog.$inferSelect;
+export type InsertActivityLog = typeof activityLog.$inferInsert;
