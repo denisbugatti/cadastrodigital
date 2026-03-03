@@ -1,0 +1,64 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "activity_log"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "client_users"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "corretores"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "email_cadence"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "files"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "form_corretores"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "form_responses"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "form_versions"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "forms"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "invites"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "push_subscriptions"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "response_validations"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "role_permissions"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "site_settings"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "staff_users"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "users"
+    },
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p": "workspaces"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_bDyKxbJirDkukZmvFFZQ8p\n__drizzle_migrations\nactivity_log\nclient_users\ncorretores\nemail_cadence\nfiles\nform_corretores\nform_responses\nform_versions\nforms\ninvites\npush_subscriptions\nresponse_validations\nrole_permissions\nsite_settings\nstaff_users\nusers\nworkspaces\n",
+  "stderr": "",
+  "execution_time_ms": 364
+}

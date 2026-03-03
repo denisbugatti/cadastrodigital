@@ -83,6 +83,8 @@ import { trpc } from "@/lib/trpc";
 import { exportFormAsJSON, importFormFromJSON } from "@/lib/formStorage";
 import { createOneInnovationForm } from "@/lib/oneInnovationForm";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 /* ─── Types ─── */
 
@@ -250,6 +252,7 @@ function NotificationBell() {
 }
 
 export default function Dashboard() {
+  const { logout } = useCustomAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -640,7 +643,7 @@ export default function Dashboard() {
   const isLoading = formsQuery.isLoading || workspacesQuery.isLoading;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 lg:pb-0">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-6">
@@ -1381,6 +1384,9 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Mobile Bottom Navigation ─── */}
+      <MobileBottomNav onLogout={logout} />
     </div>
   );
 }

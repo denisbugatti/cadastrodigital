@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import AppLayout from "./components/AppLayout";
 import Landing from "./pages/Landing";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
@@ -32,23 +33,31 @@ function Router() {
       {/* Client portal */}
       <Route path={"/portal"} component={ClientPortal} />
 
-      {/* Staff dashboard */}
+      {/* Dashboard (forms list) - has its own sidebar with folders */}
       <Route path={"/dashboard"} component={Dashboard} />
 
-      {/* Editor (master only) */}
+      {/* Form editor - full screen */}
       <Route path={"/editor/:id"} component={Editor} />
 
-      {/* Responses */}
-      <Route path={"/responses/:formId"} component={Responses} />
+      {/* Responses/Analytics for a specific form */}
+      <Route path={"/responses/:formId"}>
+        {(params: any) => (
+          <AppLayout><Responses /></AppLayout>
+        )}
+      </Route>
 
-      {/* Staff management */}
-      <Route path={"/equipe"} component={StaffManagement} />
+      {/* Staff pages wrapped in AppLayout */}
+      <Route path={"/equipe"}>
+        <AppLayout><StaffManagement /></AppLayout>
+      </Route>
 
-      {/* Cadence management */}
-      <Route path={"/cadencias"} component={CadenceManagement} />
+      <Route path={"/cadencias"}>
+        <AppLayout><CadenceManagement /></AppLayout>
+      </Route>
 
-      {/* Settings (permissions, users, export) */}
-      <Route path={"/configuracoes"} component={Settings} />
+      <Route path={"/configuracoes"}>
+        <AppLayout><Settings /></AppLayout>
+      </Route>
 
       {/* Response validation */}
       <Route path={"/validar/:responseId"} component={ResponseValidation} />

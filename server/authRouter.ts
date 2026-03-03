@@ -19,6 +19,7 @@ import {
   cleanCpfCnpj,
   isValidCpfCnpj,
 } from "./authService";
+import { parse as parseCookieHeader } from "cookie";
 
 export const customAuthRouter = router({
   /**
@@ -318,7 +319,6 @@ export const customAuthRouter = router({
 // Helper to parse cookies from header
 function parseCookies(cookieHeader: string | undefined): Map<string, string> {
   if (!cookieHeader) return new Map();
-  const { parse } = require("cookie");
-  const parsed = parse(cookieHeader);
+  const parsed = parseCookieHeader(cookieHeader);
   return new Map(Object.entries(parsed));
 }

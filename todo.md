@@ -944,3 +944,21 @@
 
 ## Bug Fix — ClientPortal setState during render
 - [x] Corrigir erro "Cannot update a component while rendering" no ClientPortal.tsx:98 (useEffect movido antes dos conditional returns)
+
+## Reorganização da Navegação — Formulários + Dashboard
+- [x] Reorganizar rotas: Formulários como tela principal (lista de forms), Dashboard como tela de respostas/analytics
+- [x] Renomear/reestruturar componentes para refletir nova hierarquia
+- [x] Atualizar sidebar/navegação com nova estrutura
+
+## Redesign Responsivo — Experiência Incrível Web + Mobile
+- [x] Redesign da tela de Formulários (lista de forms) — cards modernos, filtros, ações rápidas
+- [x] Redesign do Dashboard (respostas/analytics) — gráficos, tabelas, métricas
+- [x] Navegação mobile — MobileBottomNav compartilhado com ícones e transições
+- [x] Layout responsivo completo — AppLayout com sidebar desktop + bottom nav mobile + margin dinâmico
+- [x] Stats cards com scroll horizontal no mobile (snap-x)
+- [x] Response cards com flex-wrap e touch targets maiores (h-9)
+- [x] Header responsivo com truncate e botões compactos
+- [x] Scrollbar-none utility para containers de scroll horizontal
+- [ ] Micro-interações e animações — hover, tap, loading states, empty states
+- [ ] Estados de loading com skeletons elegantes
+- [x] Design consistente dark mode com accent azul (#70BEFA)

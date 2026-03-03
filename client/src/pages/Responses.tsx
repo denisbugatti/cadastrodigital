@@ -89,7 +89,7 @@ function StatCard({ icon: Icon, label, value, sublabel, color = "brand" }: {
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3">
+    <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 min-w-[140px] sm:min-w-0 snap-start shrink-0 lg:shrink">
       <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${colorClasses[color] || colorClasses.brand}`}>
         <Icon size={16} className="sm:hidden" />
         <Icon size={18} className="hidden sm:block" />
@@ -537,14 +537,14 @@ function ResponseCard({
         </div>
 
         {/* ─── Action Buttons ─── */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
           <Link href={`/validar/${response.id}`}>
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs h-8 px-3 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+              className="gap-1.5 text-xs h-9 px-3 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
             >
-              <CheckCircle2 size={13} />
+              <CheckCircle2 size={14} />
               Validar
             </Button>
           </Link>
@@ -552,7 +552,7 @@ function ResponseCard({
           <Button
             variant="default"
             size="sm"
-            className={`gap-1.5 text-xs h-8 px-3 ${
+            className={`gap-1.5 text-xs h-9 px-3 ${
               isValidated
                 ? "bg-brand hover:bg-brand/90"
                 : "bg-muted text-muted-foreground cursor-not-allowed"
@@ -570,11 +570,11 @@ function ResponseCard({
             title={isValidated ? "Gerar ficha PDF" : "Valide a resposta antes de gerar o PDF"}
           >
             {isGenerating ? (
-              <Loader2 size={13} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" />
             ) : !isValidated ? (
-              <Lock size={13} />
+              <Lock size={14} />
             ) : (
-              <FileText size={13} />
+              <FileText size={14} />
             )}
             {isGenerating ? "Gerando..." : !isValidated ? "Validar antes" : "Gerar PDF"}
           </Button>
@@ -1093,7 +1093,7 @@ export default function Responses() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-lg text-muted-foreground font-body mb-4">Formulário não encontrado</p>
-          <Link href="/">
+          <Link href="/dashboard">
             <Button variant="outline">
               <ArrowLeft size={16} className="mr-2" /> Voltar aos Formulários
             </Button>
@@ -1112,12 +1112,12 @@ export default function Responses() {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 lg:pb-0">
       {/* ─── Header ─── */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <Link href="/">
+            <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 shrink-0 px-2 sm:px-3 h-8 sm:h-9">
                 <ArrowLeft size={16} /> <span className="hidden sm:inline">Voltar</span>
               </Button>
@@ -1125,7 +1125,7 @@ export default function Responses() {
             <div className="min-w-0">
               <h1 className="text-sm sm:text-lg font-display font-bold text-foreground truncate">{form.title}</h1>
               <p className="text-[10px] sm:text-sm text-muted-foreground font-body">
-                Dashboard
+                {responses ? `${responses.length} resposta${responses.length !== 1 ? "s" : ""}` : "Carregando..."}
               </p>
             </div>
           </div>
@@ -1228,7 +1228,7 @@ export default function Responses() {
       {/* ─── Content ─── */}
       <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
         {/* ─── Stats Overview ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+        <div className="flex lg:grid lg:grid-cols-5 gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none snap-x snap-mandatory">
           <StatCard icon={BarChart3} label="Total" value={stats.total} color="brand" />
           <StatCard
             icon={CheckCircle2}
@@ -1260,7 +1260,7 @@ export default function Responses() {
 
         {/* ─── Search Bar ─── */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="relative flex-1 sm:max-w-md">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -1281,55 +1281,57 @@ export default function Responses() {
               )}
             </div>
 
-            <Button
-              variant={showAdvancedFilters ? "default" : "outline"}
-              size="sm"
-              className={`gap-1.5 h-9 sm:h-10 px-3 text-xs ${showAdvancedFilters ? "bg-brand" : ""}`}
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              <SlidersHorizontal size={14} />
-              <span className="hidden sm:inline">Filtros</span>
-              {activeFilterCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-foreground/20">
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+              <Button
+                variant={showAdvancedFilters ? "default" : "outline"}
+                size="sm"
+                className={`gap-1.5 h-9 sm:h-10 px-3 text-xs shrink-0 ${showAdvancedFilters ? "bg-brand" : ""}`}
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                <SlidersHorizontal size={14} />
+                Filtros
+                {activeFilterCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-foreground/20">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
 
-            <Button
-              variant={showCharts ? "default" : "outline"}
-              size="sm"
-              className={`gap-1.5 h-9 sm:h-10 px-3 text-xs ${showCharts ? "bg-brand" : ""}`}
-              onClick={() => setShowCharts(!showCharts)}
-            >
-              <BarChart3 size={14} />
-              <span className="hidden sm:inline">Gráficos</span>
-            </Button>
+              <Button
+                variant={showCharts ? "default" : "outline"}
+                size="sm"
+                className={`gap-1.5 h-9 sm:h-10 px-3 text-xs shrink-0 ${showCharts ? "bg-brand" : ""}`}
+                onClick={() => setShowCharts(!showCharts)}
+              >
+                <BarChart3 size={14} />
+                Gráficos
+              </Button>
 
-            <Button
-              variant={showConversionStats ? "default" : "outline"}
-              size="sm"
-              className={`gap-1.5 h-9 sm:h-10 px-3 text-xs ${showConversionStats ? "bg-brand" : ""}`}
-              onClick={() => setShowConversionStats(!showConversionStats)}
-            >
-              <TrendingUp size={14} />
-              <span className="hidden sm:inline">Conversão</span>
-            </Button>
+              <Button
+                variant={showConversionStats ? "default" : "outline"}
+                size="sm"
+                className={`gap-1.5 h-9 sm:h-10 px-3 text-xs shrink-0 ${showConversionStats ? "bg-brand" : ""}`}
+                onClick={() => setShowConversionStats(!showConversionStats)}
+              >
+                <TrendingUp size={14} />
+                Conversão
+              </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 h-9 sm:h-10 px-3 text-xs"
-              onClick={handleExportCsv}
-              disabled={isExporting || !responses || responses.length === 0}
-            >
-              {isExporting ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Download size={14} />
-              )}
-              <span className="hidden sm:inline">{isExporting ? "Exportando..." : "Exportar CSV"}</span>
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-9 sm:h-10 px-3 text-xs shrink-0"
+                onClick={handleExportCsv}
+                disabled={isExporting || !responses || responses.length === 0}
+              >
+                {isExporting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Download size={14} />
+                )}
+                {isExporting ? "Exportando..." : "Exportar CSV"}
+              </Button>
+            </div>
           </div>
 
           {/* ─── Advanced Filters Panel ─── */}
@@ -1801,7 +1803,7 @@ export default function Responses() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            <div className={`grid gap-3 sm:gap-4 ${expandedId ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
               {paginatedResponses.map((response: any, index: number) => (
                 <ResponseCard
                   key={response.id}

@@ -1,0 +1,268 @@
+/**
+ * AppLayout — Shared layout for authenticated app pages.
+ * Desktop: Collapsible sidebar with navigation.
+ * Mobile: Shared MobileBottomNav component.
+ */
+
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
+import {
+  FileText,
+  Users,
+  Mail,
+  Settings,
+  LogOut,
+  Loader2,
+  PanelLeftClose,
+  PanelLeft,
+  Bell,
+  BellOff,
+  BellRing,
+} from "lucide-react";
+import { toast } from "sonner";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import MobileBottomNav from "./MobileBottomNav";
+
+/* ─── Navigation Items ─── */
+const NAV_ITEMS = [
+  { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard" },
+  { id: "team", label: "Equipe", icon: Users, path: "/equipe" },
+  { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias" },
+  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes" },
+];
+
+/* ─── Notification Bell ─── */
+function NotificationBell({ compact = false }: { compact?: boolean }) {
+  const { isSupported, permission, isSubscribed, isLoading, toggle } = usePushNotifications();
+
+  if (!isSupported) return null;
+
+  const handleClick = async () => {
+    if (permission === "denied") {
+      toast.error("Notificações bloqueadas", {
+        description: "Ative nas configurações do navegador.",
+      });
+      return;
+    }
+    const success = await toggle();
+    if (success) {
+      toast[!isSubscribed ? "success" : "info"](
+        !isSubscribed ? "Notificações ativadas!" : "Notificações desativadas"
+      );
+    }
+  };
+
+  const BellIcon = permission === "denied" ? BellOff : isSubscribed ? BellRing : Bell;
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isLoading}
+      title={
+        permission === "denied"
+          ? "Bloqueadas pelo navegador"
+          : isSubscribed
+          ? "Desativar notificações"
+          : "Ativar notificações"
+      }
+      className={`relative rounded-xl transition-all duration-200 shrink-0 ${
+        compact ? "p-2" : "p-2.5"
+      } ${
+        isSubscribed
+          ? "bg-brand/10 text-brand hover:bg-brand/20"
+          : permission === "denied"
+          ? "text-muted-foreground/50 cursor-not-allowed"
+          : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+      }`}
+    >
+      <BellIcon size={compact ? 16 : 18} className={isLoading ? "animate-pulse" : ""} />
+      {isSubscribed && (
+        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border-2 border-background" />
+      )}
+    </button>
+  );
+}
+
+/* ─── Sidebar Width ─── */
+const SIDEBAR_COLLAPSED_WIDTH = 72;
+const SIDEBAR_EXPANDED_WIDTH = 240;
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const { user, loading, isStaff, logout } = useCustomAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    return saved === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  // Track if we're on desktop for sidebar margin
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
+
+  // Determine active nav item
+  const activeNavId = NAV_ITEMS.find((item) => location.startsWith(item.path))?.id || 
+    (location.startsWith("/responses") ? "forms" : "forms");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
+          <p className="text-sm text-muted-foreground font-body">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !isStaff) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-muted-foreground font-body">Acesso restrito</p>
+          <Link href="/login">
+            <button className="px-6 py-2.5 rounded-xl bg-brand text-white font-body font-semibold text-sm hover:bg-brand-dark transition-colors">
+              Fazer login
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const staffUser = user as { type: "staff"; name: string; email: string; role: string };
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* ─── Desktop Sidebar ─── */}
+      <aside
+        className="hidden lg:flex flex-col fixed top-0 left-0 h-screen bg-card border-r border-border z-40 transition-all duration-300 ease-in-out"
+        style={{ width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH }}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 px-4 h-16 border-b border-border shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center brand-shadow shrink-0">
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
+              </svg>
+            </div>
+            {!sidebarCollapsed && (
+              <motion.span
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="font-display text-lg font-bold text-foreground tracking-tight truncate"
+              >
+                Cadastro Digital
+              </motion.span>
+            )}
+          </Link>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeNavId === item.id;
+            return (
+              <Link key={item.id} href={item.path}>
+                <button
+                  className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group ${
+                    sidebarCollapsed ? "justify-center px-2 py-3" : "px-3 py-2.5"
+                  } ${
+                    isActive
+                      ? "bg-brand/10 text-brand font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                  title={sidebarCollapsed ? item.label : undefined}
+                >
+                  <Icon size={20} className={`shrink-0 ${isActive ? "text-brand" : ""}`} />
+                  {!sidebarCollapsed && (
+                    <span className="text-sm font-body truncate">{item.label}</span>
+                  )}
+                </button>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom section */}
+        <div className="border-t border-border p-3 space-y-2 shrink-0">
+          {/* Notification bell */}
+          <div className={`flex ${sidebarCollapsed ? "justify-center" : "px-1"}`}>
+            <NotificationBell compact={sidebarCollapsed} />
+          </div>
+
+          {/* User info */}
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl bg-secondary/50">
+              <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand font-display font-bold text-sm shrink-0">
+                {staffUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-body font-medium text-foreground truncate">{staffUser.name}</p>
+                <p className="text-[10px] text-muted-foreground font-body truncate capitalize">{staffUser.role}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors shrink-0"
+                title="Sair"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          )}
+
+          {sidebarCollapsed && (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand font-display font-bold text-sm">
+                {staffUser.name.charAt(0).toUpperCase()}
+              </div>
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                title="Sair"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full flex items-center justify-center p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title={sidebarCollapsed ? "Expandir" : "Recolher"}
+          >
+            {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+          </button>
+        </div>
+      </aside>
+
+      {/* ─── Main Content ─── */}
+      <main
+        className="flex-1 min-w-0 pb-20 lg:pb-0 transition-all duration-300"
+        style={{ marginLeft: isDesktop ? sidebarWidth : 0 }}
+      >
+        {children}
+      </main>
+
+      {/* ─── Mobile Bottom Navigation (shared component) ─── */}
+      <MobileBottomNav onLogout={logout} />
+    </div>
+  );
+}
