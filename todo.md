@@ -931,3 +931,8 @@
 - [x] Refinar visual dos ícones 3D (materiais mais escuros, luzes mais sutis, parallax reduzido)
 - [x] Melhorar legibilidade dos números (círculos azuis com borda, texto #70BEFA, linhas conectoras)
 - [x] Deixar seção O processo mais bonita (step badges circulares + dot-card animation)
+
+## Redesign Ícones Serviços — Flat Design
+- [x] Substituir ícones 3D (Three.js Canvas) por ícones lucide-react flat (FileText, Users, CheckCircle)
+- [x] Manter identidade visual azul (#70BEFA) com container squircle e hover glow
+- [x] Cards flat com padding, accent line no hover, borda azul interativa

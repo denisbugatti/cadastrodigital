@@ -19,7 +19,6 @@ import { trpc } from "@/lib/trpc";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { ShinyButton } from "@/components/ui/shiny-button";
-import { ServiceCard3D } from "@/components/ServiceIcon3D";
 
 /* ─── Constants ─── */
 const ACCENT = "#70BEFA";
@@ -498,16 +497,47 @@ export default function Landing() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
             {[
-              { icon: "document" as const, title: "Cadastro Digital", desc: "Formulários inteligentes que se adaptam ao perfil do cliente. Coleta segura de dados pessoais, documentos e comprovantes." },
-              { icon: "people" as const, title: "Gestão de Corretores", desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics." },
-              { icon: "checkmark" as const, title: "Aprovação Rápida", desc: "Validação individual de cada resposta e documento. O cliente recebe notificação automática do status." },
+              {
+                icon: <FileText className="w-7 h-7" />,
+                title: "Cadastro Digital",
+                desc: "Formulários inteligentes que se adaptam ao perfil do cliente. Coleta segura de dados pessoais, documentos e comprovantes.",
+              },
+              {
+                icon: <Users className="w-7 h-7" />,
+                title: "Gestão de Corretores",
+                desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics.",
+              },
+              {
+                icon: <CheckCircle className="w-7 h-7" />,
+                title: "Aprovação Rápida",
+                desc: "Validação individual de cada resposta e documento. O cliente recebe notificação automática do status.",
+              },
             ].map((item, i) => (
               <Reveal key={i} delay={i * 0.15}>
-                <ServiceCard3D
-                  icon={item.icon}
-                  title={item.title}
-                  description={item.desc}
-                />
+                <div className="group relative rounded-2xl border border-white/[0.06] overflow-hidden transition-all duration-500 hover:border-[#70BEFA]/20" style={{ background: "#0a0a0f" }}>
+                  {/* Hover glow */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(112,190,250,0.06) 0%, transparent 70%)" }} />
+
+                  <div className="p-8">
+                    {/* Icon container */}
+                    <div className="w-14 h-14 rounded-xl bg-[#70BEFA]/[0.08] border border-[#70BEFA]/[0.12] flex items-center justify-center mb-6 group-hover:bg-[#70BEFA]/[0.12] group-hover:border-[#70BEFA]/[0.2] transition-all duration-500">
+                      <div className="text-[#70BEFA]">{item.icon}</div>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-xl font-semibold text-white mb-3 tracking-[-0.02em]">
+                      {item.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      {item.desc}
+                    </p>
+
+                    {/* Bottom accent line */}
+                    <div className="mt-6 h-px w-full bg-gradient-to-r from-[#70BEFA]/20 via-[#70BEFA]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  </div>
+                </div>
               </Reveal>
             ))}
           </div>
