@@ -925,3 +925,9 @@
 - [x] Criar estilos dot-card com ponto animado que percorre a borda (CSS puro)
 - [x] Adicionar keyframe moveDot + estilos dot-card-outer/dot/line no index.css
 - [x] Integrar animação nos 4 cards da seção "O processo" (números fora dos cards, sem animação)
+
+## Refinamento Visual — Ícones 3D e Números do Processo
+- [x] Reduzir tamanho dos ícones 3D (scale 0.85, container 1.6, aspect 4:3, camera fov 30)
+- [x] Refinar visual dos ícones 3D (materiais mais escuros, luzes mais sutis, parallax reduzido)
+- [x] Melhorar legibilidade dos números (círculos azuis com borda, texto #70BEFA, linhas conectoras)
+- [x] Deixar seção O processo mais bonita (step badges circulares + dot-card animation)

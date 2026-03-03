@@ -536,8 +536,17 @@ export default function Landing() {
             ].map((item, i) => (
               <Reveal key={i} delay={i * 0.1}>
                 <div className="text-center">
-                  <div className="font-heading text-5xl font-bold text-white/[0.06] mb-4">{item.step}</div>
-                  <div className="dot-card-outer rounded-xl border border-white/[0.06] bg-[#111111] p-6" style={{ minHeight: "160px" }}>
+                  <div className="flex items-center justify-center mb-5">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full border border-[#70BEFA]/20 flex items-center justify-center bg-[#70BEFA]/[0.06]">
+                        <span className="font-heading text-lg font-semibold text-[#70BEFA]">{item.step}</span>
+                      </div>
+                      {i < 3 && (
+                        <div className="hidden md:block absolute top-1/2 left-full w-[calc(100%+1.5rem)] h-px bg-gradient-to-r from-[#70BEFA]/20 to-transparent -translate-y-1/2 ml-2" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="dot-card-outer rounded-xl border border-white/[0.06] bg-[#111111] p-6" style={{ minHeight: "140px" }}>
                     <div className="dot-card-dot" style={{ animationDelay: `${item.delay}s` }} />
                     <div className="dot-card-line topl" />
                     <div className="dot-card-line bottoml" />

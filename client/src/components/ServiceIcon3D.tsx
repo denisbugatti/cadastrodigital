@@ -1,7 +1,7 @@
 /**
- * ServiceIcon3D — 3D metallic icons in the Resend style.
- * Each card gets its own Canvas with interactive parallax, orbital rotation,
- * warm/cool lighting, and emissive blue accents.
+ * ServiceIcon3D — Refined 3D metallic icons.
+ * Smaller, more elegant, premium feel — not toy-like.
+ * Each card gets its own Canvas with subtle parallax and warm/cool lighting.
  */
 
 import { useRef, useState, useCallback, Suspense } from "react";
@@ -9,48 +9,48 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Environment, ContactShadows, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 
-/* ─── Shared material configs ─── */
+/* ─── Refined material configs (darker, subtler) ─── */
 const CONTAINER_MAT = {
-  color: "#0a0a0f",
-  metalness: 0.95,
-  roughness: 0.15,
-  clearcoat: 0.8,
-  clearcoatRoughness: 0.1,
+  color: "#0c0c12",
+  metalness: 0.92,
+  roughness: 0.18,
+  clearcoat: 0.7,
+  clearcoatRoughness: 0.12,
 };
 
 const DETAIL_MAT = {
-  color: "#151520",
-  metalness: 0.9,
-  roughness: 0.2,
-  clearcoat: 0.6,
+  color: "#18182a",
+  metalness: 0.85,
+  roughness: 0.25,
+  clearcoat: 0.5,
 };
 
 const ACCENT_MAT = {
-  color: "#4a9eff",
-  metalness: 0.8,
-  roughness: 0.3,
+  color: "#5ba8f5",
+  metalness: 0.75,
+  roughness: 0.35,
   emissive: "#4a9eff",
-  emissiveIntensity: 0.25,
+  emissiveIntensity: 0.2,
 };
 
-/* ─── Orbital rotation + mouse parallax ─── */
+/* ─── Subtle orbital rotation + mouse parallax ─── */
 function useOrbitalParallax(mouse: React.RefObject<{ x: number; y: number }>, hovered: boolean) {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
-    const parallaxStrength = hovered ? 0.2 : 0.08;
+    const parallaxStrength = hovered ? 0.15 : 0.05;
     const mx = (mouse.current?.x ?? 0) * parallaxStrength;
     const my = (mouse.current?.y ?? 0) * parallaxStrength;
 
-    groupRef.current.rotation.y = Math.sin(t * 0.15) * 0.3 + mx;
-    groupRef.current.rotation.x = Math.sin(t * 0.12) * 0.15 + my;
+    groupRef.current.rotation.y = Math.sin(t * 0.12) * 0.2 + mx;
+    groupRef.current.rotation.x = Math.sin(t * 0.1) * 0.1 + my;
 
-    const targetScale = hovered ? 1.08 : 1.0;
+    const targetScale = hovered ? 1.05 : 1.0;
     groupRef.current.scale.lerp(
       new THREE.Vector3(targetScale, targetScale, targetScale),
-      0.08
+      0.06
     );
   });
 
@@ -62,31 +62,31 @@ function DocumentIcon({ mouse, hovered }: { mouse: React.RefObject<{ x: number; 
   const groupRef = useOrbitalParallax(mouse, hovered);
 
   return (
-    <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3}>
-      <group ref={groupRef}>
-        {/* Container squircle */}
-        <RoundedBox args={[2.2, 2.2, 0.4]} radius={0.3} smoothness={6}>
+    <Float speed={1.2} rotationIntensity={0.05} floatIntensity={0.2}>
+      <group ref={groupRef} scale={0.85}>
+        {/* Container */}
+        <RoundedBox args={[1.6, 1.6, 0.3]} radius={0.25} smoothness={6}>
           <meshPhysicalMaterial {...CONTAINER_MAT} />
         </RoundedBox>
 
         {/* Document body */}
-        <RoundedBox args={[1.2, 1.5, 0.08]} radius={0.06} smoothness={4} position={[0, 0, 0.22]}>
+        <RoundedBox args={[0.8, 1.05, 0.06]} radius={0.04} smoothness={4} position={[0, 0, 0.18]}>
           <meshPhysicalMaterial {...DETAIL_MAT} />
         </RoundedBox>
 
         {/* Folded corner */}
-        <mesh position={[0.35, 0.5, 0.28]} rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[0.35, 0.35, 0.04]} />
+        <mesh position={[0.25, 0.35, 0.22]} rotation={[0, 0, Math.PI / 4]}>
+          <boxGeometry args={[0.22, 0.22, 0.03]} />
           <meshPhysicalMaterial {...ACCENT_MAT} />
         </mesh>
 
         {/* Text lines */}
-        {[-0.2, 0, 0.2].map((y, i) => (
-          <RoundedBox key={i} args={[0.7 - i * 0.1, 0.06, 0.02]} radius={0.02} smoothness={2} position={[-0.05, y - 0.15, 0.28]}>
+        {[-0.12, 0.02, 0.16].map((y, i) => (
+          <RoundedBox key={i} args={[0.45 - i * 0.08, 0.04, 0.015]} radius={0.01} smoothness={2} position={[-0.04, y - 0.12, 0.22]}>
             <meshPhysicalMaterial
-              color={i === 0 ? "#4a9eff" : "#252530"}
+              color={i === 0 ? "#5ba8f5" : "#252535"}
               emissive={i === 0 ? "#4a9eff" : "#000000"}
-              emissiveIntensity={i === 0 ? 0.15 : 0}
+              emissiveIntensity={i === 0 ? 0.12 : 0}
               metalness={0.8}
               roughness={0.3}
             />
@@ -102,45 +102,45 @@ function PeopleIcon({ mouse, hovered }: { mouse: React.RefObject<{ x: number; y:
   const groupRef = useOrbitalParallax(mouse, hovered);
 
   return (
-    <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3}>
-      <group ref={groupRef}>
-        {/* Container squircle */}
-        <RoundedBox args={[2.2, 2.2, 0.4]} radius={0.3} smoothness={6}>
+    <Float speed={1.2} rotationIntensity={0.05} floatIntensity={0.2}>
+      <group ref={groupRef} scale={0.85}>
+        {/* Container */}
+        <RoundedBox args={[1.6, 1.6, 0.3]} radius={0.25} smoothness={6}>
           <meshPhysicalMaterial {...CONTAINER_MAT} />
         </RoundedBox>
 
         {/* Center person (highlighted) */}
-        <group position={[0, 0.15, 0.22]}>
-          <mesh position={[0, 0.25, 0]}>
-            <sphereGeometry args={[0.22, 16, 16]} />
+        <group position={[0, 0.1, 0.18]}>
+          <mesh position={[0, 0.2, 0]}>
+            <sphereGeometry args={[0.15, 16, 16]} />
             <meshPhysicalMaterial {...ACCENT_MAT} />
           </mesh>
-          <mesh position={[0, -0.15, 0]}>
-            <capsuleGeometry args={[0.18, 0.3, 8, 16]} />
+          <mesh position={[0, -0.08, 0]}>
+            <capsuleGeometry args={[0.12, 0.2, 8, 16]} />
             <meshPhysicalMaterial {...ACCENT_MAT} />
           </mesh>
         </group>
 
         {/* Left person */}
-        <group position={[-0.55, 0.05, 0.22]}>
-          <mesh position={[0, 0.2, 0]}>
-            <sphereGeometry args={[0.16, 16, 16]} />
+        <group position={[-0.4, 0.02, 0.18]}>
+          <mesh position={[0, 0.15, 0]}>
+            <sphereGeometry args={[0.11, 16, 16]} />
             <meshPhysicalMaterial {...DETAIL_MAT} />
           </mesh>
-          <mesh position={[0, -0.1, 0]}>
-            <capsuleGeometry args={[0.14, 0.22, 8, 16]} />
+          <mesh position={[0, -0.06, 0]}>
+            <capsuleGeometry args={[0.09, 0.15, 8, 16]} />
             <meshPhysicalMaterial {...DETAIL_MAT} />
           </mesh>
         </group>
 
         {/* Right person */}
-        <group position={[0.55, 0.05, 0.22]}>
-          <mesh position={[0, 0.2, 0]}>
-            <sphereGeometry args={[0.16, 16, 16]} />
+        <group position={[0.4, 0.02, 0.18]}>
+          <mesh position={[0, 0.15, 0]}>
+            <sphereGeometry args={[0.11, 16, 16]} />
             <meshPhysicalMaterial {...DETAIL_MAT} />
           </mesh>
-          <mesh position={[0, -0.1, 0]}>
-            <capsuleGeometry args={[0.14, 0.22, 8, 16]} />
+          <mesh position={[0, -0.06, 0]}>
+            <capsuleGeometry args={[0.09, 0.15, 8, 16]} />
             <meshPhysicalMaterial {...DETAIL_MAT} />
           </mesh>
         </group>
@@ -154,26 +154,26 @@ function CheckmarkIcon({ mouse, hovered }: { mouse: React.RefObject<{ x: number;
   const groupRef = useOrbitalParallax(mouse, hovered);
 
   return (
-    <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3}>
-      <group ref={groupRef}>
-        {/* Container squircle */}
-        <RoundedBox args={[2.2, 2.2, 0.4]} radius={0.3} smoothness={6}>
+    <Float speed={1.2} rotationIntensity={0.05} floatIntensity={0.2}>
+      <group ref={groupRef} scale={0.85}>
+        {/* Container */}
+        <RoundedBox args={[1.6, 1.6, 0.3]} radius={0.25} smoothness={6}>
           <meshPhysicalMaterial {...CONTAINER_MAT} />
         </RoundedBox>
 
         {/* Circle ring */}
-        <mesh position={[0, 0, 0.22]}>
-          <torusGeometry args={[0.55, 0.08, 16, 32]} />
+        <mesh position={[0, 0, 0.18]}>
+          <torusGeometry args={[0.4, 0.055, 16, 32]} />
           <meshPhysicalMaterial {...DETAIL_MAT} />
         </mesh>
 
         {/* Checkmark - short stroke */}
-        <RoundedBox args={[0.3, 0.1, 0.08]} radius={0.03} smoothness={2} position={[-0.12, -0.05, 0.28]} rotation={[0, 0, Math.PI / 4]}>
+        <RoundedBox args={[0.2, 0.07, 0.06]} radius={0.02} smoothness={2} position={[-0.08, -0.04, 0.22]} rotation={[0, 0, Math.PI / 4]}>
           <meshPhysicalMaterial {...ACCENT_MAT} />
         </RoundedBox>
 
         {/* Checkmark - long stroke */}
-        <RoundedBox args={[0.5, 0.1, 0.08]} radius={0.03} smoothness={2} position={[0.15, 0.1, 0.28]} rotation={[0, 0, -Math.PI / 4]}>
+        <RoundedBox args={[0.35, 0.07, 0.06]} radius={0.02} smoothness={2} position={[0.1, 0.06, 0.22]} rotation={[0, 0, -Math.PI / 4]}>
           <meshPhysicalMaterial {...ACCENT_MAT} />
         </RoundedBox>
       </group>
@@ -195,8 +195,8 @@ function Scene({
 
   useFrame(() => {
     if (!lightRef.current) return;
-    const targetIntensity = hovered ? 6 : 3;
-    lightRef.current.intensity += (targetIntensity - lightRef.current.intensity) * 0.1;
+    const targetIntensity = hovered ? 4.5 : 2;
+    lightRef.current.intensity += (targetIntensity - lightRef.current.intensity) * 0.08;
   });
 
   const IconComponent = {
@@ -207,25 +207,25 @@ function Scene({
 
   return (
     <>
-      {/* Main warm light */}
-      <directionalLight position={[-3, 4, 2]} intensity={1.2} color="#d4a843" />
+      {/* Main warm light - subtler */}
+      <directionalLight position={[-3, 4, 2]} intensity={0.9} color="#d4a843" />
       {/* Fill light - blue accent */}
-      <directionalLight position={[3, -1, 3]} intensity={0.8} color="#4a9eff" />
+      <directionalLight position={[3, -1, 3]} intensity={0.6} color="#4a9eff" />
       {/* Rim light */}
-      <directionalLight position={[0, 0, -3]} intensity={0.5} color="#8b7340" />
+      <directionalLight position={[0, 0, -3]} intensity={0.35} color="#8b7340" />
       {/* Interactive point light */}
-      <pointLight ref={lightRef} position={[0, 2, 3]} intensity={3} color="#4a9eff" distance={8} />
-      {/* Ambient */}
-      <ambientLight intensity={0.15} />
+      <pointLight ref={lightRef} position={[0, 2, 3]} intensity={2} color="#4a9eff" distance={8} />
+      {/* Ambient - very subtle */}
+      <ambientLight intensity={0.1} />
 
       <IconComponent mouse={mouse} hovered={hovered} />
 
       <ContactShadows
-        position={[0, -1.3, 0]}
-        opacity={0.4}
-        scale={4}
-        blur={2.5}
-        far={4}
+        position={[0, -1, 0]}
+        opacity={0.3}
+        scale={3}
+        blur={2}
+        far={3}
         color="#000000"
       />
 
@@ -276,7 +276,7 @@ export function ServiceCard3D({
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(74,158,255,0.08) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(74,158,255,0.06) 0%, transparent 70%)",
         }}
       />
 
@@ -284,26 +284,26 @@ export function ServiceCard3D({
       <div
         className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          boxShadow: "inset 0 0 0 1px rgba(74,158,255,0.2)",
+          boxShadow: "inset 0 0 0 1px rgba(74,158,255,0.15)",
         }}
       />
 
-      {/* 3D Canvas */}
-      <div className="w-full aspect-square relative">
+      {/* 3D Canvas — smaller, more compact */}
+      <div className="w-full" style={{ aspectRatio: "4/3" }}>
         <Suspense
           fallback={
             <div className="w-full h-full flex items-center justify-center">
-              <div className="w-10 h-10 rounded-xl bg-white/[0.04] animate-pulse" />
+              <div className="w-8 h-8 rounded-lg bg-white/[0.04] animate-pulse" />
             </div>
           }
         >
           <Canvas
-            camera={{ position: [0, 0, 5], fov: 35 }}
+            camera={{ position: [0, 0, 4.5], fov: 30 }}
             dpr={[1, 2]}
             gl={{
               antialias: true,
               toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 1.2,
+              toneMappingExposure: 1.1,
             }}
             style={{ background: "transparent" }}
           >
@@ -313,11 +313,11 @@ export function ServiceCard3D({
       </div>
 
       {/* Text content */}
-      <div className="px-6 pb-6 -mt-2">
-        <h3 className="text-xl font-semibold text-white mb-2 tracking-[-0.02em]">
+      <div className="px-6 pb-6 -mt-4">
+        <h3 className="text-lg font-semibold text-white mb-1.5 tracking-[-0.02em]">
           {title}
         </h3>
-        <p className="text-white/45 text-sm leading-relaxed">
+        <p className="text-white/40 text-sm leading-relaxed">
           {description}
         </p>
       </div>
