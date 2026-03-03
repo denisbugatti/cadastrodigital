@@ -94,10 +94,10 @@ describe("Responses Page Redesign", () => {
     const fs = await import("fs");
     const content = fs.readFileSync("./client/src/pages/Responses.tsx", "utf-8");
     
-    expect(content).toContain("Total de respostas");
+    expect(content).toContain('label="Total"');
     expect(content).toContain("Completas");
     expect(content).toContain("Tempo médio");
-    expect(content).toContain("Validadas");
+    expect(content).toContain("Aprovadas");
   });
 
   it("Responses page has filter options: all, complete, partial, validated, pending", async () => {
@@ -107,7 +107,7 @@ describe("Responses Page Redesign", () => {
     expect(content).toContain('"all"');
     expect(content).toContain('"complete"');
     expect(content).toContain('"partial"');
-    expect(content).toContain('"validated"');
+    expect(content).toContain('"approved"');
     expect(content).toContain('"pending"');
   });
 

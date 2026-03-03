@@ -822,3 +822,10 @@
 - [x] Renomear aba "Dashboard" (lista de formulários) para "Formulários"
 - [x] Mover conceito de "Dashboard" para dentro de cada formulário (página de respostas/analytics)
 - [x] Atualizar navegação, rotas e referências
+
+## Redesign Dashboard de Respostas (dentro de cada formulário)
+- [x] Cards verticais para cada resposta (nome, telefone, protocolo, status, validação)
+- [x] Busca por número de protocolo
+- [x] Painel de cadência de email visível no card do cliente
+- [x] Filtros avançados (por data, status de aprovação, corretor responsável)
+- [x] Geração de PDF do cadastro completo do cliente
