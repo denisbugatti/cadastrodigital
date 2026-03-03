@@ -1,4 +1,4 @@
-import { eq, desc, sql, like, or, and, isNull, isNotNull, lte } from "drizzle-orm";
+import { eq, desc, sql, like, or, and, isNull, isNotNull, lte, gte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -12,6 +12,7 @@ import {
   corretores, InsertCorretor,
   formCorretores, InsertFormCorretor,
   siteSettings, InsertSiteSettings,
+  emailCadence, InsertEmailCadence,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -816,4 +817,254 @@ export async function markFollowUpSent(responseId: number): Promise<void> {
     .update(formResponses)
     .set({ followUpSentAt: new Date() })
     .where(eq(formResponses.id, responseId));
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Email Cadence Helpers
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Calculate the next send date for a cadence email.
+ * Schedule: Monday (1), Wednesday (3), Friday (5) at 9:00 BRT (12:00 UTC).
+ * If starting fresh, waits until 9am BRT of the next valid day.
+ */
+export function calculateNextCadenceSendDate(fromDate?: Date): Date {
+  const now = fromDate || new Date();
+  // BRT = UTC-3, so 9am BRT = 12:00 UTC
+  const TARGET_HOUR_UTC = 12;
+  
+  // Start from tomorrow at 9am BRT
+  const next = new Date(now);
+  next.setUTCDate(next.getUTCDate() + 1);
+  next.setUTCHours(TARGET_HOUR_UTC, 0, 0, 0);
+  
+  // Find the next Mon/Wed/Fri
+  const VALID_DAYS = [1, 3, 5]; // Monday, Wednesday, Friday
+  while (!VALID_DAYS.includes(next.getUTCDay())) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
+  
+  return next;
+}
+
+/**
+ * Create a new email cadence for a response.
+ */
+export async function createEmailCadence(params: {
+  responseId: number;
+  formId: number;
+  cadenceType: "abandono" | "reprovacao";
+  recipientEmail: string;
+  recipientName?: string;
+  rejectionReason?: string;
+}): Promise<number> {
+  const db = getDb();
+  
+  // Check if an active cadence already exists for this response and type
+  const existing = await db
+    .select({ id: emailCadence.id })
+    .from(emailCadence)
+    .where(
+      and(
+        eq(emailCadence.responseId, params.responseId),
+        eq(emailCadence.cadenceType, params.cadenceType),
+        eq(emailCadence.active, true),
+      )
+    )
+    .limit(1);
+  
+  if (existing.length > 0) {
+    console.log(`[Cadence] Active cadence already exists for response ${params.responseId} (type: ${params.cadenceType})`);
+    return existing[0].id;
+  }
+  
+  const nextSendAt = calculateNextCadenceSendDate();
+  
+  const result = await db.insert(emailCadence).values({
+    responseId: params.responseId,
+    formId: params.formId,
+    cadenceType: params.cadenceType,
+    recipientEmail: params.recipientEmail,
+    recipientName: params.recipientName || null,
+    rejectionReason: params.rejectionReason || null,
+    sequenceNumber: 0,
+    maxSequence: 24, // 3/week × 8 weeks = 24
+    nextSendAt,
+    active: true,
+  });
+  
+  console.log(`[Cadence] Created ${params.cadenceType} cadence for response ${params.responseId}, next send: ${nextSendAt.toISOString()}`);
+  return (result as any)[0]?.insertId || 0;
+}
+
+/**
+ * Get all cadences that are due to be sent now.
+ */
+export async function getDueCadences(): Promise<Array<{
+  id: number;
+  responseId: number;
+  formId: number;
+  cadenceType: "abandono" | "reprovacao";
+  recipientEmail: string;
+  recipientName: string | null;
+  rejectionReason: string | null;
+  sequenceNumber: number;
+  maxSequence: number;
+  formTitle: string;
+  formSlug: string | null;
+}>> {
+  const db = getDb();
+  const now = new Date();
+  
+  const results = await db
+    .select({
+      id: emailCadence.id,
+      responseId: emailCadence.responseId,
+      formId: emailCadence.formId,
+      cadenceType: emailCadence.cadenceType,
+      recipientEmail: emailCadence.recipientEmail,
+      recipientName: emailCadence.recipientName,
+      rejectionReason: emailCadence.rejectionReason,
+      sequenceNumber: emailCadence.sequenceNumber,
+      maxSequence: emailCadence.maxSequence,
+      formTitle: forms.title,
+      formSlug: forms.slug,
+    })
+    .from(emailCadence)
+    .innerJoin(forms, eq(emailCadence.formId, forms.id))
+    .where(
+      and(
+        eq(emailCadence.active, true),
+        isNotNull(emailCadence.nextSendAt),
+        lte(emailCadence.nextSendAt, now),
+      )
+    )
+    .limit(100);
+  
+  return results as any;
+}
+
+/**
+ * Advance a cadence after sending an email.
+ * Calculates the next send date or marks as complete.
+ */
+export async function advanceCadence(cadenceId: number): Promise<void> {
+  const db = getDb();
+  
+  // Get current state
+  const [cadence] = await db
+    .select()
+    .from(emailCadence)
+    .where(eq(emailCadence.id, cadenceId))
+    .limit(1);
+  
+  if (!cadence) return;
+  
+  const newSequence = cadence.sequenceNumber + 1;
+  
+  if (newSequence >= cadence.maxSequence) {
+    // Cadence complete
+    await db
+      .update(emailCadence)
+      .set({
+        sequenceNumber: newSequence,
+        lastSentAt: new Date(),
+        nextSendAt: null,
+        active: false,
+        stoppedReason: "max_reached",
+      })
+      .where(eq(emailCadence.id, cadenceId));
+    console.log(`[Cadence] Cadence ${cadenceId} completed (${newSequence}/${cadence.maxSequence})`);
+  } else {
+    // Calculate next send date
+    const nextSendAt = calculateNextCadenceSendDate();
+    await db
+      .update(emailCadence)
+      .set({
+        sequenceNumber: newSequence,
+        lastSentAt: new Date(),
+        nextSendAt,
+      })
+      .where(eq(emailCadence.id, cadenceId));
+  }
+}
+
+/**
+ * Stop a cadence with a reason.
+ */
+export async function stopCadence(
+  cadenceId: number,
+  reason: "completed" | "form_completed" | "form_approved" | "manual" | "max_reached"
+): Promise<void> {
+  const db = getDb();
+  await db
+    .update(emailCadence)
+    .set({
+      active: false,
+      nextSendAt: null,
+      stoppedReason: reason,
+    })
+    .where(eq(emailCadence.id, cadenceId));
+  console.log(`[Cadence] Stopped cadence ${cadenceId} (reason: ${reason})`);
+}
+
+/**
+ * Stop all active cadences for a response (e.g., when form is completed or approved).
+ */
+export async function stopCadencesForResponse(
+  responseId: number,
+  reason: "form_completed" | "form_approved" | "manual"
+): Promise<number> {
+  const db = getDb();
+  const result = await db
+    .update(emailCadence)
+    .set({
+      active: false,
+      nextSendAt: null,
+      stoppedReason: reason,
+    })
+    .where(
+      and(
+        eq(emailCadence.responseId, responseId),
+        eq(emailCadence.active, true),
+      )
+    );
+  return (result as any)[0]?.affectedRows || 0;
+}
+
+/**
+ * Get active cadences count (for dashboard stats).
+ */
+export async function getActiveCadencesCount(): Promise<{
+  abandono: number;
+  reprovacao: number;
+  total: number;
+}> {
+  const db = getDb();
+  const results = await db
+    .select({
+      cadenceType: emailCadence.cadenceType,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(emailCadence)
+    .where(eq(emailCadence.active, true))
+    .groupBy(emailCadence.cadenceType);
+  
+  const abandono = results.find((r: any) => r.cadenceType === "abandono")?.count || 0;
+  const reprovacao = results.find((r: any) => r.cadenceType === "reprovacao")?.count || 0;
+  
+  return { abandono, reprovacao, total: abandono + reprovacao };
+}
+
+/**
+ * Get cadences for a specific response (for admin view).
+ */
+export async function getCadencesByResponse(responseId: number) {
+  const db = getDb();
+  return db
+    .select()
+    .from(emailCadence)
+    .where(eq(emailCadence.responseId, responseId))
+    .orderBy(desc(emailCadence.createdAt));
 }

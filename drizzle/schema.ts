@@ -335,3 +335,44 @@ export const siteSettings = mysqlTable("site_settings", {
 });
 export type SiteSettings = typeof siteSettings.$inferSelect;
 export type InsertSiteSettings = typeof siteSettings.$inferInsert;
+
+/**
+ * Email cadence — tracks automated email sequences for incomplete/rejected submissions.
+ * Cadence types:
+ *   - "abandono" → incomplete form submissions (3x/week for 2 months)
+ *   - "reprovacao" → rejected submissions that need correction (3x/week for 2 months)
+ * Schedule: Monday, Wednesday, Friday at 9am BRT (UTC-3)
+ * Duration: 2 months (~24 emails total: 3/week × ~8 weeks)
+ */
+export const emailCadence = mysqlTable("email_cadence", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Which response this cadence is for */
+  responseId: int("responseId").notNull(),
+  /** Which form this belongs to */
+  formId: int("formId").notNull(),
+  /** Type of cadence */
+  cadenceType: mysqlEnum("cadenceType", ["abandono", "reprovacao"]).notNull(),
+  /** Recipient email */
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  /** Recipient name */
+  recipientName: varchar("recipientName", { length: 500 }),
+  /** Rejection reason (only for reprovacao type) */
+  rejectionReason: text("rejectionReason"),
+  /** Current sequence number (1-based, increments with each send) */
+  sequenceNumber: int("sequenceNumber").default(0).notNull(),
+  /** Maximum emails to send (default 24 = 3/week × 8 weeks) */
+  maxSequence: int("maxSequence").default(24).notNull(),
+  /** When the next email should be sent (null = cadence complete or paused) */
+  nextSendAt: timestamp("nextSendAt"),
+  /** When the last email was sent */
+  lastSentAt: timestamp("lastSentAt"),
+  /** Whether this cadence is active */
+  active: boolean("active").default(true).notNull(),
+  /** Why the cadence was stopped */
+  stoppedReason: mysqlEnum("stoppedReason", ["completed", "form_completed", "form_approved", "manual", "max_reached"]),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailCadence = typeof emailCadence.$inferSelect;
+export type InsertEmailCadence = typeof emailCadence.$inferInsert;

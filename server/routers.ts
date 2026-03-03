@@ -16,7 +16,7 @@ import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { customAuthRouter } from "./authRouter";
 import * as staffDb from "./staffDb";
 import { verifySessionToken } from "./authService";
-import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEmail } from "./emailService";
+import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEmail, sendCadenceEmail, sendRejectionCadenceEmail } from "./emailService";
 import { generateInviteToken } from "./authService";
 
 /**
@@ -358,6 +358,8 @@ export const appRouter = router({
               to: response.respondentEmail,
               clientName: response.respondentName || "Cliente",
             });
+            // Stop any active cadences for this response
+            await db.stopCadencesForResponse(input.responseId, "form_approved");
           } else if (hasRejection && response.respondentEmail) {
             const rejections = allValidations.filter((v: any) => v.status === "rejected");
             const reasons = rejections.map((v: any) => v.justification || "Documento/dado precisa de revisão").join("; ");
@@ -365,6 +367,15 @@ export const appRouter = router({
               to: response.respondentEmail,
               clientName: response.respondentName || "Cliente",
               reason: reasons,
+            });
+            // Start rejection cadence (3x/week for 2 months)
+            await db.createEmailCadence({
+              responseId: input.responseId,
+              formId: response.formId,
+              cadenceType: "reprovacao",
+              recipientEmail: response.respondentEmail,
+              recipientName: response.respondentName || undefined,
+              rejectionReason: reasons,
             });
           }
         }
@@ -628,6 +639,8 @@ export const appRouter = router({
                 title: `Nova resposta: ${formTitle}`,
                 content: `O formulário "${formTitle}" recebeu uma nova resposta completa de ${respondent}.`,
               });
+              // Stop any active abandono cadences for this response
+              await db.stopCadencesForResponse(id, "form_completed");
             }
           } catch (err) {
             console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
@@ -1170,56 +1183,198 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Follow-up for Incomplete Submissions ───
-  followUp: router({
-    /** Send follow-up emails to incomplete submissions (called by cron or manually) */
-    sendFollowUps: ownerFallbackProcedure
+  // ─── Email Cadence System ───
+  cadence: router({
+    /**
+     * Enroll incomplete responses into the abandono cadence.
+     * Called by cron: finds responses >24h old without active cadence and creates one.
+     */
+    enrollIncomplete: ownerFallbackProcedure
       .input(z.object({
         minAgeHours: z.number().min(1).default(24),
-        siteUrl: z.string().url(),
       }))
       .mutation(async ({ input }) => {
         const incompleteResponses = await db.getIncompleteResponsesForFollowUp(input.minAgeHours);
+        let enrolled = 0;
         
-        if (incompleteResponses.length === 0) {
+        for (const response of incompleteResponses) {
+          if (!response.respondentEmail) continue;
+          try {
+            await db.createEmailCadence({
+              responseId: response.id,
+              formId: response.formId,
+              cadenceType: "abandono",
+              recipientEmail: response.respondentEmail,
+              recipientName: response.respondentName || undefined,
+            });
+            enrolled++;
+          } catch (err) {
+            console.warn(`[Cadence] Failed to enroll response ${response.id}:`, (err as Error)?.message?.substring(0, 80));
+          }
+        }
+        
+        return { enrolled, total: incompleteResponses.length };
+      }),
+
+    /**
+     * Process due cadence emails.
+     * Called by cron at 9am BRT on Mon/Wed/Fri.
+     * Sends emails for all cadences where nextSendAt <= now.
+     */
+    processDue: ownerFallbackProcedure
+      .input(z.object({
+        siteUrl: z.string().url(),
+      }))
+      .mutation(async ({ input }) => {
+        const dueCadences = await db.getDueCadences();
+        
+        if (dueCadences.length === 0) {
           return { sent: 0, failed: 0, total: 0 };
         }
 
         let sent = 0;
         let failed = 0;
 
-        for (const response of incompleteResponses) {
-          if (!response.respondentEmail) continue;
-          
-          const formUrl = response.formSlug
-            ? `${input.siteUrl}/${response.formSlug}?continue=${response.id}`
-            : `${input.siteUrl}/form/${response.formId}?continue=${response.id}`;
+        for (const cadence of dueCadences) {
+          const formUrl = cadence.formSlug
+            ? `${input.siteUrl}/${cadence.formSlug}?continue=${cadence.responseId}`
+            : `${input.siteUrl}/form/${cadence.formId}?continue=${cadence.responseId}`;
 
           try {
-            const success = await sendFollowUpEmail({
-              to: response.respondentEmail,
-              clientName: response.respondentName ?? undefined,
-              formTitle: response.formTitle,
-              formUrl,
-            });
+            let success = false;
+            const nextSeq = cadence.sequenceNumber + 1;
+
+            if (cadence.cadenceType === "abandono") {
+              success = await sendCadenceEmail({
+                to: cadence.recipientEmail,
+                clientName: cadence.recipientName ?? undefined,
+                formTitle: cadence.formTitle,
+                formUrl,
+                sequenceNumber: nextSeq,
+                totalInSequence: cadence.maxSequence,
+              });
+            } else {
+              success = await sendRejectionCadenceEmail({
+                to: cadence.recipientEmail,
+                clientName: cadence.recipientName ?? undefined,
+                formTitle: cadence.formTitle,
+                formUrl,
+                reason: cadence.rejectionReason || "Documento ou dado precisa de correção",
+                sequenceNumber: nextSeq,
+                totalInSequence: cadence.maxSequence,
+              });
+            }
 
             if (success) {
-              await db.markFollowUpSent(response.id);
+              await db.advanceCadence(cadence.id);
               sent++;
             } else {
               failed++;
             }
           } catch (err) {
-            console.error(`[FollowUp] Failed for response ${response.id}:`, (err as Error).message);
+            console.error(`[Cadence] Failed for cadence ${cadence.id}:`, (err as Error).message);
             failed++;
           }
         }
 
-        console.log(`[FollowUp] Sent ${sent}/${incompleteResponses.length} follow-up emails`);
-        return { sent, failed, total: incompleteResponses.length };
+        console.log(`[Cadence] Processed ${sent}/${dueCadences.length} cadence emails`);
+        return { sent, failed, total: dueCadences.length };
       }),
 
-    /** Get count of incomplete responses that need follow-up */
+    /** Get active cadences stats */
+    getStats: ownerFallbackProcedure
+      .query(async () => {
+        return db.getActiveCadencesCount();
+      }),
+
+    /** Stop a specific cadence manually */
+    stop: ownerFallbackProcedure
+      .input(z.object({ cadenceId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.stopCadence(input.cadenceId, "manual");
+        return { success: true };
+      }),
+
+    /** Stop all cadences for a response */
+    stopForResponse: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .mutation(async ({ input }) => {
+        const stopped = await db.stopCadencesForResponse(input.responseId, "manual");
+        return { stopped };
+      }),
+
+    /** Get cadences for a specific response */
+    getByResponse: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getCadencesByResponse(input.responseId);
+      }),
+  }),
+
+  // ─── Follow-up (Legacy, now uses cadence system) ───
+  followUp: router({
+    /** Enroll + process in one call (backwards compatible) */
+    sendFollowUps: ownerFallbackProcedure
+      .input(z.object({
+        minAgeHours: z.number().min(1).default(24),
+        siteUrl: z.string().url(),
+      }))
+      .mutation(async ({ input }) => {
+        // Step 1: Enroll new incomplete responses
+        const incompleteResponses = await db.getIncompleteResponsesForFollowUp(input.minAgeHours);
+        let enrolled = 0;
+        for (const response of incompleteResponses) {
+          if (!response.respondentEmail) continue;
+          try {
+            await db.createEmailCadence({
+              responseId: response.id,
+              formId: response.formId,
+              cadenceType: "abandono",
+              recipientEmail: response.respondentEmail,
+              recipientName: response.respondentName || undefined,
+            });
+            enrolled++;
+          } catch (err) {
+            console.warn(`[FollowUp] Enroll failed:`, (err as Error)?.message?.substring(0, 80));
+          }
+        }
+
+        // Step 2: Process due cadences
+        const dueCadences = await db.getDueCadences();
+        let sent = 0;
+        let failed = 0;
+
+        for (const cadence of dueCadences) {
+          const formUrl = cadence.formSlug
+            ? `${input.siteUrl}/${cadence.formSlug}?continue=${cadence.responseId}`
+            : `${input.siteUrl}/form/${cadence.formId}?continue=${cadence.responseId}`;
+
+          try {
+            const nextSeq = cadence.sequenceNumber + 1;
+            const success = await sendCadenceEmail({
+              to: cadence.recipientEmail,
+              clientName: cadence.recipientName ?? undefined,
+              formTitle: cadence.formTitle,
+              formUrl,
+              sequenceNumber: nextSeq,
+              totalInSequence: cadence.maxSequence,
+            });
+
+            if (success) {
+              await db.advanceCadence(cadence.id);
+              sent++;
+            } else {
+              failed++;
+            }
+          } catch (err) {
+            console.error(`[FollowUp] Failed:`, (err as Error).message);
+            failed++;
+          }
+        }
+
+        return { enrolled, sent, failed, total: dueCadences.length };
+      }),
+
     getPendingCount: ownerFallbackProcedure
       .input(z.object({ minAgeHours: z.number().min(1).default(24) }).optional())
       .query(async ({ input }) => {

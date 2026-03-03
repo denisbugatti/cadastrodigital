@@ -794,3 +794,16 @@
 - [x] sendRejectionEmail: enviado automaticamente quando algum campo é rejeitado (com motivos)
 - [x] Todos os emails agora usam one@cadastrodigital.com.br como remetente
 - [x] Todos os 244 testes passando
+
+
+## Email Templates - Design One Innovation
+- [x] Template base com design One Innovation (cores, fonte, layout)
+- [x] Email 1: Convite para Corretores/Gerentes (boas-vindas, aceitar convite, definir senha)
+- [x] Email 2: Cadastro Completo Pendente (protocolo, "falta pouco para próxima conquista")
+- [x] Email 3: Cadastro Aprovado ("Parabéns! Seu cadastro foi aprovado com sucesso!")
+- [x] Email 4: Reenvio de Documento/Correção de Dados
+- [x] Email 5: Cadência de Abandono (3x/semana seg/qua/sex às 9h por 2 meses)
+- [x] Email 6: Cadência de Reprovação (mesma cadência para quem precisa corrigir)
+- [x] Sistema de cadência: tabela no banco para rastrear envios
+- [x] Endpoint de cron para disparar cadência automaticamente
+- [x] Testes para todos os templates e lógica de cadência
