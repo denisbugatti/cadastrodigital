@@ -814,3 +814,6 @@
 - [x] Atualizar emailService.ts para usar templates do Resend
 - [x] Configurar cron interno para cadência de emails às 9h BRT (enrollIncomplete + processDue)
 - [x] Testes e validação (276 testes passando)
+
+## Logo nos Templates de Email
+- [x] Trocar logo nos 11 templates do Resend pelo logo branco sem fundo da One Innovation + redesign completo com fundo azul #0D8BD9
