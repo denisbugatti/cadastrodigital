@@ -37,6 +37,7 @@ import {
   Bell,
   BellOff,
   BellRing,
+  Mail,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -907,6 +908,15 @@ export default function Dashboard() {
                 >
                   <Users size={16} className="text-muted-foreground" />
                   <span className="flex-1 text-left">Equipe</span>
+                </button>
+              </Link>
+              <Link href="/cadencias">
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-foreground hover:bg-secondary border border-transparent transition-all duration-150"
+                >
+                  <Mail size={16} className="text-muted-foreground" />
+                  <span className="flex-1 text-left">Cadências</span>
                 </button>
               </Link>
               <Link href="/configuracoes">

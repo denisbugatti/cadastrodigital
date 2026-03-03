@@ -1576,6 +1576,69 @@ export const appRouter = router({
         return db.getActivityTimeline(input.responseId);
       }),
   }),
+
+  // ─── Cadence Management (Global) ───
+  cadenceManagement: router({
+    /** List all cadences with filters and pagination */
+    list: ownerFallbackProcedure
+      .input(z.object({
+        status: z.enum(["active", "paused", "stopped"]).optional(),
+        cadenceType: z.enum(["abandono", "reprovacao"]).optional(),
+        formId: z.number().optional(),
+        search: z.string().optional(),
+        page: z.number().min(1).default(1),
+        pageSize: z.number().min(1).max(100).default(20),
+      }).optional())
+      .query(async ({ input }) => {
+        return db.getAllCadences(input ?? {});
+      }),
+
+    /** Get forms that have cadences (for filter dropdown) */
+    getFormsWithCadences: ownerFallbackProcedure
+      .query(async () => {
+        return db.getFormsWithCadences();
+      }),
+
+    /** Pause a single cadence */
+    pause: ownerFallbackProcedure
+      .input(z.object({ cadenceId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.pauseCadence(input.cadenceId);
+        return { success: true };
+      }),
+
+    /** Resume a paused cadence */
+    resume: ownerFallbackProcedure
+      .input(z.object({ cadenceId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.resumeCadence(input.cadenceId);
+        return { success: true };
+      }),
+
+    /** Stop a single cadence */
+    stop: ownerFallbackProcedure
+      .input(z.object({ cadenceId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.stopCadence(input.cadenceId, "manual");
+        return { success: true };
+      }),
+
+    /** Batch pause cadences */
+    batchPause: ownerFallbackProcedure
+      .input(z.object({ cadenceIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        const count = await db.batchPauseCadences(input.cadenceIds);
+        return { success: true, count };
+      }),
+
+    /** Batch stop cadences */
+    batchStop: ownerFallbackProcedure
+      .input(z.object({ cadenceIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        const count = await db.batchStopCadences(input.cadenceIds);
+        return { success: true, count };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

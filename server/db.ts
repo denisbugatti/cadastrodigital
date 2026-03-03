@@ -1218,3 +1218,245 @@ export async function getConversionStats(formId: number, period: string = "30d")
     daily,
   };
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CADENCE MANAGEMENT — Global cadence listing and batch operations
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Get all cadences with filters, pagination, and joined form/response info.
+ */
+export async function getAllCadences(params: {
+  status?: "active" | "paused" | "stopped";
+  cadenceType?: "abandono" | "reprovacao";
+  formId?: number;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<{
+  cadences: Array<{
+    id: number;
+    responseId: number;
+    formId: number;
+    formTitle: string;
+    cadenceType: "abandono" | "reprovacao";
+    recipientEmail: string;
+    recipientName: string | null;
+    rejectionReason: string | null;
+    sequenceNumber: number;
+    maxSequence: number;
+    nextSendAt: Date | null;
+    lastSentAt: Date | null;
+    active: boolean;
+    stoppedReason: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    protocol: string | null;
+  }>;
+  total: number;
+  stats: {
+    active: number;
+    paused: number;
+    stopped: number;
+    total: number;
+    abandonoActive: number;
+    reprovacaoActive: number;
+  };
+}> {
+  const db = getDb();
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 20;
+  const offset = (page - 1) * pageSize;
+
+  // Build conditions
+  const conditions: any[] = [];
+
+  if (params.status === "active") {
+    conditions.push(eq(emailCadence.active, true));
+    conditions.push(isNotNull(emailCadence.nextSendAt));
+  } else if (params.status === "paused") {
+    conditions.push(eq(emailCadence.active, true));
+    conditions.push(isNull(emailCadence.nextSendAt));
+  } else if (params.status === "stopped") {
+    conditions.push(eq(emailCadence.active, false));
+  }
+
+  if (params.cadenceType) {
+    conditions.push(eq(emailCadence.cadenceType, params.cadenceType));
+  }
+
+  if (params.formId) {
+    conditions.push(eq(emailCadence.formId, params.formId));
+  }
+
+  if (params.search) {
+    const searchTerm = `%${params.search}%`;
+    conditions.push(
+      or(
+        like(emailCadence.recipientEmail, searchTerm),
+        like(emailCadence.recipientName, searchTerm),
+      )
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Get cadences with form title
+  const cadences = await db
+    .select({
+      id: emailCadence.id,
+      responseId: emailCadence.responseId,
+      formId: emailCadence.formId,
+      formTitle: forms.title,
+      cadenceType: emailCadence.cadenceType,
+      recipientEmail: emailCadence.recipientEmail,
+      recipientName: emailCadence.recipientName,
+      rejectionReason: emailCadence.rejectionReason,
+      sequenceNumber: emailCadence.sequenceNumber,
+      maxSequence: emailCadence.maxSequence,
+      nextSendAt: emailCadence.nextSendAt,
+      lastSentAt: emailCadence.lastSentAt,
+      active: emailCadence.active,
+      stoppedReason: emailCadence.stoppedReason,
+      createdAt: emailCadence.createdAt,
+      updatedAt: emailCadence.updatedAt,
+      protocol: formResponses.protocolCode,
+    })
+    .from(emailCadence)
+    .leftJoin(forms, eq(emailCadence.formId, forms.id))
+    .leftJoin(formResponses, eq(emailCadence.responseId, formResponses.id))
+    .where(whereClause)
+    .orderBy(desc(emailCadence.updatedAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  // Get total count
+  const countResult = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(emailCadence)
+    .where(whereClause);
+  const total = countResult[0]?.count ?? 0;
+
+  // Get stats (always unfiltered for overview)
+  const statsResult = await db
+    .select({
+      active: emailCadence.active,
+      nextSendAt: emailCadence.nextSendAt,
+      cadenceType: emailCadence.cadenceType,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(emailCadence)
+    .groupBy(emailCadence.active, emailCadence.nextSendAt, emailCadence.cadenceType);
+
+  let activeCount = 0;
+  let pausedCount = 0;
+  let stoppedCount = 0;
+  let abandonoActive = 0;
+  let reprovacaoActive = 0;
+
+  statsResult.forEach((row: any) => {
+    if (!row.active) {
+      stoppedCount += row.count;
+    } else if (row.nextSendAt === null) {
+      pausedCount += row.count;
+    } else {
+      activeCount += row.count;
+      if (row.cadenceType === "abandono") abandonoActive += row.count;
+      if (row.cadenceType === "reprovacao") reprovacaoActive += row.count;
+    }
+  });
+
+  return {
+    cadences,
+    total,
+    stats: {
+      active: activeCount,
+      paused: pausedCount,
+      stopped: stoppedCount,
+      total: activeCount + pausedCount + stoppedCount,
+      abandonoActive,
+      reprovacaoActive,
+    },
+  };
+}
+
+/**
+ * Pause a cadence (set nextSendAt to null but keep active).
+ */
+export async function pauseCadence(cadenceId: number): Promise<void> {
+  const db = getDb();
+  await db
+    .update(emailCadence)
+    .set({ nextSendAt: null })
+    .where(eq(emailCadence.id, cadenceId));
+}
+
+/**
+ * Resume a paused cadence (set nextSendAt to next Mon/Wed/Fri at 9am BRT).
+ */
+export async function resumeCadence(cadenceId: number): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+  // Find next Mon(1), Wed(3), or Fri(5) at 12:00 UTC (9am BRT)
+  const dayOfWeek = now.getUTCDay();
+  const sendDays = [1, 3, 5]; // Mon, Wed, Fri
+  let daysUntilNext = 1;
+  for (let i = 1; i <= 7; i++) {
+    const targetDay = (dayOfWeek + i) % 7;
+    if (sendDays.includes(targetDay)) {
+      daysUntilNext = i;
+      break;
+    }
+  }
+  const nextSend = new Date(now);
+  nextSend.setUTCDate(nextSend.getUTCDate() + daysUntilNext);
+  nextSend.setUTCHours(12, 0, 0, 0); // 9am BRT
+
+  await db
+    .update(emailCadence)
+    .set({ nextSendAt: nextSend })
+    .where(eq(emailCadence.id, cadenceId));
+}
+
+/**
+ * Batch pause multiple cadences.
+ */
+export async function batchPauseCadences(cadenceIds: number[]): Promise<number> {
+  if (cadenceIds.length === 0) return 0;
+  const db = getDb();
+  const result = await db
+    .update(emailCadence)
+    .set({ nextSendAt: null })
+    .where(and(inArray(emailCadence.id, cadenceIds), eq(emailCadence.active, true)));
+  return cadenceIds.length;
+}
+
+/**
+ * Batch stop multiple cadences.
+ */
+export async function batchStopCadences(cadenceIds: number[]): Promise<number> {
+  if (cadenceIds.length === 0) return 0;
+  const db = getDb();
+  await db
+    .update(emailCadence)
+    .set({ active: false, stoppedReason: "manual", nextSendAt: null })
+    .where(inArray(emailCadence.id, cadenceIds));
+  return cadenceIds.length;
+}
+
+/**
+ * Get all distinct forms that have cadences (for filter dropdown).
+ */
+export async function getFormsWithCadences(): Promise<Array<{ id: number; title: string }>> {
+  const db = getDb();
+  const results = await db
+    .selectDistinct({
+      id: forms.id,
+      title: forms.title,
+    })
+    .from(emailCadence)
+    .innerJoin(forms, eq(emailCadence.formId, forms.id))
+    .orderBy(forms.title);
+  return results;
+}

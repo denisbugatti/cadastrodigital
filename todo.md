@@ -860,3 +860,16 @@
 ## Gráfico de Linha Temporal + OG Image
 - [x] Gráfico de linha temporal no painel de conversão (SVG com 3 linhas: iniciados, completos, aprovados + tabela detalhada)
 - [x] Configurar imagem OG (Open Graph) com imagem da One Innovation para compartilhamento nas redes sociais
+
+## Painel de Gestão de Cadências
+- [x] Backend: endpoint para listar todas as cadências com filtros (status, tipo, formulário)
+- [x] Backend: endpoint para pausar/retomar/cancelar cadências em lote
+- [x] Frontend: página CadenceManagement.tsx com visão geral
+- [x] Cards de resumo (ativas, pausadas, finalizadas, total)
+- [x] Tabela/lista com todas as cadências e ações (pausar, retomar, cancelar)
+- [x] Filtros por status, tipo (abandono/reprovação), formulário
+- [x] Adicionar rota e item no menu lateral do dashboard
+- [x] Busca por nome/email do destinatário
+- [x] Seleção em lote com ações de pausar/encerrar
+- [x] Barra de progresso visual (emails enviados / total)
+- [x] 311 testes passando (30 novos para cadence management)

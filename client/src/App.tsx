@@ -16,6 +16,7 @@ import ResponseValidation from "./pages/ResponseValidation";
 import Settings from "./pages/Settings";
 import ClientPortal from "./pages/ClientPortal";
 import ClientRegister from "./pages/ClientRegister";
+import CadenceManagement from "./pages/CadenceManagement";
 
 function Router() {
   return (
@@ -42,6 +43,9 @@ function Router() {
 
       {/* Staff management */}
       <Route path={"/equipe"} component={StaffManagement} />
+
+      {/* Cadence management */}
+      <Route path={"/cadencias"} component={CadenceManagement} />
 
       {/* Settings (permissions, users, export) */}
       <Route path={"/configuracoes"} component={Settings} />
