@@ -588,6 +588,32 @@ export const appRouter = router({
         }
         return db.getConversionStats(input.formId, input.period);
       }),
+
+    /** Export conversion report as PDF */
+    exportConversionPdf: ownerFallbackProcedure
+      .input(z.object({
+        formId: z.number(),
+        period: z.enum(["7d", "30d", "90d", "all"]).optional().default("30d"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new Error("Form not found or access denied");
+        }
+        const stats = await db.getConversionStats(input.formId, input.period);
+        const { generateConversionReportPdf } = await import("./conversionReportPdf");
+        const pdfBuffer = await generateConversionReportPdf({
+          formTitle: form.title,
+          period: input.period,
+          stats,
+          generatedAt: new Date(),
+        });
+        // Return as base64 for client download
+        return {
+          base64: pdfBuffer.toString("base64"),
+          filename: `relatorio-conversao-${form.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}-${input.period}.pdf`,
+        };
+      }),
   }),
 
   // ─── Form Responses ───

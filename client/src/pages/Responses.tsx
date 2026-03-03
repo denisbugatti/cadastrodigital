@@ -846,6 +846,7 @@ export default function Responses() {
   const [isExporting, setIsExporting] = useState(false);
   const [showConversionStats, setShowConversionStats] = useState(false);
   const [conversionPeriod, setConversionPeriod] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -862,6 +863,36 @@ export default function Responses() {
     { formId, period: conversionPeriod },
     { enabled: !!formId && showConversionStats }
   );
+
+  // PDF export mutation
+  const exportPdfMutation = trpc.forms.exportConversionPdf.useMutation();
+  const handleExportPdf = useCallback(async () => {
+    if (!formId) return;
+    setIsExportingPdf(true);
+    try {
+      const result = await exportPdfMutation.mutateAsync({ formId, period: conversionPeriod });
+      // Decode base64 and trigger download
+      const byteCharacters = atob(result.base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [formId, conversionPeriod]);
 
   // Corretor queries
   const { data: allCorretores } = trpc.corretores.list.useQuery();
@@ -1453,20 +1484,37 @@ export default function Responses() {
                     <TrendingUp size={16} className="text-brand" />
                     <h3 className="text-sm font-display font-bold text-foreground">Funil de Conversão</h3>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {(["7d", "30d", "90d", "all"] as const).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setConversionPeriod(p)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                          conversionPeriod === p
-                            ? "bg-brand/10 text-brand border border-brand/20"
-                            : "text-muted-foreground hover:text-foreground border border-transparent"
-                        }`}
-                      >
-                        {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : p === "90d" ? "90 dias" : "Tudo"}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {(["7d", "30d", "90d", "all"] as const).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setConversionPeriod(p)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                            conversionPeriod === p
+                              ? "bg-brand/10 text-brand border border-brand/20"
+                              : "text-muted-foreground hover:text-foreground border border-transparent"
+                          }`}
+                        >
+                          {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : p === "90d" ? "90 dias" : "Tudo"}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="w-px h-5 bg-border" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-7 px-2.5 text-[11px]"
+                      onClick={handleExportPdf}
+                      disabled={isExportingPdf || !conversionStats}
+                    >
+                      {isExportingPdf ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Download size={12} />
+                      )}
+                      PDF
+                    </Button>
                   </div>
                 </div>
 

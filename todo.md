@@ -850,3 +850,9 @@
 - [x] Backend: endpoint getConversionStats (iniciados, completos, aprovados, rejeitados por período)
 - [x] Frontend: funil de conversão com barras animadas + taxas de conversão
 - [x] Filtro por período (7d, 30d, 90d, tudo)
+
+## Relatório de Conversão em PDF
+- [x] Backend: endpoint para gerar PDF com funil de conversão e métricas
+- [x] Design profissional One Innovation (fundo escuro, azul #0D8BD9, Helvetica Bold)
+- [x] Incluir: funil visual, taxas de conversão, breakdown diário (últimos 15 dias), período selecionado
+- [x] Frontend: botão de exportar PDF no painel de conversão (2 páginas: capa + funil/tabela)
