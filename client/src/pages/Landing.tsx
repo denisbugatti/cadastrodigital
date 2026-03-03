@@ -19,6 +19,7 @@ import { trpc } from "@/lib/trpc";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { ServiceCard3D } from "@/components/ServiceIcon3D";
 
 /* ─── Constants ─── */
 const ACCENT = "#70BEFA";
@@ -478,55 +479,38 @@ export default function Landing() {
       </section>
 
       {/* ─── SERVIÇOS ─── */}
-      <section id="servicos" className="py-24 md:py-32 border-t border-white/[0.04]">
-        <div className="max-w-6xl mx-auto px-5">
+      <section id="servicos" className="relative py-24 md:py-32 border-t border-white/[0.04]">
+        {/* Subtle radial glow behind cards */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse 70% 50% at 50% 40%, rgba(74,158,255,0.04) 0%, transparent 70%)",
+        }} />
+
+        <div className="relative max-w-6xl mx-auto px-5">
           <Reveal>
             <div className="text-center mb-16">
               <p className="text-[#70BEFA] text-sm font-medium tracking-wider uppercase mb-4">Serviços</p>
-              <h2 className="font-heading text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.02em]">
+              <h2 className="font-heading text-4xl md:text-5xl lg:text-6xl font-light tracking-[-0.02em]">
                 O que{" "}
-                <span className="italic" style={{ color: ACCENT }}>oferecemos</span>
+                <span className="italic font-semibold bg-gradient-to-r from-[#70BEFA] to-[#3b82f6] bg-clip-text text-transparent">oferecemos</span>
               </h2>
             </div>
           </Reveal>
 
-          <ul className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
             {[
-              { icon: <FileText className="h-5 w-5" />, title: "Cadastro Digital", desc: "Formulários inteligentes que se adaptam ao perfil do cliente. Coleta segura de dados pessoais, documentos e comprovantes." },
-              { icon: <Users className="h-5 w-5" />, title: "Gestão de Corretores", desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics." },
-              { icon: <CheckCircle className="h-5 w-5" />, title: "Aprovação Rápida", desc: "Validação individual de cada resposta e documento. O cliente recebe notificação automática do status." },
+              { icon: "document" as const, title: "Cadastro Digital", desc: "Formulários inteligentes que se adaptam ao perfil do cliente. Coleta segura de dados pessoais, documentos e comprovantes." },
+              { icon: "people" as const, title: "Gestão de Corretores", desc: "Cada corretor tem seu link exclusivo. Acompanhe em tempo real os cadastros da sua equipe com painel completo de analytics." },
+              { icon: "checkmark" as const, title: "Aprovação Rápida", desc: "Validação individual de cada resposta e documento. O cliente recebe notificação automática do status." },
             ].map((item, i) => (
-              <Reveal key={i} delay={i * 0.1}>
-                <li className="min-h-[14rem] list-none">
-                  <div className="relative h-full rounded-[1.25rem] border-[0.75px] border-white/[0.08] p-2 md:rounded-[1.5rem] md:p-3">
-                    <GlowingEffect
-                      spread={40}
-                      glow={true}
-                      disabled={false}
-                      proximity={64}
-                      inactiveZone={0.01}
-                      borderWidth={3}
-                    />
-                    <div className="relative flex h-full flex-col items-center justify-between gap-6 overflow-hidden rounded-xl border-[0.75px] border-white/[0.06] p-6 text-center shadow-sm" style={{ background: CARD_BG }}>
-                      <div className="relative flex flex-1 flex-col items-center justify-between gap-3">
-                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl border-[0.75px] border-white/[0.08] bg-[#70BEFA]/10 text-[#70BEFA]">
-                          {item.icon}
-                        </div>
-                        <div className="space-y-3 text-center">
-                          <h3 className="pt-0.5 text-xl leading-[1.375rem] font-semibold tracking-[-0.04em] md:text-2xl md:leading-[1.875rem] text-white">
-                            {item.title}
-                          </h3>
-                          <p className="text-sm leading-[1.125rem] md:text-base md:leading-[1.375rem] text-white/45">
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </li>
+              <Reveal key={i} delay={i * 0.15}>
+                <ServiceCard3D
+                  icon={item.icon}
+                  title={item.title}
+                  description={item.desc}
+                />
               </Reveal>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
 
@@ -619,8 +603,16 @@ export default function Landing() {
       </section>
 
       {/* ─── CTA FINAL ─── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.04]">
-        <div className="max-w-3xl mx-auto px-5 text-center">
+      <section className="relative py-32 md:py-40 border-t border-white/[0.04] overflow-hidden">
+        {/* Same background as hero */}
+        <div className="absolute inset-0 pointer-events-none">
+          <BackgroundPaths />
+        </div>
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(10,10,15,0.95) 0%, transparent 100%)",
+        }} />
+
+        <div className="relative z-10 max-w-3xl mx-auto px-5 text-center">
           <Reveal>
             <h2 className="font-heading text-4xl md:text-5xl lg:text-6xl font-semibold tracking-[-0.02em] mb-6">
               Pronto para{" "}
@@ -633,16 +625,14 @@ export default function Landing() {
             </p>
           </Reveal>
           <Reveal delay={0.2}>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="glow-btn relative px-10 py-5 rounded-xl text-lg font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: "linear-gradient(135deg, #70BEFA, #3b82f6)" }}
-            >
-              <span className="flex items-center gap-3">
-                Preencher para Lançamento
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </button>
+            <div className="flex items-center justify-center">
+              <ShinyButton onClick={() => setModalOpen(true)}>
+                <span className="flex items-center gap-3">
+                  Preencher para Lançamento
+                  <ArrowRight className="w-5 h-5" />
+                </span>
+              </ShinyButton>
+            </div>
           </Reveal>
         </div>
       </section>

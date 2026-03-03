@@ -910,3 +910,13 @@
 - [x] Criar componente ShinyButton em /components/ui/shiny-button.tsx adaptado ao azul #70BEFA
 - [x] Remover botão "Saiba mais" do hero
 - [x] Centralizar e destacar botão "Preencher para Lançamento" com ShinyButton
+
+## Landing Page v7 — CTA Redesign + Cards 3D Serviços
+- [x] Redesenhar seção CTA final com mesmo design do hero (BackgroundPaths + gradiente radial + ShinyButton)
+- [x] Instalar Three.js + @react-three/fiber + @react-three/drei
+- [x] Criar componente ServiceIcon3D com ícones 3D metálicos (documento, pessoas, checkmark)
+- [x] Criar cards de serviços estilo Resend com Canvas independente por card
+- [x] Material meshPhysicalMaterial com metalness, clearcoat, emissive azul
+- [x] Iluminação: luz quente dourada + preenchimento azul + pointLight hover
+- [x] Animações: rotação orbital, parallax mouse, float, fade-in scroll
+- [x] Integrar na seção de serviços da Landing substituindo cards atuais
