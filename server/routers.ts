@@ -258,6 +258,36 @@ export const appRouter = router({
         await staffDb.updateInvite(id, data as any);
         return { success: true };
       }),
+
+    resendInvite: ownerFallbackProcedure
+      .input(z.object({
+        id: z.number(),
+        origin: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const invite = await staffDb.getInviteById(input.id);
+        if (!invite || invite.invitedBy !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Convite não encontrado" });
+        }
+        if (invite.usedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Convite já foi utilizado" });
+        }
+        // Generate new token and extend expiry
+        const newToken = generateInviteToken();
+        const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        await staffDb.updateInvite(input.id, {
+          token: newToken,
+          expiresAt: newExpiresAt,
+        } as any);
+        const inviteUrl = `${input.origin}/aceitar-convite?token=${newToken}`;
+        await sendInviteEmail({
+          to: invite.email,
+          inviterName: ctx.user.name || "Administrador",
+          role: invite.role,
+          inviteUrl,
+        });
+        return { success: true };
+      }),
   }),
 
   // ─── Permissions Management ───

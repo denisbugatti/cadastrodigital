@@ -195,7 +195,7 @@ export async function deleteInvite(id: number) {
   });
 }
 
-export async function updateInvite(id: number, data: { email?: string; role?: string; name?: string | null; phone?: string | null }) {
+export async function updateInvite(id: number, data: { email?: string; role?: string; name?: string | null; phone?: string | null; token?: string; expiresAt?: Date }) {
   return withRetry(async (db) => {
     await db.update(invites).set(data).where(eq(invites.id, id));
   });

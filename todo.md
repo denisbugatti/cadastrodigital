@@ -745,3 +745,11 @@
 - [x] UI com botões Pencil e Trash2 em cada convite pendente
 - [x] Validação: não permite editar/excluir convites já utilizados
 - [x] Todos os 244 testes passando
+
+### Feature: Reenviar convite pendente/expirado
+- [x] Criar procedure backend staff.resendInvite que regenera token e reenvia email
+- [x] Adicionar botão de reenviar (RotateCw icon) na UI de convites pendentes/expirados
+- [x] Atualizar data de expiração ao reenviar (+7 dias) e gerar novo token
+- [x] Toast de sucesso/erro ao reenviar
+- [x] Loading spinner durante o envio
+- [x] Todos os 244 testes passando

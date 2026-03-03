@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  ArrowLeft, UserPlus, Mail, Phone,
+  ArrowLeft, UserPlus, Mail, Phone, RotateCw,
   Star, Building2, Users, Loader2, CheckCircle2, XCircle,
   Crown, Briefcase, Pencil, Trash2, Clock,
 } from "lucide-react";
@@ -114,6 +114,14 @@ export default function StaffManagement() {
     onSuccess: () => {
       toast.success("Convite atualizado!");
       setEditingInvite(null);
+      utils.staff.invites.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const resendInviteMutation = trpc.staff.resendInvite.useMutation({
+    onSuccess: () => {
+      toast.success("Convite reenviado com sucesso! Novo email enviado.");
       utils.staff.invites.invalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -300,9 +308,23 @@ export default function StaffManagement() {
                       </div>
                     </div>
                   </div>
-                  {/* Edit/Delete buttons for pending (unused) invites */}
+                  {/* Action buttons for pending (unused) invites */}
                   {!invite.usedAt && (
                     <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => resendInviteMutation.mutate({ id: invite.id, origin: window.location.origin })}
+                        disabled={resendInviteMutation.isPending}
+                        className="text-muted-foreground hover:text-green-600 hover:bg-green-500/10 h-8 w-8 p-0"
+                        title="Reenviar convite"
+                      >
+                        {resendInviteMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RotateCw className="w-4 h-4" />
+                        )}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
