@@ -1036,3 +1036,9 @@
 - [x] Criar painel para visualizar todos os formulários dos corretores (cópias)
 - [x] Mostrar status de sincronização de cada cópia (sincronizado/desatualizado)
 - [x] Permitir ações: ver respostas, forçar sincronização manual
+
+## Notificação Automática de Inatividade de Corretor
+- [x] Criar função para verificar corretores inativos (7+ dias sem validar respostas)
+- [x] Enviar notificação push ao admin quando corretor estiver inativo
+- [x] Integrar verificação no cron scheduler existente (execução diária)
+- [x] Evitar notificações duplicadas (rastrear última notificação enviada)

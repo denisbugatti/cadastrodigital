@@ -13,6 +13,8 @@ import {
   sendCadenceEmail,
   sendRejectionCadenceEmail,
 } from "./emailService";
+import { notifyOwner } from "./_core/notification";
+import { sendPushToUser, sendPushToStaffUser } from "./pushNotification";
 
 /** How often to check (in ms). We check every 60 seconds. */
 const CHECK_INTERVAL_MS = 60 * 1000;
@@ -20,6 +22,7 @@ const CHECK_INTERVAL_MS = 60 * 1000;
 /** Track if jobs already ran today to avoid duplicates */
 let lastEnrollDate = "";
 let lastProcessDate = "";
+let lastInactivityCheckDate = "";
 
 /**
  * Get the current site URL from environment or fallback.
@@ -173,6 +176,90 @@ async function runProcessDue(): Promise<void> {
 }
 
 /**
+ * Check if it's time to run the inactivity check.
+ * Runs daily at 13:00 UTC (10:00 AM BRT).
+ */
+function shouldRunInactivityCheck(now: Date): boolean {
+  const dateKey = now.toISOString().slice(0, 10);
+  if (dateKey === lastInactivityCheckDate) return false;
+
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
+
+  return utcHour === 13 && utcMinute === 0;
+}
+
+/**
+ * Check for inactive corretores (7+ days without validating) and notify admin.
+ */
+async function runInactivityCheck(): Promise<void> {
+  console.log("[Cron] Checking for inactive corretores...");
+  try {
+    const inactiveCorretores = await db.getInactiveCorretores(7);
+
+    if (inactiveCorretores.length === 0) {
+      console.log("[Cron] No inactive corretores found.");
+      return;
+    }
+
+    // Build notification content
+    const corretorLines = inactiveCorretores.map((c) => {
+      const days = c.daysSinceLastValidation !== null
+        ? `${c.daysSinceLastValidation} dias sem validar`
+        : "Nunca validou";
+      const forms = c.assignedFormCount > 0
+        ? `${c.assignedFormCount} formulário(s) atribuído(s)`
+        : "Nenhum formulário atribuído";
+      return `• ${c.name} (${c.email}) — ${days}, ${forms}`;
+    });
+
+    const title = `⚠️ ${inactiveCorretores.length} corretor(es) inativo(s) há 7+ dias`;
+    const content = [
+      `Os seguintes corretores estão inativos (sem validar respostas nos últimos 7 dias):`,
+      "",
+      ...corretorLines,
+      "",
+      `Acesse /equipe para gerenciar a equipe ou /performance para ver métricas detalhadas.`,
+    ].join("\n");
+
+    // Send notification to owner via Manus notification service
+    const sent = await notifyOwner({ title, content });
+    if (sent) {
+      console.log(`[Cron] Inactivity notification sent to owner: ${inactiveCorretores.length} inactive corretores`);
+    } else {
+      console.warn("[Cron] Failed to send inactivity notification to owner");
+    }
+
+    // Also send push notification to owner
+    try {
+      const { getUserByOpenId } = await import("./db");
+      const { ENV } = await import("./_core/env");
+      const ownerUser = await getUserByOpenId(ENV.ownerOpenId);
+      if (ownerUser) {
+        await sendPushToUser(ownerUser.id, {
+          title: `⚠️ ${inactiveCorretores.length} corretor(es) inativo(s)`,
+          body: `${inactiveCorretores.map(c => c.name).join(", ")} — 7+ dias sem validar respostas`,
+          icon: "/icons/icon-192x192.png",
+          badge: "/icons/icon-72x72.png",
+          url: "/performance",
+          tag: "inactive-corretores",
+          data: {
+            type: "inactive_corretores",
+            count: inactiveCorretores.length,
+            timestamp: Date.now(),
+          },
+        });
+      }
+    } catch (pushErr: any) {
+      console.warn("[Cron] Failed to send push for inactivity:", pushErr?.message?.substring(0, 100));
+    }
+
+  } catch (err) {
+    console.error("[Cron] Inactivity check error:", (err as Error).message);
+  }
+}
+
+/**
  * The main tick function called every minute.
  */
 async function tick(): Promise<void> {
@@ -187,6 +274,11 @@ async function tick(): Promise<void> {
     lastProcessDate = now.toISOString().slice(0, 10);
     await runProcessDue();
   }
+
+  if (shouldRunInactivityCheck(now)) {
+    lastInactivityCheckDate = now.toISOString().slice(0, 10);
+    await runInactivityCheck();
+  }
 }
 
 /**
@@ -195,7 +287,7 @@ async function tick(): Promise<void> {
  */
 export function startCronScheduler(): void {
   console.log(
-    "[Cron] Email cadence scheduler started. Enrollment: daily at 9am BRT. Processing: Mon/Wed/Fri at 9am BRT."
+    "[Cron] Scheduler started. Enrollment: daily at 9am BRT. Processing: Mon/Wed/Fri at 9am BRT. Inactivity check: daily at 10am BRT."
   );
 
   // Run the tick every minute

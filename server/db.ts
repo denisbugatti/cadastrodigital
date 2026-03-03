@@ -1995,3 +1995,83 @@ export async function getChildFormsWithCorretores(parentFormId: number) {
     return enriched;
   });
 }
+
+/* ─── Inactive Corretor Detection ─── */
+
+/**
+ * Get corretores who have been inactive (no validations) for the specified number of days.
+ * Returns corretores with their last validation date and assigned form info.
+ */
+export async function getInactiveCorretores(inactiveDays: number = 7): Promise<Array<{
+  id: number;
+  name: string;
+  email: string;
+  lastValidationAt: Date | null;
+  daysSinceLastValidation: number | null;
+  assignedFormCount: number;
+}>> {
+  const db = getDb();
+  {
+    // Get all active corretores
+    const activeCorretores = await db.select({
+      id: staffUsers.id,
+      name: staffUsers.name,
+      email: staffUsers.email,
+    })
+      .from(staffUsers)
+      .where(and(
+        eq(staffUsers.role, "corretor" as any),
+        eq(staffUsers.active, true),
+      ));
+
+    if (activeCorretores.length === 0) return [];
+
+    const cutoffDate = new Date(Date.now() - inactiveDays * 24 * 60 * 60 * 1000);
+    const inactiveList: Array<{
+      id: number;
+      name: string;
+      email: string;
+      lastValidationAt: Date | null;
+      daysSinceLastValidation: number | null;
+      assignedFormCount: number;
+    }> = [];
+
+    for (const corretor of activeCorretores) {
+      // Get last validation by this corretor
+      const lastValidation = await db.select({
+        validatedAt: responseValidations.validatedAt,
+      })
+        .from(responseValidations)
+        .where(eq(responseValidations.validatedBy, corretor.id))
+        .orderBy(desc(responseValidations.validatedAt))
+        .limit(1);
+
+      const lastValidationAt = lastValidation[0]?.validatedAt || null;
+
+      // Check if inactive: either never validated, or last validation was before cutoff
+      const isInactive = !lastValidationAt || lastValidationAt < cutoffDate;
+
+      if (isInactive) {
+        // Count assigned forms
+        const assignedForms = await db.select({ id: forms.id })
+          .from(forms)
+          .where(eq(forms.assignedCorretorId, corretor.id));
+
+        const daysSince = lastValidationAt
+          ? Math.floor((Date.now() - lastValidationAt.getTime()) / (24 * 60 * 60 * 1000))
+          : null;
+
+        inactiveList.push({
+          id: corretor.id,
+          name: corretor.name,
+          email: corretor.email,
+          lastValidationAt,
+          daysSinceLastValidation: daysSince,
+          assignedFormCount: assignedForms.length,
+        });
+      }
+    }
+
+    return inactiveList;
+  }
+}
