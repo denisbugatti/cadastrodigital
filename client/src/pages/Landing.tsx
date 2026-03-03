@@ -529,16 +529,23 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: "01", title: "Acesse o Link", desc: "Receba o link exclusivo do seu corretor e acesse pelo celular ou computador." },
-              { step: "02", title: "Preencha os Dados", desc: "Complete o formulário com seus dados pessoais e envie os documentos solicitados." },
-              { step: "03", title: "Aguarde a Validação", desc: "Nossa equipe valida cada informação. Se necessário, você será notificado para ajustes." },
-              { step: "04", title: "Aprovação", desc: "Receba a confirmação de que seu cadastro foi aprovado e está apto para o lançamento." },
+              { step: "01", title: "Acesse o Link", desc: "Receba o link exclusivo do seu corretor e acesse pelo celular ou computador.", delay: 0 },
+              { step: "02", title: "Preencha os Dados", desc: "Complete o formulário com seus dados pessoais e envie os documentos solicitados.", delay: 1.5 },
+              { step: "03", title: "Aguarde a Validação", desc: "Nossa equipe valida cada informação. Se necessário, você será notificado para ajustes.", delay: 3 },
+              { step: "04", title: "Aprovação", desc: "Receba a confirmação de que seu cadastro foi aprovado e está apto para o lançamento.", delay: 4.5 },
             ].map((item, i) => (
               <Reveal key={i} delay={i * 0.1}>
                 <div className="text-center">
                   <div className="font-heading text-5xl font-bold text-white/[0.06] mb-4">{item.step}</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
-                  <p className="text-white/40 text-sm leading-relaxed">{item.desc}</p>
+                  <div className="dot-card-outer rounded-xl border border-white/[0.06] bg-[#111111] p-6" style={{ minHeight: "160px" }}>
+                    <div className="dot-card-dot" style={{ animationDelay: `${item.delay}s` }} />
+                    <div className="dot-card-line topl" />
+                    <div className="dot-card-line bottoml" />
+                    <div className="dot-card-line leftl" />
+                    <div className="dot-card-line rightl" />
+                    <h3 className="text-lg font-semibold text-white mb-2 relative z-[1]">{item.title}</h3>
+                    <p className="text-white/40 text-sm leading-relaxed relative z-[1]">{item.desc}</p>
+                  </div>
                 </div>
               </Reveal>
             ))}

@@ -920,3 +920,8 @@
 - [x] Iluminação: luz quente dourada + preenchimento azul + pointLight hover
 - [x] Animações: rotação orbital, parallax mouse, float, fade-in scroll
 - [x] Integrar na seção de serviços da Landing substituindo cards atuais
+
+## Moving Dot Animation nos Cards de Processo
+- [x] Criar estilos dot-card com ponto animado que percorre a borda (CSS puro)
+- [x] Adicionar keyframe moveDot + estilos dot-card-outer/dot/line no index.css
+- [x] Integrar animação nos 4 cards da seção "O processo" (números fora dos cards, sem animação)
