@@ -29,6 +29,7 @@ import { generateInviteToken } from "./authService";
  */
 let _cachedOwnerUser: any = null;
 let _ownerCacheExpiry = 0;
+let _cachedOwnerName: string | undefined = undefined;
 const OWNER_CACHE_TTL = 30 * 60 * 1000; // 30 minutes (increased for stability)
 
 /**
@@ -58,6 +59,14 @@ function buildSyntheticOwner(ownerOpenId: string): any {
  */
 async function getOrCreateOwnerUser(): Promise<any> {
   const now = Date.now();
+  const currentOwnerName = process.env.OWNER_NAME;
+
+  // Invalidate cache if OWNER_NAME env var changed (e.g. after restart with new value)
+  if (_cachedOwnerUser && _cachedOwnerName !== currentOwnerName) {
+    console.log(`[ownerFallback] OWNER_NAME changed from "${_cachedOwnerName}" to "${currentOwnerName}", invalidating cache`);
+    _cachedOwnerUser = null;
+    _ownerCacheExpiry = 0;
+  }
 
   // Layer 1: Return cached owner if still valid
   if (_cachedOwnerUser && now < _ownerCacheExpiry) {
@@ -83,8 +92,17 @@ async function getOrCreateOwnerUser(): Promise<any> {
         console.log("[ownerFallback] Owner not found in DB, creating...");
         await db.upsertUser({
           openId: ownerOpenId,
-          name: process.env.OWNER_NAME ?? "Owner",
+          name: currentOwnerName ?? "Owner",
           role: "admin",
+          lastSignedIn: new Date(),
+        });
+        ownerUser = await db.getUserByOpenId(ownerOpenId);
+      } else if (currentOwnerName && ownerUser.name !== currentOwnerName) {
+        // Sync name from OWNER_NAME env var if it changed
+        console.log(`[ownerFallback] Syncing owner name from "${ownerUser.name}" to "${currentOwnerName}"`);
+        await db.upsertUser({
+          openId: ownerOpenId,
+          name: currentOwnerName,
           lastSignedIn: new Date(),
         });
         ownerUser = await db.getUserByOpenId(ownerOpenId);
@@ -92,6 +110,7 @@ async function getOrCreateOwnerUser(): Promise<any> {
 
       if (ownerUser) {
         _cachedOwnerUser = ownerUser;
+        _cachedOwnerName = currentOwnerName;
         _ownerCacheExpiry = now + OWNER_CACHE_TTL;
         return ownerUser;
       }

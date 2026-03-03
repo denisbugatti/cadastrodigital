@@ -1053,3 +1053,11 @@
 ## Bugs Reportados
 - [x] Página de métricas dos corretores não está abrindo (fix: require() dinâmico → import estático ESM)
 - [x] Definir modo escuro como padrão para páginas de corretores (CorretorResponses, CorretorDashboard, ResponseValidation)
+
+## Ajustar Nomes dos Remetentes nos Emails
+- [x] Emails de convite: no corpo do template, usar nome de quem convidou (ex: "Denis Bugatti")
+- [x] Emails de cadência/sistema/validação/aprovação: no corpo do template, usar "One Innovation"
+- [x] Email semanal de resumo: no corpo, usar "One Innovation"
+- [x] Fix: cache do owner invalidado automaticamente quando OWNER_NAME muda
+- [x] Fix: nome do owner no banco sincronizado com OWNER_NAME env var
+- [x] Fix: corretorNotification.ts usando formato correto de template Resend (template: { id, variables })

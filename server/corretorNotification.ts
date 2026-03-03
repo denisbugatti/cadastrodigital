@@ -61,16 +61,17 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [corretorEmail],
       subject: `Novo cadastro: ${protocolCode} — ${formTitle}`,
-      // @ts-ignore — Resend SDK supports template sending
-      template_id: TEMPLATE_ID,
-      template_data: {
-        CORRETOR_NAME: corretorName,
-        FORM_TITLE: formTitle,
-        PROTOCOL_CODE: protocolCode,
-        RESPONDENT_NAME: respondentName || "Não informado",
-        RESPONDENT_EMAIL: respondentEmail || "Não informado",
-        RESPONDENT_PHONE: respondentPhone || "Não informado",
-        SUBMITTED_AT: dateStr,
+      template: {
+        id: TEMPLATE_ID,
+        variables: {
+          CORRETOR_NAME: corretorName,
+          FORM_TITLE: formTitle,
+          PROTOCOL_CODE: protocolCode,
+          RESPONDENT_NAME: respondentName || "Não informado",
+          RESPONDENT_EMAIL: respondentEmail || "Não informado",
+          RESPONDENT_PHONE: respondentPhone || "Não informado",
+          SUBMITTED_AT: dateStr,
+        },
       },
     });
 
