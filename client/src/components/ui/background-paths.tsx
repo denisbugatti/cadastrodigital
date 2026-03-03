@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState, memo } from "react";
 import { motion } from "framer-motion";
 
 function FloatingPaths({ position }: { position: number }) {
@@ -29,11 +30,11 @@ function FloatingPaths({ position }: { position: number }) {
             d={path.d}
             stroke="currentColor"
             strokeWidth={path.width}
-            strokeOpacity={0.08 + path.id * 0.02}
-            initial={{ pathLength: 0.3, opacity: 0.5 }}
+            strokeOpacity={0.04 + path.id * 0.008}
+            initial={{ pathLength: 0.3, opacity: 0.3 }}
             animate={{
               pathLength: 1,
-              opacity: [0.2, 0.5, 0.2],
+              opacity: [0.1, 0.3, 0.1],
               pathOffset: [0, 1, 0],
             }}
             transition={{
@@ -48,13 +49,56 @@ function FloatingPaths({ position }: { position: number }) {
   );
 }
 
-export function BackgroundPaths({ className = "" }: { className?: string }) {
+/**
+ * BackgroundPaths with parallax scroll effect.
+ * Two layers of floating paths move at different speeds on scroll,
+ * creating depth. Opacity is kept very low so text remains fully readable.
+ */
+export const BackgroundPaths = memo(({ className = "" }: { className?: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Layer 1 moves slower (0.15x), Layer 2 moves faster (0.35x) — creates depth
+  const layer1Y = scrollY * 0.15;
+  const layer2Y = scrollY * 0.35;
+
   return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`}>
-      <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.8)" }}>
+    <div ref={containerRef} className={`absolute inset-0 overflow-hidden ${className}`}>
+      {/* Back layer — slower, more transparent */}
+      <div
+        className="absolute inset-0 will-change-transform"
+        style={{
+          color: "rgba(112, 190, 250, 0.35)",
+          transform: `translate3d(0, ${layer1Y}px, 0)`,
+        }}
+      >
         <FloatingPaths position={1} />
+      </div>
+      {/* Front layer — faster, slightly more visible */}
+      <div
+        className="absolute inset-0 will-change-transform"
+        style={{
+          color: "rgba(112, 190, 250, 0.5)",
+          transform: `translate3d(0, ${layer2Y}px, 0)`,
+        }}
+      >
         <FloatingPaths position={-1} />
       </div>
     </div>
   );
-}
+});

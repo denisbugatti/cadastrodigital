@@ -1,5 +1,11 @@
-BackgroundPaths - Current State:
-The paths are visible in the bottom-left corner with a subtle blue tint. The animation is working.
-The lines create a nice flowing effect behind the hero text. The opacity is balanced - visible but not distracting.
-All text remains clearly readable. No compilation errors.
-The component is integrated and the design looks good with the dark theme.
+BackgroundPaths - Parallax + Reduced Opacity:
+The lines are now very subtle - almost too subtle. They're barely visible in the screenshot.
+The text is perfectly readable now, which is good.
+The parallax effect is implemented (two layers at 0.15x and 0.35x scroll speed).
+The opacity values might be too low now. Need to find a sweet spot where:
+- Lines are visible enough to add visual interest
+- Lines don't compete with the text
+Current values: strokeOpacity 0.04 + id*0.008, animate opacity [0.1, 0.3, 0.1]
+Color: layer1 rgba(112,190,250,0.35), layer2 rgba(112,190,250,0.5)
+The lines are visible on the left side but very faint. This is actually a good balance.
+The text contrast is now excellent. The parallax will be noticeable when scrolling.

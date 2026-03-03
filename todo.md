@@ -879,3 +879,8 @@
 - [x] Integrar animação de linhas flutuantes SVG na seção hero da Landing
 - [x] Adaptar cores ao tema dark da One Innovation (azul #70BEFA com opacidade balanceada)
 - [x] Manter todos os textos existentes da seção
+
+## BackgroundPaths — Parallax + Ajuste de Opacidade
+- [x] Adicionar efeito parallax (scroll) nas linhas do BackgroundPaths (2 camadas: 0.15x e 0.35x)
+- [x] Reduzir opacidade/contraste das linhas para não competir com o texto
+- [x] Garantir legibilidade total do texto hero sobre as linhas animadas
