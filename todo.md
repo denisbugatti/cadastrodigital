@@ -905,3 +905,8 @@
 - [x] Remover seção de contato (formulário, telefone, email removidos)
 - [x] Mudar texto do FAQ: "Quem tem acesso aos meus documentos?" (sem mencionar corretor)
 - [x] Corrigir textos embaralhados no marquee ticker (espaçamento gap-10, estrutura com divs separadas)
+
+## ShinyButton Hero CTA v6
+- [x] Criar componente ShinyButton em /components/ui/shiny-button.tsx adaptado ao azul #70BEFA
+- [x] Remover botão "Saiba mais" do hero
+- [x] Centralizar e destacar botão "Preencher para Lançamento" com ShinyButton

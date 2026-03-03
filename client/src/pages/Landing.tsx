@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { ShinyButton } from "@/components/ui/shiny-button";
 
 /* ─── Constants ─── */
 const ACCENT = "#70BEFA";
@@ -400,26 +401,13 @@ export default function Landing() {
           </Reveal>
 
           <Reveal delay={0.3}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => setModalOpen(true)}
-                className="glow-btn relative px-8 py-4 rounded-xl text-base font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: "linear-gradient(135deg, #70BEFA, #3b82f6)" }}
-              >
-                <span className="flex items-center gap-2">
+            <div className="flex items-center justify-center">
+              <ShinyButton onClick={() => setModalOpen(true)}>
+                <span className="flex items-center gap-3">
                   Preencher para Lançamento
                   <ArrowRight className="w-5 h-5" />
                 </span>
-              </button>
-              <button
-                onClick={() => {
-                  const el = document.getElementById("sobre");
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="px-6 py-4 rounded-xl text-base font-medium text-white/60 hover:text-white border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 hover:bg-white/[0.03] bg-transparent cursor-pointer"
-              >
-                Saiba mais
-              </button>
+              </ShinyButton>
             </div>
           </Reveal>
 
