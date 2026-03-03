@@ -267,6 +267,16 @@ export const customAuthRouter = router({
 
       await staffDb.markInviteUsed(invite.id);
 
+      // If the invite has an auto-created form, assign it to the new staff user
+      if ((invite as any).formId) {
+        try {
+          const { updateForm } = await import("./db");
+          await updateForm((invite as any).formId, { assignedCorretorId: id });
+        } catch (err) {
+          console.error("[AcceptInvite] Failed to assign form to corretor:", err);
+        }
+      }
+
       const token = await createStaffSessionToken({
         id,
         email: invite.email,

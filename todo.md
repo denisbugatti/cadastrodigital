@@ -1005,3 +1005,13 @@
 - [x] Permitir criar, renomear e excluir pastas na UI
 - [x] Permitir mover respostas para pastas via seleção
 - [x] Filtrar respostas por pasta selecionada
+
+## Cópia Automática de Formulário ao Convidar Corretor
+- [x] Ao enviar convite para corretor, criar cópia automática do formulário One Innovation
+- [x] Nome do formulário copiado = nome de usuário do corretor
+- [x] Slug do formulário copiado = nome de usuário do corretor (com - para nomes compostos)
+- [x] Atribuir automaticamente o formulário copiado ao corretor convidado
+- [x] Corretor ao aceitar convite já vai para dashboard com respostas (mesmo sem respostas)
+- [x] Adicionar filtro por data de criação na página de respostas do corretor
+- [x] Adicionar filtro por data de edição na página de respostas do corretor
+- [x] Manter filtro por status existente

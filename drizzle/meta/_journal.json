@@ -120,6 +120,13 @@
       "when": 1772569791040,
       "tag": "0016_high_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1772570772408,
+      "tag": "0017_magical_dracula",
+      "breakpoints": true
     }
   ]
 }

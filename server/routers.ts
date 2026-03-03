@@ -201,7 +201,7 @@ export const appRouter = router({
         }
         const token = generateInviteToken();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-        await staffDb.createInvite({
+        const { id: inviteId } = await staffDb.createInvite({
           email: input.email.toLowerCase(),
           token,
           role: input.role as any,
@@ -216,7 +216,32 @@ export const appRouter = router({
           inviterName: ctx.user.name || "Administrador",
           role: input.role,
           inviteUrl,
+          inviteeName: input.name,
         });
+
+        // Auto-duplicate the main form for corretores
+        if (input.role === "corretor" && input.name) {
+          try {
+            const mainForm = await db.getMainPublishedForm(ctx.user.id);
+            if (mainForm) {
+              // Create a published copy with the corretor's name as title/slug
+              // The form will be assigned to the corretor once they accept the invite
+              // For now, store the invite ID in a temporary way — we'll assign after acceptance
+              const { id: newFormId, slug } = await db.duplicateFormForCorretor(
+                mainForm.id,
+                ctx.user.id,
+                input.name,
+                0, // temporary — will be updated when corretor accepts invite
+              );
+              // Store the new form ID in the invite for later assignment
+              await staffDb.updateInvite(inviteId, { formId: newFormId } as any);
+            }
+          } catch (err) {
+            // Don't fail the invite if form duplication fails
+            console.error("[Invite] Failed to auto-duplicate form for corretor:", err);
+          }
+        }
+
         return { success: true, token };
       }),
 

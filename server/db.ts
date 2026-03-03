@@ -290,6 +290,81 @@ export async function duplicateForm(
   });
 }
 
+/**
+ * Duplicate a form specifically for a corretor.
+ * Creates a published copy with the corretor's name as title and slug,
+ * and assigns the form to the corretor via assignedCorretorId.
+ */
+export async function duplicateFormForCorretor(
+  sourceFormId: number,
+  userId: number,
+  corretorName: string,
+  staffUserId: number,
+) {
+  return withDbRetry(async (db) => {
+    const original = await db.select().from(forms).where(eq(forms.id, sourceFormId)).limit(1);
+    if (!original[0]) throw new Error("Source form not found");
+    const o = original[0];
+
+    // Generate slug from corretor name: lowercase, replace spaces with hyphens, remove special chars
+    const baseSlug = corretorName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remove accents
+      .replace(/[^a-z0-9\s-]/g, "") // remove special chars
+      .trim()
+      .replace(/\s+/g, "-"); // spaces to hyphens
+
+    // Check if slug already exists, if so append a number
+    let slug = baseSlug;
+    let attempt = 0;
+    while (true) {
+      const existing = await db.select({ id: forms.id }).from(forms).where(eq(forms.slug, slug)).limit(1);
+      if (!existing[0]) break;
+      attempt++;
+      slug = `${baseSlug}-${attempt}`;
+    }
+
+    const newSharing = o.sharing ? { ...(o.sharing as any), slug } : { slug };
+    const result = await db.insert(forms).values({
+      slug,
+      userId,
+      title: corretorName,
+      description: o.description,
+      questions: o.questions,
+      design: o.design,
+      webhook: o.webhook,
+      sharing: newSharing,
+      workspaceId: o.workspaceId,
+      status: "published",
+      color: o.color,
+      responseCount: 0,
+      assignedCorretorId: staffUserId,
+    });
+    return { id: result[0].insertId, slug };
+  });
+}
+
+/**
+ * Get the main published form (One Innovation) — the first published form by the owner.
+ */
+export async function getMainPublishedForm(userId: number) {
+  return withDbRetry(async (db) => {
+    const result = await db.select()
+      .from(forms)
+      .where(
+        and(
+          eq(forms.userId, userId),
+          eq(forms.status, "published"),
+          isNull(forms.assignedCorretorId)
+        )
+      )
+      .orderBy(forms.createdAt)
+      .limit(1);
+    return result[0] ?? null;
+  });
+}
+
 /* ─── Form Responses ─── */
 
 /**

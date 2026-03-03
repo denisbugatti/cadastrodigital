@@ -101,6 +101,8 @@ export const invites = mysqlTable("invites", {
   expiresAt: timestamp("expiresAt").notNull(),
   /** When the invite was used (null if not yet used) */
   usedAt: timestamp("usedAt"),
+  /** Form ID auto-created for this corretor (null if not a corretor or no form created) */
+  formId: int("formId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

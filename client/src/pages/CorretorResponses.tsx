@@ -15,7 +15,7 @@ import {
   Calendar, ChevronRight, ChevronLeft, Timer, Lock, LogOut,
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
-  FolderInput, FolderMinus, Check, Palette,
+  FolderInput, FolderMinus, Check, Palette, CalendarDays, SortAsc, SortDesc,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -573,6 +573,12 @@ export default function CorretorResponses() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  // Date filters
+  const [dateFilterType, setDateFilterType] = useState<"created" | "updated">("created");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [editingFolder, setEditingFolder] = useState<{ id: number; name: string; color: string } | null>(null);
   const [contextMenuFolderId, setContextMenuFolderId] = useState<number | null>(null);
@@ -783,8 +789,37 @@ export default function CorretorResponses() {
     else if (statusFilter === "rejected") result = result.filter((r: any) => r.validationStatus === "rejected");
     else if (statusFilter === "pending") result = result.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
 
+    // Filter by date
+    if (dateFrom || dateTo) {
+      result = result.filter((r: any) => {
+        const dateField = dateFilterType === "created" ? r.createdAt : r.updatedAt;
+        if (!dateField) return true;
+        const d = new Date(dateField);
+        if (dateFrom) {
+          const from = new Date(dateFrom);
+          from.setHours(0, 0, 0, 0);
+          if (d < from) return false;
+        }
+        if (dateTo) {
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          if (d > to) return false;
+        }
+        return true;
+      });
+    }
+
+    // Sort by date
+    result.sort((a: any, b: any) => {
+      const dateFieldA = dateFilterType === "created" ? a.createdAt : a.updatedAt;
+      const dateFieldB = dateFilterType === "created" ? b.createdAt : b.updatedAt;
+      const dA = new Date(dateFieldA || 0).getTime();
+      const dB = new Date(dateFieldB || 0).getTime();
+      return sortOrder === "desc" ? dB - dA : dA - dB;
+    });
+
     return result;
-  }, [responses, statusFilter, selectedFolderId, folderAssignments]);
+  }, [responses, statusFilter, selectedFolderId, folderAssignments, dateFrom, dateTo, dateFilterType, sortOrder]);
 
   // Stats
   const stats = useMemo(() => {
@@ -816,7 +851,7 @@ export default function CorretorResponses() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchParam, selectedFormId, selectedFolderId]);
+  }, [statusFilter, searchParam, selectedFormId, selectedFolderId, dateFrom, dateTo, dateFilterType, sortOrder]);
 
   const isLoading = meLoading || formsLoading;
 
@@ -1147,7 +1182,112 @@ export default function CorretorResponses() {
               </span>
             </button>
           ))}
+
+          {/* Date filter toggle */}
+          <button
+            onClick={() => setShowDateFilter(!showDateFilter)}
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium whitespace-nowrap transition-all border active:scale-[0.97] ${
+              showDateFilter || dateFrom || dateTo
+                ? "bg-brand/10 text-brand border-brand/20"
+                : "bg-card text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
+            }`}
+          >
+            <CalendarDays size={11} />
+            Data
+            {(dateFrom || dateTo) && (
+              <span className="w-1.5 h-1.5 rounded-full bg-brand" />
+            )}
+          </button>
+
+          {/* Sort toggle */}
+          <button
+            onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium whitespace-nowrap transition-all border active:scale-[0.97] bg-card text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
+            title={sortOrder === "desc" ? "Mais recentes primeiro" : "Mais antigos primeiro"}
+          >
+            {sortOrder === "desc" ? <SortDesc size={11} /> : <SortAsc size={11} />}
+            {sortOrder === "desc" ? "Recentes" : "Antigos"}
+          </button>
         </div>
+
+        {/* ─── Date Filter Panel ─── */}
+        <AnimatePresence>
+          {showDateFilter && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-card rounded-xl border border-border p-3 sm:p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-display font-bold text-foreground flex items-center gap-1.5">
+                    <CalendarDays size={12} className="text-brand" />
+                    Filtrar por Data
+                  </h4>
+                  {(dateFrom || dateTo) && (
+                    <button
+                      onClick={() => { setDateFrom(""); setDateTo(""); }}
+                      className="text-[10px] text-muted-foreground hover:text-foreground font-body flex items-center gap-1 transition-colors"
+                    >
+                      <X size={10} /> Limpar
+                    </button>
+                  )}
+                </div>
+
+                {/* Date type selector */}
+                <div className="flex gap-1.5">
+                  {[
+                    { id: "created" as const, label: "Data de Criação" },
+                    { id: "updated" as const, label: "Data de Edição" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setDateFilterType(opt.id)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all border active:scale-[0.97] ${
+                        dateFilterType === opt.id
+                          ? "bg-brand/10 text-brand border-brand/20"
+                          : "bg-transparent text-muted-foreground border-border hover:border-brand/20"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Date range inputs */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-muted-foreground font-body mb-1 block">De</label>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-full h-8 px-2 rounded-lg border border-border bg-background text-foreground text-[11px] font-body focus:outline-none focus:ring-1 focus:ring-brand/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground font-body mb-1 block">Até</label>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-full h-8 px-2 rounded-lg border border-border bg-background text-foreground text-[11px] font-body focus:outline-none focus:ring-1 focus:ring-brand/30"
+                    />
+                  </div>
+                </div>
+
+                {(dateFrom || dateTo) && (
+                  <p className="text-[10px] text-muted-foreground font-body">
+                    Mostrando {filteredResponses.length} resultado(s)
+                    {dateFrom && ` a partir de ${new Date(dateFrom + "T00:00:00").toLocaleDateString("pt-BR")}`}
+                    {dateTo && ` até ${new Date(dateTo + "T00:00:00").toLocaleDateString("pt-BR")}`}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ─── Results info ─── */}
         {searchParam && (
