@@ -438,3 +438,42 @@ export const staffPushSubscriptions = mysqlTable("staff_push_subscriptions", {
 
 export type StaffPushSubscription = typeof staffPushSubscriptions.$inferSelect;
 export type InsertStaffPushSubscription = typeof staffPushSubscriptions.$inferInsert;
+
+/**
+ * Response folders — corretores can create folders to organize responses.
+ * Each folder belongs to a staff user and has a name and optional color.
+ */
+export const responseFolders = mysqlTable("response_folders", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Staff user who owns this folder */
+  staffUserId: int("staffUserId").notNull(),
+  /** Folder name */
+  name: varchar("name", { length: 200 }).notNull(),
+  /** Optional color for visual distinction (hex or tailwind color name) */
+  color: varchar("color", { length: 30 }).default("#6366f1"),
+  /** Sort order */
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ResponseFolder = typeof responseFolders.$inferSelect;
+export type InsertResponseFolder = typeof responseFolders.$inferInsert;
+
+/**
+ * Response-folder assignments — maps responses to folders.
+ * A response can be in one folder per staff user.
+ */
+export const responseFolderAssignments = mysqlTable("response_folder_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The response being organized */
+  responseId: int("responseId").notNull(),
+  /** The folder it belongs to */
+  folderId: int("folderId").notNull(),
+  /** Staff user who made this assignment */
+  staffUserId: int("staffUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ResponseFolderAssignment = typeof responseFolderAssignments.$inferSelect;
+export type InsertResponseFolderAssignment = typeof responseFolderAssignments.$inferInsert;

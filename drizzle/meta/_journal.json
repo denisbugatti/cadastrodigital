@@ -113,6 +113,13 @@
       "when": 1772568637999,
       "tag": "0015_motionless_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1772569791040,
+      "tag": "0016_high_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 /**
- * Corretor Responses Page — Pixel-perfect redesign.
+ * Corretor Responses Page — With Folder Organization.
  * Simplified view for corretores: only responses for assigned forms.
- * Focus on validation workflow with excellent mobile/web UX.
+ * Includes folder system for organizing responses.
  */
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -14,11 +14,20 @@ import {
   Hash, Search, X, ShieldCheck, ShieldAlert, Eye, Phone,
   Calendar, ChevronRight, ChevronLeft, Timer, Lock, LogOut,
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
+  FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
+  FolderInput, FolderMinus, Check, Palette,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ITEMS_PER_PAGE = 10;
+
+const FOLDER_COLORS = [
+  "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",
+  "#ec4899", "#f43f5e", "#ef4444", "#f97316",
+  "#eab308", "#84cc16", "#22c55e", "#14b8a6",
+  "#06b6d4", "#3b82f6", "#6b7280", "#78716c",
+];
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -44,38 +53,23 @@ function useDebounce<T>(value: T, delay: number): T {
 function ValidationBadge({ status }: { status: string }) {
   const configs: Record<string, { icon: any; label: string; bg: string; text: string; border: string }> = {
     approved: {
-      icon: ShieldCheck,
-      label: "Aprovado",
-      bg: "bg-green-500/10",
-      text: "text-green-600 dark:text-green-400",
-      border: "border-green-500/20",
+      icon: ShieldCheck, label: "Aprovado",
+      bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", border: "border-green-500/20",
     },
     rejected: {
-      icon: ShieldAlert,
-      label: "Rejeitado",
-      bg: "bg-red-500/10",
-      text: "text-red-600 dark:text-red-400",
-      border: "border-red-500/20",
+      icon: ShieldAlert, label: "Rejeitado",
+      bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", border: "border-red-500/20",
     },
     in_review: {
-      icon: Eye,
-      label: "Em revisão",
-      bg: "bg-blue-500/10",
-      text: "text-blue-600 dark:text-blue-400",
-      border: "border-blue-500/20",
+      icon: Eye, label: "Em revisão",
+      bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/20",
     },
   };
-
   const config = configs[status] || {
-    icon: Clock,
-    label: "Pendente",
-    bg: "bg-amber-500/10",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20",
+    icon: Clock, label: "Pendente",
+    bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/20",
   };
-
   const Icon = config.icon;
-
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${config.bg} ${config.text} ${config.border}`}>
       <Icon size={10} />
@@ -91,14 +85,254 @@ function formatTime(seconds: number) {
   return sec > 0 ? `${min}min ${sec}s` : `${min}min`;
 }
 
+// ─── Folder Color Dot ───
+function FolderDot({ color, size = 8 }: { color: string; size?: number }) {
+  return (
+    <span
+      className="rounded-full shrink-0 inline-block"
+      style={{ width: size, height: size, backgroundColor: color }}
+    />
+  );
+}
+
+// ─── Create Folder Dialog ───
+function CreateFolderDialog({
+  open,
+  onClose,
+  onSubmit,
+  loading,
+  editFolder,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (name: string, color: string) => void;
+  loading: boolean;
+  editFolder?: { id: number; name: string; color: string } | null;
+}) {
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#6366f1");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      if (editFolder) {
+        setName(editFolder.name);
+        setColor(editFolder.color);
+      } else {
+        setName("");
+        setColor("#6366f1");
+      }
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open, editFolder]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm p-5 z-10"
+      >
+        <h3 className="text-sm font-display font-bold text-foreground mb-4">
+          {editFolder ? "Editar Pasta" : "Nova Pasta"}
+        </h3>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] text-muted-foreground font-body mb-1.5 block">Nome</label>
+            <Input
+              ref={inputRef}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Aprovados, Pendentes, VIP..."
+              className="h-9 text-xs font-body"
+              maxLength={200}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && name.trim()) {
+                  onSubmit(name.trim(), color);
+                }
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] text-muted-foreground font-body mb-1.5 block">Cor</label>
+            <div className="flex flex-wrap gap-1.5">
+              {FOLDER_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`w-7 h-7 rounded-lg transition-all active:scale-90 flex items-center justify-center ${
+                    color === c ? "ring-2 ring-offset-2 ring-offset-card" : "hover:scale-110"
+                  }`}
+                  style={{ backgroundColor: c }}
+                >
+                  {color === c && <Check size={12} className="text-white" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <Button
+            variant="outline"
+            className="flex-1 h-9 text-xs"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            className="flex-1 h-9 text-xs gap-1.5"
+            onClick={() => name.trim() && onSubmit(name.trim(), color)}
+            disabled={!name.trim() || loading}
+          >
+            {loading ? <Loader2 size={13} className="animate-spin" /> : editFolder ? <Check size={13} /> : <FolderPlus size={13} />}
+            {editFolder ? "Salvar" : "Criar"}
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Folder Context Menu ───
+function FolderContextMenu({
+  folder,
+  onEdit,
+  onDelete,
+  onClose,
+}: {
+  folder: any;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      ref={menuRef}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="absolute right-0 top-full mt-1 z-20 bg-card rounded-xl border border-border shadow-xl py-1 min-w-[140px]"
+    >
+      <button
+        onClick={() => { onEdit(); onClose(); }}
+        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-foreground hover:bg-secondary transition-colors"
+      >
+        <Pencil size={12} /> Editar
+      </button>
+      <button
+        onClick={() => { onDelete(); onClose(); }}
+        className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-red-500 hover:bg-red-500/5 transition-colors"
+      >
+        <Trash2 size={12} /> Excluir
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Move to Folder Popover ───
+function MoveToFolderPopover({
+  folders,
+  currentFolderId,
+  onMove,
+  onRemove,
+  onClose,
+}: {
+  folders: any[];
+  currentFolderId: number | null;
+  onMove: (folderId: number) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const popRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popRef.current && !popRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      ref={popRef}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      className="absolute right-0 top-full mt-1 z-20 bg-card rounded-xl border border-border shadow-xl py-1 min-w-[180px]"
+    >
+      <p className="px-3 py-1.5 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+        Mover para
+      </p>
+      {folders.map((f: any) => (
+        <button
+          key={f.id}
+          onClick={() => { onMove(f.id); onClose(); }}
+          className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] hover:bg-secondary transition-colors ${
+            currentFolderId === f.id ? "text-brand font-semibold" : "text-foreground"
+          }`}
+        >
+          <FolderDot color={f.color || "#6366f1"} />
+          <span className="truncate">{f.name}</span>
+          {currentFolderId === f.id && <Check size={11} className="ml-auto text-brand" />}
+        </button>
+      ))}
+      {currentFolderId && (
+        <>
+          <div className="border-t border-border my-1" />
+          <button
+            onClick={() => { onRemove(); onClose(); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            <FolderMinus size={12} />
+            <span>Remover da pasta</span>
+          </button>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Response Card for Corretor ───
 function CorretorResponseCard({
   response,
   index,
+  folders,
+  currentFolderId,
+  onMoveToFolder,
+  onRemoveFromFolder,
 }: {
   response: any;
   index: number;
+  folders: any[];
+  currentFolderId: number | null;
+  onMoveToFolder: (responseId: number, folderId: number) => void;
+  onRemoveFromFolder: (responseId: number) => void;
 }) {
+  const [showFolderMenu, setShowFolderMenu] = useState(false);
+
   const isValidated = response.validationStatus === "approved";
   const isRejected = response.validationStatus === "rejected";
   const isInReview = response.validationStatus === "in_review";
@@ -124,6 +358,8 @@ function CorretorResponseCard({
     (v: any) => typeof v === "string" && /^\+?\d[\d\s()-]{7,}$/.test(v)
   ) as string | undefined;
 
+  const currentFolder = folders.find((f: any) => f.id === currentFolderId);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -132,7 +368,7 @@ function CorretorResponseCard({
       className={`bg-card rounded-xl border border-l-[3px] overflow-hidden transition-all shadow-sm hover:shadow-md active:shadow-sm ${statusAccent}`}
     >
       <div className="p-3.5 sm:p-4">
-        {/* Top row: Avatar + Name + Status */}
+        {/* Top row: Avatar + Name + Status + Folder button */}
         <div className="flex items-center gap-3 mb-2.5">
           <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-display font-bold text-xs shrink-0 ${avatarStyle}`}>
             {response.respondentName
@@ -156,7 +392,45 @@ function CorretorResponseCard({
               )}
             </div>
           </div>
+
+          {/* Folder action button */}
+          <div className="relative shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowFolderMenu(!showFolderMenu); }}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                currentFolderId
+                  ? "text-foreground bg-secondary/60 hover:bg-secondary"
+                  : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/60"
+              }`}
+              title="Mover para pasta"
+            >
+              {currentFolderId ? (
+                <FolderDot color={currentFolder?.color || "#6366f1"} size={10} />
+              ) : (
+                <FolderInput size={14} />
+              )}
+            </button>
+            <AnimatePresence>
+              {showFolderMenu && folders.length > 0 && (
+                <MoveToFolderPopover
+                  folders={folders}
+                  currentFolderId={currentFolderId}
+                  onMove={(folderId) => onMoveToFolder(response.id, folderId)}
+                  onRemove={() => onRemoveFromFolder(response.id)}
+                  onClose={() => setShowFolderMenu(false)}
+                />
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
+        {/* Current folder indicator */}
+        {currentFolder && (
+          <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-md bg-secondary/40 border border-border/50">
+            <FolderDot color={currentFolder.color || "#6366f1"} size={7} />
+            <span className="text-[9px] text-muted-foreground font-medium truncate">{currentFolder.name}</span>
+          </div>
+        )}
 
         {/* Protocol Badge */}
         {response.protocolCode && (
@@ -169,7 +443,7 @@ function CorretorResponseCard({
           </div>
         )}
 
-        {/* Info Grid — compact */}
+        {/* Info Grid */}
         <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
           {response.respondentEmail && (
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-body">
@@ -207,21 +481,11 @@ function CorretorResponseCard({
             }`}
           >
             {isValidated ? (
-              <>
-                <ShieldCheck size={13} />
-                Aprovado — Ver Detalhes
-              </>
+              <><ShieldCheck size={13} /> Aprovado — Ver Detalhes</>
             ) : isRejected ? (
-              <>
-                <ShieldAlert size={13} />
-                Revisar Reprovação
-              </>
+              <><ShieldAlert size={13} /> Revisar Reprovação</>
             ) : (
-              <>
-                <CheckCircle2 size={13} />
-                Validar Respostas
-                <ArrowRight size={13} />
-              </>
+              <><CheckCircle2 size={13} /> Validar Respostas <ArrowRight size={13} /></>
             )}
           </button>
         </Link>
@@ -297,6 +561,7 @@ function Pagination({
 // ─── Main Component ───
 export default function CorretorResponses() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
 
   // Get current user info
   const { data: me, isLoading: meLoading } = trpc.customAuth.me.useQuery();
@@ -307,6 +572,11 @@ export default function CorretorResponses() {
   const searchRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<{ id: number; name: string; color: string } | null>(null);
+  const [contextMenuFolderId, setContextMenuFolderId] = useState<number | null>(null);
+  const [showFolderPanel, setShowFolderPanel] = useState(false);
 
   const searchParam = useMemo(() => debouncedSearch.trim() || undefined, [debouncedSearch]);
 
@@ -343,6 +613,94 @@ export default function CorretorResponses() {
     { enabled: !!selectedFormId }
   );
 
+  // ─── Folders ───
+  const { data: folders = [], isLoading: foldersLoading } = trpc.folders.list.useQuery(
+    undefined,
+    { enabled: !!me && me.type === "staff" }
+  );
+  const { data: folderAssignments = [] } = trpc.folders.assignments.useQuery(
+    undefined,
+    { enabled: !!me && me.type === "staff" }
+  );
+
+  // Build a map: responseId -> folderId
+  const responseToFolder = useMemo(() => {
+    const map: Record<number, number> = {};
+    folderAssignments.forEach((a: any) => {
+      map[a.responseId] = a.folderId;
+    });
+    return map;
+  }, [folderAssignments]);
+
+  const createFolderMutation = trpc.folders.create.useMutation({
+    onSuccess: () => {
+      utils.folders.list.invalidate();
+      toast.success("Pasta criada!");
+      setShowCreateFolder(false);
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao criar pasta"),
+  });
+
+  const updateFolderMutation = trpc.folders.update.useMutation({
+    onSuccess: () => {
+      utils.folders.list.invalidate();
+      toast.success("Pasta atualizada!");
+      setEditingFolder(null);
+      setShowCreateFolder(false);
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao atualizar pasta"),
+  });
+
+  const deleteFolderMutation = trpc.folders.delete.useMutation({
+    onSuccess: () => {
+      utils.folders.list.invalidate();
+      utils.folders.assignments.invalidate();
+      if (selectedFolderId === contextMenuFolderId) setSelectedFolderId(null);
+      toast.success("Pasta excluída!");
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao excluir pasta"),
+  });
+
+  const assignMutation = trpc.folders.assign.useMutation({
+    onSuccess: () => {
+      utils.folders.assignments.invalidate();
+      utils.folders.list.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao mover resposta"),
+  });
+
+  const unassignMutation = trpc.folders.unassign.useMutation({
+    onSuccess: () => {
+      utils.folders.assignments.invalidate();
+      utils.folders.list.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao remover da pasta"),
+  });
+
+  const handleMoveToFolder = (responseId: number, folderId: number) => {
+    assignMutation.mutate({ responseId, folderId });
+    toast.success("Resposta movida!");
+  };
+
+  const handleRemoveFromFolder = (responseId: number) => {
+    unassignMutation.mutate({ responseId });
+    toast.success("Removida da pasta");
+  };
+
+  const handleCreateOrEditFolder = (name: string, color: string) => {
+    if (editingFolder) {
+      updateFolderMutation.mutate({ folderId: editingFolder.id, name, color });
+    } else {
+      createFolderMutation.mutate({ name, color });
+    }
+  };
+
+  const handleDeleteFolder = (folderId: number) => {
+    if (confirm("Excluir esta pasta? As respostas não serão apagadas.")) {
+      deleteFolderMutation.mutate({ folderId });
+    }
+  };
+
   // Logout
   const logoutMutation = trpc.customAuth.logout.useMutation({
     onSuccess: () => {
@@ -366,17 +724,13 @@ export default function CorretorResponses() {
         toast.error('Notificações push não suportadas neste navegador');
         return;
       }
-
       const registration = await navigator.serviceWorker.ready;
       const existingSub = await registration.pushManager.getSubscription();
-
       if (pushStatus?.hasActiveSubscription && existingSub) {
-        // Unsubscribe
         await unsubscribePush.mutateAsync({ endpoint: existingSub.endpoint });
         await existingSub.unsubscribe();
         toast.success('Notificações desativadas');
       } else {
-        // Subscribe
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           toast.error('Permissão de notificação negada');
@@ -397,7 +751,7 @@ export default function CorretorResponses() {
           p256dh: json.keys!.p256dh!,
           auth: json.keys!.auth!,
         });
-        toast.success('Notificações ativadas! Você receberá alertas de novas respostas.');
+        toast.success('Notificações ativadas!');
       }
     } catch (err: any) {
       console.error('[Push]', err);
@@ -412,6 +766,17 @@ export default function CorretorResponses() {
     if (!responses) return [];
     let result = [...responses];
 
+    // Filter by folder
+    if (selectedFolderId !== null) {
+      const folderResponseIds = new Set(
+        folderAssignments
+          .filter((a: any) => a.folderId === selectedFolderId)
+          .map((a: any) => a.responseId)
+      );
+      result = result.filter((r: any) => folderResponseIds.has(r.id));
+    }
+
+    // Filter by status
     if (statusFilter === "complete") result = result.filter((r: any) => r.isComplete);
     else if (statusFilter === "partial") result = result.filter((r: any) => !r.isComplete);
     else if (statusFilter === "approved") result = result.filter((r: any) => r.validationStatus === "approved");
@@ -419,18 +784,28 @@ export default function CorretorResponses() {
     else if (statusFilter === "pending") result = result.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
 
     return result;
-  }, [responses, statusFilter]);
+  }, [responses, statusFilter, selectedFolderId, folderAssignments]);
 
   // Stats
   const stats = useMemo(() => {
     if (!responses) return { total: 0, pending: 0, approved: 0, rejected: 0 };
+    // If filtering by folder, show folder-specific stats
+    let base = [...responses];
+    if (selectedFolderId !== null) {
+      const folderResponseIds = new Set(
+        folderAssignments
+          .filter((a: any) => a.folderId === selectedFolderId)
+          .map((a: any) => a.responseId)
+      );
+      base = base.filter((r: any) => folderResponseIds.has(r.id));
+    }
     return {
-      total: responses.length,
-      pending: responses.filter((r: any) => !r.validationStatus || r.validationStatus === "pending" || r.validationStatus === "in_review").length,
-      approved: responses.filter((r: any) => r.validationStatus === "approved").length,
-      rejected: responses.filter((r: any) => r.validationStatus === "rejected").length,
+      total: base.length,
+      pending: base.filter((r: any) => !r.validationStatus || r.validationStatus === "pending" || r.validationStatus === "in_review").length,
+      approved: base.filter((r: any) => r.validationStatus === "approved").length,
+      rejected: base.filter((r: any) => r.validationStatus === "rejected").length,
     };
-  }, [responses]);
+  }, [responses, selectedFolderId, folderAssignments]);
 
   // Pagination
   const totalPages = Math.ceil(filteredResponses.length / ITEMS_PER_PAGE);
@@ -441,7 +816,7 @@ export default function CorretorResponses() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchParam, selectedFormId]);
+  }, [statusFilter, searchParam, selectedFormId, selectedFolderId]);
 
   const isLoading = meLoading || formsLoading;
 
@@ -493,11 +868,7 @@ export default function CorretorResponses() {
           <p className="text-xs text-muted-foreground font-body mb-5">
             Você ainda não tem formulários atribuídos. Entre em contato com o administrador.
           </p>
-          <Button
-            variant="outline"
-            className="gap-2 h-9 text-xs"
-            onClick={() => logoutMutation.mutate()}
-          >
+          <Button variant="outline" className="gap-2 h-9 text-xs" onClick={() => logoutMutation.mutate()}>
             <LogOut size={14} /> Sair
           </Button>
         </div>
@@ -520,6 +891,23 @@ export default function CorretorResponses() {
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {/* Folder toggle */}
+              <button
+                className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                  showFolderPanel
+                    ? "text-brand bg-brand/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+                onClick={() => setShowFolderPanel(!showFolderPanel)}
+                title="Pastas"
+              >
+                {showFolderPanel ? <FolderOpen size={14} /> : <Folder size={14} />}
+                {folders.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-brand text-white text-[7px] font-bold rounded-full flex items-center justify-center ring-2 ring-card">
+                    {folders.length}
+                  </span>
+                )}
+              </button>
               {/* Push notification bell */}
               <button
                 className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
@@ -572,6 +960,118 @@ export default function CorretorResponses() {
                 {form.title}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* ─── Folder Panel ─── */}
+        <AnimatePresence>
+          {showFolderPanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-card rounded-xl border border-border p-3 sm:p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
+                    <Folder size={13} className="text-brand" />
+                    Pastas
+                  </h3>
+                  <button
+                    onClick={() => { setEditingFolder(null); setShowCreateFolder(true); }}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-brand bg-brand/10 hover:bg-brand/15 transition-all active:scale-95"
+                  >
+                    <FolderPlus size={11} /> Nova
+                  </button>
+                </div>
+
+                {/* All responses button */}
+                <button
+                  onClick={() => setSelectedFolderId(null)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium transition-all active:scale-[0.98] border ${
+                    selectedFolderId === null
+                      ? "bg-brand/10 text-brand border-brand/20"
+                      : "bg-transparent text-muted-foreground border-transparent hover:bg-secondary/60 hover:text-foreground"
+                  }`}
+                >
+                  <Inbox size={13} />
+                  <span>Todas as respostas</span>
+                  <span className="ml-auto text-[9px] font-bold bg-muted px-1.5 py-0.5 rounded-full">
+                    {responses?.length || 0}
+                  </span>
+                </button>
+
+                {/* Folder list */}
+                {folders.length === 0 && !foldersLoading ? (
+                  <p className="text-[10px] text-muted-foreground/60 text-center py-2 font-body">
+                    Crie pastas para organizar suas respostas
+                  </p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {folders.map((folder: any) => (
+                      <div key={folder.id} className="relative group">
+                        <button
+                          onClick={() => setSelectedFolderId(folder.id === selectedFolderId ? null : folder.id)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-medium transition-all active:scale-[0.98] border ${
+                            selectedFolderId === folder.id
+                              ? "bg-brand/10 text-brand border-brand/20"
+                              : "bg-transparent text-muted-foreground border-transparent hover:bg-secondary/60 hover:text-foreground"
+                          }`}
+                        >
+                          <FolderDot color={folder.color || "#6366f1"} size={9} />
+                          <span className="truncate">{folder.name}</span>
+                          <span className="ml-auto text-[9px] font-bold bg-muted px-1.5 py-0.5 rounded-full">
+                            {folder.responseCount || 0}
+                          </span>
+                        </button>
+
+                        {/* Context menu trigger */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContextMenuFolderId(contextMenuFolderId === folder.id ? null : folder.id);
+                          }}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <MoreVertical size={12} />
+                        </button>
+
+                        <AnimatePresence>
+                          {contextMenuFolderId === folder.id && (
+                            <FolderContextMenu
+                              folder={folder}
+                              onEdit={() => {
+                                setEditingFolder({ id: folder.id, name: folder.name, color: folder.color || "#6366f1" });
+                                setShowCreateFolder(true);
+                              }}
+                              onDelete={() => handleDeleteFolder(folder.id)}
+                              onClose={() => setContextMenuFolderId(null)}
+                            />
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Active folder indicator ─── */}
+        {selectedFolderId !== null && !showFolderPanel && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand/5 border border-brand/10">
+            <FolderDot color={folders.find((f: any) => f.id === selectedFolderId)?.color || "#6366f1"} size={9} />
+            <span className="text-[11px] font-semibold text-brand truncate">
+              {folders.find((f: any) => f.id === selectedFolderId)?.name}
+            </span>
+            <button
+              onClick={() => setSelectedFolderId(null)}
+              className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X size={12} />
+            </button>
           </div>
         )}
 
@@ -671,6 +1171,22 @@ export default function CorretorResponses() {
                 <p className="text-sm font-display font-bold text-foreground mb-1">Nenhum resultado</p>
                 <p className="text-xs text-muted-foreground font-body">Tente buscar por outro termo.</p>
               </>
+            ) : selectedFolderId !== null ? (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+                  <FolderOpen size={24} className="text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-display font-bold text-foreground mb-1">Pasta vazia</p>
+                <p className="text-xs text-muted-foreground font-body mb-3">
+                  Mova respostas para esta pasta usando o ícone de pasta em cada card.
+                </p>
+                <button
+                  onClick={() => setSelectedFolderId(null)}
+                  className="text-xs text-brand hover:underline font-body font-medium"
+                >
+                  Ver todas as respostas
+                </button>
+              </>
             ) : statusFilter !== "all" ? (
               <>
                 <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
@@ -705,6 +1221,10 @@ export default function CorretorResponses() {
                   key={response.id}
                   response={response}
                   index={index}
+                  folders={folders}
+                  currentFolderId={responseToFolder[response.id] || null}
+                  onMoveToFolder={handleMoveToFolder}
+                  onRemoveFromFolder={handleRemoveFromFolder}
                 />
               ))}
             </div>
@@ -720,6 +1240,19 @@ export default function CorretorResponses() {
           </>
         )}
       </main>
+
+      {/* ─── Create/Edit Folder Dialog ─── */}
+      <AnimatePresence>
+        {showCreateFolder && (
+          <CreateFolderDialog
+            open={showCreateFolder}
+            onClose={() => { setShowCreateFolder(false); setEditingFolder(null); }}
+            onSubmit={handleCreateOrEditFolder}
+            loading={createFolderMutation.isPending || updateFolderMutation.isPending}
+            editFolder={editingFolder}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

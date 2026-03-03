@@ -995,3 +995,13 @@
 ## Notificação Push ao Corretor + Redirect Automático
 - [x] Notificação push ao corretor quando nova resposta chegar no formulário atribuído a ele
 - [x] Redirecionar corretores automaticamente para /corretor/respostas após login (em vez do dashboard geral)
+
+## Pastas para Corretores Organizarem Respostas
+- [x] Criar tabela response_folders no schema (id, staffUserId, name, color, createdAt)
+- [x] Adicionar campo folderId na tabela form_responses para associar resposta a pasta
+- [x] Criar procedures tRPC para CRUD de pastas (criar, listar, renomear, excluir)
+- [x] Criar procedure para mover respostas entre pastas
+- [x] Implementar UI de pastas na página CorretorResponses (sidebar/tabs de pastas)
+- [x] Permitir criar, renomear e excluir pastas na UI
+- [x] Permitir mover respostas para pastas via seleção
+- [x] Filtrar respostas por pasta selecionada

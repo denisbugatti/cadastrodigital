@@ -1246,6 +1246,139 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Response Folders (Corretor organization) ───
+  folders: router({
+    list: publicProcedure.query(async ({ ctx }) => {
+      const cookie = require("cookie");
+      const cookies = cookie.parse(ctx.req.headers.cookie || "");
+      const token = cookies[COOKIE_NAME];
+      const session = await verifySessionToken(token);
+      if (!session || session.type !== "staff") {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+      }
+      const [folders, counts] = await Promise.all([
+        db.getResponseFoldersByStaff(session.staffUserId),
+        db.getFolderCounts(session.staffUserId),
+      ]);
+      return folders.map((f: any) => ({ ...f, responseCount: counts[f.id] || 0 }));
+    }),
+
+    create: publicProcedure
+      .input(z.object({
+        name: z.string().min(1).max(200),
+        color: z.string().max(30).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        const result = await db.createResponseFolder({
+          staffUserId: session.staffUserId,
+          name: input.name,
+          color: input.color || "#6366f1",
+        });
+        return { id: result.id, success: true };
+      }),
+
+    update: publicProcedure
+      .input(z.object({
+        folderId: z.number(),
+        name: z.string().min(1).max(200).optional(),
+        color: z.string().max(30).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        const updateData: any = {};
+        if (input.name !== undefined) updateData.name = input.name;
+        if (input.color !== undefined) updateData.color = input.color;
+        await db.updateResponseFolder(input.folderId, session.staffUserId, updateData);
+        return { success: true };
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ folderId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        await db.deleteResponseFolder(input.folderId, session.staffUserId);
+        return { success: true };
+      }),
+
+    assign: publicProcedure
+      .input(z.object({
+        responseId: z.number(),
+        folderId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        await db.assignResponseToFolder(input.responseId, input.folderId, session.staffUserId);
+        return { success: true };
+      }),
+
+    unassign: publicProcedure
+      .input(z.object({ responseId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        await db.removeResponseFromFolder(input.responseId, session.staffUserId);
+        return { success: true };
+      }),
+
+    batchAssign: publicProcedure
+      .input(z.object({
+        responseIds: z.array(z.number()),
+        folderId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        await db.batchAssignResponsesToFolder(input.responseIds, input.folderId, session.staffUserId);
+        return { success: true, count: input.responseIds.length };
+      }),
+
+    assignments: publicProcedure.query(async ({ ctx }) => {
+      const cookie = require("cookie");
+      const cookies = cookie.parse(ctx.req.headers.cookie || "");
+      const token = cookies[COOKIE_NAME];
+      const session = await verifySessionToken(token);
+      if (!session || session.type !== "staff") {
+        return [];
+      }
+      return db.getFolderAssignmentsByStaff(session.staffUserId);
+    }),
+  }),
+
   // ─── Corretores ───
   corretores: router({
     list: ownerFallbackProcedure.query(async ({ ctx }) => {

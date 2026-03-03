@@ -15,6 +15,8 @@ import {
   emailCadence, InsertEmailCadence,
   activityLog, InsertActivityLog,
   staffPushSubscriptions, InsertStaffPushSubscription,
+  responseFolders, InsertResponseFolder,
+  responseFolderAssignments, InsertResponseFolderAssignment,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1542,4 +1544,169 @@ export async function getFormsWithCadences(): Promise<Array<{ id: number; title:
     .innerJoin(forms, eq(emailCadence.formId, forms.id))
     .orderBy(forms.title);
   return results;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSE FOLDERS — Corretores can organize responses into folders
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Create a new response folder for a staff user.
+ */
+export async function createResponseFolder(data: InsertResponseFolder) {
+  return withDbRetry(async (db) => {
+    const result = await db.insert(responseFolders).values(data);
+    return { id: result[0].insertId };
+  });
+}
+
+/**
+ * Get all folders for a staff user.
+ */
+export async function getResponseFoldersByStaff(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    return db
+      .select()
+      .from(responseFolders)
+      .where(eq(responseFolders.staffUserId, staffUserId))
+      .orderBy(responseFolders.sortOrder, responseFolders.name);
+  });
+}
+
+/**
+ * Update a response folder (name, color, sortOrder).
+ */
+export async function updateResponseFolder(
+  folderId: number,
+  staffUserId: number,
+  data: Partial<Pick<InsertResponseFolder, "name" | "color" | "sortOrder">>
+) {
+  return withDbRetry(async (db) => {
+    await db
+      .update(responseFolders)
+      .set(data)
+      .where(and(eq(responseFolders.id, folderId), eq(responseFolders.staffUserId, staffUserId)));
+  });
+}
+
+/**
+ * Delete a response folder and all its assignments.
+ */
+export async function deleteResponseFolder(folderId: number, staffUserId: number) {
+  return withDbRetry(async (db) => {
+    // Remove all assignments first
+    await db
+      .delete(responseFolderAssignments)
+      .where(and(eq(responseFolderAssignments.folderId, folderId), eq(responseFolderAssignments.staffUserId, staffUserId)));
+    // Delete the folder
+    await db
+      .delete(responseFolders)
+      .where(and(eq(responseFolders.id, folderId), eq(responseFolders.staffUserId, staffUserId)));
+  });
+}
+
+/**
+ * Assign a response to a folder. Removes any existing assignment for this response+staff first.
+ */
+export async function assignResponseToFolder(responseId: number, folderId: number, staffUserId: number) {
+  return withDbRetry(async (db) => {
+    // Remove existing assignment for this response by this staff user
+    await db
+      .delete(responseFolderAssignments)
+      .where(
+        and(
+          eq(responseFolderAssignments.responseId, responseId),
+          eq(responseFolderAssignments.staffUserId, staffUserId)
+        )
+      );
+    // Create new assignment
+    await db.insert(responseFolderAssignments).values({
+      responseId,
+      folderId,
+      staffUserId,
+    });
+  });
+}
+
+/**
+ * Remove a response from any folder (unassign).
+ */
+export async function removeResponseFromFolder(responseId: number, staffUserId: number) {
+  return withDbRetry(async (db) => {
+    await db
+      .delete(responseFolderAssignments)
+      .where(
+        and(
+          eq(responseFolderAssignments.responseId, responseId),
+          eq(responseFolderAssignments.staffUserId, staffUserId)
+        )
+      );
+  });
+}
+
+/**
+ * Get all folder assignments for a staff user (to map responses to folders).
+ */
+export async function getFolderAssignmentsByStaff(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    return db
+      .select({
+        responseId: responseFolderAssignments.responseId,
+        folderId: responseFolderAssignments.folderId,
+      })
+      .from(responseFolderAssignments)
+      .where(eq(responseFolderAssignments.staffUserId, staffUserId));
+  });
+}
+
+/**
+ * Batch assign multiple responses to a folder.
+ */
+export async function batchAssignResponsesToFolder(
+  responseIds: number[],
+  folderId: number,
+  staffUserId: number
+) {
+  if (responseIds.length === 0) return;
+  return withDbRetry(async (db) => {
+    // Remove existing assignments for these responses
+    await db
+      .delete(responseFolderAssignments)
+      .where(
+        and(
+          inArray(responseFolderAssignments.responseId, responseIds),
+          eq(responseFolderAssignments.staffUserId, staffUserId)
+        )
+      );
+    // Create new assignments
+    const values = responseIds.map((responseId) => ({
+      responseId,
+      folderId,
+      staffUserId,
+    }));
+    await db.insert(responseFolderAssignments).values(values);
+  });
+}
+
+/**
+ * Get folder assignment counts (how many responses per folder).
+ */
+export async function getFolderCounts(staffUserId: number): Promise<Record<number, number>> {
+  return withDbRetry(async (db) => {
+    const results = await db
+      .select({
+        folderId: responseFolderAssignments.folderId,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(responseFolderAssignments)
+      .where(eq(responseFolderAssignments.staffUserId, staffUserId))
+      .groupBy(responseFolderAssignments.folderId);
+    
+    const counts: Record<number, number> = {};
+    results.forEach((r: any) => {
+      counts[r.folderId] = r.count;
+    });
+    return counts;
+  });
 }
