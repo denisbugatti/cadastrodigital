@@ -40,6 +40,8 @@ const FROM_NAME = "One Innovation";
 
 /**
  * Generic helper to send an email using a Resend template.
+ * Uses the official Resend `template` parameter with `id` and `variables`.
+ * See: https://resend.com/docs/api-reference/emails/send-email
  */
 async function sendTemplateEmail(params: {
   templateId: string;
@@ -55,12 +57,11 @@ async function sendTemplateEmail(params: {
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [params.to],
       subject: params.subject,
-      react: undefined as any,
-      html: undefined as any,
-      // @ts-ignore — Resend SDK supports template sending
-      template_id: params.templateId,
-      template_data: params.data,
-    });
+      template: {
+        id: params.templateId,
+        variables: params.data,
+      },
+    } as any);
 
     if (error) {
       console.error("[Email] Template send error:", error);

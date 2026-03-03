@@ -976,3 +976,6 @@
 - [x] Filtro por cadência ativa — botão "Cadência" no painel de filtros (Todas / Com cadência ativa / Sem cadência)
 - [x] Iniciar cadência manualmente — botão "Iniciar Cadência" no card quando não há cadência ativa, com menu para escolher tipo (Abandono/Reprovação)
 - [x] Histórico de e-mails enviados — seção expansível "Histórico de e-mails" no painel de cadência com timeline de eventos (enviados, iniciados, pausados)
+
+## Bug Fix — Convite não enviado
+- [x] Corrigido: sendTemplateEmail usava template_id/template_data (inválido), agora usa template: { id, variables } (formato correto Resend API)

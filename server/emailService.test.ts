@@ -56,8 +56,8 @@ describe("Email Service — Resend Templates", () => {
       expect(call.from).toContain("One Innovation");
       expect(call.from).toContain("one@cadastrodigital.com.br");
       expect(call.subject).toContain("João Silva");
-      expect(call.template_id).toBe("41d689fb-2ed7-469a-9e3d-6204085bd5bc");
-      expect(call.template_data).toEqual({
+      expect(call.template.id).toBe("41d689fb-2ed7-469a-9e3d-6204085bd5bc");
+      expect(call.template.variables).toEqual({
         INVITEE_NAME: "Maria Santos",
         INVITER_NAME: "João Silva",
         ROLE_DISPLAY: "Corretor(a)",
@@ -74,8 +74,8 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_data.INVITEE_NAME).toBe("Olá");
-      expect(call.template_data.ROLE_DISPLAY).toBe("Gerente");
+      expect(call.template.variables.INVITEE_NAME).toBe("Olá");
+      expect(call.template.variables.ROLE_DISPLAY).toBe("Gerente");
     });
 
     it("should map role labels correctly", async () => {
@@ -94,7 +94,7 @@ describe("Email Service — Resend Templates", () => {
           inviteUrl: "http://x.com",
         });
         const call = mockSend.mock.calls[0][0];
-        expect(call.template_data.ROLE_DISPLAY).toBe(expected);
+        expect(call.template.variables.ROLE_DISPLAY).toBe(expected);
       }
     });
   });
@@ -112,8 +112,8 @@ describe("Email Service — Resend Templates", () => {
       const call = mockSend.mock.calls[0][0];
       expect(call.to).toEqual(["cliente@test.com"]);
       expect(call.subject).toContain("ABC-123");
-      expect(call.template_id).toBe("1d4c3ca1-026d-42ef-83c7-3b37cedcb802");
-      expect(call.template_data).toEqual({
+      expect(call.template.id).toBe("1d4c3ca1-026d-42ef-83c7-3b37cedcb802");
+      expect(call.template.variables).toEqual({
         CLIENT_NAME: "Carlos Oliveira",
         PROTOCOL_CODE: "ABC-123",
         FORM_TITLE: "Cadastro One Innovation",
@@ -128,7 +128,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_data.CLIENT_NAME).toBe("Olá");
+      expect(call.template.variables.CLIENT_NAME).toBe("Olá");
     });
   });
 
@@ -144,8 +144,8 @@ describe("Email Service — Resend Templates", () => {
       expect(call.subject).toContain("Parabéns");
       expect(call.subject).toContain("Ana Paula");
       expect(call.subject).toContain("aprovado");
-      expect(call.template_id).toBe("bd17dc65-aa61-4ba9-8444-4f9baa841c2e");
-      expect(call.template_data).toEqual({ CLIENT_NAME: "Ana Paula" });
+      expect(call.template.id).toBe("bd17dc65-aa61-4ba9-8444-4f9baa841c2e");
+      expect(call.template.variables).toEqual({ CLIENT_NAME: "Ana Paula" });
     });
   });
 
@@ -161,8 +161,8 @@ describe("Email Service — Resend Templates", () => {
       expect(result).toBe(true);
       const call = mockSend.mock.calls[0][0];
       expect(call.subject).toContain("Revisão necessária");
-      expect(call.template_id).toBe("9a49a11e-5022-4e3d-bf2b-cdeb80e13ac9");
-      expect(call.template_data).toEqual({
+      expect(call.template.id).toBe("9a49a11e-5022-4e3d-bf2b-cdeb80e13ac9");
+      expect(call.template.variables).toEqual({
         CLIENT_NAME: "Pedro",
         REASON: "CPF inválido",
         FORM_URL: "https://example.com/form/123",
@@ -177,7 +177,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_data.FORM_URL).toBe("");
+      expect(call.template.variables.FORM_URL).toBe("");
     });
   });
 
@@ -193,10 +193,10 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("dd26aab4-fdf6-4d3f-97f3-5915686d4a67");
+      expect(call.template.id).toBe("dd26aab4-fdf6-4d3f-97f3-5915686d4a67");
       expect(call.subject).toContain("quase pronto");
       expect(call.subject).toContain("Cadastro Premium");
-      expect(call.template_data).toEqual({
+      expect(call.template.variables).toEqual({
         CLIENT_NAME: "Lucas",
         FORM_TITLE: "Cadastro Premium",
         FORM_URL: "https://example.com/form/1",
@@ -213,7 +213,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("9cb9b98c-7330-4280-9f15-258cbaaeca48");
+      expect(call.template.id).toBe("9cb9b98c-7330-4280-9f15-258cbaaeca48");
       expect(call.subject).toContain("oportunidade");
     });
 
@@ -227,7 +227,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("0d780f6f-08cf-45d6-9f7c-bf8afeb58358");
+      expect(call.template.id).toBe("0d780f6f-08cf-45d6-9f7c-bf8afeb58358");
       expect(call.subject).toContain("Lembrete");
     });
 
@@ -251,7 +251,7 @@ describe("Email Service — Resend Templates", () => {
         });
 
         const call = mockSend.mock.calls[0][0];
-        expect(call.template_id).toBe(expectedTemplates[(seq - 1) % 3]);
+        expect(call.template.id).toBe(expectedTemplates[(seq - 1) % 3]);
       }
     });
 
@@ -265,7 +265,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_data.CLIENT_NAME).toBe("Olá");
+      expect(call.template.variables.CLIENT_NAME).toBe("Olá");
     });
   });
 
@@ -283,9 +283,9 @@ describe("Email Service — Resend Templates", () => {
 
       expect(result).toBe(true);
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("73360690-8866-4c88-9a65-b8dc053c1ef1");
+      expect(call.template.id).toBe("73360690-8866-4c88-9a65-b8dc053c1ef1");
       expect(call.subject).toContain("ajuste necessário");
-      expect(call.template_data.REASON).toBe("Comprovante de renda desatualizado");
+      expect(call.template.variables.REASON).toBe("Comprovante de renda desatualizado");
     });
 
     it("should use rejection V2 template for sequence 2", async () => {
@@ -299,7 +299,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("7771cbf0-4b04-4254-824a-21ac3440a1ed");
+      expect(call.template.id).toBe("7771cbf0-4b04-4254-824a-21ac3440a1ed");
       expect(call.subject).toContain("quase aprovado");
     });
 
@@ -314,7 +314,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("ac1d6bb6-499e-4ab1-8794-62518cc7e0bd");
+      expect(call.template.id).toBe("ac1d6bb6-499e-4ab1-8794-62518cc7e0bd");
       expect(call.subject).toContain("Não perca sua vaga");
     });
 
@@ -330,7 +330,7 @@ describe("Email Service — Resend Templates", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_data).toEqual({
+      expect(call.template.variables).toEqual({
         CLIENT_NAME: "Maria",
         FORM_TITLE: "Cadastro One",
         FORM_URL: "http://example.com/form",
@@ -351,7 +351,7 @@ describe("Email Service — Resend Templates", () => {
       expect(result).toBe(true);
       expect(mockSend).toHaveBeenCalledOnce();
       const call = mockSend.mock.calls[0][0];
-      expect(call.template_id).toBe("dd26aab4-fdf6-4d3f-97f3-5915686d4a67");
+      expect(call.template.id).toBe("dd26aab4-fdf6-4d3f-97f3-5915686d4a67");
     });
   });
 
