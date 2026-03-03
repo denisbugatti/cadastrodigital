@@ -941,3 +941,6 @@
 - [x] Analisar package.json e identificar dependências não utilizadas
 - [x] Remover 11 dependências não utilizadas + 1 arquivo morto (ServiceIcon3D.tsx)
 - [x] Verificar compilação (0 erros TS) e testes (311 passando) após remoção
+
+## Bug Fix — ClientPortal setState during render
+- [x] Corrigir erro "Cannot update a component while rendering" no ClientPortal.tsx:98 (useEffect movido antes dos conditional returns)

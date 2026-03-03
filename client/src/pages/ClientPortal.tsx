@@ -4,7 +4,7 @@
  * Login by CPF/CNPJ, see if approved/rejected/pending.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -57,20 +57,22 @@ export default function ClientPortal() {
     enabled: isClient,
   });
 
-  if (loading) {
+  // Redirect to login if not authenticated — must be in useEffect to avoid setState during render
+  useEffect(() => {
+    if (!loading && (!user || !isClient)) {
+      navigate("/login");
+    }
+  }, [loading, user, isClient, navigate]);
+
+  if (loading || !user || !isClient) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
-          <p className="text-muted-foreground text-sm">Carregando...</p>
+          <p className="text-muted-foreground text-sm">{loading ? "Carregando..." : "Redirecionando..."}</p>
         </div>
       </div>
     );
-  }
-
-  if (!user || !isClient) {
-    navigate("/login");
-    return null;
   }
 
   const clientUser = user as { type: "client"; id: number; cpfCnpj: string; name: string; email?: string | null };
