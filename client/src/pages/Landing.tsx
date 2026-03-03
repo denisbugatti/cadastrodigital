@@ -74,16 +74,20 @@ function AnimatedCounter({ target, suffix = "", duration = 2000 }: {
 /* ─── Marquee Ticker (pure CSS) ─── */
 const MarqueeTicker = memo(() => {
   const items = ["ONE INNOVATION", "CADASTRO DIGITAL", "LGPD", "SEGURANÇA", "PROTEÇÃO DE DADOS", "LANÇAMENTOS EXCLUSIVOS"];
-  const row = items.map((t, i) => (
-    <span key={i} className="flex items-center gap-6 whitespace-nowrap">
-      <span className="text-white/90 text-sm font-medium tracking-[0.2em] uppercase">{t}</span>
-      <span className="w-1.5 h-1.5 rounded-full bg-[#70BEFA]/60" />
-    </span>
-  ));
+  const renderRow = (keyPrefix: string) => (
+    <div key={keyPrefix} className="flex shrink-0 gap-10 items-center">
+      {items.map((t, i) => (
+        <span key={`${keyPrefix}-${i}`} className="flex items-center gap-10 whitespace-nowrap">
+          <span className="text-white/90 text-sm font-medium tracking-[0.2em] uppercase">{t}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#70BEFA]/60 shrink-0" />
+        </span>
+      ))}
+    </div>
+  );
   return (
     <div className="relative overflow-hidden py-5 border-y border-white/[0.06]" style={{ background: "#0d0d0d" }}>
-      <div className="flex gap-6 animate-[marquee_35s_linear_infinite]">
-        {row}{row}{row}{row}
+      <div className="flex gap-10 animate-[marquee_35s_linear_infinite]">
+        {renderRow("a")}{renderRow("b")}{renderRow("c")}{renderRow("d")}
       </div>
     </div>
   );
@@ -614,7 +618,7 @@ export default function Landing() {
               { q: "Meus dados estão seguros?", a: "Sim. A plataforma é 100% protegida pela LGPD. Seus dados são criptografados e armazenados em servidores seguros. Nenhum corretor ou terceiro tem acesso direto às suas informações." },
               { q: "Preciso ir presencialmente?", a: "Não. Todo o processo é 100% digital. Você preenche o cadastro pelo celular ou computador, de qualquer lugar." },
               { q: "Quanto tempo leva a validação?", a: "A validação é feita em até 24 horas úteis. Se algum documento estiver ilegível, você será notificado por email para enviar novamente." },
-              { q: "O corretor vê meus documentos?", a: "Não. O corretor apenas valida se os documentos estão legíveis e corretos. Ele não tem acesso ao conteúdo dos seus dados pessoais." },
+              { q: "Quem tem acesso aos meus documentos?", a: "Apenas a equipe de análise interna da plataforma. Seus documentos são processados em ambiente seguro e criptografado, sem acesso de terceiros." },
               { q: "Posso continuar depois?", a: "Sim. Você pode salvar e continuar o preenchimento a qualquer momento. Basta acessar com seu CPF/CNPJ e senha." },
               { q: "O que acontece após a aprovação?", a: "Você receberá um email de confirmação informando que está apto para participar dos lançamentos exclusivos da One Innovation." },
             ].map((faq, i) => (
@@ -655,60 +659,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── CONTATO ─── */}
-      <section className="py-20 border-t border-white/[0.04]" style={{ background: "#0d0d0d" }}>
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="grid md:grid-cols-2 gap-12">
-            <Reveal>
-              <div>
-                <p className="text-[#70BEFA] text-sm font-medium tracking-wider uppercase mb-4">Contato</p>
-                <h2 className="font-heading text-3xl md:text-4xl font-semibold tracking-[-0.02em] mb-6">
-                  Fale conosco
-                </h2>
-                <p className="text-white/40 mb-8 leading-relaxed">
-                  Tem dúvidas sobre o processo de cadastro? Entre em contato com nossa equipe.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 text-white/50">
-                    <Phone className="w-5 h-5 text-[#70BEFA]" />
-                    <span>(11) 99999-9999</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white/50">
-                    <Mail className="w-5 h-5 text-[#70BEFA]" />
-                    <span>contato@cadastrodigital.com.br</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <GlowCard className="p-8">
-                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                  <Input
-                    placeholder="Seu nome"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-[#70BEFA]/50"
-                  />
-                  <Input
-                    placeholder="Seu email"
-                    type="email"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-[#70BEFA]/50"
-                  />
-                  <textarea
-                    placeholder="Sua mensagem"
-                    rows={4}
-                    className="w-full rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-[#70BEFA]/50 p-3 text-sm resize-none outline-none transition-colors"
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-[#70BEFA] to-[#3b82f6] hover:brightness-110 text-white font-semibold border-0"
-                  >
-                    Enviar Mensagem
-                  </Button>
-                </form>
-              </GlowCard>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+
 
       {/* ─── FOOTER ─── */}
       <footer className="py-10 border-t border-white/[0.04]">
