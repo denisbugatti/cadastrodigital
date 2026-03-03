@@ -1,0 +1,28 @@
+DEPENDENCY ANALYSIS RESULTS
+===========================
+
+UNUSED DEPENDENCIES (to remove):
+- three: Only used in ServiceIcon3D.tsx which is NOT imported anywhere
+- @react-three/fiber: Only used in ServiceIcon3D.tsx (dead code)
+- @react-three/drei: Only used in ServiceIcon3D.tsx (dead code)
+- @types/three: Type definitions for unused three
+- @hookform/resolvers: Not imported anywhere (zodResolver not used)
+- pdf-merger-js: Not imported anywhere in the codebase
+- tailwindcss-animate: Not imported anywhere (tw-animate-css is used instead in index.css)
+
+UNUSED DEV DEPENDENCIES (to remove):
+- add: Accidentally installed package, not used
+- autoprefixer: No postcss.config file, not used (Tailwind 4 uses @tailwindcss/vite)
+- postcss: No postcss.config file, not used (Tailwind 4 uses @tailwindcss/vite)
+
+DEAD CODE FILES (to remove):
+- client/src/components/ServiceIcon3D.tsx: Not imported anywhere
+
+USED DEPENDENCIES (keep):
+- All @radix-ui/* packages: Used in shadcn/ui components
+- @dnd-kit/*: Used in drag-and-drop features
+- axios: Used in server/_core/sdk.ts
+- framer-motion: Used extensively (45 imports) in Landing.tsx
+- motion: Used in glowing-effect.tsx (animate from motion/react)
+- react-hook-form: Used in form.tsx component
+- All other packages: Verified in use

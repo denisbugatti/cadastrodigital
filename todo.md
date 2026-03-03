@@ -936,3 +936,8 @@
 - [x] Substituir ícones 3D (Three.js Canvas) por ícones lucide-react flat (FileText, Users, CheckCircle)
 - [x] Manter identidade visual azul (#70BEFA) com container squircle e hover glow
 - [x] Cards flat com padding, accent line no hover, borda azul interativa
+
+## Limpeza de Dependências
+- [x] Analisar package.json e identificar dependências não utilizadas
+- [x] Remover 11 dependências não utilizadas + 1 arquivo morto (ServiceIcon3D.tsx)
+- [x] Verificar compilação (0 erros TS) e testes (311 passando) após remoção
