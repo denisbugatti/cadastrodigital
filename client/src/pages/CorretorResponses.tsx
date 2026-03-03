@@ -13,12 +13,23 @@ import {
   FileText, Loader2, Mail, Clock, CheckCircle2, XCircle,
   Hash, Search, X, ShieldCheck, ShieldAlert, Eye, Phone,
   Calendar, ChevronRight, ChevronLeft, Timer, Lock, LogOut,
-  ArrowRight, User, Inbox, Filter,
+  ArrowRight, User, Inbox, Filter, Bell, BellOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ITEMS_PER_PAGE = 10;
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray as any;
+}
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -340,6 +351,62 @@ export default function CorretorResponses() {
     },
   });
 
+  // ─── Push Notifications ───
+  const { data: pushStatus } = trpc.staffPush.status.useQuery();
+  const { data: vapidData } = trpc.staffPush.vapidPublicKey.useQuery();
+  const subscribePush = trpc.staffPush.subscribe.useMutation();
+  const unsubscribePush = trpc.staffPush.unsubscribe.useMutation();
+  const [pushLoading, setPushLoading] = useState(false);
+
+  const togglePush = async () => {
+    if (pushLoading) return;
+    setPushLoading(true);
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast.error('Notificações push não suportadas neste navegador');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const existingSub = await registration.pushManager.getSubscription();
+
+      if (pushStatus?.hasActiveSubscription && existingSub) {
+        // Unsubscribe
+        await unsubscribePush.mutateAsync({ endpoint: existingSub.endpoint });
+        await existingSub.unsubscribe();
+        toast.success('Notificações desativadas');
+      } else {
+        // Subscribe
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          toast.error('Permissão de notificação negada');
+          return;
+        }
+        const vapidKey = vapidData?.key;
+        if (!vapidKey) {
+          toast.error('Chave VAPID não configurada');
+          return;
+        }
+        const sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
+        const json = sub.toJSON();
+        await subscribePush.mutateAsync({
+          endpoint: json.endpoint!,
+          p256dh: json.keys!.p256dh!,
+          auth: json.keys!.auth!,
+        });
+        toast.success('Notificações ativadas! Você receberá alertas de novas respostas.');
+      }
+    } catch (err: any) {
+      console.error('[Push]', err);
+      toast.error('Erro ao configurar notificações');
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   // ─── Filtered Responses ───
   const filteredResponses = useMemo(() => {
     if (!responses) return [];
@@ -452,14 +519,38 @@ export default function CorretorResponses() {
                 Olá, <span className="font-semibold text-foreground">{me?.name || "Corretor"}</span>
               </p>
             </div>
-            <button
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary transition-all active:scale-95 shrink-0"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              <LogOut size={13} />
-              <span className="hidden sm:inline">Sair</span>
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Push notification bell */}
+              <button
+                className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                  pushStatus?.hasActiveSubscription
+                    ? "text-brand bg-brand/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+                onClick={togglePush}
+                disabled={pushLoading}
+                title={pushStatus?.hasActiveSubscription ? "Desativar notificações" : "Ativar notificações"}
+              >
+                {pushLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : pushStatus?.hasActiveSubscription ? (
+                  <Bell size={14} />
+                ) : (
+                  <BellOff size={14} />
+                )}
+                {pushStatus?.hasActiveSubscription && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-card" />
+                )}
+              </button>
+              <button
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary transition-all active:scale-95"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+              >
+                <LogOut size={13} />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>

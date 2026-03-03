@@ -991,3 +991,7 @@
 - [x] Cadência automática: iniciar somente após corretor validar todas as respostas (aprovação ou reprovação)
 - [x] Criar página/aba exclusiva de respostas por formulário para Corretor (única aba com acesso)
 - [x] Pixel-perfect redesign da aba de respostas (mobile e web app) — melhorar UX completa
+
+## Notificação Push ao Corretor + Redirect Automático
+- [x] Notificação push ao corretor quando nova resposta chegar no formulário atribuído a ele
+- [x] Redirecionar corretores automaticamente para /corretor/respostas após login (em vez do dashboard geral)

@@ -420,3 +420,21 @@ export const activityLog = mysqlTable("activity_log", {
 
 export type ActivityLog = typeof activityLog.$inferSelect;
 export type InsertActivityLog = typeof activityLog.$inferInsert;
+
+/**
+ * Staff push subscriptions — stores Web Push API subscriptions for staff users (corretores, gerentes, etc.).
+ */
+export const staffPushSubscriptions = mysqlTable("staff_push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  staffUserId: int("staffUserId").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("userAgent"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StaffPushSubscription = typeof staffPushSubscriptions.$inferSelect;
+export type InsertStaffPushSubscription = typeof staffPushSubscriptions.$inferInsert;

@@ -1,6 +1,6 @@
 import webpush from "web-push";
 import { ENV } from "./_core/env";
-import { getActivePushSubscriptions, deactivatePushSubscription, getUserByOpenId } from "./db";
+import { getActivePushSubscriptions, deactivatePushSubscription, getUserByOpenId, getActiveStaffPushSubscriptions, deactivateStaffPushSubscription } from "./db";
 
 /**
  * Initialize web-push with VAPID keys.
@@ -105,6 +105,110 @@ export async function sendPushToUser(
 /**
  * Send push notification to the owner when a new form response is received.
  */
+/**
+ * Send a push notification to all active subscriptions for a given staff user.
+ * Automatically deactivates subscriptions that are no longer valid (410 Gone).
+ */
+export async function sendPushToStaffUser(
+  staffUserId: number,
+  payload: {
+    title: string;
+    body: string;
+    icon?: string;
+    badge?: string;
+    url?: string;
+    tag?: string;
+    data?: Record<string, any>;
+  }
+): Promise<{ sent: number; failed: number; deactivated: number }> {
+  if (!isVapidReady()) {
+    console.warn("[Push] VAPID not ready, skipping staff push notification");
+    return { sent: 0, failed: 0, deactivated: 0 };
+  }
+
+  const subscriptions = await getActiveStaffPushSubscriptions(staffUserId);
+  const activeSubscriptions = subscriptions.filter((s: any) => s.active);
+
+  if (activeSubscriptions.length === 0) {
+    console.log("[Push] No active subscriptions for staff user", staffUserId);
+    return { sent: 0, failed: 0, deactivated: 0 };
+  }
+
+  const payloadString = JSON.stringify(payload);
+  let sent = 0;
+  let failed = 0;
+  let deactivated = 0;
+
+  for (const sub of activeSubscriptions) {
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
+        },
+        payloadString,
+        {
+          TTL: 60 * 60,
+          urgency: "normal",
+        }
+      );
+      sent++;
+    } catch (err: any) {
+      const statusCode = err?.statusCode;
+      if (statusCode === 410 || statusCode === 404) {
+        await deactivateStaffPushSubscription(sub.id);
+        deactivated++;
+        console.log(`[Push] Deactivated expired staff subscription ${sub.id}`);
+      } else {
+        failed++;
+        console.warn(`[Push] Failed to send to staff subscription ${sub.id}:`, err?.message?.substring(0, 100));
+      }
+    }
+  }
+
+  console.log(`[Push] Staff results for user ${staffUserId}: sent=${sent}, failed=${failed}, deactivated=${deactivated}`);
+  return { sent, failed, deactivated };
+}
+
+/**
+ * Notify the corretor assigned to a form when a new response arrives.
+ */
+export async function notifyCorretorPush(params: {
+  staffUserId: number;
+  formTitle: string;
+  respondentName?: string;
+  protocolCode?: string;
+  formId?: number;
+}) {
+  try {
+    const body = params.respondentName
+      ? `${params.respondentName} enviou uma resposta no formulário "${params.formTitle}"`
+      : `Nova resposta recebida no formulário "${params.formTitle}"`;
+
+    await sendPushToStaffUser(params.staffUserId, {
+      title: "\ud83d\udccb Nova resposta para validar!",
+      body,
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-72x72.png",
+      url: "/corretor/respostas",
+      tag: `new-response-${params.formId || 'unknown'}`,
+      data: {
+        type: "new_response_corretor",
+        formTitle: params.formTitle,
+        respondentName: params.respondentName,
+        protocolCode: params.protocolCode,
+        formId: params.formId,
+        timestamp: Date.now(),
+      },
+    });
+  } catch (err: any) {
+    console.error("[Push] Error notifying corretor:", err?.message?.substring(0, 100));
+  }
+}
+
 export async function notifyOwnerNewResponse(formTitle: string, respondentName?: string) {
   try {
     // Get the owner user

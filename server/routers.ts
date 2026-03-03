@@ -10,7 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { t } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
 import { notifyOwner } from "./_core/notification";
-import { notifyOwnerNewResponse } from "./pushNotification";
+import { notifyOwnerNewResponse, notifyCorretorPush } from "./pushNotification";
 import { sendProtocolEmail } from "./emailService";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { customAuthRouter } from "./authRouter";
@@ -695,6 +695,19 @@ export const appRouter = router({
                 console.warn("[CorretorNotification] Failed:", (err as Error)?.message?.substring(0, 100));
               });
             }
+
+            // Push notification to assigned corretor
+            if (form?.assignedCorretorId) {
+              notifyCorretorPush({
+                staffUserId: form.assignedCorretorId,
+                formTitle,
+                respondentName: input.respondentName ?? undefined,
+                protocolCode: result.protocolCode ?? undefined,
+                formId: input.formId,
+              }).catch((err) => {
+                console.warn("[CorretorPush] Failed:", (err as Error)?.message?.substring(0, 100));
+              });
+            }
           } catch (err) {
             // Don't fail the submission if notification fails
             console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
@@ -1156,6 +1169,71 @@ export const appRouter = router({
     status: ownerFallbackProcedure
       .query(async ({ ctx }) => {
         const subs = await db.getActivePushSubscriptions(ctx.user.id);
+        return {
+          subscriptionCount: subs.filter((s: any) => s.active).length,
+          hasActiveSubscription: subs.some((s: any) => s.active),
+        };
+      }),
+
+    vapidPublicKey: publicProcedure
+      .query(() => {
+        return { key: process.env.VAPID_PUBLIC_KEY ?? "" };
+      }),
+  }),
+
+  // ─── Staff Push Notifications ───
+  staffPush: router({
+    subscribe: publicProcedure
+      .input(z.object({
+        endpoint: z.string(),
+        p256dh: z.string(),
+        auth: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Get staff session from cookie
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        const result = await db.saveStaffPushSubscription({
+          staffUserId: session.staffUserId,
+          endpoint: input.endpoint,
+          p256dh: input.p256dh,
+          auth: input.auth,
+          userAgent: null,
+        });
+        return { success: true, updated: result.updated };
+      }),
+
+    unsubscribe: publicProcedure
+      .input(z.object({
+        endpoint: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
+        }
+        await db.deleteStaffPushSubscription(session.staffUserId, input.endpoint);
+        return { success: true };
+      }),
+
+    status: publicProcedure
+      .query(async ({ ctx }) => {
+        const cookie = require("cookie");
+        const cookies = cookie.parse(ctx.req.headers.cookie || "");
+        const token = cookies[COOKIE_NAME];
+        const session = await verifySessionToken(token);
+        if (!session || session.type !== "staff") {
+          return { subscriptionCount: 0, hasActiveSubscription: false };
+        }
+        const subs = await db.getActiveStaffPushSubscriptions(session.staffUserId);
         return {
           subscriptionCount: subs.filter((s: any) => s.active).length,
           hasActiveSubscription: subs.some((s: any) => s.active),

@@ -29,6 +29,18 @@ vi.mock("./db", () => ({
   }),
   savePushSubscription: vi.fn().mockResolvedValue(undefined),
   removePushSubscription: vi.fn().mockResolvedValue(undefined),
+  getActiveStaffPushSubscriptions: vi.fn().mockResolvedValue([
+    {
+      id: 10,
+      staffUserId: 5,
+      endpoint: "https://fcm.googleapis.com/fcm/send/staff-endpoint",
+      p256dh: "staff-p256dh-key",
+      auth: "staff-auth-key",
+      active: true,
+      createdAt: new Date(),
+    },
+  ]),
+  deactivateStaffPushSubscription: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock env
@@ -124,5 +136,53 @@ describe("Push Notification Module", () => {
     await expect(
       notifyOwnerNewResponse("Cadastro PJ")
     ).resolves.not.toThrow();
+  });
+
+  it("should export sendPushToStaffUser and notifyCorretorPush", async () => {
+    const mod = await import("./pushNotification");
+    expect(mod.sendPushToStaffUser).toBeDefined();
+    expect(typeof mod.sendPushToStaffUser).toBe("function");
+    expect(mod.notifyCorretorPush).toBeDefined();
+    expect(typeof mod.notifyCorretorPush).toBe("function");
+  });
+
+  it("sendPushToStaffUser should send to active staff subscriptions", async () => {
+    const { sendPushToStaffUser } = await import("./pushNotification");
+    const result = await sendPushToStaffUser(5, {
+      title: "Nova resposta para validar!",
+      body: 'Formul\u00e1rio "Cadastro PJ" recebeu uma nova resposta.',
+      url: "/corretor/respostas",
+    });
+    expect(result).toHaveProperty("sent");
+    expect(result).toHaveProperty("failed");
+    expect(result).toHaveProperty("deactivated");
+    expect(result.sent).toBe(1);
+    expect(result.failed).toBe(0);
+  });
+
+  it("notifyCorretorPush should not throw on error", async () => {
+    const { notifyCorretorPush } = await import("./pushNotification");
+    await expect(
+      notifyCorretorPush({
+        staffUserId: 5,
+        formTitle: "Cadastro PJ",
+        respondentName: "Jo\u00e3o Silva",
+        protocolCode: "ABC123",
+        formId: 1,
+      })
+    ).resolves.not.toThrow();
+  });
+
+  it("sendPushToStaffUser should handle no staff subscriptions gracefully", async () => {
+    const db = await import("./db");
+    (db.getActiveStaffPushSubscriptions as any).mockResolvedValueOnce([]);
+
+    const { sendPushToStaffUser } = await import("./pushNotification");
+    const result = await sendPushToStaffUser(5, {
+      title: "Test",
+      body: "Test body",
+    });
+    expect(result.sent).toBe(0);
+    expect(result.failed).toBe(0);
   });
 });

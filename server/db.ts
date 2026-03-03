@@ -14,6 +14,7 @@ import {
   siteSettings, InsertSiteSettings,
   emailCadence, InsertEmailCadence,
   activityLog, InsertActivityLog,
+  staffPushSubscriptions, InsertStaffPushSubscription,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -534,6 +535,58 @@ export async function deletePushSubscription(userId: number, endpoint: string) {
 export async function deactivatePushSubscription(id: number) {
   return withDbRetry(async (db) => {
     await db.update(pushSubscriptions).set({ active: false }).where(eq(pushSubscriptions.id, id));
+  });
+}
+
+/* ─── Staff Push Subscriptions ─── */
+
+export async function saveStaffPushSubscription(data: InsertStaffPushSubscription) {
+  return withDbRetry(async (db) => {
+    const existing = await db.select()
+      .from(staffPushSubscriptions)
+      .where(eq(staffPushSubscriptions.staffUserId, data.staffUserId))
+      .limit(50);
+    
+    const match = existing.find((s: any) => s.endpoint === data.endpoint);
+    if (match) {
+      await db.update(staffPushSubscriptions).set({
+        p256dh: data.p256dh,
+        auth: data.auth,
+        active: true,
+        userAgent: data.userAgent,
+      }).where(eq(staffPushSubscriptions.id, match.id));
+      return { id: match.id, updated: true };
+    }
+    const result = await db.insert(staffPushSubscriptions).values(data);
+    return { id: result[0].insertId, updated: false };
+  });
+}
+
+export async function getActiveStaffPushSubscriptions(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    return db.select()
+      .from(staffPushSubscriptions)
+      .where(eq(staffPushSubscriptions.staffUserId, staffUserId))
+      .limit(50);
+  });
+}
+
+export async function deleteStaffPushSubscription(staffUserId: number, endpoint: string) {
+  return withDbRetry(async (db) => {
+    const all = await db.select()
+      .from(staffPushSubscriptions)
+      .where(eq(staffPushSubscriptions.staffUserId, staffUserId))
+      .limit(50);
+    const match = all.find((s: any) => s.endpoint === endpoint);
+    if (match) {
+      await db.delete(staffPushSubscriptions).where(eq(staffPushSubscriptions.id, match.id));
+    }
+  });
+}
+
+export async function deactivateStaffPushSubscription(id: number) {
+  return withDbRetry(async (db) => {
+    await db.update(staffPushSubscriptions).set({ active: false }).where(eq(staffPushSubscriptions.id, id));
   });
 }
 

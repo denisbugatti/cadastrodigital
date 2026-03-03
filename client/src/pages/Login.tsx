@@ -28,9 +28,14 @@ export default function Login() {
   const [clientPassword, setClientPassword] = useState("");
 
   const staffLogin = trpc.customAuth.staffLogin.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Login realizado com sucesso!");
-      navigate("/dashboard");
+      // Redirect corretores to their dedicated responses page
+      if (data.user.role === "corretor") {
+        navigate("/corretor/respostas");
+      } else {
+        navigate("/dashboard");
+      }
     },
     onError: (err) => {
       toast.error(err.message);

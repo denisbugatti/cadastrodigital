@@ -28,9 +28,14 @@ export default function AcceptInvite() {
   );
 
   const acceptMutation = trpc.customAuth.acceptInvite.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Conta criada com sucesso! Bem-vindo(a)!");
-      navigate("/");
+      // Redirect corretores to their dedicated responses page
+      if (data.user.role === "corretor") {
+        navigate("/corretor/respostas");
+      } else {
+        navigate("/dashboard");
+      }
     },
     onError: (err) => {
       toast.error(err.message);
