@@ -1451,6 +1451,24 @@ export const appRouter = router({
 
             if (success) {
               await db.advanceCadence(cadence.id);
+              // Log the email sent event for history tracking
+              try {
+                await db.logActivity({
+                  responseId: cadence.responseId,
+                  formId: cadence.formId,
+                  activityType: "cadence_email_sent",
+                  description: `E-mail de ${cadence.cadenceType === "abandono" ? "abandono" : "reprovação"} enviado (${cadence.sequenceNumber + 1}/${cadence.maxSequence})`,
+                  metadata: {
+                    cadenceId: cadence.id,
+                    cadenceType: cadence.cadenceType,
+                    sequenceNumber: cadence.sequenceNumber + 1,
+                    maxSequence: cadence.maxSequence,
+                    recipientEmail: cadence.recipientEmail,
+                  },
+                });
+              } catch (logErr) {
+                console.warn(`[Cadence] Failed to log activity for cadence ${cadence.id}:`, (logErr as Error).message);
+              }
               sent++;
             } else {
               failed++;
@@ -1492,6 +1510,57 @@ export const appRouter = router({
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         return db.getCadencesByResponse(input.responseId);
+      }),
+
+    /** Start a cadence manually for a response */
+    startManual: ownerFallbackProcedure
+      .input(z.object({
+        responseId: z.number(),
+        cadenceType: z.enum(["abandono", "reprovacao"]),
+        rejectionReason: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        if (!response.respondentEmail) throw new TRPCError({ code: "BAD_REQUEST", message: "Resposta não possui e-mail do cliente" });
+
+        await db.createEmailCadence({
+          responseId: input.responseId,
+          formId: response.formId,
+          cadenceType: input.cadenceType,
+          recipientEmail: response.respondentEmail,
+          recipientName: response.respondentName || undefined,
+          rejectionReason: input.rejectionReason,
+        });
+
+        // Log activity
+        await db.logActivity({
+          responseId: input.responseId,
+          formId: response.formId,
+          activityType: "cadence_started",
+          description: `Cadência de ${input.cadenceType === "abandono" ? "abandono" : "reprovação"} iniciada manualmente`,
+        });
+
+        return { success: true };
+      }),
+
+    /** Get response IDs with active cadences for a form (for filter) */
+    getActiveResponseIds: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getResponseIdsWithActiveCadence(input.formId);
+      }),
+
+    /** Get email history for a response from activity log */
+    getEmailHistory: ownerFallbackProcedure
+      .input(z.object({ responseId: z.number() }))
+      .query(async ({ input }) => {
+        const timeline = await db.getActivityTimeline(input.responseId);
+        return timeline.filter((event: any) =>
+          ["cadence_email_sent", "cadence_started", "cadence_stopped",
+           "follow_up_sent", "rejection_email_sent", "approval_email_sent",
+           "protocol_email_sent"].includes(event.activityType)
+        );
       }),
   }),
 
@@ -1546,6 +1615,23 @@ export const appRouter = router({
 
             if (success) {
               await db.advanceCadence(cadence.id);
+              try {
+                await db.logActivity({
+                  responseId: cadence.responseId,
+                  formId: cadence.formId,
+                  activityType: "cadence_email_sent",
+                  description: `E-mail de abandono enviado (${nextSeq}/${cadence.maxSequence})`,
+                  metadata: {
+                    cadenceId: cadence.id,
+                    cadenceType: "abandono",
+                    sequenceNumber: nextSeq,
+                    maxSequence: cadence.maxSequence,
+                    recipientEmail: cadence.recipientEmail,
+                  },
+                });
+              } catch (logErr) {
+                console.warn(`[FollowUp] Failed to log activity:`, (logErr as Error).message);
+              }
               sent++;
             } else {
               failed++;

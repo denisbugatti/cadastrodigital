@@ -1070,6 +1070,36 @@ export async function getCadencesByResponse(responseId: number) {
     .orderBy(desc(emailCadence.createdAt));
 }
 
+/**
+ * Get response IDs that have active cadences for a given form.
+ * Used for the cadence filter in the responses panel.
+ */
+export async function getResponseIdsWithActiveCadence(formId: number): Promise<number[]> {
+  const db = getDb();
+  const results = await db
+    .selectDistinct({ responseId: emailCadence.responseId })
+    .from(emailCadence)
+    .where(
+      and(
+        eq(emailCadence.formId, formId),
+        eq(emailCadence.active, true)
+      )
+    );
+  return results.map((r: { responseId: number }) => r.responseId);
+}
+
+/**
+ * Get response IDs that have any cadence (active or stopped) for a given form.
+ */
+export async function getResponseIdsWithAnyCadence(formId: number): Promise<number[]> {
+  const db = getDb();
+  const results = await db
+    .selectDistinct({ responseId: emailCadence.responseId })
+    .from(emailCadence)
+    .where(eq(emailCadence.formId, formId));
+  return results.map((r: { responseId: number }) => r.responseId);
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ACTIVITY LOG — Timeline tracking for response events

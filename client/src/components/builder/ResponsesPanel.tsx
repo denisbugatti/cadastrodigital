@@ -14,7 +14,7 @@ import {
   Lock, Loader2, Check, AlertTriangle, MessageSquare,
   ExternalLink, Image as ImageIcon, File as FileIcon,
   MoreHorizontal, Clock, User, Phone, Users,
-  MailCheck, Pause, Send, MailPlus,
+  MailCheck, Pause, Send, MailPlus, Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -495,8 +495,103 @@ function CadencePanelInline({ responseId }: { responseId: number }) {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const startManualMutation = trpc.cadence.startManual.useMutation({
+    onSuccess: () => {
+      utils.cadence.getByResponse.invalidate({ responseId });
+      utils.cadence.getActiveResponseIds.invalidate();
+      toast.success("Cadência iniciada com sucesso!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const [showStartMenu, setShowStartMenu] = useState(false);
+
   if (isLoading) return null;
-  if (!cadences || cadences.length === 0) return null;
+
+  const hasActiveCadence = cadences?.some((c: any) => c.active && !c.stoppedReason);
+
+  // Show start button when no active cadence
+  if (!cadences || cadences.length === 0 || !hasActiveCadence) {
+    return (
+      <div className="px-4 pb-2">
+        {/* Show completed cadences if any */}
+        {cadences && cadences.length > 0 && (
+          <div className="space-y-1.5 mb-2">
+            {cadences.map((c: any) => {
+              const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
+              const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
+              return (
+                <div key={c.id} className="rounded-lg border border-border bg-muted/30 p-2">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Pause size={11} className="text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground">Cadência: {typeLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+                      <div className="h-full rounded-full bg-muted-foreground/30" style={{ width: `${progress}%` }} />
+                    </div>
+                    <span className="text-[9px] text-muted-foreground font-mono shrink-0">{c.sequenceNumber}/{c.maxSequence}</span>
+                  </div>
+                  {c.stoppedReason && (
+                    <div className="mt-1 text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <CheckCircle2 size={9} />
+                      {c.stoppedReason === "form_completed" ? "Cadastro completado" :
+                       c.stoppedReason === "form_approved" ? "Cadastro aprovado" :
+                       c.stoppedReason === "manual" ? "Pausado manualmente" :
+                       c.stoppedReason === "max_reached" ? "Ciclo completo" : c.stoppedReason}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowStartMenu(!showStartMenu); }}
+            disabled={startManualMutation.isPending}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-brand/30 text-brand hover:bg-brand/5 transition-all text-[11px] font-medium"
+          >
+            {startManualMutation.isPending ? (
+              <><Loader2 size={11} className="animate-spin" /> Iniciando...</>
+            ) : (
+              <><MailPlus size={11} /> Iniciar Cadência</>  
+            )}
+          </button>
+          <AnimatePresence>
+            {showStartMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="absolute bottom-full left-0 right-0 mb-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1"
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startManualMutation.mutate({ responseId, cadenceType: "abandono" });
+                    setShowStartMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-body transition-colors text-foreground hover:bg-secondary flex items-center gap-2"
+                >
+                  <Clock size={14} className="text-amber-500" /> Cadência de Abandono
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startManualMutation.mutate({ responseId, cadenceType: "reprovacao" });
+                    setShowStartMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-body transition-colors text-foreground hover:bg-secondary flex items-center gap-2"
+                >
+                  <XCircle size={14} className="text-red-500" /> Cadência de Reprovação
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 pb-2 space-y-1.5">
@@ -571,6 +666,76 @@ function CadencePanelInline({ responseId }: { responseId: number }) {
           </div>
         );
       })}
+      {/* Email History */}
+      <EmailHistoryInline responseId={responseId} />
+    </div>
+  );
+}
+
+/* ─── Email History Inline (shows sent emails timeline) ─── */
+function EmailHistoryInline({ responseId }: { responseId: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const { data: history, isLoading } = trpc.cadence.getEmailHistory.useQuery(
+    { responseId },
+    { enabled: expanded, staleTime: 30000 }
+  );
+
+  return (
+    <div className="mt-1">
+      <button
+        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
+      >
+        <Clock size={10} />
+        <span className="font-medium">Histórico de e-mails</span>
+        <ChevronDown size={10} className={`ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-1.5 space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
+              {isLoading ? (
+                <div className="flex items-center gap-1 text-[9px] text-muted-foreground py-1">
+                  <Loader2 size={9} className="animate-spin" /> Carregando...
+                </div>
+              ) : !history || history.length === 0 ? (
+                <div className="text-[9px] text-muted-foreground py-1 italic">Nenhum e-mail enviado ainda</div>
+              ) : (
+                history.map((event: any, i: number) => {
+                  const icon = event.activityType === "cadence_email_sent" ? <Send size={9} className="text-blue-500 shrink-0" />
+                    : event.activityType === "cadence_started" ? <MailPlus size={9} className="text-green-500 shrink-0" />
+                    : event.activityType === "cadence_stopped" ? <Pause size={9} className="text-red-500 shrink-0" />
+                    : event.activityType === "approval_email_sent" ? <CheckCircle2 size={9} className="text-green-500 shrink-0" />
+                    : event.activityType === "rejection_email_sent" ? <XCircle size={9} className="text-red-500 shrink-0" />
+                    : event.activityType === "protocol_email_sent" ? <Mail size={9} className="text-blue-500 shrink-0" />
+                    : <Send size={9} className="text-muted-foreground shrink-0" />;
+
+                  return (
+                    <div key={i} className="flex items-start gap-1.5 text-[9px]">
+                      <div className="mt-0.5">{icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-foreground truncate">{event.description}</div>
+                        <div className="text-muted-foreground">
+                          {new Date(event.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}{" "}
+                          {new Date(event.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          {event.metadata?.recipientEmail && (
+                            <span className="ml-1 text-muted-foreground/70">• {event.metadata.recipientEmail}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -749,6 +914,8 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const [corretorFilter, setCorretorFilter] = useState<string>("all");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCorretorPicker, setShowCorretorPicker] = useState(false);
+  const [cadenceFilter, setCadenceFilter] = useState<"all" | "active" | "none">("all");
+  const [showCadencePicker, setShowCadencePicker] = useState(false);
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
   const [validatingResponseId, setValidatingResponseId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -776,6 +943,13 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     { formId: formId! },
     { enabled: !!formId, staleTime: 60000 }
   );
+
+  // Response IDs with active cadences (for cadence filter)
+  const cadenceIdsQuery = trpc.cadence.getActiveResponseIds.useQuery(
+    { formId: formId! },
+    { enabled: !!formId && cadenceFilter !== "all", staleTime: 15000 }
+  );
+  const activeResponseIds = useMemo(() => new Set(cadenceIdsQuery.data ?? []), [cadenceIdsQuery.data]);
 
   const responses = responsesQuery.data ?? [];
   const utils = trpc.useUtils();
@@ -888,6 +1062,13 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
       filtered = filtered.filter((r: any) => new Date(r.createdAt) >= monthAgo);
     }
 
+    // Cadence filter
+    if (cadenceFilter === "active") {
+      filtered = filtered.filter((r: any) => activeResponseIds.has(r.id));
+    } else if (cadenceFilter === "none") {
+      filtered = filtered.filter((r: any) => !activeResponseIds.has(r.id));
+    }
+
     filtered.sort((a: any, b: any) => {
       if (sortField === "createdAt") {
         const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -899,7 +1080,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     });
 
     return filtered;
-  }, [responses, dateFilter, statusFilter, corretorFilter, sortField, sortDir]);
+  }, [responses, dateFilter, statusFilter, corretorFilter, cadenceFilter, activeResponseIds, sortField, sortDir]);
 
   const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
   const paginatedResponses = filteredResponses.slice(
@@ -1191,6 +1372,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                 onClick={() => {
                   setShowCorretorPicker(!showCorretorPicker);
                   setShowDatePicker(false);
+                  setShowCadencePicker(false);
                 }}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
                   corretorFilter !== "all"
@@ -1279,6 +1461,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
               onClick={() => {
                 setShowDatePicker(!showDatePicker);
                 setShowCorretorPicker(false);
+                setShowCadencePicker(false);
               }}
               className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
                 dateFilter !== "all"
@@ -1322,6 +1505,63 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                       }}
                       className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
                         dateFilter === key
+                          ? "bg-brand-lighter text-brand font-medium"
+                          : "text-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Cadence filter */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowCadencePicker(!showCadencePicker);
+                setShowCorretorPicker(false);
+                setShowDatePicker(false);
+              }}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
+                cadenceFilter !== "all"
+                  ? "bg-brand-lighter text-brand border-brand/20"
+                  : "text-muted-foreground border-border hover:bg-secondary"
+              }`}
+            >
+              <Mail size={14} />
+              {cadenceFilter === "all"
+                ? "Cadência"
+                : cadenceFilter === "active"
+                ? "Com cadência"
+                : "Sem cadência"}
+              <ChevronDown size={12} />
+            </button>
+
+            <AnimatePresence>
+              {showCadencePicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute top-full right-0 mt-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1 min-w-[180px]"
+                >
+                  {([
+                    ["all", "Todas"],
+                    ["active", "Com cadência ativa"],
+                    ["none", "Sem cadência"],
+                  ] as ["all" | "active" | "none", string][]).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setCadenceFilter(key);
+                        setShowCadencePicker(false);
+                        setCurrentPage(1);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
+                        cadenceFilter === key
                           ? "bg-brand-lighter text-brand font-medium"
                           : "text-foreground hover:bg-secondary"
                       }`}

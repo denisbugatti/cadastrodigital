@@ -971,3 +971,8 @@
 - [x] Adicionar número do protocolo no card de cada resposta (mobile card + desktop table + ValidationDrawer header)
 - [x] Transferir aba de cadência para o painel de respostas (CadencePanelInline dentro de cada ResponseCard)
 - [x] Adicionar botão "Aprovar Todos" no final de todas as perguntas no ValidationDrawer + indicador "Todas aprovadas"
+
+## Funcionalidades de Cadência Avançadas
+- [x] Filtro por cadência ativa — botão "Cadência" no painel de filtros (Todas / Com cadência ativa / Sem cadência)
+- [x] Iniciar cadência manualmente — botão "Iniciar Cadência" no card quando não há cadência ativa, com menu para escolher tipo (Abandono/Reprovação)
+- [x] Histórico de e-mails enviados — seção expansível "Histórico de e-mails" no painel de cadência com timeline de eventos (enviados, iniciados, pausados)
