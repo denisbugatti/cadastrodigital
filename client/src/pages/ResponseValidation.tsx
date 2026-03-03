@@ -1,14 +1,14 @@
 /**
- * Response Validation Page — Corretor validates each answer/document.
- * Approve with a check or reject with justification.
- * Uses semantic theme colors for dark/light mode compatibility.
+ * Response Validation Page — Pixel-perfect redesign.
+ * Corretor validates each answer/document individually.
+ * "Aprovar Cadastro" button only unlocks after ALL fields are individually validated.
+ * Cadence starts automatically after validation (no manual button).
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -21,31 +21,82 @@ import {
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
-  Image, Download, Loader2, AlertTriangle, MessageSquare,
-  Shield, User, Mail, Phone, Calendar,
+  Download, Loader2, AlertTriangle, MessageSquare,
+  Shield, User, Mail, Phone, Calendar, ShieldCheck,
+  Lock, Image as ImageIcon, ExternalLink, Eye,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
+// ─── Status Badge ───
 function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case "approved":
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium border border-green-500/20">
-          <CheckCircle2 className="w-3 h-3" /> Aprovado
-        </span>
-      );
-    case "rejected":
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium border border-red-500/20">
-          <XCircle className="w-3 h-3" /> Reprovado
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium border border-amber-500/20">
-          <Clock className="w-3 h-3" /> Pendente
-        </span>
-      );
-  }
+  const configs: Record<string, { icon: any; label: string; bg: string; text: string; border: string }> = {
+    approved: {
+      icon: CheckCircle2,
+      label: "Aprovado",
+      bg: "bg-green-500/10",
+      text: "text-green-600 dark:text-green-400",
+      border: "border-green-500/20",
+    },
+    rejected: {
+      icon: XCircle,
+      label: "Reprovado",
+      bg: "bg-red-500/10",
+      text: "text-red-600 dark:text-red-400",
+      border: "border-red-500/20",
+    },
+  };
+
+  const config = configs[status] || {
+    icon: Clock,
+    label: "Pendente",
+    bg: "bg-amber-500/10",
+    text: "text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/20",
+  };
+
+  const Icon = config.icon;
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border ${config.bg} ${config.text} ${config.border}`}>
+      <Icon className="w-3 h-3" />
+      {config.label}
+    </span>
+  );
+}
+
+// ─── Progress Ring (SVG) ───
+function ProgressRing({ percent, size = 40, strokeWidth = 3 }: { percent: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        className="text-border"
+      />
+      <motion.circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        className={percent === 100 ? "text-green-500" : "text-brand"}
+        initial={{ strokeDashoffset: circumference }}
+        animate={{ strokeDashoffset: offset }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        strokeDasharray={circumference}
+      />
+    </svg>
+  );
 }
 
 export default function ResponseValidation() {
@@ -55,6 +106,8 @@ export default function ResponseValidation() {
 
   const [rejectingQuestion, setRejectingQuestion] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
+  const [isApproving, setIsApproving] = useState(false);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
 
@@ -112,6 +165,38 @@ export default function ResponseValidation() {
     return map;
   }, [validations]);
 
+  // Compute validation progress
+  const validationProgress = useMemo(() => {
+    const answerKeys = Object.keys(answers);
+    const totalFields = answerKeys.length;
+    const validatedFields = answerKeys.filter(
+      (qId) => validationMap[qId] && validationMap[qId].status !== "pending"
+    ).length;
+    const approvedFields = answerKeys.filter(
+      (qId) => validationMap[qId]?.status === "approved"
+    ).length;
+    const rejectedFields = answerKeys.filter(
+      (qId) => validationMap[qId]?.status === "rejected"
+    ).length;
+    const pendingFields = totalFields - validatedFields;
+    const allValidated = totalFields > 0 && validatedFields === totalFields;
+    const allApproved = totalFields > 0 && approvedFields === totalFields;
+    const hasRejections = rejectedFields > 0;
+    const progressPercent = totalFields > 0 ? Math.round((validatedFields / totalFields) * 100) : 0;
+
+    return {
+      totalFields,
+      validatedFields,
+      approvedFields,
+      rejectedFields,
+      pendingFields,
+      allValidated,
+      allApproved,
+      hasRejections,
+      progressPercent,
+    };
+  }, [answers, validationMap]);
+
   const handleApprove = (questionId: string) => {
     validateMutation.mutate({
       responseId,
@@ -134,236 +219,516 @@ export default function ResponseValidation() {
     });
   };
 
+  // Handle "Aprovar Cadastro"
+  const handleAproveCadastro = async () => {
+    if (!validationProgress.allValidated) {
+      toast.error("Valide todas as respostas antes de aprovar o cadastro");
+      return;
+    }
+
+    setIsApproving(true);
+
+    const overallStatus = response?.validationStatus;
+
+    if (overallStatus === "approved") {
+      toast.success("Cadastro aprovado!", {
+        description: "O cliente receberá um email de confirmação.",
+      });
+    } else if (overallStatus === "rejected") {
+      toast.info("Cadastro com pendências", {
+        description: "O cliente receberá um email com os itens a corrigir. A cadência de follow-up foi iniciada automaticamente.",
+      });
+    } else {
+      toast.success("Validação concluída!");
+    }
+
+    setTimeout(() => {
+      setIsApproving(false);
+      navigate(-1 as any);
+    }, 800);
+  };
+
+  // Auto-scroll to next pending field after validation
+  useEffect(() => {
+    if (validateMutation.isSuccess) {
+      const pendingKeys = Object.keys(answers).filter(
+        (qId) => !validationMap[qId] || validationMap[qId].status === "pending"
+      );
+      if (pendingKeys.length > 0) {
+        const el = document.getElementById(`field-${pendingKeys[0]}`);
+        if (el) {
+          setTimeout(() => {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 300);
+        }
+      }
+    }
+  }, [validateMutation.isSuccess]);
+
   const isLoading = responseQuery.isLoading || formQuery.isLoading;
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full border-2 border-brand/20 animate-pulse" />
+            <Loader2 className="w-6 h-6 animate-spin text-brand absolute top-3 left-3" />
+          </div>
+          <p className="text-sm text-muted-foreground font-body">Carregando validação...</p>
+        </div>
       </div>
     );
   }
 
   if (!response) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-muted-foreground">Resposta não encontrada</p>
-          <Button variant="outline" onClick={() => navigate(-1 as any)} className="mt-4">
-            Voltar
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-xs">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-7 h-7 text-muted-foreground/50" />
+          </div>
+          <h2 className="text-base font-display font-bold text-foreground mb-1">Resposta não encontrada</h2>
+          <p className="text-xs text-muted-foreground font-body mb-4">
+            Esta resposta pode ter sido removida ou o link é inválido.
+          </p>
+          <Button variant="outline" onClick={() => navigate(-1 as any)} className="gap-2">
+            <ArrowLeft className="w-4 h-4" /> Voltar
           </Button>
         </div>
       </div>
     );
   }
 
-  // Count stats
-  const totalQuestions = Object.keys(answers).length;
-  const approvedCount = validations.filter((v: any) => v.status === "approved").length;
-  const rejectedCount = validations.filter((v: any) => v.status === "rejected").length;
-  const pendingCount = totalQuestions - approvedCount - rejectedCount;
+  const isAlreadyApproved = response.validationStatus === "approved";
+  const answerEntries = Object.entries(answers);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-4 mb-3">
+    <div className="min-h-screen bg-background pb-28 sm:pb-24">
+      {/* ─── Sticky Header ─── */}
+      <div className="bg-card/95 backdrop-blur-md border-b border-border sticky top-0 z-20">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          {/* Top row */}
+          <div className="flex items-center gap-3 py-3">
             <button
               onClick={() => navigate(-1 as any)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all shrink-0 active:scale-95"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4.5 h-4.5" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold text-foreground font-display">Validar Resposta</h1>
-              <p className="text-sm text-muted-foreground">
-                Protocolo: <span className="font-mono text-foreground/80">{response.protocolCode || `#${response.id}`}</span>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-base font-bold text-foreground font-display truncate leading-tight">
+                Validar Cadastro
+              </h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground font-body leading-tight mt-0.5">
+                <span className="font-mono text-foreground/70 font-semibold">{response.protocolCode || `#${response.id}`}</span>
+                {response.respondentName && (
+                  <span className="ml-1.5">— {response.respondentName}</span>
+                )}
               </p>
             </div>
+
+            {/* Progress ring in header */}
+            <div className="relative shrink-0">
+              <ProgressRing percent={validationProgress.progressPercent} size={36} strokeWidth={2.5} />
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-foreground">
+                {validationProgress.progressPercent}%
+              </span>
+            </div>
           </div>
 
-          {/* Respondent info */}
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            {response.respondentName && (
-              <span className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5" /> {response.respondentName}
-              </span>
-            )}
-            {response.respondentEmail && (
-              <span className="flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5" /> {response.respondentEmail}
-              </span>
-            )}
-            {response.respondentPhone && (
-              <span className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> {response.respondentPhone}
-              </span>
-            )}
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" /> {new Date(response.createdAt).toLocaleDateString("pt-BR")}
-            </span>
-          </div>
-
-          {/* Stats */}
-          <div className="flex gap-4 mt-4">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-muted-foreground">{approvedCount} aprovados</span>
+          {/* Inline progress bar (mobile-friendly) */}
+          <div className="flex items-center gap-2 pb-2.5 -mt-0.5">
+            <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${
+                  validationProgress.allApproved
+                    ? "bg-green-500"
+                    : validationProgress.hasRejections
+                    ? "bg-gradient-to-r from-green-500 via-amber-500 to-amber-500"
+                    : "bg-brand"
+                }`}
+                initial={{ width: 0 }}
+                animate={{ width: `${validationProgress.progressPercent}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-muted-foreground">{rejectedCount} reprovados</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-muted-foreground">{pendingCount} pendentes</span>
+            <div className="flex items-center gap-2 text-[10px] font-body text-muted-foreground shrink-0">
+              <span className="flex items-center gap-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                {validationProgress.approvedFields}
+              </span>
+              <span className="flex items-center gap-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                {validationProgress.rejectedFields}
+              </span>
+              <span className="flex items-center gap-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                {validationProgress.pendingFields}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Answers list */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-4">
-        {Object.entries(answers).map(([questionId, answer]) => {
-          const question = questionMap[questionId];
-          const validation = validationMap[questionId];
-          const status = validation?.status || "pending";
-          const isFile = question?.type === "file" || question?.type === "image";
-          const answerStr = typeof answer === "object" ? JSON.stringify(answer) : String(answer ?? "");
-
-          return (
-            <div
-              key={questionId}
-              className={`bg-card rounded-xl border p-5 transition-all ${
-                status === "approved"
-                  ? "border-green-500/20 bg-green-500/5"
-                  : status === "rejected"
-                    ? "border-red-500/20 bg-red-500/5"
-                    : "border-border"
-              }`}
-            >
-              {/* Question label */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground/60 mb-1">
-                    {question?.type === "file" ? "📎 Arquivo" : question?.type === "image" ? "🖼️ Imagem" : "📝 Resposta"}
-                  </p>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {question?.title || question?.label || `Pergunta ${questionId}`}
-                  </h3>
-                </div>
-                <StatusBadge status={status} />
-              </div>
-
-              {/* Answer content */}
-              <div className="mb-4">
-                {isFile && typeof answer === "string" && answer.startsWith("http") ? (
-                  <div className="flex items-center gap-3">
-                    {answer.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                      <a href={answer} target="_blank" rel="noopener noreferrer" className="block">
-                        <img src={answer} alt="Documento" className="max-w-xs rounded-lg border border-border" />
-                      </a>
-                    ) : (
-                      <a
-                        href={answer}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg text-sm text-brand hover:bg-secondary/80 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        Ver arquivo
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-foreground/80 bg-secondary rounded-lg p-3 border border-border/50">
-                    {answerStr || <span className="text-muted-foreground italic">Sem resposta</span>}
-                  </p>
+      {/* ─── Client Info Card ─── */}
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-3 sm:mt-5">
+        <div className="bg-card rounded-xl border border-border p-3.5 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-sm shrink-0 ${
+              isAlreadyApproved
+                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                : "bg-brand/10 text-brand"
+            }`}>
+              {response.respondentName ? response.respondentName.charAt(0).toUpperCase() : "?"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-display font-bold text-foreground truncate">
+                  {response.respondentName || "Anônimo"}
+                </h2>
+                {isAlreadyApproved && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-bold border border-green-500/20 shrink-0">
+                    <ShieldCheck className="w-2.5 h-2.5" /> Aprovado
+                  </span>
                 )}
               </div>
-
-              {/* Rejection justification */}
-              {status === "rejected" && validation?.justification && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1 flex items-center gap-1">
-                    <MessageSquare className="w-3 h-3" /> Justificativa:
-                  </p>
-                  <p className="text-sm text-red-700 dark:text-red-300">{validation.justification}</p>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant={status === "approved" ? "default" : "outline"}
-                  className={status === "approved" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-                  onClick={() => handleApprove(questionId)}
-                  disabled={validateMutation.isPending}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  {status === "approved" ? "Aprovado" : "Aprovar"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={status === "rejected" ? "destructive" : "outline"}
-                  onClick={() => {
-                    setRejectingQuestion(questionId);
-                    setJustification(validation?.justification || "");
-                  }}
-                  disabled={validateMutation.isPending}
-                >
-                  <XCircle className="w-3.5 h-3.5 mr-1" />
-                  {status === "rejected" ? "Reprovado" : "Reprovar"}
-                </Button>
-              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground font-body mt-0.5">
+                {form?.title || "Formulário"}
+              </p>
             </div>
-          );
-        })}
+          </div>
 
-        {Object.keys(answers).length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-            <p className="text-sm">Nenhuma resposta para validar</p>
+          {/* Contact info grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-border/50">
+            {response.respondentEmail && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-body">
+                <Mail className="w-3 h-3 shrink-0 text-muted-foreground/50" />
+                <span className="truncate">{response.respondentEmail}</span>
+              </div>
+            )}
+            {response.respondentPhone && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-body">
+                <Phone className="w-3 h-3 shrink-0 text-muted-foreground/50" />
+                <span>{response.respondentPhone}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-body">
+              <Calendar className="w-3 h-3 shrink-0 text-muted-foreground/50" />
+              <span>{new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Answers List ─── */}
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-3 sm:mt-4 space-y-2.5 sm:space-y-3">
+        <AnimatePresence mode="popLayout">
+          {answerEntries.map(([questionId, answer], idx) => {
+            const question = questionMap[questionId];
+            const validation = validationMap[questionId];
+            const status = validation?.status || "pending";
+            const isFile = question?.type === "file" || question?.type === "image";
+            const isPending = status === "pending";
+
+            // Determine answer display
+            let displayContent: React.ReactNode;
+
+            if (isFile && typeof answer === "string" && answer.startsWith("http")) {
+              const isImage = answer.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+              displayContent = isImage ? (
+                <a href={answer} target="_blank" rel="noopener noreferrer" className="block group">
+                  <div className="relative rounded-lg overflow-hidden border border-border/50 max-w-[280px]">
+                    <img src={answer} alt="Documento" className="w-full h-auto" loading="lazy" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Eye className="w-5 h-5 text-white drop-shadow-lg" />
+                    </div>
+                  </div>
+                </a>
+              ) : (
+                <a
+                  href={answer}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-secondary/80 rounded-lg text-xs text-brand hover:bg-secondary transition-colors font-body group"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Ver arquivo
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              );
+            } else if (isFile && typeof answer === "object" && (answer as any)?.url) {
+              const url = (answer as any).url;
+              const filename = (answer as any).filename || "Arquivo";
+              const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+              displayContent = isImage ? (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="block group">
+                  <div className="relative rounded-lg overflow-hidden border border-border/50 max-w-[280px]">
+                    <img src={url} alt={filename} className="w-full h-auto" loading="lazy" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Eye className="w-5 h-5 text-white drop-shadow-lg" />
+                    </div>
+                  </div>
+                </a>
+              ) : (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-secondary/80 rounded-lg text-xs text-brand hover:bg-secondary transition-colors font-body group"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {filename}
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              );
+            } else {
+              const answerStr = typeof answer === "object"
+                ? Array.isArray(answer)
+                  ? answer.join(", ")
+                  : Object.entries(answer as any).map(([k, v]) => `${k}: ${v}`).join(" | ")
+                : String(answer ?? "");
+
+              displayContent = (
+                <div className="rounded-lg bg-secondary/40 border border-border/30 px-3 py-2.5">
+                  <p className="text-[13px] text-foreground/90 font-body leading-relaxed break-words">
+                    {answerStr || <span className="text-muted-foreground italic text-xs">Sem resposta</span>}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <motion.div
+                id={`field-${questionId}`}
+                key={questionId}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03, duration: 0.25 }}
+                className={`bg-card rounded-xl border overflow-hidden transition-all duration-200 ${
+                  status === "approved"
+                    ? "border-green-500/25 shadow-sm shadow-green-500/5"
+                    : status === "rejected"
+                    ? "border-red-500/25 shadow-sm shadow-red-500/5"
+                    : isPending
+                    ? "border-border hover:border-brand/20"
+                    : "border-border"
+                }`}
+              >
+                <div className="p-3.5 sm:p-4">
+                  {/* Question header row */}
+                  <div className="flex items-start justify-between gap-2 mb-2.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
+                          status === "approved"
+                            ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                            : status === "rejected"
+                            ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                            : "bg-muted text-muted-foreground"
+                        }`}>
+                          {idx + 1}/{validationProgress.totalFields}
+                        </span>
+                        {question?.type && (
+                          <span className="text-[9px] text-muted-foreground/50 font-body uppercase">
+                            {question.type === "file" ? "Arquivo" :
+                             question.type === "image" ? "Imagem" :
+                             question.type === "phone" ? "Telefone" :
+                             question.type === "email" ? "Email" :
+                             question.type === "select" ? "Seleção" :
+                             question.type === "multi-select" ? "Múltipla escolha" :
+                             question.type === "date" ? "Data" : "Texto"}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-[13px] sm:text-sm font-semibold text-foreground font-body leading-snug">
+                        {question?.title || question?.label || `Pergunta ${questionId}`}
+                      </h3>
+                    </div>
+                    <StatusBadge status={status} />
+                  </div>
+
+                  {/* Answer content */}
+                  <div className="mb-3">
+                    {displayContent}
+                  </div>
+
+                  {/* Rejection justification */}
+                  {status === "rejected" && validation?.justification && (
+                    <div className="mb-3 p-2.5 rounded-lg bg-red-500/5 border border-red-500/15">
+                      <p className="text-[10px] font-semibold text-red-600 dark:text-red-400 mb-0.5 flex items-center gap-1 font-body">
+                        <MessageSquare className="w-3 h-3" /> Justificativa
+                      </p>
+                      <p className="text-xs text-red-700 dark:text-red-300 font-body leading-relaxed">{validation.justification}</p>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 h-8 sm:h-9 rounded-lg text-xs font-semibold transition-all active:scale-[0.97] ${
+                        status === "approved"
+                          ? "bg-green-600 text-white shadow-sm shadow-green-500/20"
+                          : "bg-transparent border border-border text-muted-foreground hover:bg-green-500/10 hover:text-green-600 hover:border-green-500/30"
+                      }`}
+                      onClick={() => handleApprove(questionId)}
+                      disabled={validateMutation.isPending}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {status === "approved" ? "Aprovado" : "Aprovar"}
+                    </button>
+                    <button
+                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 h-8 sm:h-9 rounded-lg text-xs font-semibold transition-all active:scale-[0.97] ${
+                        status === "rejected"
+                          ? "bg-red-600 text-white shadow-sm shadow-red-500/20"
+                          : "bg-transparent border border-border text-muted-foreground hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30"
+                      }`}
+                      onClick={() => {
+                        setRejectingQuestion(questionId);
+                        setJustification(validation?.justification || "");
+                      }}
+                      disabled={validateMutation.isPending}
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      {status === "rejected" ? "Reprovado" : "Reprovar"}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+
+        {answerEntries.length === 0 && (
+          <div className="text-center py-16">
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-6 h-6 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-display font-bold text-foreground mb-1">Nenhuma resposta</p>
+            <p className="text-xs text-muted-foreground font-body">Este cadastro não possui respostas para validar.</p>
           </div>
         )}
       </div>
 
+      {/* ─── Fixed Bottom Bar: Aprovar Cadastro ─── */}
+      {answerEntries.length > 0 && (
+        <div ref={bottomBarRef} className="fixed bottom-0 left-0 right-0 z-30">
+          {/* Gradient fade */}
+          <div className="h-6 bg-gradient-to-t from-card/95 to-transparent pointer-events-none" />
+          <div className="bg-card/95 backdrop-blur-md border-t border-border">
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 sm:py-3.5">
+              <div className="flex items-center gap-3">
+                {/* Progress summary */}
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                  <div className="relative shrink-0">
+                    <ProgressRing percent={validationProgress.progressPercent} size={32} strokeWidth={2} />
+                    <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold font-mono text-foreground">
+                      {validationProgress.validatedFields}/{validationProgress.totalFields}
+                    </span>
+                  </div>
+                  <div className="hidden sm:block min-w-0">
+                    <p className="text-[11px] font-body text-foreground font-medium leading-tight">
+                      {validationProgress.allValidated
+                        ? validationProgress.allApproved
+                          ? "Tudo aprovado"
+                          : `${validationProgress.rejectedFields} pendência(s)`
+                        : `${validationProgress.pendingFields} campo(s) restante(s)`
+                      }
+                    </p>
+                    <p className="text-[9px] text-muted-foreground font-body">
+                      {validationProgress.approvedFields} aprovados, {validationProgress.rejectedFields} reprovados
+                    </p>
+                  </div>
+                </div>
+
+                {/* Aprovar Cadastro button */}
+                <Button
+                  size="default"
+                  className={`gap-1.5 text-xs sm:text-sm font-semibold px-4 sm:px-6 h-10 sm:h-11 transition-all duration-300 shrink-0 active:scale-[0.97] ${
+                    validationProgress.allValidated
+                      ? validationProgress.allApproved
+                        ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25"
+                        : "bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/25"
+                      : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                  }`}
+                  disabled={!validationProgress.allValidated || isApproving || isAlreadyApproved}
+                  onClick={handleAproveCadastro}
+                >
+                  {isApproving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : !validationProgress.allValidated ? (
+                    <Lock className="w-3.5 h-3.5" />
+                  ) : validationProgress.allApproved ? (
+                    <ShieldCheck className="w-4 h-4" />
+                  ) : (
+                    <Shield className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isAlreadyApproved
+                      ? "Cadastro Aprovado"
+                      : !validationProgress.allValidated
+                      ? "Validar Todas"
+                      : validationProgress.allApproved
+                      ? "Aprovar Cadastro"
+                      : "Concluir Validação"
+                    }
+                  </span>
+                  <span className="sm:hidden">
+                    {isAlreadyApproved
+                      ? "Aprovado"
+                      : !validationProgress.allValidated
+                      ? "Validar"
+                      : validationProgress.allApproved
+                      ? "Aprovar"
+                      : "Concluir"
+                    }
+                  </span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── Reject Dialog ─── */}
       <Dialog open={!!rejectingQuestion} onOpenChange={() => setRejectingQuestion(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
-            <DialogTitle>Reprovar Resposta</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="font-display text-base">Reprovar Resposta</DialogTitle>
+            <DialogDescription className="font-body text-xs">
               Informe o motivo da reprovação. O cliente receberá esta justificativa por email.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Textarea
               placeholder="Ex: Documento ilegível, favor reenviar com melhor qualidade..."
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
               rows={4}
+              className="font-body text-sm resize-none"
+              autoFocus
             />
+            <p className="text-[10px] text-muted-foreground font-body">
+              O cliente poderá reenviar a resposta após receber a notificação.
+            </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectingQuestion(null)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setRejectingQuestion(null)} className="font-body text-xs">
               Cancelar
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={handleReject}
-              disabled={validateMutation.isPending}
+              disabled={validateMutation.isPending || !justification.trim()}
+              className="font-body text-xs gap-1.5"
             >
               {validateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <>
-                  <XCircle className="w-4 h-4 mr-2" /> Reprovar
-                </>
+                <XCircle className="w-3.5 h-3.5" />
               )}
+              Reprovar
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -18,6 +18,7 @@ import Settings from "./pages/Settings";
 import ClientPortal from "./pages/ClientPortal";
 import ClientRegister from "./pages/ClientRegister";
 import CadenceManagement from "./pages/CadenceManagement";
+import CorretorResponses from "./pages/CorretorResponses";
 
 function Router() {
   return (
@@ -58,6 +59,9 @@ function Router() {
       <Route path={"/configuracoes"}>
         <AppLayout><Settings /></AppLayout>
       </Route>
+
+      {/* Corretor-only responses page */}
+      <Route path={"/corretor/respostas"} component={CorretorResponses} />
 
       {/* Response validation */}
       <Route path={"/validar/:responseId"} component={ResponseValidation} />

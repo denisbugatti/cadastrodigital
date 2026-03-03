@@ -495,99 +495,46 @@ function CadencePanelInline({ responseId }: { responseId: number }) {
     onError: (err: any) => toast.error(err.message),
   });
 
-  const startManualMutation = trpc.cadence.startManual.useMutation({
-    onSuccess: () => {
-      utils.cadence.getByResponse.invalidate({ responseId });
-      utils.cadence.getActiveResponseIds.invalidate();
-      toast.success("Cadência iniciada com sucesso!");
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
-  const [showStartMenu, setShowStartMenu] = useState(false);
-
   if (isLoading) return null;
+
+  // Show completed/inactive cadences if any exist but none active
+  if (!cadences || cadences.length === 0) {
+    return null;
+  }
 
   const hasActiveCadence = cadences?.some((c: any) => c.active && !c.stoppedReason);
 
-  // Show start button when no active cadence
-  if (!cadences || cadences.length === 0 || !hasActiveCadence) {
+  if (!hasActiveCadence) {
     return (
       <div className="px-4 pb-2">
-        {/* Show completed cadences if any */}
-        {cadences && cadences.length > 0 && (
-          <div className="space-y-1.5 mb-2">
-            {cadences.map((c: any) => {
-              const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
-              const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
-              return (
-                <div key={c.id} className="rounded-lg border border-border bg-muted/30 p-2">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Pause size={11} className="text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground">Cadência: {typeLabel}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-                      <div className="h-full rounded-full bg-muted-foreground/30" style={{ width: `${progress}%` }} />
-                    </div>
-                    <span className="text-[9px] text-muted-foreground font-mono shrink-0">{c.sequenceNumber}/{c.maxSequence}</span>
-                  </div>
-                  {c.stoppedReason && (
-                    <div className="mt-1 text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1">
-                      <CheckCircle2 size={9} />
-                      {c.stoppedReason === "form_completed" ? "Cadastro completado" :
-                       c.stoppedReason === "form_approved" ? "Cadastro aprovado" :
-                       c.stoppedReason === "manual" ? "Pausado manualmente" :
-                       c.stoppedReason === "max_reached" ? "Ciclo completo" : c.stoppedReason}
-                    </div>
-                  )}
+        <div className="space-y-1.5">
+          {cadences.map((c: any) => {
+            const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
+            const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
+            return (
+              <div key={c.id} className="rounded-lg border border-border bg-muted/30 p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Pause size={11} className="text-muted-foreground" />
+                  <span className="text-[10px] font-semibold text-muted-foreground">Cadência: {typeLabel}</span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-        <div className="relative">
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowStartMenu(!showStartMenu); }}
-            disabled={startManualMutation.isPending}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-brand/30 text-brand hover:bg-brand/5 transition-all text-[11px] font-medium"
-          >
-            {startManualMutation.isPending ? (
-              <><Loader2 size={11} className="animate-spin" /> Iniciando...</>
-            ) : (
-              <><MailPlus size={11} /> Iniciar Cadência</>  
-            )}
-          </button>
-          <AnimatePresence>
-            {showStartMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                className="absolute bottom-full left-0 right-0 mb-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1"
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startManualMutation.mutate({ responseId, cadenceType: "abandono" });
-                    setShowStartMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm font-body transition-colors text-foreground hover:bg-secondary flex items-center gap-2"
-                >
-                  <Clock size={14} className="text-amber-500" /> Cadência de Abandono
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startManualMutation.mutate({ responseId, cadenceType: "reprovacao" });
-                    setShowStartMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm font-body transition-colors text-foreground hover:bg-secondary flex items-center gap-2"
-                >
-                  <XCircle size={14} className="text-red-500" /> Cadência de Reprovação
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+                    <div className="h-full rounded-full bg-muted-foreground/30" style={{ width: `${progress}%` }} />
+                  </div>
+                  <span className="text-[9px] text-muted-foreground font-mono shrink-0">{c.sequenceNumber}/{c.maxSequence}</span>
+                </div>
+                {c.stoppedReason && (
+                  <div className="mt-1 text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <CheckCircle2 size={9} />
+                    {c.stoppedReason === "form_completed" ? "Cadastro completado" :
+                     c.stoppedReason === "form_approved" ? "Cadastro aprovado" :
+                     c.stoppedReason === "manual" ? "Pausado manualmente" :
+                     c.stoppedReason === "max_reached" ? "Ciclo completo" : c.stoppedReason}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );

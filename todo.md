@@ -983,3 +983,11 @@
 ## Botão Salvar na aba Permissões + Nova Imagem OG
 - [x] Adicionar botão de salvar alterações na aba Permissões (batch save em vez de salvar individual por switch)
 - [x] Trocar imagem OG pela nova imagem enviada pelo usuário (One Innovation - alta resolução 1200x630)
+
+## Redesign Respostas — Validação, Cadência Automática, Corretor View
+- [x] Botão "Aprovar Cadastro" no final da validação — desbloqueado somente após validar TODAS as respostas
+- [x] Remover botão "Aprovar Todos" do final das perguntas (substituído pelo Aprovar Cadastro)
+- [x] Remover botão manual de iniciar cadência — cadência deve ser automática
+- [x] Cadência automática: iniciar somente após corretor validar todas as respostas (aprovação ou reprovação)
+- [x] Criar página/aba exclusiva de respostas por formulário para Corretor (única aba com acesso)
+- [x] Pixel-perfect redesign da aba de respostas (mobile e web app) — melhorar UX completa
