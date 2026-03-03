@@ -4,6 +4,8 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import * as db from "./db";
+import cookie from "cookie";
+import * as jose from "jose";
 import { storagePut } from "./storage";
 import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
@@ -949,7 +951,6 @@ export const appRouter = router({
     myResponses: publicProcedure
       .query(async ({ ctx }) => {
         // Parse cookie to get client session
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1254,7 +1255,6 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         // Get staff session from cookie
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1276,7 +1276,6 @@ export const appRouter = router({
         endpoint: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1289,7 +1288,6 @@ export const appRouter = router({
 
     status: publicProcedure
       .query(async ({ ctx }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1312,7 +1310,6 @@ export const appRouter = router({
   // ─── Response Folders (Corretor organization) ───
   folders: router({
     list: publicProcedure.query(async ({ ctx }) => {
-      const cookie = require("cookie");
       const cookies = cookie.parse(ctx.req.headers.cookie || "");
       const token = cookies[COOKIE_NAME];
       const session = await verifySessionToken(token);
@@ -1332,7 +1329,6 @@ export const appRouter = router({
         color: z.string().max(30).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1354,7 +1350,6 @@ export const appRouter = router({
         color: z.string().max(30).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1371,7 +1366,6 @@ export const appRouter = router({
     delete: publicProcedure
       .input(z.object({ folderId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1388,7 +1382,6 @@ export const appRouter = router({
         folderId: z.number(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1402,7 +1395,6 @@ export const appRouter = router({
     unassign: publicProcedure
       .input(z.object({ responseId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1419,7 +1411,6 @@ export const appRouter = router({
         folderId: z.number(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookie = require("cookie");
         const cookies = cookie.parse(ctx.req.headers.cookie || "");
         const token = cookies[COOKIE_NAME];
         const session = await verifySessionToken(token);
@@ -1431,7 +1422,6 @@ export const appRouter = router({
       }),
 
     assignments: publicProcedure.query(async ({ ctx }) => {
-      const cookie = require("cookie");
       const cookies = cookie.parse(ctx.req.headers.cookie || "");
       const token = cookies[COOKIE_NAME];
       const session = await verifySessionToken(token);
@@ -1453,12 +1443,10 @@ export const appRouter = router({
 
     /** Get performance for the currently logged-in staff user */
     me: publicProcedure.query(async ({ ctx }) => {
-      const cookie = require("cookie");
       const cookies = cookie.parse(ctx.req?.headers?.cookie || "");
       const staffToken = cookies.staff_token;
       if (!staffToken) return null;
       try {
-        const jose = require("jose");
         const secret = new TextEncoder().encode(process.env.JWT_SECRET || "dev-secret");
         const { payload } = await jose.jwtVerify(staffToken, secret);
         return db.getCorretorPerformance(payload.staffId as number);

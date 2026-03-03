@@ -7,6 +7,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -562,6 +563,18 @@ function Pagination({
 export default function CorretorResponses() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
+
+  // Force dark theme for corretor pages
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => {
+      // Restore theme on unmount based on localStorage preference
+      const stored = localStorage.getItem("theme-mode") || "light";
+      if (stored !== "dark") {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+  }, []);
 
   // Get current user info
   const { data: me, isLoading: meLoading } = trpc.customAuth.me.useQuery();

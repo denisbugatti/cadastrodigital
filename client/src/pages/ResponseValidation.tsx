@@ -5,7 +5,7 @@
  * Cadence starts automatically after validation (no manual button).
  */
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,17 @@ export default function ResponseValidation() {
   const [, navigate] = useLocation();
   const params = useParams<{ responseId: string }>();
   const responseId = parseInt(params.responseId || "0");
+
+  // Force dark theme for validation page
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => {
+      const stored = localStorage.getItem("theme-mode") || "light";
+      if (stored !== "dark") {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+  }, []);
 
   const [rejectingQuestion, setRejectingQuestion] = useState<string | null>(null);
   const [justification, setJustification] = useState("");

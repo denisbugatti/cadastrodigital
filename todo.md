@@ -1049,3 +1049,7 @@
 - [x] Enviar email via Resend ao admin toda segunda-feira às 9h BRT
 - [x] Integrar job semanal no cron scheduler existente
 - [x] Incluir métricas: novas respostas, aprovadas, reprovadas, pendentes, top corretores
+
+## Bugs Reportados
+- [x] Página de métricas dos corretores não está abrindo (fix: require() dinâmico → import estático ESM)
+- [x] Definir modo escuro como padrão para páginas de corretores (CorretorResponses, CorretorDashboard, ResponseValidation)

@@ -5,7 +5,7 @@
 
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BarChart3, CheckCircle, XCircle, Clock, FileText,
   TrendingUp, Users, ArrowLeft, Loader2, AlertCircle,
@@ -172,6 +172,20 @@ function CorretorRow({ corretor, rank }: { corretor: any; rank: number }) {
 /* ─── Main Component ─── */
 export default function CorretorDashboard() {
   const { user } = useAuth();
+
+  // Force dark theme for corretor pages
+  useEffect(() => {
+    const isCorretorRoute = window.location.pathname.startsWith("/corretor");
+    if (isCorretorRoute) {
+      document.documentElement.classList.add("dark");
+      return () => {
+        const stored = localStorage.getItem("theme-mode") || "light";
+        if (stored !== "dark") {
+          document.documentElement.classList.remove("dark");
+        }
+      };
+    }
+  }, []);
 
   // Try to get staff session for corretor's own metrics
   const { data: myMetrics, isLoading: loadingMy } = trpc.corretorPerformance.me.useQuery();
