@@ -856,3 +856,7 @@
 - [x] Design profissional One Innovation (fundo escuro, azul #0D8BD9, Helvetica Bold)
 - [x] Incluir: funil visual, taxas de conversão, breakdown diário (últimos 15 dias), período selecionado
 - [x] Frontend: botão de exportar PDF no painel de conversão (2 páginas: capa + funil/tabela)
+
+## Gráfico de Linha Temporal + OG Image
+- [x] Gráfico de linha temporal no painel de conversão (SVG com 3 linhas: iniciados, completos, aprovados + tabela detalhada)
+- [x] Configurar imagem OG (Open Graph) com imagem da One Innovation para compartilhamento nas redes sociais

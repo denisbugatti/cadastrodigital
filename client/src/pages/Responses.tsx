@@ -1584,6 +1584,153 @@ export default function Responses() {
                         <p className="text-[10px] text-muted-foreground font-body">Incompletos</p>
                       </div>
                     </div>
+
+                    {/* ─── Timeline Chart ─── */}
+                    {conversionStats.daily && conversionStats.daily.length > 0 && (
+                      <div className="pt-4 border-t border-border/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
+                            <Calendar size={13} className="text-brand" />
+                            Evolução Diária
+                          </h4>
+                          <div className="flex items-center gap-4 text-[10px] font-body text-muted-foreground">
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Iniciados</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Completos</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> Aprovados</span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          {/* Y-axis labels */}
+                          {(() => {
+                            const maxY = Math.max(...conversionStats.daily.map((d: any) => Math.max(d.started, d.completed, d.approved)), 1);
+                            const yTicks = [0, Math.round(maxY / 2), maxY];
+                            return (
+                              <div className="flex">
+                                {/* Y labels */}
+                                <div className="flex flex-col justify-between h-40 pr-2 py-1">
+                                  {[...yTicks].reverse().map((v) => (
+                                    <span key={v} className="text-[9px] text-muted-foreground/60 font-body leading-none">{v}</span>
+                                  ))}
+                                </div>
+                                {/* Chart area */}
+                                <div className="flex-1 relative">
+                                  {/* Grid lines */}
+                                  <div className="absolute inset-0 flex flex-col justify-between py-1">
+                                    {yTicks.map((_, i) => (
+                                      <div key={i} className="border-t border-border/20" />
+                                    ))}
+                                  </div>
+                                  {/* SVG Lines */}
+                                  <svg viewBox={`0 0 ${Math.max(conversionStats.daily.length - 1, 1) * 100} 160`} className="w-full h-40" preserveAspectRatio="none">
+                                    {/* Started line */}
+                                    <polyline
+                                      fill="none"
+                                      stroke="#3b82f6"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      points={conversionStats.daily.map((d: any, i: number) => {
+                                        const x = conversionStats.daily.length === 1 ? 50 : (i / (conversionStats.daily.length - 1)) * (conversionStats.daily.length - 1) * 100;
+                                        const y = 155 - (d.started / maxY) * 150;
+                                        return `${x},${y}`;
+                                      }).join(" ")}
+                                    />
+                                    {/* Area fill for started */}
+                                    <polygon
+                                      fill="rgba(59,130,246,0.08)"
+                                      points={`0,160 ${conversionStats.daily.map((d: any, i: number) => {
+                                        const x = conversionStats.daily.length === 1 ? 50 : (i / (conversionStats.daily.length - 1)) * (conversionStats.daily.length - 1) * 100;
+                                        const y = 155 - (d.started / maxY) * 150;
+                                        return `${x},${y}`;
+                                      }).join(" ")} ${(conversionStats.daily.length - 1) * 100},160`}
+                                    />
+                                    {/* Completed line */}
+                                    <polyline
+                                      fill="none"
+                                      stroke="#f59e0b"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      points={conversionStats.daily.map((d: any, i: number) => {
+                                        const x = conversionStats.daily.length === 1 ? 50 : (i / (conversionStats.daily.length - 1)) * (conversionStats.daily.length - 1) * 100;
+                                        const y = 155 - (d.completed / maxY) * 150;
+                                        return `${x},${y}`;
+                                      }).join(" ")}
+                                    />
+                                    {/* Approved line */}
+                                    <polyline
+                                      fill="none"
+                                      stroke="#22c55e"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      points={conversionStats.daily.map((d: any, i: number) => {
+                                        const x = conversionStats.daily.length === 1 ? 50 : (i / (conversionStats.daily.length - 1)) * (conversionStats.daily.length - 1) * 100;
+                                        const y = 155 - (d.approved / maxY) * 150;
+                                        return `${x},${y}`;
+                                      }).join(" ")}
+                                    />
+                                    {/* Data points */}
+                                    {conversionStats.daily.map((d: any, i: number) => {
+                                      const x = conversionStats.daily.length === 1 ? 50 : (i / (conversionStats.daily.length - 1)) * (conversionStats.daily.length - 1) * 100;
+                                      return (
+                                        <g key={i}>
+                                          <circle cx={x} cy={155 - (d.started / maxY) * 150} r="3" fill="#3b82f6" />
+                                          <circle cx={x} cy={155 - (d.completed / maxY) * 150} r="3" fill="#f59e0b" />
+                                          <circle cx={x} cy={155 - (d.approved / maxY) * 150} r="3" fill="#22c55e" />
+                                        </g>
+                                      );
+                                    })}
+                                  </svg>
+                                  {/* X-axis labels */}
+                                  <div className="flex justify-between mt-1">
+                                    {conversionStats.daily.length <= 15
+                                      ? conversionStats.daily.map((d: any, i: number) => (
+                                          <span key={i} className="text-[8px] text-muted-foreground/60 font-body">{d.label}</span>
+                                        ))
+                                      : conversionStats.daily.filter((_: any, i: number) => {
+                                          const step = Math.ceil(conversionStats.daily.length / 10);
+                                          return i % step === 0 || i === conversionStats.daily.length - 1;
+                                        }).map((d: any, i: number) => (
+                                          <span key={i} className="text-[8px] text-muted-foreground/60 font-body">{d.label}</span>
+                                        ))
+                                    }
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        {/* Hover tooltip table for daily data */}
+                        <details className="mt-3">
+                          <summary className="text-[10px] text-muted-foreground/70 font-body cursor-pointer hover:text-muted-foreground transition-colors">
+                            Ver tabela detalhada ({conversionStats.daily.length} dias)
+                          </summary>
+                          <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-border/30">
+                            <table className="w-full text-[10px] font-body">
+                              <thead className="sticky top-0 bg-card">
+                                <tr className="border-b border-border/30">
+                                  <th className="text-left p-1.5 text-muted-foreground">Data</th>
+                                  <th className="text-right p-1.5 text-blue-400">Iniciados</th>
+                                  <th className="text-right p-1.5 text-amber-400">Completos</th>
+                                  <th className="text-right p-1.5 text-green-400">Aprovados</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[...conversionStats.daily].reverse().map((d: any, i: number) => (
+                                  <tr key={i} className="border-b border-border/10 hover:bg-muted/20">
+                                    <td className="p-1.5 text-muted-foreground">{d.label}</td>
+                                    <td className="text-right p-1.5 text-foreground font-semibold">{d.started}</td>
+                                    <td className="text-right p-1.5 text-foreground font-semibold">{d.completed}</td>
+                                    <td className="text-right p-1.5 text-foreground font-semibold">{d.approved}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center py-8">
