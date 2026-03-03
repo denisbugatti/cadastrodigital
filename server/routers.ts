@@ -306,6 +306,21 @@ export const appRouter = router({
         await staffDb.upsertPermission(input.role, input.permission, input.granted);
         return { success: true };
       }),
+
+    bulkUpdate: ownerFallbackProcedure
+      .input(z.object({
+        permissions: z.array(z.object({
+          role: z.string(),
+          permission: z.string(),
+          granted: z.boolean(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        for (const perm of input.permissions) {
+          await staffDb.upsertPermission(perm.role, perm.permission, perm.granted);
+        }
+        return { success: true };
+      }),
   }),
 
   // ─── Response Validations ───

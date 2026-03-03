@@ -1,0 +1,15 @@
+{
+  "query": "SELECT ogTitle, ogDescription, ogImage FROM site_settings LIMIT 1",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT ogTitle, ogDescription, ogImage FROM site_settings LIMIT 1",
+  "rows": [
+    {
+      "ogTitle": "Cadastro Digital | One Innovation",
+      "ogDescription": "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
+      "ogImage": "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/og-one-innovation_daca8374.png"
+    }
+  ],
+  "messages": [],
+  "stdout": "ogTitle\togDescription\togImage\nCadastro Digital | One Innovation\tEmpreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/og-one-innovation_daca8374.png\n",
+  "stderr": "",
+  "execution_time_ms": 346
+}

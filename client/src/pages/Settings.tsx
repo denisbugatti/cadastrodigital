@@ -293,14 +293,24 @@ function AppearanceTab() {
 function PermissionsTab() {
   const utils = trpc.useUtils();
   const { data: permissions, isLoading } = trpc.permissions.list.useQuery();
-  const updatePermission = trpc.permissions.update.useMutation({
+  const bulkUpdatePermissions = trpc.permissions.bulkUpdate.useMutation({
     onSuccess: () => {
       utils.permissions.list.invalidate();
+      toast.success("Permissões salvas com sucesso!");
+      setHasChanges(false);
+    },
+    onError: (err) => {
+      toast.error("Erro ao salvar permissões: " + err.message);
     },
   });
 
-  // Build a lookup map: role -> permission -> granted
-  const permMap = useMemo(() => {
+  // Local state for pending changes
+  const [localPermMap, setLocalPermMap] = useState<Record<string, Record<string, boolean>>>({});
+  const [initialized, setInitialized] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Build initial lookup map from server data
+  const serverPermMap = useMemo(() => {
     const map: Record<string, Record<string, boolean>> = {};
     for (const rc of ROLES_CONFIG) {
       map[rc.role] = {};
@@ -318,8 +328,36 @@ function PermissionsTab() {
     return map;
   }, [permissions]);
 
+  // Initialize local state from server data
+  if (permissions && !initialized) {
+    setLocalPermMap(JSON.parse(JSON.stringify(serverPermMap)));
+    setInitialized(true);
+  }
+
   const handleToggle = (role: string, permission: string, granted: boolean) => {
-    updatePermission.mutate({ role, permission, granted });
+    setLocalPermMap((prev) => {
+      const next = { ...prev };
+      next[role] = { ...next[role], [permission]: granted };
+      return next;
+    });
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    // Collect all permissions into a flat array
+    const permissionsToSave: { role: string; permission: string; granted: boolean }[] = [];
+    for (const role of Object.keys(localPermMap)) {
+      for (const [permission, granted] of Object.entries(localPermMap[role])) {
+        permissionsToSave.push({ role, permission, granted });
+      }
+    }
+    bulkUpdatePermissions.mutate({ permissions: permissionsToSave });
+  };
+
+  const handleDiscard = () => {
+    setLocalPermMap(JSON.parse(JSON.stringify(serverPermMap)));
+    setHasChanges(false);
+    toast.info("Alterações descartadas");
   };
 
   if (isLoading) {
@@ -329,6 +367,8 @@ function PermissionsTab() {
       </div>
     );
   }
+
+  const displayMap = initialized ? localPermMap : serverPermMap;
 
   return (
     <div className="space-y-4">
@@ -363,9 +403,8 @@ function PermissionsTab() {
                     <p className="text-xs text-muted-foreground font-body truncate">{def.description}</p>
                   </div>
                   <Switch
-                    checked={permMap[role]?.[key] ?? false}
+                    checked={displayMap[role]?.[key] ?? false}
                     onCheckedChange={(checked) => handleToggle(role, key, checked)}
-                    disabled={updatePermission.isPending}
                   />
                 </div>
               ))}
@@ -373,6 +412,45 @@ function PermissionsTab() {
           </CardContent>
         </Card>
       ))}
+
+      {/* Save / Discard Bar */}
+      <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+        hasChanges
+          ? "bg-brand/5 border-brand/30 shadow-md"
+          : "bg-secondary/50 border-border"
+      }`}>
+        <p className="text-sm font-body text-muted-foreground">
+          {hasChanges
+            ? "Você tem alterações não salvas"
+            : "Todas as permissões estão salvas"}
+        </p>
+        <div className="flex items-center gap-2">
+          {hasChanges && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDiscard}
+              disabled={bulkUpdatePermissions.isPending}
+              className="font-body"
+            >
+              Descartar
+            </Button>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || bulkUpdatePermissions.isPending}
+            className="bg-brand hover:bg-brand/90 text-white font-body"
+            size="sm"
+          >
+            {bulkUpdatePermissions.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Salvar Permissões
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

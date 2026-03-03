@@ -979,3 +979,7 @@
 
 ## Bug Fix — Convite não enviado
 - [x] Corrigido: sendTemplateEmail usava template_id/template_data (inválido), agora usa template: { id, variables } (formato correto Resend API)
+
+## Botão Salvar na aba Permissões + Nova Imagem OG
+- [x] Adicionar botão de salvar alterações na aba Permissões (batch save em vez de salvar individual por switch)
+- [x] Trocar imagem OG pela nova imagem enviada pelo usuário (One Innovation - alta resolução 1200x630)

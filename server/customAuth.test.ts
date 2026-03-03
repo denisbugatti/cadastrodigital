@@ -143,6 +143,7 @@ describe("Staff and permissions router integration", () => {
     const { appRouter } = await import("./routers");
     expect((appRouter._def as any).procedures["permissions.list"]).toBeDefined();
     expect((appRouter._def as any).procedures["permissions.update"]).toBeDefined();
+    expect((appRouter._def as any).procedures["permissions.bulkUpdate"]).toBeDefined();
   });
 
   it("validations router exists in appRouter", async () => {
