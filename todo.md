@@ -772,3 +772,25 @@
 - [x] Adicionar rotas faltantes no App.tsx (/portal, /cadastro-cliente)
 - [x] Adicionar rotas no ogMiddleware appRoutes list
 - [x] Todos os 244 testes passando
+
+### Bug Fix: Resend não está enviando emails de convite
+- [x] Auditar configuração do Resend (API key OK, domínio cadastrodigital.com.br verificado)
+- [x] Verificar logs de erro: "You can only send testing emails to your own email" — from address era onboarding@resend.dev
+- [x] Corrigir: atualizar todos os from para one@cadastrodigital.com.br (emailService, corretorNotification, test)
+
+### Feature: Email de boas-vindas ao se cadastrar
+- [x] Enviar email de protocolo quando cliente completa formulário (já implementado - sendProtocolEmail)
+- [x] Template profissional com código de protocolo e informações do formulário
+
+### Feature: Follow-up para cadastros incompletos
+- [x] sendFollowUpEmail: template com botão "Continuar meu cadastro" e link direto
+- [x] followUp.sendFollowUps: procedure que busca incompletos >24h e envia follow-up
+- [x] followUp.getPendingCount: query para ver quantos follow-ups pendentes
+- [x] DB: campo followUpSentAt + getIncompleteResponsesForFollowUp + markFollowUpSent
+- [x] Migration aplicada com sucesso
+
+### Feature: Email de aprovação/rejeição pelo corretor
+- [x] sendApprovalEmail: enviado automaticamente quando todos os campos são aprovados
+- [x] sendRejectionEmail: enviado automaticamente quando algum campo é rejeitado (com motivos)
+- [x] Todos os emails agora usam one@cadastrodigital.com.br como remetente
+- [x] Todos os 244 testes passando

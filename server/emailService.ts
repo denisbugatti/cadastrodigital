@@ -44,7 +44,7 @@ export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<bo
     respondentName,
     protocolCode,
     formTitle,
-    fromEmail = "onboarding@resend.dev",
+    fromEmail = "one@cadastrodigital.com.br",
     fromName = "Cadastro Digital",
   } = params;
 
@@ -177,7 +177,7 @@ export async function sendInviteEmail(params: InviteEmailParams): Promise<boolea
     inviterName,
     role,
     inviteUrl,
-    fromEmail = "onboarding@resend.dev",
+    fromEmail = "one@cadastrodigital.com.br",
     fromName = "Cadastro Digital",
   } = params;
 
@@ -270,7 +270,7 @@ export async function sendApprovalEmail(params: ApprovalEmailParams): Promise<bo
   const {
     to,
     clientName,
-    fromEmail = "onboarding@resend.dev",
+    fromEmail = "one@cadastrodigital.com.br",
     fromName = "Cadastro Digital",
   } = params;
 
@@ -364,7 +364,7 @@ export async function sendRejectionEmail(params: RejectionEmailParams): Promise<
     to,
     clientName,
     reason,
-    fromEmail = "onboarding@resend.dev",
+    fromEmail = "one@cadastrodigital.com.br",
     fromName = "Cadastro Digital",
   } = params;
 
@@ -425,6 +425,101 @@ export async function sendRejectionEmail(params: RejectionEmailParams): Promise<
     return true;
   } catch (err) {
     console.error("[Email] Failed to send rejection:", (err as Error).message);
+    return false;
+  }
+}
+
+
+// ─── Follow-up Email for Incomplete Submissions ───
+
+export interface FollowUpEmailParams {
+  to: string;
+  clientName?: string;
+  formTitle: string;
+  formUrl: string;
+  fromEmail?: string;
+  fromName?: string;
+}
+
+export async function sendFollowUpEmail(params: FollowUpEmailParams): Promise<boolean> {
+  const resend = getResendClient();
+  if (!resend) return false;
+
+  const {
+    to,
+    clientName,
+    formTitle,
+    formUrl,
+    fromEmail = "one@cadastrodigital.com.br",
+    fromName = "Cadastro Digital",
+  } = params;
+
+  const greeting = clientName ? `Olá, ${clientName}!` : "Olá!";
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+          <tr>
+            <td style="background-color:#f59e0b;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;">📋 Seu cadastro está incompleto</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 16px;color:#333;font-size:16px;">${greeting}</p>
+              <p style="margin:0 0 16px;color:#555;font-size:15px;line-height:1.7;">
+                Notamos que você começou o preenchimento do formulário <strong>${formTitle}</strong>, mas ainda não finalizou.
+              </p>
+              <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.7;">
+                Seus dados foram salvos automaticamente. Clique no botão abaixo para continuar de onde parou:
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:8px 0 24px;">
+                    <a href="${formUrl}" style="display:inline-block;background-color:#f59e0b;color:#ffffff;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;letter-spacing:0.5px;">
+                      Continuar meu cadastro →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;color:#888;font-size:13px;line-height:1.5;">
+                Se você já finalizou o cadastro, por favor desconsidere este e-mail.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;background-color:#f9fafb;border-top:1px solid #eaeaea;text-align:center;">
+              <p style="margin:0;color:#999;font-size:12px;">Cadastro Digital — One Innovation</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to: [to],
+      subject: `📋 Finalize seu cadastro — ${formTitle}`,
+      html: htmlContent,
+    });
+    if (error) {
+      console.error("[Email] Follow-up email error:", error);
+      return false;
+    }
+    console.log(`[Email] Follow-up email sent to ${to} (id: ${data?.id})`);
+    return true;
+  } catch (err) {
+    console.error("[Email] Failed to send follow-up:", (err as Error).message);
     return false;
   }
 }

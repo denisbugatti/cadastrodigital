@@ -14,9 +14,9 @@ describe("Resend API Key validation", () => {
     const resend = new Resend(apiKey);
     expect(resend).toBeDefined();
 
-    // Send a test email using the onboarding domain (works with restricted keys)
+    // Send a test email using the verified domain
     const { data, error } = await resend.emails.send({
-      from: "Cadastro Digital <onboarding@resend.dev>",
+      from: "Cadastro Digital <one@cadastrodigital.com.br>",
       to: ["denisbugatti@icloud.com"],
       subject: "Teste - Cadastro Digital",
       html: "<p>Este é um email de teste do sistema Cadastro Digital. A integração com Resend está funcionando!</p>",

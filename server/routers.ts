@@ -16,7 +16,7 @@ import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { customAuthRouter } from "./authRouter";
 import * as staffDb from "./staffDb";
 import { verifySessionToken } from "./authService";
-import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail } from "./emailService";
+import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEmail } from "./emailService";
 import { generateInviteToken } from "./authService";
 
 /**
@@ -1167,6 +1167,64 @@ export const appRouter = router({
         const key = `og-images/${nanoid(12)}-${input.filename}`;
         const { url } = await storagePut(key, buffer, input.mimeType);
         return { url };
+      }),
+  }),
+
+  // ─── Follow-up for Incomplete Submissions ───
+  followUp: router({
+    /** Send follow-up emails to incomplete submissions (called by cron or manually) */
+    sendFollowUps: ownerFallbackProcedure
+      .input(z.object({
+        minAgeHours: z.number().min(1).default(24),
+        siteUrl: z.string().url(),
+      }))
+      .mutation(async ({ input }) => {
+        const incompleteResponses = await db.getIncompleteResponsesForFollowUp(input.minAgeHours);
+        
+        if (incompleteResponses.length === 0) {
+          return { sent: 0, failed: 0, total: 0 };
+        }
+
+        let sent = 0;
+        let failed = 0;
+
+        for (const response of incompleteResponses) {
+          if (!response.respondentEmail) continue;
+          
+          const formUrl = response.formSlug
+            ? `${input.siteUrl}/${response.formSlug}?continue=${response.id}`
+            : `${input.siteUrl}/form/${response.formId}?continue=${response.id}`;
+
+          try {
+            const success = await sendFollowUpEmail({
+              to: response.respondentEmail,
+              clientName: response.respondentName ?? undefined,
+              formTitle: response.formTitle,
+              formUrl,
+            });
+
+            if (success) {
+              await db.markFollowUpSent(response.id);
+              sent++;
+            } else {
+              failed++;
+            }
+          } catch (err) {
+            console.error(`[FollowUp] Failed for response ${response.id}:`, (err as Error).message);
+            failed++;
+          }
+        }
+
+        console.log(`[FollowUp] Sent ${sent}/${incompleteResponses.length} follow-up emails`);
+        return { sent, failed, total: incompleteResponses.length };
+      }),
+
+    /** Get count of incomplete responses that need follow-up */
+    getPendingCount: ownerFallbackProcedure
+      .input(z.object({ minAgeHours: z.number().min(1).default(24) }).optional())
+      .query(async ({ input }) => {
+        const responses = await db.getIncompleteResponsesForFollowUp(input?.minAgeHours ?? 24);
+        return { count: responses.length };
       }),
   }),
 });

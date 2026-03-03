@@ -199,6 +199,8 @@ export const formResponses = mysqlTable("form_responses", {
   reviewedAt: timestamp("reviewedAt"),
   /** Notes from the reviewer */
   reviewNotes: text("reviewNotes"),
+  /** When a follow-up email was sent for incomplete submissions */
+  followUpSentAt: timestamp("followUpSentAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

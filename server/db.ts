@@ -1,4 +1,4 @@
-import { eq, desc, sql, like, or, and } from "drizzle-orm";
+import { eq, desc, sql, like, or, and, isNull, isNotNull, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -759,4 +759,61 @@ export async function upsertSiteSettings(data: {
       });
     }
   });
+}
+
+
+// ─── Follow-up for Incomplete Responses ───
+
+/**
+ * Get incomplete responses that haven't received a follow-up email yet.
+ * Only returns responses older than `minAgeHours` hours to give users time to finish.
+ * Only returns responses with an email address.
+ */
+export async function getIncompleteResponsesForFollowUp(minAgeHours: number = 24): Promise<{
+  id: number;
+  formId: number;
+  respondentName: string | null;
+  respondentEmail: string | null;
+  formTitle: string;
+  formSlug: string | null;
+  createdAt: Date;
+}[]> {
+  const db = getDb();
+  const cutoff = new Date(Date.now() - minAgeHours * 60 * 60 * 1000);
+  
+  const results = await db
+    .select({
+      id: formResponses.id,
+      formId: formResponses.formId,
+      respondentName: formResponses.respondentName,
+      respondentEmail: formResponses.respondentEmail,
+      formTitle: forms.title,
+      formSlug: forms.slug,
+      createdAt: formResponses.createdAt,
+    })
+    .from(formResponses)
+    .innerJoin(forms, eq(formResponses.formId, forms.id))
+    .where(
+      and(
+        eq(formResponses.isComplete, false),
+        isNull(formResponses.followUpSentAt),
+        isNotNull(formResponses.respondentEmail),
+        lte(formResponses.createdAt, cutoff),
+        eq(forms.status, "published"),
+      )
+    )
+    .limit(100);
+  
+  return results;
+}
+
+/**
+ * Mark a response as having received a follow-up email.
+ */
+export async function markFollowUpSent(responseId: number): Promise<void> {
+  const db = getDb();
+  await db
+    .update(formResponses)
+    .set({ followUpSentAt: new Date() })
+    .where(eq(formResponses.id, responseId));
 }

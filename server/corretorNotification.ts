@@ -50,7 +50,7 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
     protocolCode,
     formTitle,
     submittedAt,
-    fromEmail = "onboarding@resend.dev",
+    fromEmail = "one@cadastrodigital.com.br",
     fromName = "Cadastro Digital",
   } = params;
 
