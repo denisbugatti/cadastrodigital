@@ -1,4 +1,4 @@
-import { eq, desc, sql, like, or, and, isNull, isNotNull, lte, gte, inArray } from "drizzle-orm";
+import { eq, desc, sql, like, or, and, isNull, isNotNull, lte, gte, inArray, count, avg } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -17,6 +17,8 @@ import {
   staffPushSubscriptions, InsertStaffPushSubscription,
   responseFolders, InsertResponseFolder,
   responseFolderAssignments, InsertResponseFolderAssignment,
+  responseValidations,
+  staffUsers,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1831,5 +1833,165 @@ export async function getFolderCounts(staffUserId: number): Promise<Record<numbe
       counts[r.folderId] = r.count;
     });
     return counts;
+  });
+}
+
+/* ─── Corretor Performance Metrics ─── */
+
+/**
+ * Get performance metrics for a specific corretor (staff user).
+ * Returns: total responses assigned, validated count, approved count, rejected count,
+ * average validation time (from response creation to reviewedAt).
+ */
+export async function getCorretorPerformance(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    // Get all forms assigned to this corretor
+    const assignedForms = await db.select({ id: forms.id })
+      .from(forms)
+      .where(eq(forms.assignedCorretorId, staffUserId));
+
+    if (assignedForms.length === 0) {
+      return {
+        totalResponses: 0,
+        completedResponses: 0,
+        approvedResponses: 0,
+        rejectedResponses: 0,
+        pendingResponses: 0,
+        inReviewResponses: 0,
+        approvalRate: 0,
+        rejectionRate: 0,
+        avgValidationTimeMs: 0,
+        formCount: 0,
+      };
+    }
+
+    const formIds = assignedForms.map((f: any) => f.id);
+
+    // Get all responses for these forms
+    const allResponses = await db.select({
+      id: formResponses.id,
+      validationStatus: formResponses.validationStatus,
+      isComplete: formResponses.isComplete,
+      createdAt: formResponses.createdAt,
+      reviewedAt: formResponses.reviewedAt,
+    })
+      .from(formResponses)
+      .where(
+        and(
+          inArray(formResponses.formId, formIds),
+          eq(formResponses.isComplete, true)
+        )
+      );
+
+    const total = allResponses.length;
+    const approved = allResponses.filter((r: any) => r.validationStatus === "approved").length;
+    const rejected = allResponses.filter((r: any) => r.validationStatus === "rejected").length;
+    const pending = allResponses.filter((r: any) => r.validationStatus === "pending").length;
+    const inReview = allResponses.filter((r: any) => r.validationStatus === "in_review").length;
+    const completed = approved + rejected;
+
+    // Calculate average validation time for completed validations
+    let totalTimeMs = 0;
+    let timeCount = 0;
+    for (const r of allResponses) {
+      if (r.reviewedAt && r.createdAt) {
+        const diff = new Date(r.reviewedAt).getTime() - new Date(r.createdAt).getTime();
+        if (diff > 0) {
+          totalTimeMs += diff;
+          timeCount++;
+        }
+      }
+    }
+
+    return {
+      totalResponses: total,
+      completedResponses: completed,
+      approvedResponses: approved,
+      rejectedResponses: rejected,
+      pendingResponses: pending,
+      inReviewResponses: inReview,
+      approvalRate: total > 0 ? Math.round((approved / total) * 100) : 0,
+      rejectionRate: total > 0 ? Math.round((rejected / total) * 100) : 0,
+      avgValidationTimeMs: timeCount > 0 ? Math.round(totalTimeMs / timeCount) : 0,
+      formCount: formIds.length,
+    };
+  });
+}
+
+/**
+ * Get performance metrics for ALL corretores (for admin dashboard).
+ */
+export async function getAllCorretoresPerformance() {
+  return withDbRetry(async (db) => {
+    // Get all staff users with role 'corretor'
+    const allCorretores = await db.select({
+      id: staffUsers.id,
+      name: staffUsers.name,
+      email: staffUsers.email,
+      active: staffUsers.active,
+    })
+      .from(staffUsers)
+      .where(eq(staffUsers.role, "corretor"));
+
+    const results = [];
+
+    for (const corretor of allCorretores) {
+      const metrics = await getCorretorPerformance(corretor.id);
+      results.push({
+        ...corretor,
+        ...metrics,
+      });
+    }
+
+    return results;
+  });
+}
+
+/**
+ * Get child forms count for a parent form (for sync indicator).
+ */
+export async function getChildFormsCount(parentFormId: number): Promise<number> {
+  return withDbRetry(async (db) => {
+    const result = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(forms)
+      .where(eq(forms.parentFormId, parentFormId));
+    return result[0]?.count ?? 0;
+  });
+}
+
+/**
+ * Get all child forms with their corretor info (for management panel).
+ */
+export async function getChildFormsWithCorretores(parentFormId: number) {
+  return withDbRetry(async (db) => {
+    const children = await db.select({
+      id: forms.id,
+      title: forms.title,
+      slug: forms.slug,
+      status: forms.status,
+      responseCount: forms.responseCount,
+      assignedCorretorId: forms.assignedCorretorId,
+      updatedAt: forms.updatedAt,
+      createdAt: forms.createdAt,
+    })
+      .from(forms)
+      .where(eq(forms.parentFormId, parentFormId))
+      .orderBy(desc(forms.createdAt));
+
+    // Enrich with corretor names
+    const enriched = [];
+    for (const child of children) {
+      let corretorName = "Não atribuído";
+      if (child.assignedCorretorId) {
+        const staff = await db.select({ name: staffUsers.name })
+          .from(staffUsers)
+          .where(eq(staffUsers.id, child.assignedCorretorId))
+          .limit(1);
+        if (staff[0]) corretorName = staff[0].name;
+      }
+      enriched.push({ ...child, corretorName });
+    }
+
+    return enriched;
   });
 }

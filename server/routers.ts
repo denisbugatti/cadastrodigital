@@ -1442,6 +1442,73 @@ export const appRouter = router({
     }),
   }),
 
+  // ─── Corretor Performance Metrics ───
+  corretorPerformance: router({
+    /** Get performance for a specific corretor (accessible by corretor themselves or admin) */
+    byStaffId: publicProcedure
+      .input(z.object({ staffUserId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getCorretorPerformance(input.staffUserId);
+      }),
+
+    /** Get performance for the currently logged-in staff user */
+    me: publicProcedure.query(async ({ ctx }) => {
+      const cookie = require("cookie");
+      const cookies = cookie.parse(ctx.req?.headers?.cookie || "");
+      const staffToken = cookies.staff_token;
+      if (!staffToken) return null;
+      try {
+        const jose = require("jose");
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET || "dev-secret");
+        const { payload } = await jose.jwtVerify(staffToken, secret);
+        return db.getCorretorPerformance(payload.staffId as number);
+      } catch {
+        return null;
+      }
+    }),
+
+    /** Get performance for ALL corretores (admin only) */
+    all: ownerFallbackProcedure.query(async () => {
+      return db.getAllCorretoresPerformance();
+    }),
+  }),
+
+  // ─── Form Sync Management ───
+  formSync: router({
+    /** Get count of child forms for a parent form (for sync indicator) */
+    childCount: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getChildFormsCount(input.formId);
+      }),
+
+    /** Get all child forms with corretor info (for management panel) */
+    children: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getChildFormsWithCorretores(input.formId);
+      }),
+
+    /** Force sync a parent form to all children */
+    forceSync: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
+        }
+        const result = await db.syncChildForms(input.formId, {
+          questions: form.questions,
+          design: form.design,
+          description: form.description,
+          webhook: form.webhook as any,
+          color: form.color,
+          status: form.status,
+        });
+        return result;
+      }),
+  }),
+
   // ─── Corretores ───
   corretores: router({
     list: ownerFallbackProcedure.query(async ({ ctx }) => {

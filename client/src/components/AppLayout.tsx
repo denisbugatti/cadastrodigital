@@ -20,6 +20,7 @@ import {
   Bell,
   BellOff,
   BellRing,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -29,6 +30,7 @@ import MobileBottomNav from "./MobileBottomNav";
 const NAV_ITEMS = [
   { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard" },
   { id: "team", label: "Equipe", icon: Users, path: "/equipe" },
+  { id: "performance", label: "Performance", icon: BarChart3, path: "/performance" },
   { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias" },
   { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes" },
 ];

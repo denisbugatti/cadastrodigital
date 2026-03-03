@@ -19,6 +19,8 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientRegister from "./pages/ClientRegister";
 import CadenceManagement from "./pages/CadenceManagement";
 import CorretorResponses from "./pages/CorretorResponses";
+import CorretorDashboard from "./pages/CorretorDashboard";
+import FormCopiesManagement from "./pages/FormCopiesManagement";
 
 function Router() {
   return (
@@ -62,6 +64,17 @@ function Router() {
 
       {/* Corretor-only responses page */}
       <Route path={"/corretor/respostas"} component={CorretorResponses} />
+
+      {/* Performance dashboard (corretor + admin) */}
+      <Route path={"/corretor/performance"} component={CorretorDashboard} />
+      <Route path={"/performance"}>
+        <AppLayout><CorretorDashboard /></AppLayout>
+      </Route>
+
+      {/* Form copies management (admin) */}
+      <Route path={"/formularios-copias"}>
+        <AppLayout><FormCopiesManagement /></AppLayout>
+      </Route>
 
       {/* Response validation */}
       <Route path={"/validar/:responseId"} component={ResponseValidation} />

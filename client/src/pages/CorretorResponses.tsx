@@ -15,7 +15,7 @@ import {
   Calendar, ChevronRight, ChevronLeft, Timer, Lock, LogOut,
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
-  FolderInput, FolderMinus, Check, Palette, CalendarDays, SortAsc, SortDesc,
+  FolderInput, FolderMinus, Check, Palette, CalendarDays, SortAsc, SortDesc, BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -926,6 +926,15 @@ export default function CorretorResponses() {
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {/* Performance dashboard */}
+              <Link href="/corretor/performance">
+                <button
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  title="Performance"
+                >
+                  <BarChart3 size={14} />
+                </button>
+              </Link>
               {/* Folder toggle */}
               <button
                 className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${

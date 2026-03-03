@@ -114,6 +114,12 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     }
   }, [isRenamingForm]);
 
+  // Check child forms count for sync indicator
+  const { data: childFormsCount } = trpc.formSync.childCount.useQuery(
+    { formId: currentDbFormId! },
+    { enabled: !!currentDbFormId, staleTime: 30000 }
+  );
+
   // Check publish status from form data
   const formStatusQuery = trpc.forms.getById.useQuery(
     { id: currentDbFormId! },
@@ -397,6 +403,13 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
             <Play size={15} />
             <span className="hidden md:inline">Visualizar</span>
           </button>
+          {/* Sync indicator */}
+          {childFormsCount != null && childFormsCount > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20" title={`Ao salvar, ${childFormsCount} cópia(s) de corretores serão sincronizadas`}>
+              <Cloud size={13} />
+              <span>{childFormsCount} cópia{childFormsCount > 1 ? 's' : ''}</span>
+            </div>
+          )}
           <button
             onClick={handlePublish}
             disabled={isPublishing}

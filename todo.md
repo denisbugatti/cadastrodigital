@@ -1021,3 +1021,18 @@
 - [x] Ao salvar/atualizar o formulário principal, propagar campos/design para todas as cópias
 - [x] Manter slug e assignedCorretorId individuais de cada cópia (não sobrescrever)
 - [x] Sincronizar: perguntas, design, configurações, mas preservar nome/slug/corretor da cópia
+
+## Dashboard de Performance por Corretor
+- [x] Criar procedure backend para calcular métricas de performance (tempo médio validação, taxa aprovação, respostas processadas)
+- [x] Criar página de Dashboard de Performance acessível pelo corretor e pelo admin
+- [x] Mostrar: tempo médio de validação, taxa de aprovação/reprovação, quantidade de respostas processadas
+- [x] Adicionar gráficos/cards visuais com as métricas
+
+## Indicador de Sincronização no Editor
+- [x] Adicionar indicador visual no editor mostrando quantas cópias serão sincronizadas ao salvar
+- [x] Mostrar badge/tooltip com número de formulários filhos
+
+## Painel de Gerenciamento de Cópias
+- [x] Criar painel para visualizar todos os formulários dos corretores (cópias)
+- [x] Mostrar status de sincronização de cada cópia (sincronizado/desatualizado)
+- [x] Permitir ações: ver respostas, forçar sincronização manual
