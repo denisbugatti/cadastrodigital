@@ -936,3 +936,8 @@
 - [x] Substituir ícones 3D (Three.js Canvas) por ícones lucide-react flat (FileText, Users, CheckCircle)
 - [x] Manter identidade visual azul (#70BEFA) com container squircle e hover glow
 - [x] Cards flat com padding, accent line no hover, borda azul interativa
+
+## GlowingEffect + Cleanup Three.js
+- [x] Adicionar GlowingEffect nos cards flat de serviços para consistência com seção Sobre
+- [x] Remover dependências Three.js não utilizadas (three, @react-three/fiber, @react-three/drei)
+- [x] Remover arquivo ServiceIcon3D.tsx não utilizado

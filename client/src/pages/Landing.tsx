@@ -514,28 +514,38 @@ export default function Landing() {
               },
             ].map((item, i) => (
               <Reveal key={i} delay={i * 0.15}>
-                <div className="group relative rounded-2xl border border-white/[0.06] overflow-hidden transition-all duration-500 hover:border-[#70BEFA]/20" style={{ background: "#0a0a0f" }}>
-                  {/* Hover glow */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(112,190,250,0.06) 0%, transparent 70%)" }} />
+                <div className="relative rounded-[1.25rem] border-[0.75px] border-white/[0.06] p-2">
+                  <GlowingEffect
+                    spread={40}
+                    glow={true}
+                    disabled={false}
+                    proximity={64}
+                    inactiveZone={0.01}
+                    borderWidth={3}
+                  />
+                  <div className="group relative rounded-xl border-[0.75px] border-white/[0.04] overflow-hidden transition-all duration-500 bg-[#0a0a0f] shadow-sm dark:shadow-[0px_0px_27px_0px_rgba(45,45,45,0.3)]">
+                    {/* Hover glow */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(112,190,250,0.06) 0%, transparent 70%)" }} />
 
-                  <div className="p-8">
-                    {/* Icon container */}
-                    <div className="w-14 h-14 rounded-xl bg-[#70BEFA]/[0.08] border border-[#70BEFA]/[0.12] flex items-center justify-center mb-6 group-hover:bg-[#70BEFA]/[0.12] group-hover:border-[#70BEFA]/[0.2] transition-all duration-500">
-                      <div className="text-[#70BEFA]">{item.icon}</div>
+                    <div className="p-8">
+                      {/* Icon container */}
+                      <div className="w-14 h-14 rounded-xl bg-[#70BEFA]/[0.08] border border-[#70BEFA]/[0.12] flex items-center justify-center mb-6 group-hover:bg-[#70BEFA]/[0.12] group-hover:border-[#70BEFA]/[0.2] transition-all duration-500">
+                        <div className="text-[#70BEFA]">{item.icon}</div>
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-xl font-semibold text-white mb-3 tracking-[-0.02em]">
+                        {item.title}
+                      </h3>
+
+                      {/* Description */}
+                      <p className="text-white/40 text-sm leading-relaxed">
+                        {item.desc}
+                      </p>
+
+                      {/* Bottom accent line */}
+                      <div className="mt-6 h-px w-full bg-gradient-to-r from-[#70BEFA]/20 via-[#70BEFA]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
-
-                    {/* Title */}
-                    <h3 className="text-xl font-semibold text-white mb-3 tracking-[-0.02em]">
-                      {item.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-white/40 text-sm leading-relaxed">
-                      {item.desc}
-                    </p>
-
-                    {/* Bottom accent line */}
-                    <div className="mt-6 h-px w-full bg-gradient-to-r from-[#70BEFA]/20 via-[#70BEFA]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   </div>
                 </div>
               </Reveal>
