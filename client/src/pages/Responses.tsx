@@ -843,8 +843,25 @@ export default function Responses() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [copiedProtocol, setCopiedProtocol] = useState<number | null>(null);
   const [showCorretores, setShowCorretores] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showConversionStats, setShowConversionStats] = useState(false);
+  const [conversionPeriod, setConversionPeriod] = useState<"7d" | "30d" | "90d" | "all">("30d");
 
   const utils = trpc.useUtils();
+
+  // Mark responses as seen when entering the page
+  const markSeenMutation = trpc.forms.markSeen.useMutation();
+  useEffect(() => {
+    if (formId && !formLoading) {
+      markSeenMutation.mutate({ formId });
+    }
+  }, [formId, formLoading]);
+
+  // Conversion stats query
+  const { data: conversionStats } = trpc.forms.getConversionStats.useQuery(
+    { formId, period: conversionPeriod },
+    { enabled: !!formId && showConversionStats }
+  );
 
   // Corretor queries
   const { data: allCorretores } = trpc.corretores.list.useQuery();
@@ -931,6 +948,41 @@ export default function Responses() {
       setGeneratingId(null);
     }
   }, [utils]);
+
+  // ─── Export CSV Handler ───
+  const handleExportCsv = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const result = await utils.responses.exportCsv.fetch({
+        formId,
+        validationStatus: statusFilter as any,
+        dateFilter: dateFilter as any,
+        corretorId: corretorFilter !== "all" ? Number(corretorFilter) : undefined,
+        search: searchParam,
+      });
+
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Exporta\u00e7\u00e3o conclu\u00edda!", {
+        description: `${result.totalResponses} resposta(s) exportadas para CSV.`,
+      });
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Erro ao exportar", {
+        description: "N\u00e3o foi poss\u00edvel gerar o arquivo CSV. Tente novamente.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [formId, statusFilter, dateFilter, corretorFilter, searchParam, utils]);
 
   // ─── Computed Stats ───
   const stats = useMemo(() => {
@@ -1222,6 +1274,31 @@ export default function Responses() {
               <BarChart3 size={14} />
               <span className="hidden sm:inline">Gráficos</span>
             </Button>
+
+            <Button
+              variant={showConversionStats ? "default" : "outline"}
+              size="sm"
+              className={`gap-1.5 h-9 sm:h-10 px-3 text-xs ${showConversionStats ? "bg-brand" : ""}`}
+              onClick={() => setShowConversionStats(!showConversionStats)}
+            >
+              <TrendingUp size={14} />
+              <span className="hidden sm:inline">Conversão</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9 sm:h-10 px-3 text-xs"
+              onClick={handleExportCsv}
+              disabled={isExporting || !responses || responses.length === 0}
+            >
+              {isExporting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
+              <span className="hidden sm:inline">{isExporting ? "Exportando..." : "Exportar CSV"}</span>
+            </Button>
           </div>
 
           {/* ─── Advanced Filters Panel ─── */}
@@ -1356,6 +1433,116 @@ export default function Responses() {
               className="overflow-hidden"
             >
               <ResponseCharts responses={responses} questions={questions} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Conversion Stats (Funnel) ─── */}
+        <AnimatePresence>
+          {showConversionStats && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-brand" />
+                    <h3 className="text-sm font-display font-bold text-foreground">Funil de Conversão</h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(["7d", "30d", "90d", "all"] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setConversionPeriod(p)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                          conversionPeriod === p
+                            ? "bg-brand/10 text-brand border border-brand/20"
+                            : "text-muted-foreground hover:text-foreground border border-transparent"
+                        }`}
+                      >
+                        {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : p === "90d" ? "90 dias" : "Tudo"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {conversionStats ? (
+                  <div className="space-y-4">
+                    {/* Funnel Bars */}
+                    <div className="space-y-3">
+                      {[
+                        { label: "Iniciados", value: conversionStats.total, color: "bg-blue-500", icon: Users },
+                        { label: "Completos", value: conversionStats.complete, color: "bg-amber-500", icon: CheckCircle2 },
+                        { label: "Em Revisão", value: conversionStats.inReview, color: "bg-purple-500", icon: Eye },
+                        { label: "Aprovados", value: conversionStats.approved, color: "bg-green-500", icon: ShieldCheck },
+                        { label: "Rejeitados", value: conversionStats.rejected, color: "bg-red-500", icon: ShieldAlert },
+                      ].map((step, i) => {
+                        const maxVal = Math.max(conversionStats.total, 1);
+                        const pct = Math.round((step.value / maxVal) * 100);
+                        const Icon = step.icon;
+                        return (
+                          <div key={step.label} className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 w-24 sm:w-28 shrink-0">
+                              <Icon size={14} className="text-muted-foreground" />
+                              <span className="text-xs font-body text-muted-foreground">{step.label}</span>
+                            </div>
+                            <div className="flex-1 h-7 bg-muted/50 rounded-lg overflow-hidden relative">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.max(pct, 2)}%` }}
+                                transition={{ duration: 0.6, delay: i * 0.1 }}
+                                className={`h-full ${step.color} rounded-lg`}
+                              />
+                              <span className="absolute inset-0 flex items-center justify-end pr-2 text-[11px] font-bold font-body text-foreground">
+                                {step.value}
+                              </span>
+                            </div>
+                            <span className="text-xs font-body font-semibold text-muted-foreground w-12 text-right">
+                              {pct}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Conversion Rates */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-border/50">
+                      <div className="text-center p-2 rounded-lg bg-muted/30">
+                        <p className="text-lg font-display font-bold text-foreground">
+                          {conversionStats.completionRate}%
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-body">Conclusão</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-muted/30">
+                        <p className="text-lg font-display font-bold text-foreground">
+                          {conversionStats.approvalRate}%
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-body">Aprovação</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-muted/30">
+                        <p className="text-lg font-display font-bold text-foreground">
+                          {conversionStats.complete > 0 ? Math.round((conversionStats.rejected / conversionStats.complete) * 100) : 0}%
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-body">Rejeição</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-muted/30">
+                        <p className="text-lg font-display font-bold text-foreground">
+                          {conversionStats.incomplete}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-body">Incompletos</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={20} className="animate-spin text-brand" />
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

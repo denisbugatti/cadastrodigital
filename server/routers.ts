@@ -562,6 +562,32 @@ export const appRouter = router({
         const newSlug = `form_${nanoid(10)}`;
         return db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
       }),
+
+    /** Mark responses as seen — updates lastSeenResponseCount to current responseCount */
+    markSeen: ownerFallbackProcedure
+      .input(z.object({ formId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new Error("Form not found or access denied");
+        }
+        await db.updateForm(input.formId, { lastSeenResponseCount: form.responseCount });
+        return { success: true };
+      }),
+
+    /** Get conversion stats for a form (funnel: started → complete → approved) */
+    getConversionStats: ownerFallbackProcedure
+      .input(z.object({
+        formId: z.number(),
+        period: z.enum(["7d", "30d", "90d", "all"]).optional().default("30d"),
+      }))
+      .query(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new Error("Form not found or access denied");
+        }
+        return db.getConversionStats(input.formId, input.period);
+      }),
   }),
 
   // ─── Form Responses ───
@@ -834,7 +860,10 @@ export const appRouter = router({
     exportCsv: ownerFallbackProcedure
       .input(z.object({
         formId: z.number(),
-        validationStatus: z.enum(["all", "pending", "in_review", "approved", "rejected"]).optional().default("all"),
+        validationStatus: z.enum(["all", "pending", "in_review", "approved", "rejected", "complete", "partial"]).optional().default("all"),
+        dateFilter: z.enum(["all", "today", "week", "month"]).optional().default("all"),
+        corretorId: z.number().optional(),
+        search: z.string().optional(),
       }))
       .query(async ({ ctx, input }) => {
         // Verify ownership
@@ -843,15 +872,44 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
         }
 
-        let responses = await db.getResponsesByForm(input.formId);
-        // Filter by validation status if specified
+        let responses = input.search
+          ? await db.getResponsesByFormWithSearch(input.formId, input.search)
+          : await db.getResponsesByForm(input.formId);
+
+        // Filter by validation status / completion
         if (input.validationStatus && input.validationStatus !== "all") {
-          responses = responses.filter((r: any) => r.validationStatus === input.validationStatus);
+          if (input.validationStatus === "complete") {
+            responses = responses.filter((r: any) => r.isComplete);
+          } else if (input.validationStatus === "partial") {
+            responses = responses.filter((r: any) => !r.isComplete);
+          } else {
+            responses = responses.filter((r: any) => r.validationStatus === input.validationStatus);
+          }
         }
+
+        // Filter by date
+        if (input.dateFilter && input.dateFilter !== "all") {
+          const now = new Date();
+          let cutoff: Date;
+          if (input.dateFilter === "today") {
+            cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          } else if (input.dateFilter === "week") {
+            cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          } else {
+            cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          }
+          responses = responses.filter((r: any) => new Date(r.createdAt) >= cutoff);
+        }
+
+        // Filter by corretor
+        if (input.corretorId) {
+          responses = responses.filter((r: any) => r.reviewedBy === input.corretorId);
+        }
+
         const questions: any[] = form.questions ?? [];
 
         // Build CSV header: fixed columns + one column per question
-        const fixedHeaders = ["ID", "Nome", "Email", "Completo", "Tempo (s)", "Data"];
+        const fixedHeaders = ["ID", "Protocolo", "Nome", "Email", "Telefone", "Status", "Validação", "Completo", "Tempo (s)", "Data"];
         const questionHeaders = questions
           .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
           .map((q: any) => q.title || q.id);
@@ -859,6 +917,11 @@ export const appRouter = router({
         const questionIds = questions
           .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
           .map((q: any) => q.id);
+
+        // Find phone question
+        const phoneQ = questions.find((q: any) =>
+          q.type === "phone" || (q.title && /telefone|celular|whatsapp|phone/i.test(q.title))
+        );
 
         // Escape CSV value
         const esc = (val: any): string => {
@@ -875,7 +938,7 @@ export const appRouter = router({
           if (answer === null || answer === undefined) return "";
           if (Array.isArray(answer)) return answer.join("; ");
           if (typeof answer === "object") {
-            // Handle address objects, matrix responses, etc.
+            if (answer.url) return answer.url;
             return Object.entries(answer)
               .map(([k, v]) => `${k}: ${v}`)
               .join("; ");
@@ -883,16 +946,27 @@ export const appRouter = router({
           return String(answer);
         };
 
+        const validationLabels: Record<string, string> = {
+          approved: "Aprovado",
+          rejected: "Rejeitado",
+          in_review: "Em revisão",
+          pending: "Pendente",
+        };
+
         const rows: string[] = [];
-        // BOM for Excel UTF-8 compatibility
         rows.push([...fixedHeaders, ...questionHeaders].map(esc).join(","));
 
         for (const resp of responses) {
           const answers = (resp.answers ?? {}) as Record<string, any>;
+          const phone = phoneQ && answers[phoneQ.id] ? String(answers[phoneQ.id]) : "";
           const fixedValues = [
             resp.id,
+            resp.protocolCode ?? "",
             resp.respondentName ?? "",
             resp.respondentEmail ?? "",
+            phone,
+            resp.isComplete ? "Completo" : "Parcial",
+            validationLabels[resp.validationStatus || "pending"] || "Pendente",
             resp.isComplete ? "Sim" : "Não",
             resp.timeSpentSeconds ?? "",
             resp.createdAt ? new Date(resp.createdAt).toLocaleString("pt-BR") : "",

@@ -1124,3 +1124,97 @@ export async function getActivityTimelineByForm(formId: number) {
     .where(eq(activityLog.formId, formId))
     .orderBy(desc(activityLog.createdAt));
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONVERSION STATS — Funnel metrics for form responses
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Get conversion funnel stats for a form over a given period.
+ * Returns: total started, completed, approved, rejected, pending, and daily breakdown.
+ */
+export async function getConversionStats(formId: number, period: string = "30d") {
+  const db = getDb();
+
+  // Calculate date cutoff
+  let dateCutoff: Date | null = null;
+  const now = new Date();
+  if (period === "7d") {
+    dateCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  } else if (period === "30d") {
+    dateCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  } else if (period === "90d") {
+    dateCutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  }
+  // "all" → no date filter
+
+  const conditions = [eq(formResponses.formId, formId)];
+  if (dateCutoff) {
+    conditions.push(gte(formResponses.createdAt, dateCutoff));
+  }
+
+  const allResponses = await db
+    .select({
+      id: formResponses.id,
+      isComplete: formResponses.isComplete,
+      validationStatus: formResponses.validationStatus,
+      createdAt: formResponses.createdAt,
+    })
+    .from(formResponses)
+    .where(and(...conditions))
+    .orderBy(formResponses.createdAt);
+
+  const total = allResponses.length;
+  type ResponseRow = typeof allResponses[number];
+  const complete = allResponses.filter((r: ResponseRow) => r.isComplete).length;
+  const incomplete = total - complete;
+  const approved = allResponses.filter((r: ResponseRow) => r.validationStatus === "approved").length;
+  const rejected = allResponses.filter((r: ResponseRow) => r.validationStatus === "rejected").length;
+  const inReview = allResponses.filter((r: ResponseRow) => r.validationStatus === "in_review").length;
+  const pending = allResponses.filter((r: ResponseRow) => r.validationStatus === "pending").length;
+
+  // Daily breakdown for chart
+  const dailyMap: Record<string, { started: number; completed: number; approved: number }> = {};
+
+  // Determine the number of days to show
+  const daysToShow = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 30;
+  for (let i = daysToShow - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    dailyMap[key] = { started: 0, completed: 0, approved: 0 };
+  }
+
+  allResponses.forEach((r: ResponseRow) => {
+    const key = r.createdAt.toISOString().split("T")[0];
+    if (dailyMap[key]) {
+      dailyMap[key].started++;
+      if (r.isComplete) dailyMap[key].completed++;
+      if (r.validationStatus === "approved") dailyMap[key].approved++;
+    }
+  });
+
+  const daily = Object.entries(dailyMap).map(([date, counts]) => ({
+    date,
+    label: new Date(date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    ...counts,
+  }));
+
+  // Conversion rates
+  const completionRate = total > 0 ? Math.round((complete / total) * 100) : 0;
+  const approvalRate = complete > 0 ? Math.round((approved / complete) * 100) : 0;
+
+  return {
+    total,
+    complete,
+    incomplete,
+    approved,
+    rejected,
+    inReview,
+    pending,
+    completionRate,
+    approvalRate,
+    daily,
+  };
+}

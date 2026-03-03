@@ -1,0 +1,1 @@
+ALTER TABLE `forms` ADD `lastSeenResponseCount` int DEFAULT 0 NOT NULL;

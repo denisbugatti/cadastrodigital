@@ -835,3 +835,18 @@
 - [x] Número de protocolo visível na página inicial do card (sem precisar expandir)
 - [x] Após validar respostas, visualizar todas no card expandido
 - [x] Timeline de atividades no card expandido (emails enviados, aprovação, rejeição, etc.)
+
+## Exportação CSV/Excel com Filtros
+- [x] Backend: endpoint para exportar respostas filtradas em CSV (com filtros de data, status, corretor, busca)
+- [x] Frontend: botão de exportar na página de Dashboard do formulário
+- [x] Aplicar filtros ativos (data, status, corretor) na exportação
+
+## Notificações em Tempo Real
+- [x] Backend: campo lastSeenResponseCount na tabela forms + endpoint markSeen
+- [x] Frontend: badge com contagem de novas respostas no card do formulário (Dashboard principal)
+- [x] Marcar respostas como vistas automaticamente ao entrar no Dashboard do formulário
+
+## Dashboard de Métricas com Gráficos de Conversão
+- [x] Backend: endpoint getConversionStats (iniciados, completos, aprovados, rejeitados por período)
+- [x] Frontend: funil de conversão com barras animadas + taxas de conversão
+- [x] Filtro por período (7d, 30d, 90d, tudo)

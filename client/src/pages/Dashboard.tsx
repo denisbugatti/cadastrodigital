@@ -1598,6 +1598,11 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
         <span className="flex items-center gap-2">
           <Users size={14} />
           {form.responseCount} respostas
+          {(form as any).lastSeenResponseCount !== undefined && form.responseCount > (form as any).lastSeenResponseCount && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-brand text-white animate-pulse">
+              +{form.responseCount - (form as any).lastSeenResponseCount}
+            </span>
+          )}
         </span>
       </div>
 
