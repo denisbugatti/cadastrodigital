@@ -1061,3 +1061,16 @@
 - [x] Fix: cache do owner invalidado automaticamente quando OWNER_NAME muda
 - [x] Fix: nome do owner no banco sincronizado com OWNER_NAME env var
 - [x] Fix: corretorNotification.ts usando formato correto de template Resend (template: { id, variables })
+
+## Favicon — Usar escudo/logo como favicon
+- [x] Configurar o escudo/logo da One Innovation como favicon do site (shield azul com check)
+- [x] Atualizar manifest.json, apple-touch-icon, splash screen com novo ícone
+
+## Sessão Persistente — Manter usuário logado
+- [x] Após login, manter sessão ativa (cookie com maxAge 1 ano já existia)
+- [x] Sessão só encerra com logout explícito
+
+## Fluxo de Navegação — Página inicial baseada no estado de login
+- [x] Usuário logado: página inicial redireciona para dashboard (admin/gerente) ou corretor/respostas (corretor) ou portal (cliente)
+- [x] Usuário deslogado: página inicial é a landing page
+- [x] Logout redireciona para a landing page (window.location.href = "/")

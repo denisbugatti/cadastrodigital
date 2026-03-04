@@ -51,6 +51,8 @@ export function useCustomAuth() {
     } finally {
       utils.customAuth.me.setData(undefined, null);
       await utils.customAuth.me.invalidate();
+      // Redirect to landing page after logout
+      window.location.href = "/";
     }
   }, [logoutMutation, utils]);
 

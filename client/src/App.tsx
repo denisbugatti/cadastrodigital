@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AppLayout from "./components/AppLayout";
+import AuthGate from "./components/AuthGate";
 import Landing from "./pages/Landing";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
@@ -30,8 +31,11 @@ function Router() {
       <Route path={"/aceitar-convite"} component={AcceptInvite} />
       <Route path={"/cadastro-cliente"} component={ClientRegister} />
 
-      {/* Landing page as home */}
-      <Route path={"/"} component={Landing} />
+      {/* Home: AuthGate checks if logged in → redirect to dashboard, else show landing */}
+      <Route path={"/"} component={AuthGate} />
+
+      {/* Explicit landing page route (for logout redirect) */}
+      <Route path={"/inicio"} component={Landing} />
 
       {/* Client portal */}
       <Route path={"/portal"} component={ClientPortal} />

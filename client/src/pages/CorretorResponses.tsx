@@ -724,7 +724,7 @@ export default function CorretorResponses() {
   const logoutMutation = trpc.customAuth.logout.useMutation({
     onSuccess: () => {
       toast.success("Logout realizado");
-      navigate("/login");
+      window.location.href = "/";
     },
   });
 
