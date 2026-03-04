@@ -252,7 +252,8 @@ function NotificationBell() {
 }
 
 export default function Dashboard() {
-  const { logout } = useCustomAuth();
+  const { logout, user, isCorretor } = useCustomAuth();
+  const dashboardIsAdmin = user?.type === "staff" ? ["master", "diretor", "gerente"].includes((user as any).role) : false;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -1386,7 +1387,7 @@ export default function Dashboard() {
       </Dialog>
 
       {/* ─── Mobile Bottom Navigation ─── */}
-      <MobileBottomNav onLogout={logout} />
+      <MobileBottomNav onLogout={logout} isAdmin={dashboardIsAdmin} />
     </div>
   );
 }

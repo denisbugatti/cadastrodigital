@@ -27,13 +27,17 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import MobileBottomNav from "./MobileBottomNav";
 
 /* ─── Navigation Items ─── */
-const NAV_ITEMS = [
-  { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard" },
-  { id: "team", label: "Equipe", icon: Users, path: "/equipe" },
+type NavItem = { id: string; label: string; icon: any; path: string; adminOnly?: boolean };
+const NAV_ITEMS: NavItem[] = [
+  { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard", adminOnly: true },
+  { id: "team", label: "Equipe", icon: Users, path: "/equipe", adminOnly: true },
   { id: "performance", label: "Performance", icon: BarChart3, path: "/performance" },
-  { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias" },
-  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes" },
+  { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias", adminOnly: true },
+  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true },
 ];
+
+/** Admin roles that can see admin-only nav items */
+const ADMIN_ROLES = ["master", "diretor", "gerente"];
 
 /* ─── Notification Bell ─── */
 function NotificationBell({ compact = false }: { compact?: boolean }) {
@@ -93,7 +97,12 @@ const SIDEBAR_EXPANDED_WIDTH = 240;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, loading, isStaff, logout } = useCustomAuth();
+  const { user, loading, isStaff, isCorretor, logout } = useCustomAuth();
+
+  // Filter nav items based on role — corretores only see non-admin items
+  const staffRole = user?.type === "staff" ? (user as any).role : null;
+  const isAdmin = staffRole ? ADMIN_ROLES.includes(staffRole) : false;
+  const filteredNavItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved === "true";
@@ -177,7 +186,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeNavId === item.id;
             return (
@@ -264,7 +273,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ─── Mobile Bottom Navigation (shared component) ─── */}
-      <MobileBottomNav onLogout={logout} />
+      <MobileBottomNav onLogout={logout} isAdmin={isAdmin} />
     </div>
   );
 }

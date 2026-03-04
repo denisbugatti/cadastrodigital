@@ -24,28 +24,33 @@ import { toast } from "sonner";
 
 /* ─── Main Nav Items (shown in bottom bar) ─── */
 const MAIN_NAV = [
-  { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard" },
-  { id: "team", label: "Equipe", icon: Users, path: "/equipe" },
-  { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias" },
+  { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard", adminOnly: true },
+  { id: "team", label: "Equipe", icon: Users, path: "/equipe", adminOnly: true },
+  { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias", adminOnly: true },
 ];
 
 /* ─── More Menu Items (shown in slide-up sheet) ─── */
 const MORE_ITEMS = [
-  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes" },
+  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true },
   { id: "mass-send", label: "Envios em massa", icon: Send, path: null, comingSoon: true },
   { id: "financial", label: "Gestão Financeira", icon: DollarSign, path: null, comingSoon: true },
 ];
 
 interface MobileBottomNavProps {
   onLogout?: () => void;
+  isAdmin?: boolean;
 }
 
-export default function MobileBottomNav({ onLogout }: MobileBottomNavProps) {
+export default function MobileBottomNav({ onLogout, isAdmin = true }: MobileBottomNavProps) {
   const [location, navigate] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
+  // Filter nav items based on role
+  const visibleMainNav = MAIN_NAV.filter(item => !item.adminOnly || isAdmin);
+  const visibleMoreItems = MORE_ITEMS.filter(item => !item.adminOnly || isAdmin);
+
   // Determine active nav item
-  const activeNavId = MAIN_NAV.find((item) => location.startsWith(item.path))?.id || 
+  const activeNavId = visibleMainNav.find((item) => location.startsWith(item.path))?.id || 
     (location.startsWith("/responses") ? "forms" : "");
 
   return (
@@ -53,7 +58,7 @@ export default function MobileBottomNav({ onLogout }: MobileBottomNavProps) {
       {/* ─── Bottom Navigation Bar ─── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border">
         <div className="flex items-center justify-around px-1 py-1 safe-area-bottom">
-          {MAIN_NAV.map((item) => {
+          {visibleMainNav.map((item) => {
             const Icon = item.icon;
             const isActive = activeNavId === item.id;
             return (
@@ -132,7 +137,7 @@ export default function MobileBottomNav({ onLogout }: MobileBottomNavProps) {
 
               {/* Menu Items */}
               <div className="px-4 py-3 space-y-1">
-                {MORE_ITEMS.map((item) => {
+                {visibleMoreItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = item.path ? location.startsWith(item.path) : false;
                   return (

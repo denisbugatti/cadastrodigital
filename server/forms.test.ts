@@ -105,7 +105,7 @@ const ownerUser: AuthenticatedUser = {
   lastSignedIn: new Date(),
 };
 
-function createAuthContext(userId = 1): TrpcContext {
+function createAuthContext(userId = 1, role = "master"): TrpcContext {
   const user: AuthenticatedUser = {
     id: userId,
     openId: "test-user-open-id",
@@ -120,6 +120,13 @@ function createAuthContext(userId = 1): TrpcContext {
 
   return {
     user,
+    customSession: {
+      type: "staff" as const,
+      staffUserId: userId,
+      email: "test@example.com",
+      role,
+      name: "Test User",
+    },
     req: {
       protocol: "https",
       headers: {},
@@ -189,16 +196,18 @@ describe("forms.list", () => {
     expect(result[0].title).toBe("Test Form");
   });
 
-  it("falls back to owner when unauthenticated", async () => {
+  it("rejects unauthenticated access", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleOwnerForm as any]);
 
-    const result = await caller.forms.list();
+    await expect(caller.forms.list()).rejects.toThrow();
+  });
 
-    expect(db.getUserByOpenId).toHaveBeenCalledWith("owner-open-id");
-    expect(db.getFormsByUser).toHaveBeenCalledWith(100);
-    expect(result).toHaveLength(1);
+  it("rejects corretor access", async () => {
+    const ctx = createAuthContext(1, "corretor");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(caller.forms.list()).rejects.toThrow();
   });
 });
 
@@ -261,24 +270,13 @@ describe("forms.create", () => {
     );
   });
 
-  it("creates a form as owner when unauthenticated", async () => {
+  it("rejects unauthenticated form creation", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.createForm).mockResolvedValue({ id: 43 });
 
-    const result = await caller.forms.create({
-      title: "Owner Form",
-      questions: [],
-      design: {},
-    });
-
-    expect(result.id).toBe(43);
-    expect(db.createForm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Owner Form",
-        userId: 100, // owner id
-      })
-    );
+    await expect(
+      caller.forms.create({ title: "Owner Form", questions: [], design: {} })
+    ).rejects.toThrow();
   });
 
   it("generates a slug if not provided", async () => {
@@ -326,18 +324,13 @@ describe("forms.update", () => {
     ).rejects.toThrow("Form not found or access denied");
   });
 
-  it("allows owner to update their forms when unauthenticated", async () => {
+  it("rejects unauthenticated form update", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.getFormById).mockResolvedValue(sampleOwnerForm as any);
-    vi.mocked(db.updateForm).mockResolvedValue(undefined);
 
-    const result = await caller.forms.update({
-      id: 1,
-      title: "Updated by Owner",
-    });
-
-    expect(result.success).toBe(true);
+    await expect(
+      caller.forms.update({ id: 1, title: "Updated by Owner" })
+    ).rejects.toThrow();
   });
 
   it("updates slug directly via slug field", async () => {
@@ -413,12 +406,12 @@ describe("forms.delete", () => {
   });
 
   it("rejects delete for form owned by another user", async () => {
-    const ctx = createAuthContext(2);
+    const ctx = createAuthContext(2, "master");
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormById).mockResolvedValue(sampleForm as any);
 
     await expect(caller.forms.delete({ id: 1 })).rejects.toThrow(
-      "Form not found or access denied"
+      "Formul\u00e1rio n\u00e3o encontrado"
     );
   });
 });
@@ -529,16 +522,13 @@ describe("responses.listByForm", () => {
     ).rejects.toThrow("Form not found or access denied");
   });
 
-  it("allows owner to list responses when unauthenticated", async () => {
+  it("rejects unauthenticated response listing", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.getFormById).mockResolvedValue(sampleOwnerForm as any);
-    vi.mocked(db.getResponsesByFormWithSearch).mockResolvedValue([
-      { id: 10, formId: 1, answers: { q1: "John" }, createdAt: new Date() } as any,
-    ]);
 
-    const result = await caller.responses.listByForm({ formId: 1 });
-    expect(result).toHaveLength(1);
+    await expect(
+      caller.responses.listByForm({ formId: 1 })
+    ).rejects.toThrow();
   });
 
   it("passes search parameter to db function", async () => {
@@ -636,15 +626,11 @@ describe("workspaces.list", () => {
     expect(result[0].name).toBe("My Folder");
   });
 
-  it("returns owner workspaces when unauthenticated", async () => {
+  it("rejects unauthenticated workspace listing", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.getWorkspacesByUser).mockResolvedValue([]);
 
-    const result = await caller.workspaces.list();
-
-    expect(db.getWorkspacesByUser).toHaveBeenCalledWith(100);
-    expect(result).toHaveLength(0);
+    await expect(caller.workspaces.list()).rejects.toThrow();
   });
 });
 
@@ -750,23 +736,17 @@ describe("files.upload", () => {
     );
   });
 
-  it("uploads a file as owner when unauthenticated", async () => {
+  it("rejects unauthenticated file upload", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
-    vi.mocked(db.createFileRecord).mockResolvedValue({ id: 21 });
 
-    const result = await caller.files.upload({
-      filename: "owner-file.png",
-      contentBase64: Buffer.from("fake-data").toString("base64"),
-      mimeType: "image/png",
-    });
-
-    expect(result.id).toBe(21);
-    expect(db.createFileRecord).toHaveBeenCalledWith(
-      expect.objectContaining({
-        uploadedBy: 100, // owner id
+    await expect(
+      caller.files.upload({
+        filename: "owner-file.png",
+        contentBase64: Buffer.from("fake-data").toString("base64"),
+        mimeType: "image/png",
       })
-    );
+    ).rejects.toThrow();
   });
 });
 
@@ -1194,52 +1174,49 @@ describe("corretores", () => {
 });
 
 
-// ─── Owner Fallback Resilience Tests ───
+// ─── Role-Based Access Control Tests ───
 
-describe("ownerFallbackProcedure resilience", () => {
-  it("falls back to synthetic owner when DB getUserByOpenId throws", async () => {
+describe("staffAdminProcedure access control", () => {
+  it("blocks unauthenticated users from admin procedures", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    // Simulate DB failure for owner lookup
-    vi.mocked(db.getUserByOpenId).mockRejectedValue(new Error("ECONNRESET"));
-    vi.mocked(db.getFormsByUser).mockResolvedValue([]);
-
-    // Should NOT throw — should use synthetic owner
-    const result = await caller.forms.list();
-    expect(Array.isArray(result)).toBe(true);
+    await expect(caller.forms.list()).rejects.toThrow();
+    await expect(caller.workspaces.list()).rejects.toThrow();
   });
 
-  it("falls back to synthetic owner when DB getUserByOpenId returns undefined and upsert fails", async () => {
-    const ctx = createPublicContext();
+  it("blocks corretores from admin procedures", async () => {
+    const ctx = createAuthContext(1, "corretor");
     const caller = appRouter.createCaller(ctx);
 
-    // Owner not found AND upsert fails
-    vi.mocked(db.getUserByOpenId).mockResolvedValue(undefined);
-    vi.mocked(db.upsertUser).mockRejectedValue(new Error("Connection lost"));
-    vi.mocked(db.getFormsByUser).mockResolvedValue([]);
-
-    // Should NOT throw — should use synthetic owner
-    const result = await caller.forms.list();
-    expect(Array.isArray(result)).toBe(true);
+    await expect(caller.forms.list()).rejects.toThrow();
+    await expect(caller.workspaces.list()).rejects.toThrow();
   });
 
-  it("caches owner user and does not re-query DB on subsequent calls", async () => {
-    const ctx = createPublicContext();
+  it("allows master role to access admin procedures", async () => {
+    const ctx = createAuthContext(1, "master");
     const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm as any]);
 
-    vi.mocked(db.getUserByOpenId).mockResolvedValue(ownerUser as any);
-    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleOwnerForm as any]);
+    const result = await caller.forms.list();
+    expect(result).toHaveLength(1);
+  });
 
-    // First call — should query DB
-    await caller.forms.list();
-    const firstCallCount = vi.mocked(db.getUserByOpenId).mock.calls.length;
+  it("allows gerente role to access admin procedures", async () => {
+    const ctx = createAuthContext(1, "gerente");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm as any]);
 
-    // Second call — should use cache
-    await caller.forms.list();
-    const secondCallCount = vi.mocked(db.getUserByOpenId).mock.calls.length;
+    const result = await caller.forms.list();
+    expect(result).toHaveLength(1);
+  });
 
-    // Should not have made additional DB calls for owner lookup
-    expect(secondCallCount).toBe(firstCallCount);
+  it("allows diretor role to access admin procedures", async () => {
+    const ctx = createAuthContext(1, "diretor");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm as any]);
+
+    const result = await caller.forms.list();
+    expect(result).toHaveLength(1);
   });
 });

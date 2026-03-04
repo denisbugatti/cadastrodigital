@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AppLayout from "./components/AppLayout";
 import AuthGate from "./components/AuthGate";
+import AdminRoute from "./components/AdminRoute";
 import Landing from "./pages/Landing";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
@@ -40,32 +41,55 @@ function Router() {
       {/* Client portal */}
       <Route path={"/portal"} component={ClientPortal} />
 
+      {/* ─── Admin-only routes (master/diretor/gerente) ─── */}
       {/* Dashboard (forms list) - has its own sidebar with folders */}
-      <Route path={"/dashboard"} component={Dashboard} />
+      <Route path={"/dashboard"}>
+        <AdminRoute><Dashboard /></AdminRoute>
+      </Route>
 
       {/* Form editor - full screen */}
-      <Route path={"/editor/:id"} component={Editor} />
+      <Route path={"/editor/:id"}>
+        <AdminRoute><Editor /></AdminRoute>
+      </Route>
 
       {/* Responses/Analytics for a specific form */}
       <Route path={"/responses/:formId"}>
         {(params: any) => (
-          <AppLayout><Responses /></AppLayout>
+          <AdminRoute>
+            <AppLayout><Responses /></AppLayout>
+          </AdminRoute>
         )}
       </Route>
 
-      {/* Staff pages wrapped in AppLayout */}
+      {/* Staff management */}
       <Route path={"/equipe"}>
-        <AppLayout><StaffManagement /></AppLayout>
+        <AdminRoute>
+          <AppLayout><StaffManagement /></AppLayout>
+        </AdminRoute>
       </Route>
 
+      {/* Cadence management */}
       <Route path={"/cadencias"}>
-        <AppLayout><CadenceManagement /></AppLayout>
+        <AdminRoute>
+          <AppLayout><CadenceManagement /></AppLayout>
+        </AdminRoute>
       </Route>
 
+      {/* Settings */}
       <Route path={"/configuracoes"}>
-        <AppLayout><Settings /></AppLayout>
+        <AdminRoute>
+          <AppLayout><Settings /></AppLayout>
+        </AdminRoute>
       </Route>
 
+      {/* Form copies management */}
+      <Route path={"/formularios-copias"}>
+        <AdminRoute>
+          <AppLayout><FormCopiesManagement /></AppLayout>
+        </AdminRoute>
+      </Route>
+
+      {/* ─── Corretor routes (accessible by all staff) ─── */}
       {/* Corretor-only responses page */}
       <Route path={"/corretor/respostas"} component={CorretorResponses} />
 
@@ -75,12 +99,7 @@ function Router() {
         <AppLayout><CorretorDashboard /></AppLayout>
       </Route>
 
-      {/* Form copies management (admin) */}
-      <Route path={"/formularios-copias"}>
-        <AppLayout><FormCopiesManagement /></AppLayout>
-      </Route>
-
-      {/* Response validation */}
+      {/* Response validation (accessible by all staff) */}
       <Route path={"/validar/:responseId"} component={ResponseValidation} />
 
       <Route path={"/404"} component={NotFound} />

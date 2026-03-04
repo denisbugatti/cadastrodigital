@@ -1074,3 +1074,12 @@
 - [x] Usuário logado: página inicial redireciona para dashboard (admin/gerente) ou corretor/respostas (corretor) ou portal (cliente)
 - [x] Usuário deslogado: página inicial é a landing page
 - [x] Logout redireciona para a landing page (window.location.href = "/")
+
+## BUG: Corretores com acesso total (admin)
+- [x] Corretores estão conseguindo acessar áreas administrativas (dashboard, equipe, configurações, etc.)
+- [x] Backend: staffAdminProcedure criado — bloqueia corretores de TODAS as procedures admin
+- [x] Backend: staffAnyProcedure para procedures que corretores precisam (validações, push, files)
+- [x] Frontend: navegação sidebar/mobile filtrada por role (corretores não veem itens admin)
+- [x] Frontend: AdminRoute component redireciona corretores para /corretor/respostas
+- [x] Corretor tem acesso APENAS a: /corretor/respostas, /corretor/performance, /validar/:id
+- [x] 382 testes passando, incluindo novos testes de RBAC (role-based access control)

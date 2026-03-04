@@ -1,6 +1,6 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, staffAdminProcedure, staffAnyProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import * as db from "./db";
@@ -173,9 +173,9 @@ export const appRouter = router({
   // New custom auth system
   customAuth: customAuthRouter,
 
-  // ─── Staff Management (master only) ───
+  // ─── Staff Management (admin only: master/diretor/gerente) ───
   staff: router({
-    list: ownerFallbackProcedure.query(async () => {
+    list: staffAdminProcedure.query(async () => {
       const users = await staffDb.getAllStaffUsers();
       return users.map((u: any) => ({
         id: u.id, email: u.email, name: u.name, phone: u.phone,
@@ -184,7 +184,7 @@ export const appRouter = router({
       }));
     }),
 
-    update: ownerFallbackProcedure
+    update: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -199,14 +199,14 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: ownerFallbackProcedure
+    delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await staffDb.deleteStaffUser(input.id);
         return { success: true };
       }),
 
-    invite: ownerFallbackProcedure
+    invite: staffAdminProcedure
       .input(z.object({
         email: z.string().email(),
         role: z.enum(["diretor", "gerente", "corretor"]),
@@ -266,11 +266,11 @@ export const appRouter = router({
         return { success: true, token };
       }),
 
-    invites: ownerFallbackProcedure.query(async ({ ctx }) => {
+    invites: staffAdminProcedure.query(async ({ ctx }) => {
       return staffDb.getInvitesByInviter(ctx.user.id);
     }),
 
-    deleteInvite: ownerFallbackProcedure
+    deleteInvite: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const invite = await staffDb.getInviteById(input.id);
@@ -284,7 +284,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    updateInvite: ownerFallbackProcedure
+    updateInvite: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         email: z.string().email().optional(),
@@ -305,7 +305,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    resendInvite: ownerFallbackProcedure
+    resendInvite: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         origin: z.string(),
@@ -338,11 +338,11 @@ export const appRouter = router({
 
   // ─── Permissions Management ───
   permissions: router({
-    list: ownerFallbackProcedure.query(async () => {
+    list: staffAdminProcedure.query(async () => {
       return staffDb.getAllPermissions();
     }),
 
-    update: ownerFallbackProcedure
+    update: staffAdminProcedure
       .input(z.object({
         role: z.string(),
         permission: z.string(),
@@ -353,7 +353,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    bulkUpdate: ownerFallbackProcedure
+    bulkUpdate: staffAdminProcedure
       .input(z.object({
         permissions: z.array(z.object({
           role: z.string(),
@@ -371,13 +371,13 @@ export const appRouter = router({
 
   // ─── Response Validations ───
   validations: router({
-    byResponse: ownerFallbackProcedure
+    byResponse: staffAnyProcedure
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         return staffDb.getValidationsByResponse(input.responseId);
       }),
 
-    validate: ownerFallbackProcedure
+    validate: staffAnyProcedure
       .input(z.object({
         responseId: z.number(),
         questionId: z.string(),
@@ -499,9 +499,9 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Forms ───
+  // ─── Forms (admin only: master/diretor/gerente) ───
   forms: router({
-    list: ownerFallbackProcedure.query(async ({ ctx }) => {
+    list: staffAdminProcedure.query(async ({ ctx }) => {
       return db.getFormsByUser(ctx.user.id);
     }),
 
@@ -526,7 +526,7 @@ export const appRouter = router({
         return db.getFormById(input.id);
       }),
 
-    create: ownerFallbackProcedure
+    create: staffAdminProcedure
       .input(z.object({
         title: z.string(),
         description: z.string().optional(),
@@ -557,7 +557,7 @@ export const appRouter = router({
         });
       }),
 
-    update: ownerFallbackProcedure
+    update: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -625,18 +625,18 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: ownerFallbackProcedure
+    delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.id);
         if (!form || form.userId !== ctx.user.id) {
-          throw new Error("Form not found or access denied");
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
         }
         await db.deleteForm(input.id);
         return { success: true };
       }),
 
-    duplicate: ownerFallbackProcedure
+    duplicate: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -648,7 +648,7 @@ export const appRouter = router({
       }),
 
     /** Mark responses as seen — updates lastSeenResponseCount to current responseCount */
-    markSeen: ownerFallbackProcedure
+    markSeen: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.formId);
@@ -660,7 +660,7 @@ export const appRouter = router({
       }),
 
     /** Get conversion stats for a form (funnel: started → complete → approved) */
-    getConversionStats: ownerFallbackProcedure
+    getConversionStats: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         period: z.enum(["7d", "30d", "90d", "all"]).optional().default("30d"),
@@ -674,7 +674,7 @@ export const appRouter = router({
       }),
 
     /** Export conversion report as PDF */
-    exportConversionPdf: ownerFallbackProcedure
+    exportConversionPdf: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         period: z.enum(["7d", "30d", "90d", "all"]).optional().default("30d"),
@@ -807,7 +807,7 @@ export const appRouter = router({
         return result;
       }),
 
-    listByForm: ownerFallbackProcedure
+    listByForm: staffAdminProcedure
       .input(z.object({ formId: z.number(), search: z.string().optional() }))
       .query(async ({ ctx, input }) => {
         // Verify ownership
@@ -818,7 +818,7 @@ export const appRouter = router({
         return db.getResponsesByFormWithSearch(input.formId, input.search);
       }),
 
-    getById: ownerFallbackProcedure
+    getById: staffAnyProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return db.getResponseById(input.id);
@@ -883,7 +883,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    generateFicha: ownerFallbackProcedure
+    generateFicha: staffAnyProcedure
       .input(z.object({ responseId: z.number() }))
       .query(async ({ ctx, input }) => {
         const response = await db.getResponseById(input.responseId);
@@ -979,7 +979,7 @@ export const appRouter = router({
         return db.getResponsesByCpfCnpj(session.cpfCnpj);
       }),
 
-    exportCsv: ownerFallbackProcedure
+    exportCsv: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         validationStatus: z.enum(["all", "pending", "in_review", "approved", "rejected", "complete", "partial"]).optional().default("all"),
@@ -1107,7 +1107,7 @@ export const appRouter = router({
 
   // ─── Form Versions ───
   versions: router({
-    create: ownerFallbackProcedure
+    create: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         label: z.string(),
@@ -1122,26 +1122,26 @@ export const appRouter = router({
         });
       }),
 
-    listByForm: ownerFallbackProcedure
+    listByForm: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getVersionsByForm(input.formId);
       }),
 
-    getById: ownerFallbackProcedure
+    getById: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return db.getVersionById(input.id);
       }),
 
-    delete: ownerFallbackProcedure
+    delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteVersion(input.id);
         return { success: true };
       }),
 
-    restore: ownerFallbackProcedure
+    restore: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const version = await db.getVersionById(input.id);
@@ -1174,7 +1174,7 @@ export const appRouter = router({
 
   // ─── Files ───
   files: router({
-    upload: ownerFallbackProcedure
+    upload: staffAnyProcedure
       .input(z.object({
         formId: z.number().optional(),
         responseId: z.number().optional(),
@@ -1201,19 +1201,19 @@ export const appRouter = router({
         return { id: record.id, url, fileKey };
       }),
 
-    listByForm: ownerFallbackProcedure
+    listByForm: staffAnyProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getFilesByForm(input.formId);
       }),
 
-    listByResponse: ownerFallbackProcedure
+    listByResponse: staffAnyProcedure
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         return db.getFilesByResponse(input.responseId);
       }),
 
-    delete: ownerFallbackProcedure
+    delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteFileRecord(input.id);
@@ -1223,7 +1223,7 @@ export const appRouter = router({
 
   // ─── Push Notifications ───
   push: router({
-    subscribe: ownerFallbackProcedure
+    subscribe: staffAnyProcedure
       .input(z.object({
         endpoint: z.string(),
         p256dh: z.string(),
@@ -1240,7 +1240,7 @@ export const appRouter = router({
         return { success: true, updated: result.updated };
       }),
 
-    unsubscribe: ownerFallbackProcedure
+    unsubscribe: staffAnyProcedure
       .input(z.object({
         endpoint: z.string(),
       }))
@@ -1249,7 +1249,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    status: ownerFallbackProcedure
+    status: staffAnyProcedure
       .query(async ({ ctx }) => {
         const subs = await db.getActivePushSubscriptions(ctx.user.id);
         return {
@@ -1475,7 +1475,7 @@ export const appRouter = router({
     }),
 
     /** Get performance for ALL corretores (admin only) */
-    all: ownerFallbackProcedure.query(async () => {
+    all: staffAdminProcedure.query(async () => {
       return db.getAllCorretoresPerformance();
     }),
   }),
@@ -1483,21 +1483,21 @@ export const appRouter = router({
   // ─── Form Sync Management ───
   formSync: router({
     /** Get count of child forms for a parent form (for sync indicator) */
-    childCount: ownerFallbackProcedure
+    childCount: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getChildFormsCount(input.formId);
       }),
 
     /** Get all child forms with corretor info (for management panel) */
-    children: ownerFallbackProcedure
+    children: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getChildFormsWithCorretores(input.formId);
       }),
 
     /** Force sync a parent form to all children */
-    forceSync: ownerFallbackProcedure
+    forceSync: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.formId);
@@ -1518,7 +1518,7 @@ export const appRouter = router({
 
   // ─── Corretores ───
   corretores: router({
-    list: ownerFallbackProcedure.query(async ({ ctx }) => {
+    list: staffAdminProcedure.query(async ({ ctx }) => {
       return db.getCorretoresByUser(ctx.user.id);
     }),
 
@@ -1533,7 +1533,7 @@ export const appRouter = router({
       return merged.sort((a: any, b: any) => a.name.localeCompare(b.name));
     }),
 
-    assignToForm: ownerFallbackProcedure
+    assignToForm: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         staffUserId: z.number().nullable(),
@@ -1547,7 +1547,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    create: ownerFallbackProcedure
+    create: staffAdminProcedure
       .input(z.object({
         name: z.string().min(1),
         email: z.string().email(),
@@ -1563,7 +1563,7 @@ export const appRouter = router({
         });
       }),
 
-    update: ownerFallbackProcedure
+    update: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().min(1).optional(),
@@ -1581,7 +1581,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: ownerFallbackProcedure
+    delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const corretor = await db.getCorretorById(input.id);
@@ -1593,14 +1593,14 @@ export const appRouter = router({
       }),
 
     // Get corretores assigned to a specific form
-    byForm: ownerFallbackProcedure
+    byForm: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getCorretoresByForm(input.formId);
       }),
 
     // Set which corretores are assigned to a form
-    setFormCorretores: ownerFallbackProcedure
+    setFormCorretores: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         corretorIds: z.array(z.number()),
@@ -1615,7 +1615,7 @@ export const appRouter = router({
       }),
 
     // Toggle notification for a specific corretor on a form
-    toggleNotification: ownerFallbackProcedure
+    toggleNotification: staffAdminProcedure
       .input(z.object({
         formId: z.number(),
         corretorId: z.number(),
@@ -1626,7 +1626,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    getAssigned: ownerFallbackProcedure
+    getAssigned: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         const form = await db.getFormById(input.formId);
@@ -1638,11 +1638,11 @@ export const appRouter = router({
 
   // ─── Workspaces (Folders) ───
   workspaces: router({
-    list: ownerFallbackProcedure.query(async ({ ctx }) => {
+    list: staffAdminProcedure.query(async ({ ctx }) => {
       return db.getWorkspacesByUser(ctx.user.id);
     }),
 
-    create: ownerFallbackProcedure
+    create: staffAdminProcedure
       .input(z.object({
         name: z.string(),
         designDefaults: z.any().optional(),
@@ -1655,7 +1655,7 @@ export const appRouter = router({
         });
       }),
 
-    update: ownerFallbackProcedure
+    update: staffAdminProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -1671,7 +1671,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: ownerFallbackProcedure
+    delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const workspace = await db.getWorkspaceById(input.id);
@@ -1704,7 +1704,7 @@ export const appRouter = router({
       };
     }),
 
-    update: ownerFallbackProcedure
+    update: staffAdminProcedure
       .input(z.object({
         ogTitle: z.string().max(500).optional(),
         ogDescription: z.string().max(2000).optional(),
@@ -1716,7 +1716,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    uploadImage: ownerFallbackProcedure
+    uploadImage: staffAdminProcedure
       .input(z.object({
         base64: z.string(),
         filename: z.string(),
@@ -1736,7 +1736,7 @@ export const appRouter = router({
      * Enroll incomplete responses into the abandono cadence.
      * Called by cron: finds responses >24h old without active cadence and creates one.
      */
-    enrollIncomplete: ownerFallbackProcedure
+    enrollIncomplete: staffAdminProcedure
       .input(z.object({
         minAgeHours: z.number().min(1).default(24),
       }))
@@ -1768,7 +1768,7 @@ export const appRouter = router({
      * Called by cron at 9am BRT on Mon/Wed/Fri.
      * Sends emails for all cadences where nextSendAt <= now.
      */
-    processDue: ownerFallbackProcedure
+    processDue: staffAdminProcedure
       .input(z.object({
         siteUrl: z.string().url(),
       }))
@@ -1847,13 +1847,13 @@ export const appRouter = router({
       }),
 
     /** Get active cadences stats */
-    getStats: ownerFallbackProcedure
+    getStats: staffAdminProcedure
       .query(async () => {
         return db.getActiveCadencesCount();
       }),
 
     /** Stop a specific cadence manually */
-    stop: ownerFallbackProcedure
+    stop: staffAdminProcedure
       .input(z.object({ cadenceId: z.number() }))
       .mutation(async ({ input }) => {
         await db.stopCadence(input.cadenceId, "manual");
@@ -1861,7 +1861,7 @@ export const appRouter = router({
       }),
 
     /** Stop all cadences for a response */
-    stopForResponse: ownerFallbackProcedure
+    stopForResponse: staffAdminProcedure
       .input(z.object({ responseId: z.number() }))
       .mutation(async ({ input }) => {
         const stopped = await db.stopCadencesForResponse(input.responseId, "manual");
@@ -1869,14 +1869,14 @@ export const appRouter = router({
       }),
 
     /** Get cadences for a specific response */
-    getByResponse: ownerFallbackProcedure
+    getByResponse: staffAdminProcedure
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         return db.getCadencesByResponse(input.responseId);
       }),
 
     /** Start a cadence manually for a response */
-    startManual: ownerFallbackProcedure
+    startManual: staffAdminProcedure
       .input(z.object({
         responseId: z.number(),
         cadenceType: z.enum(["abandono", "reprovacao"]),
@@ -1908,14 +1908,14 @@ export const appRouter = router({
       }),
 
     /** Get response IDs with active cadences for a form (for filter) */
-    getActiveResponseIds: ownerFallbackProcedure
+    getActiveResponseIds: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getResponseIdsWithActiveCadence(input.formId);
       }),
 
     /** Get email history for a response from activity log */
-    getEmailHistory: ownerFallbackProcedure
+    getEmailHistory: staffAdminProcedure
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         const timeline = await db.getActivityTimeline(input.responseId);
@@ -1930,7 +1930,7 @@ export const appRouter = router({
   // ─── Follow-up (Legacy, now uses cadence system) ───
   followUp: router({
     /** Enroll + process in one call (backwards compatible) */
-    sendFollowUps: ownerFallbackProcedure
+    sendFollowUps: staffAdminProcedure
       .input(z.object({
         minAgeHours: z.number().min(1).default(24),
         siteUrl: z.string().url(),
@@ -2008,7 +2008,7 @@ export const appRouter = router({
         return { enrolled, sent, failed, total: dueCadences.length };
       }),
 
-    getPendingCount: ownerFallbackProcedure
+    getPendingCount: staffAdminProcedure
       .input(z.object({ minAgeHours: z.number().min(1).default(24) }).optional())
       .query(async ({ input }) => {
         const responses = await db.getIncompleteResponsesForFollowUp(input?.minAgeHours ?? 24);
@@ -2019,7 +2019,7 @@ export const appRouter = router({
   // ─── Activity Timeline ───
   activity: router({
     /** Get timeline for a specific response */
-    getTimeline: ownerFallbackProcedure
+    getTimeline: staffAdminProcedure
       .input(z.object({ responseId: z.number() }))
       .query(async ({ input }) => {
         return db.getActivityTimeline(input.responseId);
@@ -2029,7 +2029,7 @@ export const appRouter = router({
   // ─── Cadence Management (Global) ───
   cadenceManagement: router({
     /** List all cadences with filters and pagination */
-    list: ownerFallbackProcedure
+    list: staffAdminProcedure
       .input(z.object({
         status: z.enum(["active", "paused", "stopped"]).optional(),
         cadenceType: z.enum(["abandono", "reprovacao"]).optional(),
@@ -2043,13 +2043,13 @@ export const appRouter = router({
       }),
 
     /** Get forms that have cadences (for filter dropdown) */
-    getFormsWithCadences: ownerFallbackProcedure
+    getFormsWithCadences: staffAdminProcedure
       .query(async () => {
         return db.getFormsWithCadences();
       }),
 
     /** Pause a single cadence */
-    pause: ownerFallbackProcedure
+    pause: staffAdminProcedure
       .input(z.object({ cadenceId: z.number() }))
       .mutation(async ({ input }) => {
         await db.pauseCadence(input.cadenceId);
@@ -2057,7 +2057,7 @@ export const appRouter = router({
       }),
 
     /** Resume a paused cadence */
-    resume: ownerFallbackProcedure
+    resume: staffAdminProcedure
       .input(z.object({ cadenceId: z.number() }))
       .mutation(async ({ input }) => {
         await db.resumeCadence(input.cadenceId);
@@ -2065,7 +2065,7 @@ export const appRouter = router({
       }),
 
     /** Stop a single cadence */
-    stop: ownerFallbackProcedure
+    stop: staffAdminProcedure
       .input(z.object({ cadenceId: z.number() }))
       .mutation(async ({ input }) => {
         await db.stopCadence(input.cadenceId, "manual");
@@ -2073,7 +2073,7 @@ export const appRouter = router({
       }),
 
     /** Batch pause cadences */
-    batchPause: ownerFallbackProcedure
+    batchPause: staffAdminProcedure
       .input(z.object({ cadenceIds: z.array(z.number()) }))
       .mutation(async ({ input }) => {
         const count = await db.batchPauseCadences(input.cadenceIds);
@@ -2081,7 +2081,7 @@ export const appRouter = router({
       }),
 
     /** Batch stop cadences */
-    batchStop: ownerFallbackProcedure
+    batchStop: staffAdminProcedure
       .input(z.object({ cadenceIds: z.array(z.number()) }))
       .mutation(async ({ input }) => {
         const count = await db.batchStopCadences(input.cadenceIds);
