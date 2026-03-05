@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, title, slug, isTemplate, parentFormId, status, createdByStaffId, userId FROM forms WHERE isTemplate = 1 OR title LIKE '%One%' OR title LIKE '%ONE%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, slug, isTemplate, parentFormId, status, createdByStaffId, userId FROM forms WHERE isTemplate = 1 OR title LIKE '%One%' OR title LIKE '%ONE%';",
+  "rows": [
+    {
+      "id": "90002",
+      "title": "One Innovation",
+      "slug": "padrao",
+      "isTemplate": "1",
+      "parentFormId": "60002",
+      "status": "published",
+      "createdByStaffId": "NULL",
+      "userId": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tslug\tisTemplate\tparentFormId\tstatus\tcreatedByStaffId\tuserId\n90002\tOne Innovation\tpadrao\t1\t60002\tpublished\tNULL\t1\n",
+  "stderr": "",
+  "execution_time_ms": 367
+}

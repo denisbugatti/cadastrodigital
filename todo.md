@@ -1294,3 +1294,15 @@
 - [x] Bug: responses.listByForm usava staffAdminProcedure — corretor não tinha permissão
 - [x] Fix: mudado para staffAnyProcedure com verificação de assignment (corretor só vê respostas de formulários atribuídos)
 - [x] 435 testes passando, 0 erros TypeScript
+
+## Bug: corretor sem gerente atribuído deve ver respostas
+- [x] Verificado: código backend não filtra por managerId no fluxo do corretor
+- [x] Confirmado: getFormIdsByStaff busca via form_assignments (independente de managerId)
+- [x] Causa real: versão publicada ainda não tem a correção de staffAdminProcedure → staffAnyProcedure
+- [x] Solução: publicar nova versão (checkpoint 794aa8a4)
+
+## Ajustes visuais e galeria
+- [x] Ocultar seção "SUA PONTUAÇÃO" da tela de conclusão (pontuação continua internamente, só não exibe ao respondente)
+- [x] Verificar e corrigir cor da fonte nos templates de e-mail (deve ser branca)
+- [x] Garantir que o formulário One Innovation apareça na Galeria de Templates (isTemplate=1 confirmado, parentFormId órfão limpo)
+- [x] Converter e-mails de Resend Templates para HTML inline com texto branco visível

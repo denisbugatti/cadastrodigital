@@ -134,46 +134,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore }: T
           {question.title}
         </motion.h1>
 
-        {/* Total Score — displayed when scoring is enabled */}
-        {totalScore !== null && totalScore !== undefined && (
-          <motion.div
-            className="mt-5 mb-2"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <p
-              className="text-xs uppercase tracking-widest mb-2 font-medium"
-              style={{ color: subtitleColor, fontFamily }}
-            >
-              Sua pontuação
-            </p>
-            <div
-              className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl"
-              style={{
-                backgroundColor: isLightBg ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.12)",
-                border: `1.5px solid ${isLightBg ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.25)"}`,
-              }}
-            >
-              <span
-                className="font-mono"
-                style={{
-                  color: isLightBg ? "#D97706" : "#FBBF24",
-                  fontSize: "clamp(24px, 5vw, 32px)",
-                  fontWeight: 700,
-                }}
-              >
-                {totalScore}
-              </span>
-              <span
-                className="text-sm font-medium"
-                style={{ color: isLightBg ? "rgba(217,119,6,0.7)" : "rgba(251,191,36,0.7)" }}
-              >
-                pontos
-              </span>
-            </div>
-          </motion.div>
-        )}
+        {/* Total Score — kept in props for internal analytics, but NOT displayed to respondent */}
 
         {/* Protocol Code — prominently displayed */}
         {protocolCode && (

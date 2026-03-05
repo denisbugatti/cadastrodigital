@@ -1,0 +1,8 @@
+{
+  "query": "SELECT fa.*, su.name as staff_name, su.role, su.manager_id, f.title as form_title FROM form_assignments fa JOIN staff_users su ON fa.staff_user_id = su.id JOIN forms f ON fa.form_id = f.id ORDER BY fa.id DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT fa.*, su.name as staff_name, su.role, su.manager_id, f.title as form_title FROM form_assignments fa JOIN staff_users su ON fa.staff_user_id = su.id JOIN forms f ON fa.form_id = f.id ORDER BY fa.id DESC LIMIT 20;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'fa.staff_user_id' in 'on clause'"
+  ]
+}

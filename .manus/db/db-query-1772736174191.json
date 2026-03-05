@@ -1,0 +1,30 @@
+{
+  "query": "SELECT fa.id, fa.formId, fa.staffUserId, fa.assignedBy, su.name as staff_name, su.role, su.managerId, f.title as form_title FROM form_assignments fa JOIN staff_users su ON fa.staffUserId = su.id JOIN forms f ON fa.formId = f.id ORDER BY fa.id DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT fa.id, fa.formId, fa.staffUserId, fa.assignedBy, su.name as staff_name, su.role, su.managerId, f.title as form_title FROM form_assignments fa JOIN staff_users su ON fa.staffUserId = su.id JOIN forms f ON fa.formId = f.id ORDER BY fa.id DESC LIMIT 20;",
+  "rows": [
+    {
+      "id": "30003",
+      "formId": "150001",
+      "staffUserId": "180001",
+      "assignedBy": "1",
+      "staff_name": "vitoria",
+      "role": "corretor",
+      "managerId": "NULL",
+      "form_title": "Vitoria"
+    },
+    {
+      "id": "30002",
+      "formId": "120001",
+      "staffUserId": "180001",
+      "assignedBy": "1",
+      "staff_name": "vitoria",
+      "role": "corretor",
+      "managerId": "NULL",
+      "form_title": "Teste denis"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tformId\tstaffUserId\tassignedBy\tstaff_name\trole\tmanagerId\tform_title\n30003\t150001\t180001\t1\tvitoria\tcorretor\tNULL\tVitoria\n30002\t120001\t180001\t1\tvitoria\tcorretor\tNULL\tTeste denis\n",
+  "stderr": "",
+  "execution_time_ms": 436
+}

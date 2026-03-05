@@ -1,7 +1,6 @@
 /**
  * Email Service — One Innovation Design System
- * Now uses Resend Templates for all emails.
- * Templates can be edited visually in the Resend dashboard.
+ * All emails use inline HTML with dark background + white text for guaranteed visibility.
  * Sender: one@cadastrodigital.com.br
  */
 
@@ -20,34 +19,16 @@ function getResendClient(): Resend | null {
   return _resend;
 }
 
-/* ─── Template IDs from Resend ─── */
-const TEMPLATE_IDS = {
-  INVITE_STAFF: "41d689fb-2ed7-469a-9e3d-6204085bd5bc",
-  PROTOCOL_PENDING: "1d4c3ca1-026d-42ef-83c7-3b37cedcb802",
-  APPROVAL: "bd17dc65-aa61-4ba9-8444-4f9baa841c2e",
-  REJECTION: "9a49a11e-5022-4e3d-bf2b-cdeb80e13ac9",
-  CADENCE_ABANDONO_V1: "dd26aab4-fdf6-4d3f-97f3-5915686d4a67",
-  CADENCE_ABANDONO_V2: "9cb9b98c-7330-4280-9f15-258cbaaeca48",
-  CADENCE_ABANDONO_V3: "0d780f6f-08cf-45d6-9f7c-bf8afeb58358",
-  CADENCE_REJECTION_V1: "73360690-8866-4c88-9a65-b8dc053c1ef1",
-  CADENCE_REJECTION_V2: "7771cbf0-4b04-4254-824a-21ac3440a1ed",
-  CADENCE_REJECTION_V3: "ac1d6bb6-499e-4ab1-8794-62518cc7e0bd",
-  CORRETOR_NOTIFICATION: "164cfd9d-0780-4c4d-9841-59f2693d0552",
-} as const;
-
 const FROM_EMAIL = "one@cadastrodigital.com.br";
 const FROM_NAME = "One Innovation";
 
 /**
- * Generic helper to send an email using a Resend template.
- * Uses the official Resend `template` parameter with `id` and `variables`.
- * See: https://resend.com/docs/api-reference/emails/send-email
+ * Generic helper to send an email with inline HTML.
  */
-async function sendTemplateEmail(params: {
-  templateId: string;
+async function sendHtmlEmail(params: {
   to: string;
   subject: string;
-  data: Record<string, string>;
+  html: string;
 }): Promise<boolean> {
   const resend = getResendClient();
   if (!resend) return false;
@@ -57,14 +38,11 @@ async function sendTemplateEmail(params: {
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [params.to],
       subject: params.subject,
-      template: {
-        id: params.templateId,
-        variables: params.data,
-      },
-    } as any);
+      html: params.html,
+    });
 
     if (error) {
-      console.error("[Email] Template send error:", error);
+      console.error("[Email] Send error:", error);
       return false;
     }
     console.log(`[Email] Sent to ${params.to} (id: ${data?.id})`);
@@ -73,6 +51,56 @@ async function sendTemplateEmail(params: {
     console.error("[Email] Failed:", (err as Error).message);
     return false;
   }
+}
+
+/* ─── Shared HTML wrapper ─── */
+function emailWrapper(content: string): string {
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #0a0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px 16px;">
+    ${content}
+    <!-- Footer -->
+    <div style="text-align: center; padding: 24px 0 8px; border-top: 1px solid #1e293b; margin-top: 32px;">
+      <p style="color: #64748b; font-size: 12px; margin: 0;">One Innovation — Cadastro Digital</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function headerBlock(emoji: string, title: string, subtitle?: string): string {
+  return `
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #6366f1); padding: 12px 24px; border-radius: 12px; margin-bottom: 16px;">
+        <span style="font-size: 28px;">${emoji}</span>
+      </div>
+      <h1 style="color: #f1f5f9; font-size: 22px; font-weight: 700; margin: 8px 0 4px;">${title}</h1>
+      ${subtitle ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${subtitle}</p>` : ""}
+    </div>`;
+}
+
+function infoRow(label: string, value: string): string {
+  return `
+    <tr>
+      <td style="padding: 10px 16px; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">${label}</td>
+      <td style="padding: 10px 16px; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${value}</td>
+    </tr>`;
+}
+
+function ctaButton(url: string, text: string, color: string = "#3b82f6"): string {
+  return `
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="${url}" target="_blank" style="display: inline-block; background: ${color}; color: #ffffff; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; text-decoration: none;">${text}</a>
+    </div>`;
+}
+
+function cardBlock(content: string): string {
+  return `
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+      ${content}
+    </div>`;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -96,18 +124,26 @@ export async function sendInviteEmail(params: InviteEmailParams): Promise<boolea
     corretor: "Corretor(a)",
   };
   const roleDisplay = roleLabel[role] || role;
+  const name = inviteeName || "Olá";
 
-  return sendTemplateEmail({
-    templateId: TEMPLATE_IDS.INVITE_STAFF,
-    to,
-    subject: `Bem-vindo(a) à One Innovation — ${inviterName} convidou você`,
-    data: {
-      INVITEE_NAME: inviteeName || "Olá",
-      INVITER_NAME: inviterName,
-      ROLE_DISPLAY: roleDisplay,
-      INVITE_URL: inviteUrl,
-    },
-  });
+  const html = emailWrapper(`
+    ${headerBlock("🎉", "Bem-vindo(a) à One Innovation!")}
+    ${cardBlock(`
+      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+        Olá <strong style="color: #ffffff;">${name}</strong>,
+      </p>
+      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
+        <strong style="color: #f1f5f9;">${inviterName}</strong> convidou você para fazer parte da equipe como <strong style="color: #3b82f6;">${roleDisplay}</strong>.
+      </p>
+      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
+        Clique no botão abaixo para criar sua conta e começar.
+      </p>
+    `)}
+    ${ctaButton(inviteUrl, "Aceitar Convite")}
+    <p style="color: #64748b; font-size: 12px; text-align: center;">Se você não esperava este convite, pode ignorar este e-mail.</p>
+  `);
+
+  return sendHtmlEmail({ to, subject: `Bem-vindo(a) à One Innovation — ${inviterName} convidou você`, html });
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -123,17 +159,29 @@ export interface ProtocolEmailParams {
 
 export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<boolean> {
   const { to, respondentName, protocolCode, formTitle } = params;
+  const name = respondentName || "Olá";
 
-  return sendTemplateEmail({
-    templateId: TEMPLATE_IDS.PROTOCOL_PENDING,
-    to,
-    subject: `Protocolo ${protocolCode} — Cadastro recebido com sucesso`,
-    data: {
-      CLIENT_NAME: respondentName || "Olá",
-      PROTOCOL_CODE: protocolCode,
-      FORM_TITLE: formTitle,
-    },
-  });
+  const html = emailWrapper(`
+    ${headerBlock("✅", "Cadastro Recebido!", formTitle)}
+    ${cardBlock(`
+      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+        Olá <strong style="color: #ffffff;">${name}</strong>,
+      </p>
+      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
+        Seu cadastro foi recebido com sucesso e está em análise. Guarde o código de protocolo abaixo:
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <div style="display: inline-block; background: rgba(59,130,246,0.15); border: 1.5px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 16px 32px;">
+          <span style="color: #60a5fa; font-size: 24px; font-weight: 700; letter-spacing: 0.15em; font-family: monospace;">${protocolCode}</span>
+        </div>
+      </div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 16px 0 0; text-align: center; line-height: 1.5;">
+        Você receberá uma notificação quando seu cadastro for analisado.
+      </p>
+    `)}
+  `);
+
+  return sendHtmlEmail({ to, subject: `Protocolo ${protocolCode} — Cadastro recebido com sucesso`, html });
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -148,14 +196,27 @@ export interface ApprovalEmailParams {
 export async function sendApprovalEmail(params: ApprovalEmailParams): Promise<boolean> {
   const { to, clientName } = params;
 
-  return sendTemplateEmail({
-    templateId: TEMPLATE_IDS.APPROVAL,
-    to,
-    subject: `Parabéns, ${clientName}! Seu cadastro foi aprovado! 🎉`,
-    data: {
-      CLIENT_NAME: clientName,
-    },
-  });
+  const html = emailWrapper(`
+    ${headerBlock("🎉", "Cadastro Aprovado!")}
+    ${cardBlock(`
+      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+        Parabéns <strong style="color: #ffffff;">${clientName}</strong>!
+      </p>
+      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
+        Seu cadastro foi <strong style="color: #22c55e;">aprovado</strong> com sucesso! 🎉
+      </p>
+      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
+        Em breve, nosso corretor entrará em contato com os próximos passos.
+      </p>
+    `)}
+    <div style="text-align: center; margin: 24px 0;">
+      <div style="display: inline-block; background: rgba(34,197,94,0.12); border: 1.5px solid rgba(34,197,94,0.3); border-radius: 10px; padding: 14px 28px;">
+        <span style="color: #22c55e; font-size: 18px; font-weight: 600;">✓ Aprovado</span>
+      </div>
+    </div>
+  `);
+
+  return sendHtmlEmail({ to, subject: `Parabéns, ${clientName}! Seu cadastro foi aprovado!`, html });
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -172,16 +233,26 @@ export interface RejectionEmailParams {
 export async function sendRejectionEmail(params: RejectionEmailParams): Promise<boolean> {
   const { to, clientName, reason, formUrl } = params;
 
-  return sendTemplateEmail({
-    templateId: TEMPLATE_IDS.REJECTION,
-    to,
-    subject: `Atenção: Revisão necessária no seu cadastro`,
-    data: {
-      CLIENT_NAME: clientName,
-      REASON: reason,
-      FORM_URL: formUrl || "",
-    },
-  });
+  const html = emailWrapper(`
+    ${headerBlock("⚠️", "Revisão Necessária")}
+    ${cardBlock(`
+      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+        Olá <strong style="color: #ffffff;">${clientName}</strong>,
+      </p>
+      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
+        Identificamos um ponto que precisa de atenção no seu cadastro:
+      </p>
+      <div style="background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; padding: 14px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px;">
+        <p style="color: #fca5a5; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
+      </div>
+      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
+        Por favor, corrija o item acima para que possamos dar continuidade ao seu processo.
+      </p>
+    `)}
+    ${formUrl ? ctaButton(formUrl, "Corrigir Cadastro", "#ef4444") : ""}
+  `);
+
+  return sendHtmlEmail({ to, subject: `Atenção: Revisão necessária no seu cadastro`, html });
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -194,56 +265,84 @@ export interface CadenceEmailParams {
   clientName?: string;
   formTitle: string;
   formUrl: string;
-  /** Which email in the cadence sequence (1-based) */
   sequenceNumber: number;
-  /** Total emails in the cadence */
   totalInSequence: number;
 }
 
-/**
- * Get the cadence template ID and subject based on sequence number.
- * Rotates between 3 different templates for variety.
- */
-function getCadenceTemplate(sequenceNumber: number): {
-  templateId: string;
-  subject: string;
-} {
-  const variation = ((sequenceNumber - 1) % 3) + 1;
+function buildCadenceHtml(variation: number, clientName: string, formTitle: string, formUrl: string): string {
+  const name = clientName || "Olá";
 
+  if (variation === 1) {
+    return emailWrapper(`
+      ${headerBlock("📝", "Seu cadastro está quase pronto!", formTitle)}
+      ${cardBlock(`
+        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+          Olá <strong style="color: #ffffff;">${name}</strong>,
+        </p>
+        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
+          Notamos que você começou seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> mas ainda não finalizou.
+        </p>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
+          Falta pouco! Continue de onde parou e garanta sua vaga.
+        </p>
+      `)}
+      ${ctaButton(formUrl, "Continuar Cadastro")}
+    `);
+  }
+
+  if (variation === 2) {
+    return emailWrapper(`
+      ${headerBlock("🏠", "Não perca essa oportunidade!", formTitle)}
+      ${cardBlock(`
+        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+          Olá <strong style="color: #ffffff;">${name}</strong>,
+        </p>
+        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
+          Seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> ainda está incompleto. As vagas são limitadas!
+        </p>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
+          Finalize agora e dê o próximo passo rumo ao seu novo apartamento.
+        </p>
+      `)}
+      ${ctaButton(formUrl, "Finalizar Agora", "#f59e0b")}
+    `);
+  }
+
+  // variation 3
+  return emailWrapper(`
+    ${headerBlock("⏰", "Lembrete: finalize seu cadastro", formTitle)}
+    ${cardBlock(`
+      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+        Olá <strong style="color: #ffffff;">${name}</strong>,
+      </p>
+      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
+        Este é um lembrete amigável: seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> ainda não foi concluído.
+      </p>
+      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
+        Complete seu cadastro para que possamos prosseguir com o atendimento.
+      </p>
+    `)}
+    ${ctaButton(formUrl, "Completar Cadastro")}
+  `);
+}
+
+function getCadenceSubject(sequenceNumber: number): string {
+  const variation = ((sequenceNumber - 1) % 3) + 1;
   switch (variation) {
-    case 1:
-      return {
-        templateId: TEMPLATE_IDS.CADENCE_ABANDONO_V1,
-        subject: "Seu cadastro está quase pronto!",
-      };
-    case 2:
-      return {
-        templateId: TEMPLATE_IDS.CADENCE_ABANDONO_V2,
-        subject: "Não perca essa oportunidade!",
-      };
+    case 1: return "Seu cadastro está quase pronto!";
+    case 2: return "Não perca essa oportunidade!";
     case 3:
-    default:
-      return {
-        templateId: TEMPLATE_IDS.CADENCE_ABANDONO_V3,
-        subject: "Lembrete: finalize seu cadastro",
-      };
+    default: return "Lembrete: finalize seu cadastro";
   }
 }
 
 export async function sendCadenceEmail(params: CadenceEmailParams): Promise<boolean> {
   const { to, clientName, formTitle, formUrl, sequenceNumber, totalInSequence } = params;
-  const template = getCadenceTemplate(sequenceNumber);
+  const variation = ((sequenceNumber - 1) % 3) + 1;
+  const subject = `${getCadenceSubject(sequenceNumber)} — ${formTitle}`;
+  const html = buildCadenceHtml(variation, clientName || "Olá", formTitle, formUrl);
 
-  const result = await sendTemplateEmail({
-    templateId: template.templateId,
-    to,
-    subject: `${template.subject} — ${formTitle}`,
-    data: {
-      CLIENT_NAME: clientName || "Olá",
-      FORM_TITLE: formTitle,
-      FORM_URL: formUrl,
-    },
-  });
+  const result = await sendHtmlEmail({ to, subject, html });
 
   if (result) {
     console.log(`[Email] Cadence ${sequenceNumber}/${totalInSequence} sent to ${to}`);
@@ -265,47 +364,83 @@ export interface RejectionCadenceEmailParams {
   totalInSequence: number;
 }
 
-function getRejectionCadenceTemplate(sequenceNumber: number): {
-  templateId: string;
-  subject: string;
-} {
-  const variation = ((sequenceNumber - 1) % 3) + 1;
+function buildRejectionCadenceHtml(variation: number, clientName: string, formTitle: string, formUrl: string, reason: string): string {
+  const name = clientName || "Olá";
 
+  if (variation === 1) {
+    return emailWrapper(`
+      ${headerBlock("🔧", "Ajuste necessário no seu cadastro", formTitle)}
+      ${cardBlock(`
+        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+          Olá <strong style="color: #ffffff;">${name}</strong>,
+        </p>
+        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
+          Precisamos de uma correção no seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong>:
+        </p>
+        <div style="background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; padding: 14px 16px; border-radius: 0 8px 8px 0;">
+          <p style="color: #fca5a5; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
+        </div>
+      `)}
+      ${ctaButton(formUrl, "Corrigir Cadastro", "#ef4444")}
+    `);
+  }
+
+  if (variation === 2) {
+    return emailWrapper(`
+      ${headerBlock("✨", "Seu cadastro está quase aprovado!", formTitle)}
+      ${cardBlock(`
+        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+          Olá <strong style="color: #ffffff;">${name}</strong>,
+        </p>
+        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
+          Falta apenas um ajuste para aprovarmos seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong>:
+        </p>
+        <div style="background: rgba(245,158,11,0.08); border-left: 3px solid #f59e0b; padding: 14px 16px; border-radius: 0 8px 8px 0;">
+          <p style="color: #fcd34d; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
+        </div>
+      `)}
+      ${ctaButton(formUrl, "Ajustar Agora", "#f59e0b")}
+    `);
+  }
+
+  // variation 3
+  return emailWrapper(`
+    ${headerBlock("⚡", "Não perca sua vaga!", formTitle)}
+    ${cardBlock(`
+      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
+        Olá <strong style="color: #ffffff;">${name}</strong>,
+      </p>
+      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
+        Seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> precisa de uma correção para ser aprovado:
+      </p>
+      <div style="background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; padding: 14px 16px; border-radius: 0 8px 8px 0;">
+        <p style="color: #fca5a5; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
+      </div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 16px 0 0; line-height: 1.5;">
+        Corrija o quanto antes para garantir sua vaga.
+      </p>
+    `)}
+    ${ctaButton(formUrl, "Corrigir e Garantir Vaga", "#ef4444")}
+  `);
+}
+
+function getRejectionCadenceSubject(sequenceNumber: number): string {
+  const variation = ((sequenceNumber - 1) % 3) + 1;
   switch (variation) {
-    case 1:
-      return {
-        templateId: TEMPLATE_IDS.CADENCE_REJECTION_V1,
-        subject: "Lembrete: ajuste necessário no seu cadastro",
-      };
-    case 2:
-      return {
-        templateId: TEMPLATE_IDS.CADENCE_REJECTION_V2,
-        subject: "Seu cadastro está quase aprovado!",
-      };
+    case 1: return "Lembrete: ajuste necessário no seu cadastro";
+    case 2: return "Seu cadastro está quase aprovado!";
     case 3:
-    default:
-      return {
-        templateId: TEMPLATE_IDS.CADENCE_REJECTION_V3,
-        subject: "Não perca sua vaga — corrija seu cadastro",
-      };
+    default: return "Não perca sua vaga — corrija seu cadastro";
   }
 }
 
 export async function sendRejectionCadenceEmail(params: RejectionCadenceEmailParams): Promise<boolean> {
   const { to, clientName, formTitle, formUrl, reason, sequenceNumber, totalInSequence } = params;
-  const template = getRejectionCadenceTemplate(sequenceNumber);
+  const variation = ((sequenceNumber - 1) % 3) + 1;
+  const subject = getRejectionCadenceSubject(sequenceNumber);
+  const html = buildRejectionCadenceHtml(variation, clientName || "Olá", formTitle, formUrl, reason);
 
-  const result = await sendTemplateEmail({
-    templateId: template.templateId,
-    to,
-    subject: template.subject,
-    data: {
-      CLIENT_NAME: clientName || "Olá",
-      FORM_TITLE: formTitle,
-      FORM_URL: formUrl,
-      REASON: reason,
-    },
-  });
+  const result = await sendHtmlEmail({ to, subject, html });
 
   if (result) {
     console.log(`[Email] Rejection cadence ${sequenceNumber}/${totalInSequence} sent to ${to}`);
@@ -336,7 +471,6 @@ export async function sendFollowUpEmail(params: FollowUpEmailParams): Promise<bo
 /* ═══════════════════════════════════════════════════════════════
    EMAIL: Weekly Summary Report for Admin
    Sent every Monday at 9am BRT with weekly statistics.
-   Uses inline HTML (not Resend template) for dynamic data tables.
    ═══════════════════════════════════════════════════════════════ */
 
 import type { WeeklyStats } from "./db";
@@ -360,21 +494,8 @@ function buildWeeklySummaryHtml(stats: WeeklyStats): string {
       `).join("")
     : `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #64748b; font-size: 14px;">Nenhum corretor ativo no período</td></tr>`;
 
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin: 0; padding: 0; background-color: #0a0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <div style="max-width: 640px; margin: 0 auto; padding: 32px 16px;">
-
-    <!-- Header -->
-    <div style="text-align: center; margin-bottom: 32px;">
-      <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #6366f1); padding: 12px 24px; border-radius: 12px; margin-bottom: 16px;">
-        <span style="color: white; font-size: 24px; font-weight: 700;">📊</span>
-      </div>
-      <h1 style="color: #f1f5f9; font-size: 24px; font-weight: 700; margin: 8px 0 4px;">Resumo Semanal</h1>
-      <p style="color: #64748b; font-size: 14px; margin: 0;">One Innovation — ${periodStr}</p>
-    </div>
+  return emailWrapper(`
+    ${headerBlock("📊", "Resumo Semanal", `One Innovation — ${periodStr}`)}
 
     <!-- Stats Cards -->
     <div style="margin-bottom: 24px;">
@@ -382,108 +503,99 @@ function buildWeeklySummaryHtml(stats: WeeklyStats): string {
         <tr>
           <td style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 20px; text-align: center; width: 50%;">
             <div style="color: #3b82f6; font-size: 32px; font-weight: 800; line-height: 1;">${stats.responses.total}</div>
-            <div style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Total Respostas</div>
+            <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Total Respostas</div>
           </td>
           <td style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 20px; text-align: center; width: 50%;">
             <div style="color: #22c55e; font-size: 32px; font-weight: 800; line-height: 1;">+${stats.responses.newThisWeek}</div>
-            <div style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Novas esta semana</div>
+            <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Novas esta semana</div>
           </td>
         </tr>
       </table>
     </div>
 
     <!-- Validation Stats -->
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    ${cardBlock(`
       <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px;">Validações da Semana</h2>
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="text-align: center; padding: 8px;">
             <div style="color: #f1f5f9; font-size: 28px; font-weight: 700;">${stats.validation.totalValidated}</div>
-            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Validadas</div>
+            <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Validadas</div>
           </td>
           <td style="text-align: center; padding: 8px;">
             <div style="color: #22c55e; font-size: 28px; font-weight: 700;">${stats.validation.approvalRate}%</div>
-            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Aprovação</div>
+            <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Aprovação</div>
           </td>
           <td style="text-align: center; padding: 8px;">
             <div style="color: #ef4444; font-size: 28px; font-weight: 700;">${stats.validation.rejectionRate}%</div>
-            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Reprovação</div>
+            <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Reprovação</div>
           </td>
         </tr>
       </table>
-    </div>
+    `)}
 
     <!-- Status Breakdown -->
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    ${cardBlock(`
       <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px;">Status das Respostas</h2>
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding: 8px 0;">
             <span style="display: inline-block; width: 10px; height: 10px; background: #22c55e; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
-            <span style="color: #94a3b8; font-size: 14px;">Aprovadas</span>
+            <span style="color: #cbd5e1; font-size: 14px;">Aprovadas</span>
           </td>
           <td style="text-align: right; padding: 8px 0;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.responses.approved}</span></td>
         </tr>
         <tr>
           <td style="padding: 8px 0;">
             <span style="display: inline-block; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
-            <span style="color: #94a3b8; font-size: 14px;">Reprovadas</span>
+            <span style="color: #cbd5e1; font-size: 14px;">Reprovadas</span>
           </td>
           <td style="text-align: right; padding: 8px 0;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.responses.rejected}</span></td>
         </tr>
         <tr>
           <td style="padding: 8px 0;">
             <span style="display: inline-block; width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
-            <span style="color: #94a3b8; font-size: 14px;">Pendentes</span>
+            <span style="color: #cbd5e1; font-size: 14px;">Pendentes</span>
           </td>
           <td style="text-align: right; padding: 8px 0;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.responses.pending}</span></td>
         </tr>
       </table>
-    </div>
+    `)}
 
     <!-- Corretores Ranking -->
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    ${cardBlock(`
       <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px;">🏆 Ranking de Corretores</h2>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
         <thead>
           <tr style="border-bottom: 2px solid #1e293b;">
-            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">#</th>
-            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">Corretor</th>
-            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">Total</th>
-            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">✓</th>
-            <th style="padding: 8px 16px; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">✗</th>
+            <th style="padding: 8px 16px; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">#</th>
+            <th style="padding: 8px 16px; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">Corretor</th>
+            <th style="padding: 8px 16px; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">Total</th>
+            <th style="padding: 8px 16px; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">✓</th>
+            <th style="padding: 8px 16px; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">✗</th>
           </tr>
         </thead>
         <tbody>
           ${corretorRows}
         </tbody>
       </table>
-    </div>
+    `)}
 
     <!-- Formulários -->
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+    ${cardBlock(`
       <h2 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 12px;">Formulários</h2>
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
-          <td style="padding: 4px 0;"><span style="color: #94a3b8; font-size: 14px;">Total de formulários</span></td>
+          <td style="padding: 4px 0;"><span style="color: #cbd5e1; font-size: 14px;">Total de formulários</span></td>
           <td style="text-align: right;"><span style="color: #f1f5f9; font-size: 14px; font-weight: 600;">${stats.forms.totalForms}</span></td>
         </tr>
         <tr>
-          <td style="padding: 4px 0;"><span style="color: #94a3b8; font-size: 14px;">Publicados</span></td>
+          <td style="padding: 4px 0;"><span style="color: #cbd5e1; font-size: 14px;">Publicados</span></td>
           <td style="text-align: right;"><span style="color: #22c55e; font-size: 14px; font-weight: 600;">${stats.forms.totalPublished}</span></td>
         </tr>
       </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="text-align: center; padding: 16px 0; border-top: 1px solid #1e293b;">
-      <p style="color: #475569; font-size: 12px; margin: 0;">One Innovation — Cadastro Digital</p>
-      <p style="color: #334155; font-size: 11px; margin: 4px 0 0;">Relatório gerado automaticamente toda segunda-feira</p>
-    </div>
-
-  </div>
-</body>
-</html>`;
+    `)}
+  `);
 }
 
 export async function sendWeeklySummaryEmail(params: {
