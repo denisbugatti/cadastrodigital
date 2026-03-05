@@ -23,7 +23,7 @@ import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
   Download, Loader2, AlertTriangle, MessageSquare,
   Shield, User, Mail, Phone, Calendar, ShieldCheck,
-  Lock, Image as ImageIcon, ExternalLink, Eye, FileDown,
+  Lock, Image as ImageIcon, ExternalLink, Eye, FileDown, Share2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -122,23 +122,38 @@ export default function ResponseValidation() {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [pdfFilename, setPdfFilename] = useState("ficha.pdf");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
+  const pdfCacheRef = useRef<Map<number, { url: string; filename: string }>>(new Map());
   const bottomBarRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
 
-  // Handle PDF preview
+  // Handle PDF preview (with cache)
   const handlePreviewPdf = async () => {
     if (!responseId || isGeneratingPdf) return;
+
+    // Check cache first
+    const cached = pdfCacheRef.current.get(responseId);
+    if (cached) {
+      setPdfPreviewUrl(cached.url);
+      setPdfFilename(cached.filename);
+      setShowPdfPreview(true);
+      return;
+    }
+
     setIsGeneratingPdf(true);
     try {
       const result = await utils.responses.generateFicha.fetch({ responseId });
       const byteArray = Uint8Array.from(atob(result.base64), (c) => c.charCodeAt(0));
       const blob = new Blob([byteArray], { type: "application/pdf" });
-      // Revoke previous URL if exists
-      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
       const url = URL.createObjectURL(blob);
+      const filename = result.filename || "ficha.pdf";
+
+      // Store in cache
+      pdfCacheRef.current.set(responseId, { url, filename });
+
       setPdfPreviewUrl(url);
-      setPdfFilename(result.filename || "ficha.pdf");
+      setPdfFilename(filename);
       setShowPdfPreview(true);
       toast.success("PDF gerado com sucesso!");
     } catch (err: any) {
@@ -163,12 +178,35 @@ export default function ResponseValidation() {
     toast.success("Download iniciado!");
   };
 
-  // Cleanup preview URL on unmount
+  // Handle WhatsApp share
+  const shareFichaMutation = trpc.responses.shareFicha.useMutation();
+  const handleShareWhatsApp = async () => {
+    if (!responseId || isSharingWhatsApp) return;
+    setIsSharingWhatsApp(true);
+    try {
+      const result = await shareFichaMutation.mutateAsync({ responseId });
+      const text = encodeURIComponent(
+        `Ficha de Cadastro - ${result.filename}\n\n${result.url}`
+      );
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+      toast.success("Link copiado para compartilhar!");
+    } catch (err: any) {
+      console.error("Error sharing ficha:", err);
+      toast.error("Erro ao compartilhar ficha", {
+        description: err?.message || "Tente novamente",
+      });
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
+  };
+
+  // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
-      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+      pdfCacheRef.current.forEach(({ url }) => URL.revokeObjectURL(url));
+      pdfCacheRef.current.clear();
     };
-  }, [pdfPreviewUrl]);
+  }, []);
 
   // Get response data
   const responseQuery = trpc.responses.getById.useQuery(
@@ -832,15 +870,31 @@ export default function ResponseValidation() {
                   {pdfFilename}
                 </DialogDescription>
               </div>
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-2 text-xs font-semibold h-8"
-                onClick={handleDownloadFromPreview}
-              >
-                <Download className="w-3.5 h-3.5" />
-                Baixar PDF
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-xs font-semibold h-8 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400"
+                  onClick={handleShareWhatsApp}
+                  disabled={isSharingWhatsApp}
+                >
+                  {isSharingWhatsApp ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Share2 className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden sm:inline">{isSharingWhatsApp ? "Enviando..." : "WhatsApp"}</span>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-2 text-xs font-semibold h-8"
+                  onClick={handleDownloadFromPreview}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Baixar PDF</span>
+                </Button>
+              </div>
             </div>
           </DialogHeader>
           <div className="flex-1 min-h-0 bg-muted/30">
@@ -868,6 +922,20 @@ export default function ResponseValidation() {
                 onClick={() => setShowPdfPreview(false)}
               >
                 Fechar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs h-8 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-400"
+                onClick={handleShareWhatsApp}
+                disabled={isSharingWhatsApp}
+              >
+                {isSharingWhatsApp ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5" />
+                )}
+                WhatsApp
               </Button>
               <Button
                 variant="default"

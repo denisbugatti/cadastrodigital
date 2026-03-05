@@ -1196,3 +1196,10 @@
 - [x] Frontend: botões no preview para baixar (header + footer) ou fechar
 - [x] Suporte mobile: preview responsivo (95vw x 90vh)
 - [x] 428 testes passando, 0 erros TypeScript
+
+## Compartilhar PDF via WhatsApp + Cache
+- [x] Frontend: botão de compartilhar via WhatsApp no preview do PDF (header + footer)
+- [x] Backend: endpoint shareFicha que gera PDF, faz upload para S3 e retorna URL pública
+- [x] Frontend: ao clicar em compartilhar, abre wa.me com link do PDF no S3
+- [x] Frontend: cache do PDF gerado por responseId (useRef Map) para evitar regenerar ao reabrir preview
+- [x] 428 testes passando, 0 erros TypeScript

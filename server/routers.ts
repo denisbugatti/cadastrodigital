@@ -1060,6 +1060,84 @@ export const appRouter = router({
         return { base64, filename, tipo };
       }),
 
+    shareFicha: staffAnyProcedure
+      .input(z.object({ responseId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        const form = await db.getFormById(response.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        const questions: any[] = form.questions ?? [];
+        const answers = (response.answers ?? {}) as Record<string, any>;
+
+        let tipo: "pf" | "pj" = "pf";
+        for (const q of questions) {
+          if (/aquisi[cç][aã]o.*como|pretende.*fazer/i.test(q.title) && answers[q.id]) {
+            const val = String(answers[q.id]).toLowerCase();
+            if (/jur[ií]dica|pj|empresa|cnpj/i.test(val)) {
+              tipo = "pj";
+            }
+            break;
+          }
+        }
+
+        const { generateCadastroInteressePdf, mergeWithAttachments } = await import("./pdfGenerator");
+
+        let pdfBytes = await generateCadastroInteressePdf({
+          tipo,
+          answers,
+          questions,
+          respondentName: response.respondentName ?? undefined,
+          respondentEmail: response.respondentEmail ?? undefined,
+          createdAt: response.createdAt ?? undefined,
+        });
+
+        const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
+        for (const q of questions) {
+          if (q.type === "file-upload" && answers[q.id]) {
+            const val = answers[q.id];
+            if (typeof val === "object" && val.url) {
+              attachments.push({
+                url: val.url,
+                filename: val.filename || val.name || q.title,
+                mimeType: val.mimeType || val.type || "application/octet-stream",
+              });
+            } else if (typeof val === "string" && val.startsWith("http")) {
+              attachments.push({ url: val, filename: q.title, mimeType: "image/jpeg" });
+            }
+          }
+        }
+
+        const dbFiles = await db.getFilesByResponse(input.responseId);
+        for (const f of dbFiles) {
+          if (f.url && !attachments.some(a => a.url === f.url)) {
+            attachments.push({
+              url: f.url,
+              filename: f.filename || "arquivo",
+              mimeType: f.mimeType || "application/octet-stream",
+            });
+          }
+        }
+
+        if (attachments.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, attachments);
+        }
+
+        // Upload to S3 for sharing
+        const respondent = response.respondentName || "cadastro";
+        const safeName = respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim().replace(/\s+/g, "_");
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const fileKey = `fichas/${tipo}_${safeName}_${randomSuffix}.pdf`;
+        const { url } = await storagePut(fileKey, Buffer.from(pdfBytes), "application/pdf");
+
+        return { url, filename: `Ficha_${tipo.toUpperCase()}_${respondent}.pdf` };
+      }),
+
     myResponses: publicProcedure
       .query(async ({ ctx }) => {
         // Parse cookie to get client session
