@@ -57,8 +57,15 @@ export const appRouter = router({
 
   // ─── Staff Management (admin only: master/diretor/gerente) ───
   staff: router({
-    list: staffAdminProcedure.query(async () => {
-      const users = await staffDb.getAllStaffUsers();
+    list: staffAdminProcedure.query(async ({ ctx }) => {
+      const session = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+      let users;
+      if (session?.role === 'gerente') {
+        // Gerentes only see their own corretores
+        users = await staffDb.getCorretoresByManager(session.staffUserId);
+      } else {
+        users = await staffDb.getAllStaffUsers();
+      }
       return users.map((u: any) => ({
         id: u.id, email: u.email, name: u.name, phone: u.phone,
         role: u.role, active: u.active, createdAt: u.createdAt,
@@ -135,6 +142,12 @@ export const appRouter = router({
         origin: z.string(), // Frontend origin for building invite URL
       }))
       .mutation(async ({ ctx, input }) => {
+        // Gerentes can only invite corretores
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        if (cs?.role === 'gerente' && input.role !== 'corretor') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Gerentes só podem convidar corretores' });
+        }
+
         // Check if email already has an account
         const existing = await staffDb.getStaffUserByEmail(input.email);
         if (existing) {
@@ -183,7 +196,6 @@ export const appRouter = router({
           }
         }
 
-        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
         logAudit({
           action: AUDIT_ACTIONS.STAFF_INVITE,
           staffUserId: cs?.staffUserId,
@@ -907,7 +919,17 @@ export const appRouter = router({
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
         }
-        return db.getResponsesByFormWithSearch(input.formId, input.search);
+        let responses = await db.getResponsesByFormWithSearch(input.formId, input.search);
+
+        // Gerentes only see responses from their corretores
+        const session = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        if (session?.role === 'gerente') {
+          const myCorretores = await staffDb.getCorretoresByManager(session.staffUserId);
+          const corretorIds = new Set(myCorretores.map((c: any) => c.id));
+          responses = responses.filter((r: any) => r.reviewedBy && corretorIds.has(r.reviewedBy));
+        }
+
+        return responses;
       }),
 
     getById: staffAnyProcedure
@@ -1168,6 +1190,14 @@ export const appRouter = router({
         let responses = input.search
           ? await db.getResponsesByFormWithSearch(input.formId, input.search)
           : await db.getResponsesByForm(input.formId);
+
+        // Gerentes only see responses from their corretores
+        const csvSession = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        if (csvSession?.role === 'gerente') {
+          const myCorretores = await staffDb.getCorretoresByManager(csvSession.staffUserId);
+          const corretorIds = new Set(myCorretores.map((c: any) => c.id));
+          responses = responses.filter((r: any) => r.reviewedBy && corretorIds.has(r.reviewedBy));
+        }
 
         // Filter by validation status / completion
         if (input.validationStatus && input.validationStatus !== "all") {

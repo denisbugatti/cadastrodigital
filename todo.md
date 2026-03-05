@@ -1212,3 +1212,13 @@
 - [x] Backend: mergeWithAttachments() adiciona anexos (PDFs e imagens) ao final
 - [x] Atualizado endpoints generateFicha e shareFicha para usar generateFullPdf
 - [x] 428 testes passando, 0 erros TypeScript
+
+## Sistema de hierarquia e restrições de acesso
+- [x] Backend: gerente só pode convidar corretores (bloquear convite de gerente/diretor/master)
+- [x] Backend: gerente vê somente respostas dos corretores vinculados a ele (via invitedBy relationship)
+- [x] Backend: relação gerente→corretor via campo invitedBy na tabela staff (getCorretoresByManager)
+- [x] Frontend: esconder Configurações do menu para gerentes e corretores (sidebar + mobile)
+- [x] Frontend: esconder Auditoria do menu para gerentes e corretores (sidebar + mobile)
+- [x] Frontend: remover Galeria de Templates para gerentes e corretores (route-level OwnerRoute)
+- [x] Frontend: OwnerRoute component para bloquear gerentes/corretores de acessar Settings, Audit, FormCopies via URL direta
+- [x] 428 testes passando, 0 erros TypeScript

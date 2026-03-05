@@ -29,14 +29,14 @@ import { useUnreadResponses } from "@/hooks/useUnreadResponses";
 import MobileBottomNav from "./MobileBottomNav";
 
 /* ─── Navigation Items ─── */
-type NavItem = { id: string; label: string; icon: any; path: string; adminOnly?: boolean };
+type NavItem = { id: string; label: string; icon: any; path: string; adminOnly?: boolean; hiddenForRoles?: string[] };
 const NAV_ITEMS: NavItem[] = [
   { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard", adminOnly: true },
   { id: "team", label: "Equipe", icon: Users, path: "/equipe", adminOnly: true },
   { id: "performance", label: "Performance", icon: BarChart3, path: "/performance" },
   { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias", adminOnly: true },
-  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true },
-  { id: "audit", label: "Auditoria", icon: ShieldCheck, path: "/auditoria", adminOnly: true },
+  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true, hiddenForRoles: ["gerente", "corretor"] },
+  { id: "audit", label: "Auditoria", icon: ShieldCheck, path: "/auditoria", adminOnly: true, hiddenForRoles: ["gerente", "corretor"] },
 ];
 
 /** Admin roles that can see admin-only nav items */
@@ -106,7 +106,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Filter nav items based on role — corretores only see non-admin items
   const staffRole = user?.type === "staff" ? (user as any).role : null;
   const isAdmin = staffRole ? ADMIN_ROLES.includes(staffRole) : false;
-  const filteredNavItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin);
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.hiddenForRoles && staffRole && item.hiddenForRoles.includes(staffRole)) return false;
+    return true;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved === "true";
@@ -292,7 +296,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ─── Mobile Bottom Navigation (shared component) ─── */}
-      <MobileBottomNav onLogout={logout} isAdmin={isAdmin} unreadCount={totalUnread} />
+      <MobileBottomNav onLogout={logout} isAdmin={isAdmin} unreadCount={totalUnread} staffRole={staffRole} />
     </div>
   );
 }

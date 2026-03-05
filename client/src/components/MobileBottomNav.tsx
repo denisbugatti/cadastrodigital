@@ -28,23 +28,28 @@ const MAIN_NAV = [
 ];
 
 /* ─── More Menu Items (shown in slide-up sheet) ─── */
-const MORE_ITEMS = [
-  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true },
+const MORE_ITEMS: { id: string; label: string; icon: any; path: string; adminOnly: boolean; hiddenForRoles?: string[] }[] = [
+  { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true, hiddenForRoles: ["gerente", "corretor"] },
 ];
 
 interface MobileBottomNavProps {
   onLogout?: () => void;
   isAdmin?: boolean;
   unreadCount?: number;
+  staffRole?: string | null;
 }
 
-export default function MobileBottomNav({ onLogout, isAdmin = true, unreadCount = 0 }: MobileBottomNavProps) {
+export default function MobileBottomNav({ onLogout, isAdmin = true, unreadCount = 0, staffRole = null }: MobileBottomNavProps) {
   const [location, navigate] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
   // Filter nav items based on role
   const visibleMainNav = MAIN_NAV.filter(item => !item.adminOnly || isAdmin);
-  const visibleMoreItems = MORE_ITEMS.filter(item => !item.adminOnly || isAdmin);
+  const visibleMoreItems = MORE_ITEMS.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.hiddenForRoles && staffRole && item.hiddenForRoles.includes(staffRole)) return false;
+    return true;
+  });
 
   // Determine active nav item
   const activeNavId = visibleMainNav.find((item) => location.startsWith(item.path))?.id || 

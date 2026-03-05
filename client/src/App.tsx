@@ -8,6 +8,7 @@ import AppLayout from "./components/AppLayout";
 import AuthGate from "./components/AuthGate";
 import AdminRoute from "./components/AdminRoute";
 import FormOwnerRoute from "./components/FormOwnerRoute";
+import OwnerRoute from "./components/OwnerRoute";
 import Landing from "./pages/Landing";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
@@ -80,25 +81,25 @@ function Router() {
         </AdminRoute>
       </Route>
 
-      {/* Settings */}
+      {/* Settings (master/diretor only) */}
       <Route path={"/configuracoes"}>
-        <AdminRoute>
+        <OwnerRoute>
           <AppLayout><Settings /></AppLayout>
-        </AdminRoute>
+        </OwnerRoute>
       </Route>
 
-      {/* Form copies management */}
+      {/* Form copies management (master/diretor only) */}
       <Route path={"/formularios-copias"}>
-        <AdminRoute>
+        <OwnerRoute>
           <AppLayout><FormCopiesManagement /></AppLayout>
-        </AdminRoute>
+        </OwnerRoute>
       </Route>
 
-      {/* Audit log */}
+      {/* Audit log (master/diretor only) */}
       <Route path={"/auditoria"}>
-        <AdminRoute>
+        <OwnerRoute>
           <AppLayout><AuditLog /></AppLayout>
-        </AdminRoute>
+        </OwnerRoute>
       </Route>
 
       {/* ─── Corretor routes (accessible by all staff) ─── */}

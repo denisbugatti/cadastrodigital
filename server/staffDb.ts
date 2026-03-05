@@ -126,6 +126,15 @@ export async function getStaffUsersByRole(role: string) {
   });
 }
 
+/** Get all corretores invited by a specific manager (gerente) */
+export async function getCorretoresByManager(managerId: number) {
+  return withRetry(async (db) => {
+    return db.select().from(staffUsers)
+      .where(and(eq(staffUsers.invitedBy, managerId), eq(staffUsers.role, 'corretor')))
+      .orderBy(staffUsers.name);
+  });
+}
+
 export async function deleteStaffUser(id: number) {
   return withRetry(async (db) => {
     await db.delete(staffUsers).where(eq(staffUsers.id, id));
