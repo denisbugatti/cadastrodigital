@@ -143,7 +143,7 @@ function CorretorRow({ corretor, rank }: { corretor: any; rank: number }) {
             </div>
             <div className="rounded-lg bg-muted/20 p-3 text-center">
               <p className="text-xl font-bold text-foreground">{corretor.pendingResponses}</p>
-              <p className="text-[10px] text-amber-400 font-medium">Pendentes</p>
+              <p className="text-[10px] text-amber-400 font-medium">Incompletos</p>
             </div>
             <div className="rounded-lg bg-muted/20 p-3 text-center">
               <p className="text-xl font-bold text-foreground">{corretor.formCount}</p>
@@ -324,7 +324,7 @@ export default function CorretorDashboard() {
                   <span className="text-xs font-bold text-foreground w-12 text-right">{myMetrics.rejectedResponses}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground w-20">Pendentes</span>
+                  <span className="text-xs text-muted-foreground w-20">Incompletos</span>
                   <ProgressBar value={myMetrics.pendingResponses} max={myMetrics.totalResponses} color="bg-amber-500" />
                   <span className="text-xs font-bold text-foreground w-12 text-right">{myMetrics.pendingResponses}</span>
                 </div>

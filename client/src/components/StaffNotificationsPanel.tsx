@@ -1,10 +1,11 @@
 /**
  * StaffNotificationsPanel — In-app notification dropdown for staff users.
  * Shows a bell icon with unread count badge, and a dropdown panel with notification list.
+ * Features: sound + vibration on new notifications, animated badge pulse.
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
-import { Bell, Check, CheckCheck, Clock, FileText, Loader2, X } from "lucide-react";
+import { Bell, Check, CheckCheck, Clock, FileText, Loader2, X, Volume2, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 
@@ -23,11 +24,68 @@ function timeAgo(date: Date | string): string {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
+// Generate a short notification sound using Web Audio API
+function playNotificationSound() {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // First tone - higher pitch
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+    gain1.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start(audioCtx.currentTime);
+    osc1.stop(audioCtx.currentTime + 0.15);
+
+    // Second tone - slightly lower, delayed
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(1174.66, audioCtx.currentTime + 0.1); // D6
+    gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain2.gain.setValueAtTime(0.12, audioCtx.currentTime + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start(audioCtx.currentTime + 0.1);
+    osc2.stop(audioCtx.currentTime + 0.3);
+
+    // Cleanup
+    setTimeout(() => audioCtx.close(), 500);
+  } catch {
+    // Silently fail if audio is not available
+  }
+}
+
+// Trigger device vibration
+function triggerVibration() {
+  try {
+    if ("vibrate" in navigator) {
+      navigator.vibrate([100, 50, 100]); // Short pattern: buzz-pause-buzz
+    }
+  } catch {
+    // Silently fail if vibration is not available
+  }
+}
+
 export function StaffNotificationsPanel() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
+  const prevUnreadCountRef = useRef<number | null>(null);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("notif-sound") !== "off";
+    } catch {
+      return true;
+    }
+  });
 
   // Queries
   const { data: unreadCount = 0 } = trpc.staffNotifications.unreadCount.useQuery(undefined, {
@@ -37,6 +95,33 @@ export function StaffNotificationsPanel() {
     { limit: 30 },
     { enabled: open }
   );
+
+  // Detect new notifications and trigger sound/vibration/animation
+  useEffect(() => {
+    if (prevUnreadCountRef.current !== null && unreadCount > prevUnreadCountRef.current) {
+      // New notification arrived!
+      setHasNewNotification(true);
+      
+      if (soundEnabled) {
+        playNotificationSound();
+        triggerVibration();
+      }
+
+      // Reset animation after 3 seconds
+      const timer = setTimeout(() => setHasNewNotification(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount, soundEnabled]);
+
+  // Toggle sound preference
+  const toggleSound = useCallback(() => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    try {
+      localStorage.setItem("notif-sound", newValue ? "on" : "off");
+    } catch {}
+  }, [soundEnabled]);
 
   // Mutations
   const markReadMutation = trpc.staffNotifications.markRead.useMutation({
@@ -84,14 +169,46 @@ export function StaffNotificationsPanel() {
             ? "text-brand bg-brand/10"
             : "text-muted-foreground hover:text-foreground hover:bg-secondary"
         }`}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          setOpen(!open);
+          setHasNewNotification(false);
+        }}
         title="Notificações"
       >
-        <Bell size={14} />
+        {/* Animated bell icon */}
+        <motion.div
+          animate={hasNewNotification ? {
+            rotate: [0, -15, 15, -10, 10, -5, 5, 0],
+            transition: { duration: 0.6, ease: "easeInOut" }
+          } : {}}
+        >
+          <Bell size={14} />
+        </motion.div>
+
+        {/* Badge with pulse animation */}
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[7px] font-bold rounded-full flex items-center justify-center ring-2 ring-card px-0.5">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
+          <>
+            {/* Pulse ring animation on new notification */}
+            {hasNewNotification && (
+              <motion.span
+                className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500/40"
+                initial={{ scale: 0.5, opacity: 1 }}
+                animate={{ scale: 2, opacity: 0 }}
+                transition={{ duration: 1, repeat: 2, repeatType: "loop" }}
+              />
+            )}
+            {/* Badge */}
+            <motion.span
+              className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[7px] font-bold rounded-full flex items-center justify-center ring-2 ring-card px-0.5"
+              initial={false}
+              animate={hasNewNotification ? {
+                scale: [1, 1.3, 1],
+                transition: { duration: 0.4, repeat: 2, repeatType: "loop" }
+              } : { scale: 1 }}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </motion.span>
+          </>
         )}
       </button>
 
@@ -116,6 +233,18 @@ export function StaffNotificationsPanel() {
                 )}
               </h3>
               <div className="flex items-center gap-1">
+                {/* Sound toggle */}
+                <button
+                  onClick={toggleSound}
+                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
+                    soundEnabled
+                      ? "text-brand hover:bg-brand/10"
+                      : "text-muted-foreground/40 hover:bg-secondary"
+                  }`}
+                  title={soundEnabled ? "Desativar som" : "Ativar som"}
+                >
+                  {soundEnabled ? <Volume2 size={11} /> : <VolumeX size={11} />}
+                </button>
                 {unreadCount > 0 && (
                   <button
                     onClick={() => markAllReadMutation.mutate()}

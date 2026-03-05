@@ -17,6 +17,7 @@ import {
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
   FolderInput, FolderMinus, Check, Palette, CalendarDays, SortAsc, SortDesc, BarChart3,
+  Copy, Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1001,6 +1002,27 @@ export default function CorretorResponses() {
       </header>
 
       <main className="max-w-xl mx-auto px-4 sm:px-6 py-3 sm:py-5 space-y-3 sm:space-y-4">
+        {/* ─── Copy Form Link Button ─── */}
+        {selectedForm?.slug && (
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/${selectedForm.slug}`;
+              navigator.clipboard.writeText(url).then(() => {
+                toast.success("Link copiado!", { description: url });
+              }).catch(() => {
+                toast.error("Erro ao copiar link");
+              });
+            }}
+            className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-brand/10 border border-brand/20 text-brand hover:bg-brand/15 transition-all active:scale-[0.98] group"
+          >
+            <Link2 size={16} className="shrink-0" />
+            <span className="text-xs sm:text-sm font-semibold truncate">
+              {window.location.origin}/{selectedForm.slug}
+            </span>
+            <Copy size={14} className="shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
+          </button>
+        )}
+
         {/* ─── Form Selector (if multiple forms) ─── */}
         {assignedForms.length > 1 && (
           <div className="bg-card rounded-xl border border-border p-2">
@@ -1151,7 +1173,7 @@ export default function CorretorResponses() {
         {/* ─── Quick Stats ─── */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Pendentes", value: stats.pending, color: "text-amber-600 dark:text-amber-400" },
+            { label: "Incompletos", value: stats.pending, color: "text-amber-600 dark:text-amber-400" },
             { label: "Aprovados", value: stats.approved, color: "text-green-600 dark:text-green-400" },
             { label: "Rejeitados", value: stats.rejected, color: "text-red-600 dark:text-red-400" },
           ].map((stat) => (
@@ -1189,7 +1211,7 @@ export default function CorretorResponses() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
           {[
             { id: "all", label: "Todos", count: stats.total },
-            { id: "pending", label: "Pendentes", count: stats.pending },
+            { id: "pending", label: "Incompletos", count: stats.pending },
             { id: "approved", label: "Aprovados", count: stats.approved },
             { id: "rejected", label: "Rejeitados", count: stats.rejected },
           ].map((filter) => (
@@ -1326,8 +1348,19 @@ export default function CorretorResponses() {
 
         {/* ─── Response Cards ─── */}
         {responsesLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 size={22} className="animate-spin text-brand" />
+          <div className="space-y-2.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card rounded-xl border border-border p-3.5 animate-pulse">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-3.5 bg-muted rounded-md w-2/3" />
+                    <div className="h-2.5 bg-muted rounded-md w-1/2" />
+                    <div className="h-2.5 bg-muted rounded-md w-1/3" />
+                  </div>
+                  <div className="h-6 w-16 bg-muted rounded-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredResponses.length === 0 ? (
           <div className="text-center py-16">

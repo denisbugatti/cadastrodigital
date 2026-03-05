@@ -1168,3 +1168,13 @@
 - [x] Frontend: polling a cada 15s para atualizar contagem
 - [x] Adicionado em CorretorResponses e CorretorDashboard
 - [x] 419 testes passando
+
+## UX: Melhorias na página do corretor
+- [x] Fix: loading lento — skeleton placeholders em vez de spinner na lista de respostas
+- [x] Botão grande para copiar link do formulário no header da página do corretor
+- [x] Renomear "Pendentes" para "Incompletos" nos filtros, stats e CorretorDashboard
+- [x] Som via Web Audio API (dois tons harmônicos) quando chegar nova notificação
+- [x] Vibração (navigator.vibrate) quando chegar nova notificação
+- [x] Animação no badge (pulse + scale) e sino (shake) quando chegar nova notificação
+- [x] Botão toggle som on/off no painel de notificações
+- [x] 419 testes passando
