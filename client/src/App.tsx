@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import AppLayout from "./components/AppLayout";
 import AuthGate from "./components/AuthGate";
 import AdminRoute from "./components/AdminRoute";
+import FormOwnerRoute from "./components/FormOwnerRoute";
 import Landing from "./pages/Landing";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
@@ -47,9 +48,12 @@ function Router() {
         <AdminRoute><Dashboard /></AdminRoute>
       </Route>
 
-      {/* Form editor - full screen */}
+      {/* Form editor - full screen (master/diretor only) */}
+      <Route path={"/editor"}>
+        <FormOwnerRoute><Editor /></FormOwnerRoute>
+      </Route>
       <Route path={"/editor/:id"}>
-        <AdminRoute><Editor /></AdminRoute>
+        <FormOwnerRoute><Editor /></FormOwnerRoute>
       </Route>
 
       {/* Responses/Analytics for a specific form */}

@@ -1220,3 +1220,52 @@ describe("staffAdminProcedure access control", () => {
     expect(result).toHaveLength(1);
   });
 });
+
+describe("staffFormOwnerProcedure access control", () => {
+  it("blocks gerentes from form mutation procedures (create)", async () => {
+    const ctx = createAuthContext(1, "gerente");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.forms.create({ title: "Test", fields: [], settings: {} as any })
+    ).rejects.toThrow();
+  });
+
+  it("blocks corretores from form mutation procedures (create)", async () => {
+    const ctx = createAuthContext(1, "corretor");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.forms.create({ title: "Test", fields: [], settings: {} as any })
+    ).rejects.toThrow();
+  });
+
+  it("allows master to create forms", async () => {
+    const ctx = createAuthContext(1, "master");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.createForm).mockResolvedValue({ id: 99, slug: "test-slug" } as any);
+
+    const result = await caller.forms.create({ title: "Test Form", fields: [], settings: {} as any });
+    expect(result).toBeDefined();
+    expect(result.id).toBe(99);
+  });
+
+  it("allows diretor to create forms", async () => {
+    const ctx = createAuthContext(1, "diretor");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.createForm).mockResolvedValue({ id: 100, slug: "test-slug-2" } as any);
+
+    const result = await caller.forms.create({ title: "Test Form 2", fields: [], settings: {} as any });
+    expect(result).toBeDefined();
+    expect(result.id).toBe(100);
+  });
+
+  it("gerente can still list forms (staffAdminProcedure)", async () => {
+    const ctx = createAuthContext(1, "gerente");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm as any]);
+
+    const result = await caller.forms.list();
+    expect(result).toHaveLength(1);
+  });
+});

@@ -4,3 +4,4 @@ export const AXIOS_TIMEOUT_MS = 30_000;
 export const UNAUTHED_ERR_MSG = 'Please login (10001)';
 export const NOT_ADMIN_ERR_MSG = 'You do not have required permission (10002)';
 export const FORBIDDEN_CORRETOR_MSG = 'Acesso restrito. Corretores não têm permissão para esta área (10003)';
+export const FORBIDDEN_GERENTE_FORMS_MSG = 'Gerentes podem visualizar formulários e respostas, mas não podem criar, editar ou excluir formulários (10004)';

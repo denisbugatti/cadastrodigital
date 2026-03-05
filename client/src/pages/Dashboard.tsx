@@ -38,6 +38,7 @@ import {
   BellOff,
   BellRing,
   Mail,
+  Eye,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -252,7 +253,7 @@ function NotificationBell() {
 }
 
 export default function Dashboard() {
-  const { logout, user, isCorretor } = useCustomAuth();
+  const { logout, user, isCorretor, canEditForms } = useCustomAuth();
   const dashboardIsAdmin = user?.type === "staff" ? ["master", "diretor", "gerente"].includes((user as any).role) : false;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -692,36 +693,42 @@ export default function Dashboard() {
 
             <NotificationBell />
 
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-secondary text-foreground font-body text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
-            >
-              <Upload size={18} />
-              <span>Importar</span>
-            </button>
-
-            <Link href="/editor">
-              <motion.button
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
-                whileTap={{ scale: 0.98 }}
+            {canEditForms && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl bg-secondary text-foreground font-body text-base font-medium hover:bg-secondary/80 border border-border active:scale-[0.98] transition-all duration-200 shrink-0"
               >
-                <Plus size={18} />
-                <span>Criar formulário</span>
-              </motion.button>
-            </Link>
+                <Upload size={18} />
+                <span>Importar</span>
+              </button>
+            )}
+
+            {canEditForms && (
+              <Link href="/editor">
+                <motion.button
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-body text-base font-semibold brand-shadow brand-shadow-hover hover:bg-brand-dark active:scale-[0.98] transition-all duration-200 shrink-0"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus size={18} />
+                  <span>Criar formulário</span>
+                </motion.button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile action buttons - simplified */}
           <div className="flex sm:hidden items-center gap-1.5">
             <NotificationBell />
-            <Link href="/editor">
-              <motion.button
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white font-body text-sm font-semibold active:scale-[0.98] transition-all duration-200"
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus size={16} />
-              </motion.button>
-            </Link>
+            {canEditForms && (
+              <Link href="/editor">
+                <motion.button
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white font-body text-sm font-semibold active:scale-[0.98] transition-all duration-200"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus size={16} />
+                </motion.button>
+              </Link>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-2 rounded-xl border bg-secondary border-border text-muted-foreground hover:text-foreground transition-all duration-200">
@@ -734,9 +741,11 @@ export default function Dashboard() {
                     <SlidersHorizontal size={16} /> Configurações
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 cursor-pointer">
-                  <Upload size={16} /> Importar
-                </DropdownMenuItem>
+                {canEditForms && (
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 cursor-pointer">
+                    <Upload size={16} /> Importar
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -857,7 +866,7 @@ export default function Dashboard() {
                   )}
 
                   {/* Folder actions on hover */}
-                  {editingFolderId !== folder.id && (
+                  {canEditForms && editingFolderId !== folder.id && (
                     <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
                       <button
                         onClick={(e) => {
@@ -935,32 +944,34 @@ export default function Dashboard() {
             </div>
 
             {/* Create folder */}
-            {creatingFolder ? (
-              <div className="mt-3 flex items-center gap-2 px-3">
-                <FolderPlus size={16} className="text-brand shrink-0" />
-                <input
-                  autoFocus
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreateFolder();
-                    if (e.key === "Escape") { setCreatingFolder(false); setNewFolderName(""); }
-                  }}
-                  placeholder="Nome da pasta"
-                  className="flex-1 text-sm font-body bg-transparent border-b border-brand focus:outline-none placeholder:text-muted-foreground/50"
-                />
-                <button onClick={() => { setCreatingFolder(false); setNewFolderName(""); }} className="text-muted-foreground hover:text-foreground">
-                  <X size={14} />
+            {canEditForms && (
+              creatingFolder ? (
+                <div className="mt-3 flex items-center gap-2 px-3">
+                  <FolderPlus size={16} className="text-brand shrink-0" />
+                  <input
+                    autoFocus
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateFolder();
+                      if (e.key === "Escape") { setCreatingFolder(false); setNewFolderName(""); }
+                    }}
+                    placeholder="Nome da pasta"
+                    className="flex-1 text-sm font-body bg-transparent border-b border-brand focus:outline-none placeholder:text-muted-foreground/50"
+                  />
+                  <button onClick={() => { setCreatingFolder(false); setNewFolderName(""); }} className="text-muted-foreground hover:text-foreground">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCreatingFolder(true)}
+                  className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-brand hover:bg-brand/5 transition-all duration-150 border border-dashed border-border hover:border-brand/30"
+                >
+                  <FolderPlus size={16} />
+                  Nova pasta
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setCreatingFolder(true)}
-                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground hover:text-brand hover:bg-brand/5 transition-all duration-150 border border-dashed border-border hover:border-brand/30"
-              >
-                <FolderPlus size={16} />
-                Nova pasta
-              </button>
+              )
             )}
           </div>
         </motion.aside>
@@ -1162,23 +1173,25 @@ export default function Dashboard() {
           {/* Cards Grid */}
           {!isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-              <Link href="/editor">
-                <motion.div
-                  className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-brand-lighter flex items-center justify-center transition-all duration-200 group-hover:bg-brand/10 group-hover:scale-110">
-                    <Plus size={28} className="text-brand" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-display text-base font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
-                      Criar novo formulário
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">Comece do zero</p>
-                  </div>
-                </motion.div>
-              </Link>
+              {canEditForms && (
+                <Link href="/editor">
+                  <motion.div
+                    className="group relative h-full min-h-[220px] rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-200 hover:border-brand/40 hover:bg-brand-lighter/30"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-brand-lighter flex items-center justify-center transition-all duration-200 group-hover:bg-brand/10 group-hover:scale-110">
+                      <Plus size={28} className="text-brand" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-display text-base font-semibold text-foreground/80 group-hover:text-foreground transition-colors">
+                        Criar novo formulário
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">Comece do zero</p>
+                    </div>
+                  </motion.div>
+                </Link>
+              )}
 
               <AnimatePresence mode="popLayout">
                 {filteredAndSortedForms.map((form, i) => (
@@ -1195,6 +1208,7 @@ export default function Dashboard() {
                     onMoveToFolder={handleMoveToFolder}
                     onExport={handleExportForm}
                     onExportCsv={handleExportCsv}
+                    canEditForms={canEditForms}
                   />
                 ))}
               </AnimatePresence>
@@ -1406,9 +1420,10 @@ interface FormCardProps {
   onMoveToFolder: (formId: number, folderId: number | undefined) => void;
   onExport: (form: DashboardForm) => void;
   onExportCsv: (form: DashboardForm) => void;
+  canEditForms: boolean;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1479,13 +1494,15 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
 
         {/* More actions menu */}
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleStartRename}
-            className="p-2 rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"
-            title="Renomear"
-          >
-            <Pencil size={16} />
-          </button>
+          {canEditForms && (
+            <button
+              onClick={handleStartRename}
+              className="p-2 rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"
+              title="Renomear"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
 
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
@@ -1497,35 +1514,39 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-popover border-border shadow-lg w-52">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
-                <Pencil size={15} className="mr-2" /> Editar
-              </DropdownMenuItem>
+              {canEditForms && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/editor/${form.id}`); }}>
+                  <Pencil size={15} className="mr-2" /> Editar
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onNavigate(`/responses/${form.id}`); }}>
                 <BarChart3 size={15} className="mr-2" /> Dashboard
               </DropdownMenuItem>
               <DropdownMenuSeparator />
 
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
-                  <FolderOpen size={15} className="mr-2" /> Mover para pasta
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="bg-popover border-border shadow-lg w-48">
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, undefined); }}>
-                    <X size={14} className="mr-2 text-muted-foreground" /> Sem pasta
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {folders.map((folder) => (
-                    <DropdownMenuItem
-                      key={folder.id}
-                      onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, folder.id); }}
-                      className={form.workspaceId === String(folder.id) ? "bg-brand/5 font-semibold" : ""}
-                    >
-                      <div className="w-3 h-3 rounded shrink-0 mr-2" style={{ backgroundColor: folder.color }} />
-                      {folder.name}
+              {canEditForms && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                    <FolderOpen size={15} className="mr-2" /> Mover para pasta
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-popover border-border shadow-lg w-48">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, undefined); }}>
+                      <X size={14} className="mr-2 text-muted-foreground" /> Sem pasta
                     </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    {folders.map((folder) => (
+                      <DropdownMenuItem
+                        key={folder.id}
+                        onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onMoveToFolder(form.id, folder.id); }}
+                        className={form.workspaceId === String(folder.id) ? "bg-brand/5 font-semibold" : ""}
+                      >
+                        <div className="w-3 h-3 rounded shrink-0 mr-2" style={{ backgroundColor: folder.color }} />
+                        {folder.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
 
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
                 <Share2 size={15} className="mr-2" /> Compartilhar link
@@ -1533,9 +1554,11 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExportCsv(form); }}>
                 <BarChart3 size={15} className="mr-2" /> Exportar respostas (CSV)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
-                <Download size={15} className="mr-2" /> Exportar JSON
-              </DropdownMenuItem>
+              {canEditForms && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
+                  <Download size={15} className="mr-2" /> Exportar JSON
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1642,28 +1665,39 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       </div>
 
       {/* ─── Action buttons ─── */}
-      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-        <button
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
-        >
-          <Pencil size={13} /> Editar
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
-          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-muted-foreground bg-secondary hover:bg-secondary/80 border border-border transition-all"
-          title="Duplicar"
-        >
-          <Copy size={13} />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
-          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200/50 transition-all"
-          title="Excluir"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
+      {canEditForms ? (
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/editor/${form.id}`); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDuplicate(form); }}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-muted-foreground bg-secondary hover:bg-secondary/80 border border-border transition-all"
+            title="Duplicar"
+          >
+            <Copy size={13} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRequestDelete(form); }}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-body font-semibold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200/50 transition-all"
+            title="Excluir"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+          <button
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNavigate(`/formulario/${form.id}/respostas`); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-body font-semibold text-white bg-brand hover:bg-brand-dark transition-all shadow-sm"
+          >
+            <Eye size={13} /> Ver Respostas
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

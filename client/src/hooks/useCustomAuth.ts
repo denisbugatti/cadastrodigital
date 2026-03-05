@@ -69,6 +69,7 @@ export function useCustomAuth() {
       isDiretor: user?.type === "staff" && user.role === "diretor",
       isGerente: user?.type === "staff" && user.role === "gerente",
       isCorretor: user?.type === "staff" && user.role === "corretor",
+      canEditForms: user?.type === "staff" && (user.role === "master" || user.role === "diretor"),
     };
   }, [meQuery.data, meQuery.error, meQuery.isLoading, logoutMutation.error, logoutMutation.isPending]);
 

@@ -1088,3 +1088,13 @@
 - [x] Investigar por que formulários não estão sendo listados após troca de ownerFallbackProcedure para staffAdminProcedure
 - [x] Causa raiz: staffAdminProcedure dependia de ctx.user que falhava quando context.ts não conseguia mapear staff → owner user
 - [x] Fix: extrair getOrCreateOwnerUser para ownerUser.ts (sem circular dependency) e usar como fallback no staffAdminProcedure/staffAnyProcedure
+
+## Permissão intermediária para Gerentes
+- [x] Backend: criar staffFormOwnerProcedure (master/diretor only) para criar/editar/deletar formulários
+- [x] Backend: manter staffAdminProcedure para gerentes (ver respostas, equipe, cadências, etc.)
+- [x] Backend: gerentes podem ver formulários (list) mas não criar/editar/deletar
+- [x] Frontend: esconder botões de criar/editar/deletar/importar/duplicar/renomear formulários para gerentes
+- [x] Frontend: esconder Nova pasta, Mover para pasta para gerentes
+- [x] Frontend: FormOwnerRoute bloqueia gerentes de acessar /editor (redireciona para /dashboard)
+- [x] Frontend: gerentes veem "Ver Respostas" ao invés de "Editar" nos cards de formulário
+- [x] Testes: 387 testes passando, incluindo 5 novos testes de staffFormOwnerProcedure

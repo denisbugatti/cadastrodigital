@@ -1,6 +1,6 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router, staffAdminProcedure, staffAnyProcedure } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, staffAdminProcedure, staffAnyProcedure, staffFormOwnerProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import * as db from "./db";
@@ -407,7 +407,7 @@ export const appRouter = router({
         return db.getFormById(input.id);
       }),
 
-    create: staffAdminProcedure
+    create: staffFormOwnerProcedure
       .input(z.object({
         title: z.string(),
         description: z.string().optional(),
@@ -438,7 +438,7 @@ export const appRouter = router({
         });
       }),
 
-    update: staffAdminProcedure
+    update: staffFormOwnerProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -506,7 +506,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: staffAdminProcedure
+    delete: staffFormOwnerProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.id);
@@ -517,7 +517,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    duplicate: staffAdminProcedure
+    duplicate: staffFormOwnerProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -988,7 +988,7 @@ export const appRouter = router({
 
   // ─── Form Versions ───
   versions: router({
-    create: staffAdminProcedure
+    create: staffFormOwnerProcedure
       .input(z.object({
         formId: z.number(),
         label: z.string(),
@@ -1015,14 +1015,14 @@ export const appRouter = router({
         return db.getVersionById(input.id);
       }),
 
-    delete: staffAdminProcedure
+    delete: staffFormOwnerProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteVersion(input.id);
         return { success: true };
       }),
 
-    restore: staffAdminProcedure
+    restore: staffFormOwnerProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const version = await db.getVersionById(input.id);
@@ -1378,7 +1378,7 @@ export const appRouter = router({
       }),
 
     /** Force sync a parent form to all children */
-    forceSync: staffAdminProcedure
+    forceSync: staffFormOwnerProcedure
       .input(z.object({ formId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.formId);
@@ -1523,7 +1523,7 @@ export const appRouter = router({
       return db.getWorkspacesByUser(ctx.user.id);
     }),
 
-    create: staffAdminProcedure
+    create: staffFormOwnerProcedure
       .input(z.object({
         name: z.string(),
         designDefaults: z.any().optional(),
@@ -1536,7 +1536,7 @@ export const appRouter = router({
         });
       }),
 
-    update: staffAdminProcedure
+    update: staffFormOwnerProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
@@ -1552,7 +1552,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: staffAdminProcedure
+    delete: staffFormOwnerProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const workspace = await db.getWorkspaceById(input.id);
