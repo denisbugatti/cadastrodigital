@@ -112,7 +112,7 @@ export default function SlugResolver() {
         roundness: design.roundness ?? "medium",
         customCSS: design.customCSS,
       },
-      dbFormId: dbForm.id,
+      _dbFormId: dbForm.id,
     };
   }, [dbForm]);
 

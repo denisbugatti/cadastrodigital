@@ -1284,3 +1284,7 @@
 - [x] Frontend: badge "Cópia" desaparece após desconexão (parentFormId = null)
 - [x] Frontend: DashboardForm interface atualizada com parentFormId e isTemplate
 - [x] 435 testes passando, 0 erros TypeScript
+
+## Bugs: link /f/ e respostas não aparecem
+- [x] Bug: link do formulário com /f/ antes do slug — corrigido: Dashboard gerava `/f/slug` mas rota é `/:slug`. Removido o `/f/` do link de compartilhamento
+- [x] Bug: respostas não aparecem após preenchimento — corrigido: SlugResolver usava `dbFormId` mas FormContainer espera `_dbFormId`. Submissão nunca era executada
