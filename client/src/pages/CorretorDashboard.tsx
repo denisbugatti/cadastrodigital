@@ -179,7 +179,7 @@ export default function CorretorDashboard() {
     if (isCorretorRoute) {
       document.documentElement.classList.add("dark");
       return () => {
-        const stored = localStorage.getItem("theme-mode") || "light";
+        const stored = localStorage.getItem("theme-mode") || "dark";
         if (stored !== "dark") {
           document.documentElement.classList.remove("dark");
         }

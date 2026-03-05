@@ -569,7 +569,7 @@ export default function CorretorResponses() {
     document.documentElement.classList.add("dark");
     return () => {
       // Restore theme on unmount based on localStorage preference
-      const stored = localStorage.getItem("theme-mode") || "light";
+      const stored = localStorage.getItem("theme-mode") || "dark";
       if (stored !== "dark") {
         document.documentElement.classList.remove("dark");
       }
@@ -926,10 +926,13 @@ export default function CorretorResponses() {
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-display font-bold text-foreground truncate leading-tight">
-                Validação de Respostas
+                {selectedForm ? selectedForm.title : "Validação de Respostas"}
               </h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground font-body mt-0.5">
                 Olá, <span className="font-semibold text-foreground">{me?.name || "Corretor"}</span>
+                {assignedForms.length > 1 && (
+                  <span className="ml-1">· {assignedForms.length} formulários</span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -997,20 +1000,29 @@ export default function CorretorResponses() {
       <main className="max-w-xl mx-auto px-4 sm:px-6 py-3 sm:py-5 space-y-3 sm:space-y-4">
         {/* ─── Form Selector (if multiple forms) ─── */}
         {assignedForms.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
-            {assignedForms.map((form: any) => (
-              <button
-                key={form.id}
-                onClick={() => setSelectedFormId(form.id)}
-                className={`px-3.5 py-2 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all border active:scale-[0.97] ${
-                  selectedFormId === form.id
-                    ? "bg-brand/10 text-brand border-brand/20 shadow-sm"
-                    : "bg-card text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
-                }`}
-              >
-                {form.title}
-              </button>
-            ))}
+          <div className="bg-card rounded-xl border border-border p-2">
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+              {assignedForms.map((form: any) => (
+                <button
+                  key={form.id}
+                  onClick={() => setSelectedFormId(form.id)}
+                  className={`relative px-3 py-2 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all active:scale-[0.97] ${
+                    selectedFormId === form.id
+                      ? "bg-brand text-white shadow-md shadow-brand/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {form.title}
+                  {selectedFormId === form.id && (
+                    <motion.div
+                      layoutId="activeFormTab"
+                      className="absolute inset-0 bg-brand rounded-lg -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1126,13 +1138,10 @@ export default function CorretorResponses() {
           </div>
         )}
 
-        {/* ─── Form Title ─── */}
-        {selectedForm && (
-          <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-            <h2 className="text-xs sm:text-sm font-display font-bold text-foreground leading-tight">{selectedForm.title}</h2>
-            {selectedForm.description && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground font-body mt-1 line-clamp-2">{selectedForm.description}</p>
-            )}
+        {/* ─── Form Description (only for single form with description) ─── */}
+        {assignedForms.length === 1 && selectedForm?.description && (
+          <div className="bg-card/50 rounded-lg border border-border/50 px-3 py-2">
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-body line-clamp-2">{selectedForm.description}</p>
           </div>
         )}
 

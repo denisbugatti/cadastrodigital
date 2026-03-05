@@ -108,7 +108,7 @@ export default function ResponseValidation() {
   useEffect(() => {
     document.documentElement.classList.add("dark");
     return () => {
-      const stored = localStorage.getItem("theme-mode") || "light";
+      const stored = localStorage.getItem("theme-mode") || "dark";
       if (stored !== "dark") {
         document.documentElement.classList.remove("dark");
       }
@@ -332,6 +332,10 @@ export default function ResponseValidation() {
                 Validar Cadastro
               </h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground font-body leading-tight mt-0.5">
+                {form?.title && (
+                  <span className="font-semibold text-brand/80">{form.title}</span>
+                )}
+                {form?.title && <span className="mx-1">·</span>}
                 <span className="font-mono text-foreground/70 font-semibold">{response.protocolCode || `#${response.id}`}</span>
                 {response.respondentName && (
                   <span className="ml-1.5">— {response.respondentName}</span>

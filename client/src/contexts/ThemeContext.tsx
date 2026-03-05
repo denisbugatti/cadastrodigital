@@ -37,7 +37,7 @@ function resolveTheme(mode: ThemeMode): ResolvedTheme {
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
+  defaultTheme = "dark",
   switchable = false,
 }: ThemeProviderProps) {
   const [mode, setModeState] = useState<ThemeMode>(() => {

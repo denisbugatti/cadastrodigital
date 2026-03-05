@@ -1144,3 +1144,14 @@
 - [x] Corrigir: criado endpoint forms.myAssigned (staffAnyProcedure) que usa form_assignments
 - [x] Atualizado CorretorResponses.tsx para usar trpc.forms.myAssigned
 - [x] 410 testes passando, 0 erros TypeScript
+
+## Exibir nome do formulário na tela de validação do corretor
+- [x] Mostrar nome do formulário selecionado no header da tela de validação
+- [x] Melhorar seletor de formulários para múltiplos formulários atribuídos
+- [x] Indicador visual claro de qual formulário está ativo
+- [x] Nome do formulário exibido no header da página de validação individual (ResponseValidation)
+
+## Tema escuro como padrão
+- [x] Alterar ThemeProvider defaultTheme para "dark"
+- [x] Garantir que localStorage theme-mode respeite o padrão dark
+- [x] Atualizar fallbacks em CorretorResponses, ResponseValidation e CorretorDashboard
