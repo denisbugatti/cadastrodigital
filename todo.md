@@ -1189,3 +1189,10 @@
 - [x] Backend: endpoint tRPC para gerar e baixar o PDF preenchido
 - [x] Frontend: botão "Baixar Ficha PDF" na tela de validação (ResponseValidation)
 - [x] Testes: 428 testes passando, 0 erros TypeScript
+
+## Preview do PDF antes de baixar
+- [x] Frontend: modal/dialog de preview com visualizador de PDF embutido (iframe fullscreen)
+- [x] Frontend: botão "Visualizar Ficha PDF" que gera o PDF e mostra no preview
+- [x] Frontend: botões no preview para baixar (header + footer) ou fechar
+- [x] Suporte mobile: preview responsivo (95vw x 90vh)
+- [x] 428 testes passando, 0 erros TypeScript

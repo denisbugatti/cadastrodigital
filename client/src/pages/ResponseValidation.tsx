@@ -119,26 +119,27 @@ export default function ResponseValidation() {
   const [justification, setJustification] = useState("");
   const [isApproving, setIsApproving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfFilename, setPdfFilename] = useState("ficha.pdf");
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const bottomBarRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
 
-  // Handle PDF download
-  const handleDownloadPdf = async () => {
+  // Handle PDF preview
+  const handlePreviewPdf = async () => {
     if (!responseId || isGeneratingPdf) return;
     setIsGeneratingPdf(true);
     try {
       const result = await utils.responses.generateFicha.fetch({ responseId });
       const byteArray = Uint8Array.from(atob(result.base64), (c) => c.charCodeAt(0));
       const blob = new Blob([byteArray], { type: "application/pdf" });
+      // Revoke previous URL if exists
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = result.filename || "ficha.pdf";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setPdfPreviewUrl(url);
+      setPdfFilename(result.filename || "ficha.pdf");
+      setShowPdfPreview(true);
       toast.success("PDF gerado com sucesso!");
     } catch (err: any) {
       console.error("Error generating ficha:", err);
@@ -149,6 +150,25 @@ export default function ResponseValidation() {
       setIsGeneratingPdf(false);
     }
   };
+
+  // Handle PDF download from preview
+  const handleDownloadFromPreview = () => {
+    if (!pdfPreviewUrl) return;
+    const link = document.createElement("a");
+    link.href = pdfPreviewUrl;
+    link.download = pdfFilename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Download iniciado!");
+  };
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    };
+  }, [pdfPreviewUrl]);
 
   // Get response data
   const responseQuery = trpc.responses.getById.useQuery(
@@ -449,14 +469,14 @@ export default function ResponseValidation() {
               size="sm"
               className="w-full gap-2 text-xs font-semibold h-9 border-brand/30 text-brand hover:bg-brand/10 hover:text-brand transition-all"
               disabled={isGeneratingPdf}
-              onClick={handleDownloadPdf}
+              onClick={handlePreviewPdf}
             >
               {isGeneratingPdf ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <FileDown className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5" />
               )}
-              {isGeneratingPdf ? "Gerando PDF..." : "Baixar Ficha PDF"}
+              {isGeneratingPdf ? "Gerando PDF..." : "Visualizar Ficha PDF"}
             </Button>
           </div>
 
@@ -792,6 +812,74 @@ export default function ResponseValidation() {
               Reprovar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* PDF Preview Dialog */}
+      <Dialog open={showPdfPreview} onOpenChange={(open) => {
+        setShowPdfPreview(open);
+        if (!open && pdfPreviewUrl) {
+          // Keep URL alive for potential re-open, cleanup on unmount
+        }
+      }}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0 bg-background border-border">
+          <DialogHeader className="px-4 py-3 border-b border-border/50 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-sm font-semibold font-heading">
+                  Preview da Ficha
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  {pdfFilename}
+                </DialogDescription>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-2 text-xs font-semibold h-8"
+                onClick={handleDownloadFromPreview}
+              >
+                <Download className="w-3.5 h-3.5" />
+                Baixar PDF
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-muted/30">
+            {pdfPreviewUrl ? (
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-full border-0"
+                title="Preview da Ficha PDF"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          <div className="px-4 py-3 border-t border-border/50 shrink-0 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-muted-foreground">
+              Verifique os dados antes de baixar
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => setShowPdfPreview(false)}
+              >
+                Fechar
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-2 text-xs h-8"
+                onClick={handleDownloadFromPreview}
+              >
+                <Download className="w-3.5 h-3.5" />
+                Baixar PDF
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
