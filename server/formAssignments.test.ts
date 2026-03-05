@@ -309,13 +309,12 @@ describe("forms.setAssignments", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects gerente from setting assignments", async () => {
+  it("allows gerente to set assignments (staffFormCreatorProcedure)", async () => {
     const ctx = createAuthContext(1, "gerente");
     const caller = appRouter.createCaller(ctx);
 
-    await expect(
-      caller.forms.setAssignments({ formId: 1, staffUserIds: [10] })
-    ).rejects.toThrow();
+    const result = await caller.forms.setAssignments({ formId: 1, staffUserIds: [10] });
+    expect(result.success).toBe(true);
   });
 
   it("rejects corretor from setting assignments", async () => {

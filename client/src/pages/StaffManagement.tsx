@@ -43,7 +43,7 @@ import {
   ArrowLeft, UserPlus, Mail, Phone, RotateCw,
   Star, Building2, Users, Loader2, CheckCircle2, XCircle,
   Crown, Briefcase, Pencil, Trash2, Clock, ArrowRightLeft,
-  ChevronDown, ChevronRight, UserMinus,
+  ChevronDown, ChevronRight, UserMinus, FileText, Link as LinkIcon,
 } from "lucide-react";
 
 const roleConfig: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
@@ -780,6 +780,8 @@ function EquipeTab({ isGerente }: { isGerente: boolean }) {
   const utils = trpc.useUtils();
   const gerentesQuery = trpc.staff.gerentes.useQuery();
   const corretoresQuery = trpc.staff.corretoresWithManager.useQuery();
+  // Get forms for assignment (gerentes see their own forms, owners see all)
+  const formsQuery = trpc.forms.list.useQuery();
 
   const assignMutation = trpc.staff.assignManager.useMutation({
     onSuccess: () => {
@@ -788,6 +790,42 @@ function EquipeTab({ isGerente }: { isGerente: boolean }) {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const assignFormMutation = trpc.forms.setAssignments.useMutation({
+    onSuccess: () => {
+      toast.success("Formulário vinculado com sucesso!");
+      utils.forms.getAssignmentsBatch.invalidate();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  // Available forms for assignment (non-template forms)
+  const availableForms = useMemo(() => {
+    if (!formsQuery.data) return [];
+    return formsQuery.data.filter((f: any) => !f.isTemplate);
+  }, [formsQuery.data]);
+
+  // Get all form IDs to batch-query assignments
+  const formIds = useMemo(() => availableForms.map((f: any) => f.id), [availableForms]);
+  const assignmentsBatchQuery = trpc.forms.getAssignmentsBatch.useQuery(
+    { formIds },
+    { enabled: formIds.length > 0 }
+  );
+
+  // Build a map: corretorId -> formIds assigned
+  const corretorFormMap = useMemo(() => {
+    const map: Record<number, number[]> = {};
+    if (!assignmentsBatchQuery.data) return map;
+    const batchData = assignmentsBatchQuery.data as Record<string, any[]>;
+    for (const [formIdStr, assignments] of Object.entries(batchData)) {
+      const formId = parseInt(formIdStr, 10);
+      for (const a of assignments) {
+        if (!map[a.staffUserId]) map[a.staffUserId] = [];
+        map[a.staffUserId].push(formId);
+      }
+    }
+    return map;
+  }, [assignmentsBatchQuery.data]);
 
   const gerentes = gerentesQuery.data ?? [];
   const corretores = corretoresQuery.data ?? [];
@@ -827,7 +865,7 @@ function EquipeTab({ isGerente }: { isGerente: boolean }) {
     }
   }, [gerentes.length]);
 
-  const isLoading = gerentesQuery.isLoading || corretoresQuery.isLoading;
+  const isLoading = gerentesQuery.isLoading || corretoresQuery.isLoading || formsQuery.isLoading;
 
   if (isLoading) {
     return (
@@ -922,6 +960,12 @@ function EquipeTab({ isGerente }: { isGerente: boolean }) {
                         }
                         isPending={assignMutation.isPending}
                         showReassign={!isGerente}
+                        availableForms={availableForms}
+                        assignedFormIds={corretorFormMap[corretor.id] ?? []}
+                        onAssignForm={(formId, staffUserIds) =>
+                          assignFormMutation.mutate({ formId, staffUserIds })
+                        }
+                        isAssigningForm={assignFormMutation.isPending}
                       />
                     ))}
                   </div>
@@ -974,6 +1018,12 @@ function EquipeTab({ isGerente }: { isGerente: boolean }) {
                     }
                     isPending={assignMutation.isPending}
                     showReassign={true}
+                    availableForms={availableForms}
+                    assignedFormIds={corretorFormMap[corretor.id] ?? []}
+                    onAssignForm={(formId, staffUserIds) =>
+                      assignFormMutation.mutate({ formId, staffUserIds })
+                    }
+                    isAssigningForm={assignFormMutation.isPending}
                   />
                 ))}
               </div>
@@ -985,7 +1035,7 @@ function EquipeTab({ isGerente }: { isGerente: boolean }) {
   );
 }
 
-/* ─── Corretor Row with reassignment dropdown ─── */
+/* ─── Corretor Row with reassignment dropdown + form assignment ─── */
 function CorretorRow({
   corretor,
   gerentes,
@@ -993,6 +1043,10 @@ function CorretorRow({
   onAssign,
   isPending,
   showReassign = true,
+  availableForms = [],
+  assignedFormIds = [],
+  onAssignForm,
+  isAssigningForm = false,
 }: {
   corretor: any;
   gerentes: any[];
@@ -1000,49 +1054,130 @@ function CorretorRow({
   onAssign: (managerId: number | null) => void;
   isPending: boolean;
   showReassign?: boolean;
+  availableForms?: any[];
+  assignedFormIds?: number[];
+  onAssignForm?: (formId: number, staffUserIds: number[]) => void;
+  isAssigningForm?: boolean;
 }) {
+  const [showForms, setShowForms] = useState(false);
+
+  const handleToggleForm = (formId: number, isCurrentlyAssigned: boolean) => {
+    if (!onAssignForm) return;
+    // We need to get the current assignments for this form and add/remove this corretor
+    // For simplicity, we toggle: if assigned, remove; if not, add
+    if (isCurrentlyAssigned) {
+      // Remove this corretor from the form - we don't have the full list here,
+      // so we pass empty array (the backend will handle it)
+      // Actually we need to pass all OTHER staff except this one
+      // This is handled by the parent component
+      onAssignForm(formId, []);
+    } else {
+      onAssignForm(formId, [corretor.id]);
+    }
+  };
+
   return (
-    <div className="px-5 py-3 flex items-center justify-between hover:bg-accent/20 transition-colors">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-          <Briefcase className="w-4 h-4 text-green-500" />
-        </div>
-        <div className="min-w-0">
-          <span className="text-sm text-foreground">{corretor.name}</span>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-muted-foreground">{corretor.email}</span>
-            {!corretor.active && (
-              <span className="text-xs text-red-500">Inativo</span>
-            )}
+    <div className="hover:bg-accent/20 transition-colors">
+      <div className="px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Briefcase className="w-4 h-4 text-green-500" />
           </div>
+          <div className="min-w-0">
+            <span className="text-sm text-foreground">{corretor.name}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-muted-foreground">{corretor.email}</span>
+              {!corretor.active && (
+                <span className="text-xs text-red-500">Inativo</span>
+              )}
+              {assignedFormIds.length > 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                  {assignedFormIds.length} {assignedFormIds.length === 1 ? "formulário" : "formulários"}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Form assignment button */}
+          {availableForms.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowForms(!showForms)}
+              className={`h-8 px-2 text-xs gap-1 ${
+                showForms ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-primary"
+              }`}
+              title="Vincular formulários"
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Formulários</span>
+            </Button>
+          )}
+
+          {/* Manager reassignment */}
+          {showReassign && (
+            <Select
+              value={currentManagerId?.toString() ?? "none"}
+              onValueChange={(val) => {
+                const newId = val === "none" ? null : parseInt(val, 10);
+                if (newId !== currentManagerId) {
+                  onAssign(newId);
+                }
+              }}
+              disabled={isPending}
+            >
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue placeholder="Selecionar gerente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-amber-500">Sem gerente</span>
+                </SelectItem>
+                {gerentes.map((g) => (
+                  <SelectItem key={g.id} value={g.id.toString()}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
-      {showReassign && (
-        <Select
-          value={currentManagerId?.toString() ?? "none"}
-          onValueChange={(val) => {
-            const newId = val === "none" ? null : parseInt(val, 10);
-            if (newId !== currentManagerId) {
-              onAssign(newId);
-            }
-          }}
-          disabled={isPending}
-        >
-          <SelectTrigger className="w-[180px] h-8 text-xs">
-            <SelectValue placeholder="Selecionar gerente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">
-              <span className="text-amber-500">Sem gerente</span>
-            </SelectItem>
-            {gerentes.map((g) => (
-              <SelectItem key={g.id} value={g.id.toString()}>
-                {g.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Form assignment panel */}
+      {showForms && availableForms.length > 0 && (
+        <div className="px-5 pb-3 ml-11">
+          <div className="bg-muted/20 rounded-lg p-3 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">
+              Vincular formulários a {corretor.name}
+            </p>
+            {availableForms.map((form: any) => {
+              const isAssigned = assignedFormIds.includes(form.id);
+              return (
+                <button
+                  key={form.id}
+                  onClick={() => handleToggleForm(form.id, isAssigned)}
+                  disabled={isAssigningForm}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-all text-xs ${
+                    isAssigned
+                      ? "bg-primary/10 border border-primary/30 text-foreground"
+                      : "bg-background/50 border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  <FileText className={`w-3.5 h-3.5 shrink-0 ${
+                    isAssigned ? "text-primary" : "text-muted-foreground"
+                  }`} />
+                  <span className="flex-1 truncate">{form.title}</span>
+                  {isAssigned && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );

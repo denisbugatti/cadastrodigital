@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, title, status, parentFormId, assignedCorretorId, isTemplate, createdByStaffId FROM forms;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, status, parentFormId, assignedCorretorId, isTemplate, createdByStaffId FROM forms;",
+  "rows": [
+    {
+      "id": "90002",
+      "title": "One Innovation",
+      "status": "published",
+      "parentFormId": "60002",
+      "assignedCorretorId": "60002",
+      "isTemplate": "0",
+      "createdByStaffId": "NULL"
+    },
+    {
+      "id": "120001",
+      "title": "Teste denis",
+      "status": "published",
+      "parentFormId": "60002",
+      "assignedCorretorId": "90001",
+      "isTemplate": "0",
+      "createdByStaffId": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tstatus\tparentFormId\tassignedCorretorId\tisTemplate\tcreatedByStaffId\n90002\tOne Innovation\tpublished\t60002\t60002\t0\tNULL\n120001\tTeste denis\tpublished\t60002\t90001\t0\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 374
+}

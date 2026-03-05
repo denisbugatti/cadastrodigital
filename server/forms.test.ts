@@ -1239,14 +1239,14 @@ describe("staffAdminProcedure access control", () => {
   });
 });
 
-describe("staffFormOwnerProcedure access control", () => {
-  it("blocks gerentes from form mutation procedures (create)", async () => {
+describe("staffFormCreatorProcedure access control", () => {
+  it("allows gerentes to create forms (staffFormCreatorProcedure)", async () => {
     const ctx = createAuthContext(1, "gerente");
     const caller = appRouter.createCaller(ctx);
 
-    await expect(
-      caller.forms.create({ title: "Test", fields: [], settings: {} as any })
-    ).rejects.toThrow();
+    const result = await caller.forms.create({ title: "Test", fields: [], settings: {} as any });
+    expect(result).toBeDefined();
+    expect(result.id).toBeDefined();
   });
 
   it("blocks corretores from form mutation procedures (create)", async () => {

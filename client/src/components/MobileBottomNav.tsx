@@ -17,6 +17,7 @@ import {
   Settings,
   X,
   LogOut,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ const MAIN_NAV = [
 
 /* ─── More Menu Items (shown in slide-up sheet) ─── */
 const MORE_ITEMS: { id: string; label: string; icon: any; path: string; adminOnly: boolean; hiddenForRoles?: string[] }[] = [
+  { id: "templates", label: "Galeria de Templates", icon: Copy, path: "/formularios-copias", adminOnly: true },
   { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true, hiddenForRoles: ["gerente", "corretor"] },
 ];
 

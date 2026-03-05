@@ -108,6 +108,7 @@ export const staffAdminProcedure = t.procedure.use(requireStaffAdmin);
  * Allowed roles: master, diretor (NOT gerente, NOT corretor).
  */
 const FORM_OWNER_ROLES = ['master', 'diretor'];
+const FORM_CREATOR_ROLES = ['master', 'diretor', 'gerente'];
 
 const requireStaffFormOwner = t.middleware(async ({ ctx, next }) => {
   const user = await resolveUser(ctx);
@@ -140,9 +141,34 @@ const requireStaffFormOwner = t.middleware(async ({ ctx, next }) => {
 
 /**
  * staffFormOwnerProcedure: Requires master or diretor role.
- * Used for form CRUD operations. Gerentes are blocked (they can only view).
+ * Used for form CRUD operations that only owners should do.
  */
 export const staffFormOwnerProcedure = t.procedure.use(requireStaffFormOwner);
+
+/**
+ * staffFormCreatorProcedure: Allows master, diretor, and gerente to create/duplicate forms.
+ * Gerentes can create new forms and duplicate templates, but template editing is checked at the procedure level.
+ */
+const requireStaffFormCreator = t.middleware(async ({ ctx, next }) => {
+  const user = await resolveUser(ctx);
+
+  if (!user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+
+  if (ctx.customSession) {
+    if (ctx.customSession.type !== 'staff') {
+      throw new TRPCError({ code: "FORBIDDEN", message: FORBIDDEN_CORRETOR_MSG });
+    }
+    if (!FORM_CREATOR_ROLES.includes(ctx.customSession.role)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: 'Acesso restrito' });
+    }
+  }
+
+  return next({ ctx: { ...ctx, user } });
+});
+
+export const staffFormCreatorProcedure = t.procedure.use(requireStaffFormCreator);
 
 /**
  * Middleware that requires any authenticated staff member (including corretores).

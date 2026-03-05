@@ -174,6 +174,10 @@ export const forms = mysqlTable("forms", {
   assignedCorretorId: int("assignedCorretorId"),
   /** Parent form ID — if this form is a copy of another form, this tracks the original */
   parentFormId: int("parentFormId"),
+  /** Whether this form is a template (protected from editing by gerentes) */
+  isTemplate: boolean("isTemplate").default(false).notNull(),
+  /** Staff user who created this form (staff_users.id) — null means created by master/owner */
+  createdByStaffId: int("createdByStaffId"),
   /** Last seen response count — used to calculate unread badge */
   lastSeenResponseCount: int("lastSeenResponseCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

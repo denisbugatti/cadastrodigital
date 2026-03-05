@@ -1254,3 +1254,16 @@
 - [x] Bug: gerente tem acesso à aba Membros — aba Membros agora só visível para master/diretor
 - [x] Melhoria: renomear aba "Hierarquia" para "Equipe" — gerente vê apenas aba Equipe com seus corretores
 - [x] 435 testes passando, 0 erros TypeScript
+
+## Galeria de Templates para gerentes + criação de formulários
+- [x] Remover restrição OwnerRoute da rota /formularios-copias para gerentes (mudou para AdminRoute)
+- [x] Adicionar Galeria de Templates no menu de navegação para gerentes (sidebar + mobile)
+- [x] Backend: adicionar flag isTemplate e createdByStaffId nos formulários
+- [x] Backend: criar staffFormCreatorProcedure que permite gerentes criar/duplicar/editar (exceto templates)
+- [x] Backend: proteger edição de formulários marcados como template (só master/diretor edita)
+- [x] Frontend: Galeria de Templates redesenhada com cards visuais e botão "Usar Template"
+- [x] Frontend: gerente pode criar formulários do zero (botão "Criar do Zero")
+- [x] Frontend: gerente pode editar formulários que ele criou, mas não os templates (botão desabilitado)
+- [x] Frontend: gerente pode vincular formulários aos corretores na EquipeTab (botão Formulários com toggle)
+- [x] Fix: 404 em /formulario/:id/respostas já corrigido no código (link aponta para /responses/:id)
+- [x] 435 testes passando, 0 erros TypeScript

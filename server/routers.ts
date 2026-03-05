@@ -1,6 +1,6 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router, staffAdminProcedure, staffAnyProcedure, staffFormOwnerProcedure } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router, staffAdminProcedure, staffAnyProcedure, staffFormOwnerProcedure, staffFormCreatorProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import * as db from "./db";
@@ -512,21 +512,21 @@ export const appRouter = router({
     }),
 
     /** Get assignments for a specific form */
-    getAssignments: staffAdminProcedure
+    getAssignments: staffFormCreatorProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
         return db.getFormAssignments(input.formId);
       }),
 
     /** Get assignments for multiple forms (batch) */
-    getAssignmentsBatch: staffAdminProcedure
+    getAssignmentsBatch: staffFormCreatorProcedure
       .input(z.object({ formIds: z.array(z.number()) }))
       .query(async ({ input }) => {
         return db.getFormAssignmentsBatch(input.formIds);
       }),
 
     /** Set assignments for a form (replaces existing) */
-    setAssignments: staffFormOwnerProcedure
+    setAssignments: staffFormCreatorProcedure
       .input(z.object({
         formId: z.number(),
         staffUserIds: z.array(z.number()),
@@ -607,7 +607,7 @@ export const appRouter = router({
         return db.getFormById(input.id);
       }),
 
-    create: staffFormOwnerProcedure
+    create: staffFormCreatorProcedure
       .input(z.object({
         title: z.string(),
         description: z.string().optional(),
@@ -622,6 +622,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const slug = input.slug || `form_${nanoid(10)}`;
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
         const result = await db.createForm({
           slug,
           userId: ctx.user.id,
@@ -635,8 +636,8 @@ export const appRouter = router({
           status: input.status ?? "draft",
           color: input.color ?? "#0D8BD9",
           responseCount: 0,
+          createdByStaffId: cs?.staffUserId ?? null,
         });
-        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
         logAudit({
           action: AUDIT_ACTIONS.FORM_CREATE,
           staffUserId: cs?.staffUserId,
@@ -649,7 +650,7 @@ export const appRouter = router({
         return result;
       }),
 
-    update: staffFormOwnerProcedure
+    update: staffFormCreatorProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -669,6 +670,11 @@ export const appRouter = router({
         const form = await db.getFormById(id);
         if (!form || form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
+        }
+        // Gerentes cannot edit template forms
+        const session = ctx.customSession as any;
+        if (session?.role === 'gerente' && (form as any).isTemplate) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Gerentes não podem editar formulários template" });
         }
         // Handle direct slug update
         if (directSlug) {
@@ -717,12 +723,17 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: staffFormOwnerProcedure
+    delete: staffFormCreatorProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const form = await db.getFormById(input.id);
         if (!form || form.userId !== ctx.user.id) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
+        }
+        // Gerentes cannot delete template forms
+        const session = ctx.customSession as any;
+        if (session?.role === 'gerente' && (form as any).isTemplate) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Gerentes não podem excluir formulários template" });
         }
         await db.deleteForm(input.id);
         const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
@@ -739,7 +750,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    duplicate: staffFormOwnerProcedure
+    duplicate: staffFormCreatorProcedure
       .input(z.object({
         id: z.number(),
         title: z.string().optional(),
@@ -747,8 +758,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const newSlug = `form_${nanoid(10)}`;
-        const result = await db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
         const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        const result = await db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
         logAudit({
           action: AUDIT_ACTIONS.FORM_DUPLICATE,
           staffUserId: cs?.staffUserId,

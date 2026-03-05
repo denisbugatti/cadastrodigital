@@ -22,6 +22,7 @@ import {
   BellRing,
   BarChart3,
   ShieldCheck,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -32,6 +33,7 @@ import MobileBottomNav from "./MobileBottomNav";
 type NavItem = { id: string; label: string; icon: any; path: string; adminOnly?: boolean; hiddenForRoles?: string[] };
 const NAV_ITEMS: NavItem[] = [
   { id: "forms", label: "Formulários", icon: FileText, path: "/dashboard", adminOnly: true },
+  { id: "templates", label: "Galeria de Templates", icon: Copy, path: "/formularios-copias", adminOnly: true },
   { id: "team", label: "Equipe", icon: Users, path: "/equipe", adminOnly: true },
   { id: "performance", label: "Performance", icon: BarChart3, path: "/performance" },
   { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias", adminOnly: true },

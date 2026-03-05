@@ -50,12 +50,12 @@ function Router() {
         <AdminRoute><Dashboard /></AdminRoute>
       </Route>
 
-      {/* Form editor - full screen (master/diretor only) */}
+      {/* Form editor - full screen (master/diretor/gerente) */}
       <Route path={"/editor"}>
-        <FormOwnerRoute><Editor /></FormOwnerRoute>
+        <AdminRoute><Editor /></AdminRoute>
       </Route>
       <Route path={"/editor/:id"}>
-        <FormOwnerRoute><Editor /></FormOwnerRoute>
+        <AdminRoute><Editor /></AdminRoute>
       </Route>
 
       {/* Responses/Analytics for a specific form */}
@@ -88,11 +88,11 @@ function Router() {
         </OwnerRoute>
       </Route>
 
-      {/* Form copies management (master/diretor only) */}
+      {/* Galeria de Templates (master/diretor/gerente) */}
       <Route path={"/formularios-copias"}>
-        <OwnerRoute>
+        <AdminRoute>
           <AppLayout><FormCopiesManagement /></AppLayout>
-        </OwnerRoute>
+        </AdminRoute>
       </Route>
 
       {/* Audit log (master/diretor only) */}
