@@ -72,6 +72,18 @@ vi.mock("./corretorNotification", () => ({
   notifyCorretoresNewSubmission: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ─── Mock staffDb module ───
+vi.mock("./staffDb", () => ({
+  getCorretoresByManager: vi.fn().mockResolvedValue([]),
+  getStaffUserByEmail: vi.fn(),
+  createInvite: vi.fn(),
+  getInvitesByOwner: vi.fn().mockResolvedValue([]),
+  getStaffUsersByOwner: vi.fn().mockResolvedValue([]),
+  assignManagerToCorretor: vi.fn(),
+  getCorretoresWithManager: vi.fn().mockResolvedValue([]),
+  getGerentesByOwner: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock("./_core/env", () => ({
   ENV: {
     appId: "test-app",
@@ -377,29 +389,36 @@ describe("forms.list filtering by assignments for gerentes", () => {
     expect(db.getFormIdsByStaff).not.toHaveBeenCalled();
   });
 
-  it("gerente sees only assigned forms when assignments exist", async () => {
+  it("gerente sees forms assigned to their corretores", async () => {
+    const staffDb = await import("./staffDb");
     const ctx = createAuthContext(5, "gerente");
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm, sampleForm2, sampleForm3] as any);
-    vi.mocked(db.getFormIdsByStaff).mockResolvedValue([1, 3]); // assigned to forms 1 and 3
+    // Mock: gerente has 2 corretores
+    vi.mocked(staffDb.getCorretoresByManager).mockResolvedValue([{ id: 10 }, { id: 20 }] as any);
+    // Mock: corretor 10 assigned to form 1, corretor 20 assigned to form 3, gerente 5 not directly assigned
+    vi.mocked(db.getFormIdsByStaff)
+      .mockResolvedValueOnce([1])   // corretor 10
+      .mockResolvedValueOnce([3])   // corretor 20
+      .mockResolvedValueOnce([]);   // gerente 5 direct
 
     const result = await caller.forms.list();
 
-    expect(db.getFormIdsByStaff).toHaveBeenCalledWith(5);
     expect(result).toHaveLength(2);
     expect(result.map((f: any) => f.id)).toEqual([1, 3]);
   });
 
-  it("gerente sees all forms when no assignments exist (backward compat)", async () => {
+  it("gerente with no corretores gets empty forms list", async () => {
+    const staffDb = await import("./staffDb");
     const ctx = createAuthContext(5, "gerente");
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm, sampleForm2, sampleForm3] as any);
-    vi.mocked(db.getFormIdsByStaff).mockResolvedValue([]); // no assignments
+    // Mock: gerente has no corretores
+    vi.mocked(staffDb.getCorretoresByManager).mockResolvedValue([]);
 
     const result = await caller.forms.list();
 
-    expect(db.getFormIdsByStaff).toHaveBeenCalledWith(5);
-    expect(result).toHaveLength(3); // sees all forms (backward compat)
+    expect(result).toHaveLength(0); // No corretores = no forms
   });
 });
 

@@ -1246,3 +1246,11 @@
 - [x] Frontend: detalhamento por corretor dentro de cada gerente
 - [x] Frontend: apenas admin (master/diretor) vê métricas de todos os gerentes
 - [x] 435 testes passando, 0 erros TypeScript
+
+## Bugs e melhorias gerente (relatados pelo usuário)
+- [x] Bug: gerente sem corretores atribuídos vê formulários (não deveria ver nenhum) — retorna [] quando getCorretoresByManager vazio
+- [x] Bug: "Ver respostas" redireciona para /formulario/:id/respostas (404) — corrigido para /responses/:id
+- [x] Bug: gerente consegue convidar master e gerentes na UI — seletor de cargo escondido para gerentes (sempre "corretor")
+- [x] Bug: gerente tem acesso à aba Membros — aba Membros agora só visível para master/diretor
+- [x] Melhoria: renomear aba "Hierarquia" para "Equipe" — gerente vê apenas aba Equipe com seus corretores
+- [x] 435 testes passando, 0 erros TypeScript

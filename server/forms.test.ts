@@ -78,6 +78,18 @@ vi.mock("./corretorNotification", () => ({
   notifyCorretoresNewSubmission: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ─── Mock staffDb module ───
+vi.mock("./staffDb", () => ({
+  getCorretoresByManager: vi.fn().mockResolvedValue([]),
+  getStaffUserByEmail: vi.fn(),
+  createInvite: vi.fn(),
+  getInvitesByOwner: vi.fn().mockResolvedValue([]),
+  getStaffUsersByOwner: vi.fn().mockResolvedValue([]),
+  assignManagerToCorretor: vi.fn(),
+  getCorretoresWithManager: vi.fn().mockResolvedValue([]),
+  getGerentesByOwner: vi.fn().mockResolvedValue([]),
+}));
+
 // ─── Mock env module ───
 vi.mock("./_core/env", () => ({
   ENV: {
@@ -1207,13 +1219,14 @@ describe("staffAdminProcedure access control", () => {
     expect(result).toHaveLength(1);
   });
 
-  it("allows gerente role to access admin procedures", async () => {
+  it("gerente with no corretores gets empty forms list", async () => {
     const ctx = createAuthContext(1, "gerente");
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm as any]);
+    // getCorretoresByManager returns [] by default mock
 
     const result = await caller.forms.list();
-    expect(result).toHaveLength(1);
+    expect(result).toHaveLength(0); // No corretores = no forms
   });
 
   it("allows diretor role to access admin procedures", async () => {
@@ -1265,10 +1278,15 @@ describe("staffFormOwnerProcedure access control", () => {
     expect(result.id).toBe(100);
   });
 
-  it("gerente can still list forms (staffAdminProcedure)", async () => {
+  it("gerente with corretores sees assigned forms", async () => {
+    const staffDb = await import("./staffDb");
     const ctx = createAuthContext(1, "gerente");
     const caller = appRouter.createCaller(ctx);
     vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm as any]);
+    // Mock: gerente has one corretor
+    vi.mocked(staffDb.getCorretoresByManager).mockResolvedValue([{ id: 10 }] as any);
+    // Mock: that corretor is assigned to form 1
+    vi.mocked(db.getFormIdsByStaff).mockResolvedValueOnce([1]).mockResolvedValueOnce([]);
 
     const result = await caller.forms.list();
     expect(result).toHaveLength(1);

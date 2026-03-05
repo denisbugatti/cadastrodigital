@@ -490,11 +490,23 @@ export const appRouter = router({
     list: staffAdminProcedure.query(async ({ ctx }) => {
       const allForms = await db.getFormsByUser(ctx.user.id);
       const session = ctx.customSession as any;
-      // Master/diretor see all forms; gerentes only see assigned forms
+      // Master/diretor see all forms; gerentes only see forms assigned to their corretores
       if (session?.role === 'gerente' && session?.staffUserId) {
-        const assignedFormIds = await db.getFormIdsByStaff(session.staffUserId);
-        if (assignedFormIds.length === 0) return allForms; // If no assignments exist, show all (backward compat)
-        return allForms.filter((f: any) => assignedFormIds.includes(f.id));
+        // Get corretores managed by this gerente
+        const corretores = await staffDb.getCorretoresByManager(session.staffUserId);
+        if (corretores.length === 0) return []; // No corretores = no forms to see
+        // Get form IDs assigned to any of the gerente's corretores
+        const corretorIds = corretores.map((c: any) => c.id);
+        const allAssignedFormIds = new Set<number>();
+        for (const cId of corretorIds) {
+          const formIds = await db.getFormIdsByStaff(cId);
+          formIds.forEach((id: number) => allAssignedFormIds.add(id));
+        }
+        // Also include forms directly assigned to the gerente
+        const gerenteFormIds = await db.getFormIdsByStaff(session.staffUserId);
+        gerenteFormIds.forEach((id: number) => allAssignedFormIds.add(id));
+        if (allAssignedFormIds.size === 0) return []; // No assignments at all
+        return allForms.filter((f: any) => allAssignedFormIds.has(f.id));
       }
       return allForms;
     }),

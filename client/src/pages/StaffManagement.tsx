@@ -1,12 +1,14 @@
 /**
  * Staff Management Page — Manage team members, send invites, edit roles.
  * Includes hierarchy management panel for assigning corretores to gerentes.
- * Only accessible by master/diretor roles.
+ * - Master/Diretor: sees both "Membros" and "Equipe" tabs, can invite any role
+ * - Gerente: sees only "Equipe" tab (their corretores), can only invite corretores
  */
 
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,16 +54,20 @@ const roleConfig: Record<string, { label: string; icon: any; color: string; bgCo
 };
 
 /* ─── Tabs ─── */
-type TabId = "membros" | "hierarquia";
+type TabId = "membros" | "equipe";
 
 export default function StaffManagement() {
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<TabId>("membros");
+  const { isGerente, isMaster, isDiretor } = useCustomAuth();
+  const isOwner = isMaster || isDiretor; // master/diretor can see Membros tab
+
+  // Gerentes default to "equipe" tab, owners default to "membros"
+  const [activeTab, setActiveTab] = useState<TabId>(isGerente ? "equipe" : "membros");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
-  // Invite form
+  // Invite form — gerentes can only invite corretores
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [invitePhone, setInvitePhone] = useState("");
@@ -81,6 +87,7 @@ export default function StaffManagement() {
       setInvitePhone("");
       setInviteRole("corretor");
       utils.staff.invites.invalidate();
+      utils.staff.corretoresWithManager.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -99,6 +106,7 @@ export default function StaffManagement() {
       toast.success("Usuário removido!");
       setDeleteTarget(null);
       utils.staff.list.invalidate();
+      utils.staff.corretoresWithManager.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -159,6 +167,15 @@ export default function StaffManagement() {
   const staff = staffQuery.data ?? [];
   const invites = (invitesQuery.data ?? []) as any[];
 
+  // Available roles for invite/edit based on current user role
+  const availableRoles = isGerente
+    ? [{ value: "corretor", label: "Corretor" }]
+    : [
+        { value: "diretor", label: "Diretor" },
+        { value: "gerente", label: "Gerente" },
+        { value: "corretor", label: "Corretor" },
+      ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -173,7 +190,9 @@ export default function StaffManagement() {
             </button>
             <div>
               <h1 className="text-xl font-bold text-foreground font-display">Equipe</h1>
-              <p className="text-sm text-muted-foreground">Gerencie membros e permissões</p>
+              <p className="text-sm text-muted-foreground">
+                {isGerente ? "Gerencie seus corretores" : "Gerencie membros e permissões"}
+              </p>
             </div>
           </div>
           <Button
@@ -186,38 +205,40 @@ export default function StaffManagement() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab("membros")}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "membros"
-                  ? "border-blue-500 text-blue-500"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Users className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-              Membros
-            </button>
-            <button
-              onClick={() => setActiveTab("hierarquia")}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "hierarquia"
-                  ? "border-blue-500 text-blue-500"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ArrowRightLeft className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-              Hierarquia
-            </button>
+      {/* Tabs — only show if owner (master/diretor) */}
+      {isOwner && (
+        <div className="bg-card border-b border-border">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab("membros")}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "membros"
+                    ? "border-blue-500 text-blue-500"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Users className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                Membros
+              </button>
+              <button
+                onClick={() => setActiveTab("equipe")}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "equipe"
+                    ? "border-blue-500 text-blue-500"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ArrowRightLeft className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                Equipe
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {activeTab === "membros" ? (
+        {isOwner && activeTab === "membros" ? (
           <MembrosTab
             staff={staff}
             invites={invites}
@@ -229,7 +250,7 @@ export default function StaffManagement() {
             setDeleteInviteId={setDeleteInviteId}
           />
         ) : (
-          <HierarquiaTab />
+          <EquipeTab isGerente={!!isGerente} />
         )}
       </div>
 
@@ -237,9 +258,14 @@ export default function StaffManagement() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Convidar Membro</DialogTitle>
+            <DialogTitle>
+              {isGerente ? "Convidar Corretor" : "Convidar Membro"}
+            </DialogTitle>
             <DialogDescription>
-              Envie um convite por email. O usuário receberá um link para criar sua senha.
+              {isGerente
+                ? "Envie um convite por email para adicionar um corretor à sua equipe."
+                : "Envie um convite por email. O usuário receberá um link para criar sua senha."
+              }
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInvite} className="space-y-4">
@@ -274,19 +300,22 @@ export default function StaffManagement() {
                 className="mt-1"
               />
             </div>
-            <div>
-              <Label>Cargo</Label>
-              <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="diretor">Diretor</SelectItem>
-                  <SelectItem value="gerente">Gerente</SelectItem>
-                  <SelectItem value="corretor">Corretor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Only show role selector if not gerente (gerentes can only invite corretores) */}
+            {!isGerente && (
+              <div>
+                <Label>Cargo</Label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRoles.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
                 Cancelar
@@ -345,34 +374,39 @@ export default function StaffManagement() {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label>Cargo</Label>
-                <Select
-                  value={editingUser.role}
-                  onValueChange={(v) => setEditingUser({ ...editingUser, role: v })}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="diretor">Diretor</SelectItem>
-                    <SelectItem value="gerente">Gerente</SelectItem>
-                    <SelectItem value="corretor">Corretor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between py-2">
+              {/* Only owners can change roles */}
+              {isOwner && (
                 <div>
-                  <Label className="text-sm font-medium">Status ativo</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Membros inativos não podem acessar o sistema
-                  </p>
+                  <Label>Cargo</Label>
+                  <Select
+                    value={editingUser.role}
+                    onValueChange={(v) => setEditingUser({ ...editingUser, role: v })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Switch
-                  checked={editingUser.active}
-                  onCheckedChange={(checked) => setEditingUser({ ...editingUser, active: checked })}
-                />
-              </div>
+              )}
+              {isOwner && (
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <Label className="text-sm font-medium">Status ativo</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Membros inativos não podem acessar o sistema
+                    </p>
+                  </div>
+                  <Switch
+                    checked={editingUser.active}
+                    onCheckedChange={(checked) => setEditingUser({ ...editingUser, active: checked })}
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingUser(null)}>
@@ -443,22 +477,24 @@ export default function StaffManagement() {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label>Cargo</Label>
-                <Select
-                  value={editingInvite.role}
-                  onValueChange={(v) => setEditingInvite({ ...editingInvite, role: v })}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="diretor">Diretor</SelectItem>
-                    <SelectItem value="gerente">Gerente</SelectItem>
-                    <SelectItem value="corretor">Corretor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isGerente && (
+                <div>
+                  <Label>Cargo</Label>
+                  <Select
+                    value={editingInvite.role}
+                    onValueChange={(v) => setEditingInvite({ ...editingInvite, role: v })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingInvite(null)}>
@@ -542,7 +578,7 @@ export default function StaffManagement() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Membros Tab — original staff list + invites
+   Membros Tab — original staff list + invites (master/diretor only)
    ═══════════════════════════════════════════════════════════════════════════ */
 function MembrosTab({
   staff,
@@ -736,9 +772,11 @@ function MembrosTab({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Hierarquia Tab — visual panel for gerente→corretor assignments
+   Equipe Tab — visual panel for gerente→corretor assignments
+   For owners: shows all gerentes with their corretores (can reassign)
+   For gerentes: shows only their own corretores
    ═══════════════════════════════════════════════════════════════════════════ */
-function HierarquiaTab() {
+function EquipeTab({ isGerente }: { isGerente: boolean }) {
   const utils = trpc.useUtils();
   const gerentesQuery = trpc.staff.gerentes.useQuery();
   const corretoresQuery = trpc.staff.corretoresWithManager.useQuery();
@@ -802,21 +840,28 @@ function HierarquiaTab() {
   if (gerentes.length === 0 && corretores.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground">
-        <ArrowRightLeft className="w-10 h-10 mx-auto mb-3 opacity-50" />
-        <p className="text-sm">Nenhum gerente ou corretor cadastrado</p>
-        <p className="text-xs mt-1">Convide gerentes e corretores para gerenciar a hierarquia</p>
+        <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
+        <p className="text-sm">Nenhum membro na equipe</p>
+        <p className="text-xs mt-1">
+          {isGerente
+            ? "Convide corretores para começar a gerenciar sua equipe"
+            : "Convide gerentes e corretores para gerenciar a equipe"
+          }
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="bg-card rounded-xl border border-border p-4 mb-6">
-        <p className="text-sm text-muted-foreground">
-          <ArrowRightLeft className="w-4 h-4 inline-block mr-1.5 -mt-0.5 text-blue-500" />
-          Arraste ou use o dropdown para reatribuir corretores entre gerentes. Cada corretor pode ter apenas um gerente responsável.
-        </p>
-      </div>
+      {!isGerente && (
+        <div className="bg-card rounded-xl border border-border p-4 mb-6">
+          <p className="text-sm text-muted-foreground">
+            <ArrowRightLeft className="w-4 h-4 inline-block mr-1.5 -mt-0.5 text-blue-500" />
+            Use o dropdown para reatribuir corretores entre gerentes. Cada corretor pode ter apenas um gerente responsável.
+          </p>
+        </div>
+      )}
 
       {/* Gerente cards */}
       {gerentes.map((gerente: any) => {
@@ -876,6 +921,7 @@ function HierarquiaTab() {
                           assignMutation.mutate({ corretorId: corretor.id, managerId })
                         }
                         isPending={assignMutation.isPending}
+                        showReassign={!isGerente}
                       />
                     ))}
                   </div>
@@ -886,8 +932,8 @@ function HierarquiaTab() {
         );
       })}
 
-      {/* Unassigned corretores */}
-      {(corretoresByManager["unassigned"]?.length ?? 0) > 0 && (
+      {/* Unassigned corretores (only visible to owners) */}
+      {!isGerente && (corretoresByManager["unassigned"]?.length ?? 0) > 0 && (
         <div className="bg-card rounded-xl border border-amber-500/30 overflow-hidden">
           <button
             onClick={() => toggleExpand("unassigned")}
@@ -927,6 +973,7 @@ function HierarquiaTab() {
                       assignMutation.mutate({ corretorId: corretor.id, managerId })
                     }
                     isPending={assignMutation.isPending}
+                    showReassign={true}
                   />
                 ))}
               </div>
@@ -945,12 +992,14 @@ function CorretorRow({
   currentManagerId,
   onAssign,
   isPending,
+  showReassign = true,
 }: {
   corretor: any;
   gerentes: any[];
   currentManagerId: number | null;
   onAssign: (managerId: number | null) => void;
   isPending: boolean;
+  showReassign?: boolean;
 }) {
   return (
     <div className="px-5 py-3 flex items-center justify-between hover:bg-accent/20 transition-colors">
@@ -969,30 +1018,32 @@ function CorretorRow({
         </div>
       </div>
 
-      <Select
-        value={currentManagerId?.toString() ?? "none"}
-        onValueChange={(val) => {
-          const newId = val === "none" ? null : parseInt(val, 10);
-          if (newId !== currentManagerId) {
-            onAssign(newId);
-          }
-        }}
-        disabled={isPending}
-      >
-        <SelectTrigger className="w-[180px] h-8 text-xs">
-          <SelectValue placeholder="Selecionar gerente" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">
-            <span className="text-amber-500">Sem gerente</span>
-          </SelectItem>
-          {gerentes.map((g) => (
-            <SelectItem key={g.id} value={g.id.toString()}>
-              {g.name}
+      {showReassign && (
+        <Select
+          value={currentManagerId?.toString() ?? "none"}
+          onValueChange={(val) => {
+            const newId = val === "none" ? null : parseInt(val, 10);
+            if (newId !== currentManagerId) {
+              onAssign(newId);
+            }
+          }}
+          disabled={isPending}
+        >
+          <SelectTrigger className="w-[180px] h-8 text-xs">
+            <SelectValue placeholder="Selecionar gerente" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              <span className="text-amber-500">Sem gerente</span>
             </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+            {gerentes.map((g) => (
+              <SelectItem key={g.id} value={g.id.toString()}>
+                {g.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 }
