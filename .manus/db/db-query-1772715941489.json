@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, title, JSON_LENGTH(questions) as num_questions FROM forms LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, JSON_LENGTH(questions) as num_questions FROM forms LIMIT 5",
+  "rows": [
+    {
+      "id": "90002",
+      "title": "One Innovation",
+      "num_questions": "52"
+    },
+    {
+      "id": "120001",
+      "title": "Teste denis",
+      "num_questions": "52"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tnum_questions\n90002\tOne Innovation\t52\n120001\tTeste denis\t52\n",
+  "stderr": "",
+  "execution_time_ms": 490
+}

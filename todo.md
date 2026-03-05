@@ -1178,3 +1178,14 @@
 - [x] Animação no badge (pulse + scale) e sino (shake) quando chegar nova notificação
 - [x] Botão toggle som on/off no painel de notificações
 - [x] 419 testes passando
+
+## Geração de PDF Ficha preenchida com dados do formulário
+- [x] Analisar campos do formulário e mapear para posições nos PDFs
+- [x] Upload dos PDFs template (FICHAPF e FICHAPJ) para S3
+- [x] Backend: lógica de overlay de texto sobre o PDF original usando pdf-lib
+- [x] Backend: lógica de estado civil → marca checkbox + regime de casamento
+- [x] Backend: se casado/união estável, preenche Proponente 2 (dados pessoais do cônjuge do formulário + endereço/estado civil copiados do Proponente 1)
+- [x] Backend: se CNPJ, preenche Ficha PJ (empresa + sócio 1)
+- [x] Backend: endpoint tRPC para gerar e baixar o PDF preenchido
+- [x] Frontend: botão "Baixar Ficha PDF" na tela de validação (ResponseValidation)
+- [x] Testes: 428 testes passando, 0 erros TypeScript

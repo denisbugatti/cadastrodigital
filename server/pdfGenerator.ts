@@ -1,9 +1,14 @@
 /**
  * PDF Generator for Cadastro de Interesse (PF / PJ)
- * Generates editable PDF forms filled with response data.
- * Uses pdf-lib to create form fields that can be edited in any PDF reader.
+ * Overlays form response data onto the original Innova PDF templates.
+ * - PF: text overlay (no form fields in original)
+ * - PJ: fills existing form fields in original
  */
-import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts, PDFTextField } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
+
+// ─── CDN URLs for the original PDF templates ───
+const PF_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPF_TEMPLATE_55882937.pdf";
+const PJ_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPJ_856f110c.pdf";
 
 // ─── Types ───
 
@@ -15,7 +20,9 @@ interface FormQuestion {
   id: string;
   type: string;
   title: string;
+  label?: string;
   subtitle?: string;
+  choices?: Array<{ id: string; label: string; score?: number }>;
   options?: any[];
 }
 
@@ -36,16 +43,18 @@ interface GeneratePdfInput {
   questions: FormQuestion[];
   respondentName?: string;
   respondentEmail?: string;
+  createdAt?: Date;
 }
 
-// ─── Helper: find answer by question title pattern ───
+// ─── Helpers ───
 
 function findAnswer(answers: ResponseAnswers, questions: FormQuestion[], titlePattern: string | RegExp, startIdx = 0): { value: any; idx: number } | null {
   for (let i = startIdx; i < questions.length; i++) {
     const q = questions[i];
+    const label = q.label || q.title || "";
     const matches = typeof titlePattern === "string"
-      ? q.title.toLowerCase().includes(titlePattern.toLowerCase())
-      : titlePattern.test(q.title);
+      ? label.toLowerCase().includes(titlePattern.toLowerCase())
+      : titlePattern.test(label);
     if (matches && answers[q.id] !== undefined) {
       return { value: answers[q.id], idx: i };
     }
@@ -55,6 +64,11 @@ function findAnswer(answers: ResponseAnswers, questions: FormQuestion[], titlePa
 
 function findAnswerValue(answers: ResponseAnswers, questions: FormQuestion[], titlePattern: string | RegExp, startIdx = 0): any {
   return findAnswer(answers, questions, titlePattern, startIdx)?.value ?? "";
+}
+
+/** Get answer by exact question ID */
+function getById(answers: ResponseAnswers, id: string): any {
+  return answers[id] ?? "";
 }
 
 function formatAddress(addr: any): { full: string; bairro: string; cidade: string; estado: string; cep: string } {
@@ -87,228 +101,151 @@ function formatDate(val: any): string {
   }
 }
 
-// ─── PDF Layout Constants ───
+function parseDateParts(val: any): { day: string; month: string; year: string } {
+  if (!val) return { day: "", month: "", year: "" };
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return { day: "", month: "", year: "" };
+    return {
+      day: String(d.getDate()).padStart(2, "0"),
+      month: String(d.getMonth() + 1).padStart(2, "0"),
+      year: String(d.getFullYear()),
+    };
+  } catch {
+    return { day: "", month: "", year: "" };
+  }
+}
 
-const COLORS = {
-  black: rgb(0, 0, 0),
-  darkGray: rgb(0.2, 0.2, 0.2),
-  medGray: rgb(0.5, 0.5, 0.5),
-  lightGray: rgb(0.85, 0.85, 0.85),
-  white: rgb(1, 1, 1),
-  headerBg: rgb(0.15, 0.15, 0.15),
-  accentBlue: rgb(0.1, 0.4, 0.7),
+async function fetchPdfTemplate(url: string): Promise<Uint8Array> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch PDF template: ${response.status}`);
+  const buffer = await response.arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+// ─── Estado Civil mapping ───
+
+interface EstadoCivilResult {
+  /** Which checkbox to mark: solteiro, casado, uniao_estavel, divorciado, viuvo */
+  checkbox: "solteiro" | "casado" | "uniao_estavel" | "divorciado" | "viuvo";
+  /** Which regime checkbox to mark (only if casado) */
+  regime?: "comunhao_parcial" | "comunhao_universal" | "separacao_total" | "pacto_nupcial";
+  /** Whether cônjuge data should be filled */
+  needsConjuge: boolean;
+}
+
+function parseEstadoCivil(val: any): EstadoCivilResult {
+  const s = String(val).toLowerCase().trim();
+
+  if (/solteiro/i.test(s)) {
+    return { checkbox: "solteiro", needsConjuge: false };
+  }
+  if (/uni[aã]o.*est[aá]vel/i.test(s)) {
+    return { checkbox: "uniao_estavel", regime: "comunhao_parcial", needsConjuge: true };
+  }
+  if (/comunh[aã]o.*parcial/i.test(s)) {
+    return { checkbox: "casado", regime: "comunhao_parcial", needsConjuge: true };
+  }
+  if (/comunh[aã]o.*total|comunh[aã]o.*universal/i.test(s)) {
+    return { checkbox: "casado", regime: "comunhao_universal", needsConjuge: true };
+  }
+  if (/separa[cç][aã]o.*total/i.test(s)) {
+    return { checkbox: "casado", regime: "separacao_total", needsConjuge: true };
+  }
+  if (/casad/i.test(s)) {
+    // Generic "casado" — default to comunhão parcial
+    return { checkbox: "casado", regime: "comunhao_parcial", needsConjuge: true };
+  }
+  if (/separad.*judicial/i.test(s)) {
+    return { checkbox: "divorciado", needsConjuge: false };
+  }
+  if (/divorciad/i.test(s)) {
+    return { checkbox: "divorciado", needsConjuge: false };
+  }
+  if (/vi[uú]v/i.test(s)) {
+    return { checkbox: "viuvo", needsConjuge: false };
+  }
+
+  // Fallback
+  return { checkbox: "solteiro", needsConjuge: false };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PF PDF — Text overlay on original template (no form fields)
+// ═══════════════════════════════════════════════════════════════
+
+/** Proponente 1 field coordinates (verified against grid overlay) */
+const PF_P1 = {
+  // Value text positions (inside the boxes)
+  cpf:            { x: 57,  y: 607 },
+  nacionalidade:  { x: 282, y: 607 },
+  dataNasc:       { x: 492, y: 607 },
+  identidade:     { x: 57,  y: 582 },
+  profissao:      { x: 222, y: 582 },
+  rendaMensal:    { x: 57,  y: 507 },
+  celular:        { x: 435, y: 507 },
+  endereco:       { x: 57,  y: 487 },
+  cep:            { x: 510, y: 487 },
+  bairro:         { x: 57,  y: 467 },
+  cidade:         { x: 252, y: 467 },
+  estado:         { x: 462, y: 467 },
+  email:          { x: 57,  y: 447 },
+
+  // Estado civil checkboxes (X mark positions)
+  cb_solteiro:       { x: 67,  y: 553 },
+  cb_casado:         { x: 139, y: 553 },
+  cb_uniao_estavel:  { x: 211, y: 553 },
+  cb_divorciado:     { x: 316, y: 553 },
+  cb_viuvo:          { x: 406, y: 553 },
+
+  // Regime de casamento checkboxes
+  cb_comunhao_parcial:   { x: 69,  y: 528 },
+  cb_comunhao_universal: { x: 216, y: 528 },
+  cb_separacao_total:    { x: 376, y: 528 },
+  cb_pacto_nupcial:      { x: 486, y: 528 },
 };
 
-const MARGIN = 40;
-const PAGE_WIDTH = 595.28; // A4
-const PAGE_HEIGHT = 841.89;
-const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+/** Proponente 2 = same x, y shifted down by ~220 */
+const P2_Y_OFFSET = -220;
+const PF_P2 = Object.fromEntries(
+  Object.entries(PF_P1).map(([k, v]) => [k, { x: v.x, y: v.y + P2_Y_OFFSET }])
+) as typeof PF_P1;
 
-// ─── Draw helpers ───
+/** Data do cadastro position */
+const PF_DATE = { day: { x: 440, y: 800 }, month: { x: 460, y: 800 }, year: { x: 480, y: 800 } };
 
-function drawSectionHeader(page: PDFPage, y: number, text: string, font: PDFFont, boldFont: PDFFont): number {
-  page.drawRectangle({
-    x: MARGIN,
-    y: y - 18,
-    width: CONTENT_WIDTH,
-    height: 20,
-    color: rgb(0.9, 0.9, 0.9),
+function drawTextAt(page: PDFPage, text: string, x: number, y: number, font: PDFFont, size = 8) {
+  if (!text) return;
+  page.drawText(String(text), {
+    x,
+    y,
+    size,
+    font,
+    color: rgb(0, 0, 0),
+    maxWidth: 200,
   });
-  page.drawText(text.toUpperCase(), {
-    x: MARGIN + 6,
-    y: y - 14,
+}
+
+function drawCheckMark(page: PDFPage, x: number, y: number, font: PDFFont) {
+  page.drawText("X", {
+    x,
+    y,
     size: 9,
-    font: boldFont,
-    color: COLORS.black,
+    font,
+    color: rgb(0, 0, 0),
   });
-  return y - 24;
 }
 
-function drawLabelValue(
+function fillProponentePF(
   page: PDFPage,
-  y: number,
-  label: string,
-  value: string,
-  font: PDFFont,
-  boldFont: PDFFont,
-  x: number = MARGIN,
-  width: number = CONTENT_WIDTH,
-  pdfDoc?: PDFDocument,
-  fieldName?: string,
-): number {
-  // Label
-  page.drawText(label.toUpperCase(), {
-    x: x + 4,
-    y: y - 10,
-    size: 6.5,
-    font: font,
-    color: COLORS.medGray,
-  });
-
-  // Box
-  page.drawRectangle({
-    x: x,
-    y: y - 28,
-    width: width,
-    height: 16,
-    borderColor: COLORS.lightGray,
-    borderWidth: 0.5,
-    color: COLORS.white,
-  });
-
-  // If pdfDoc provided, create an editable form field
-  if (pdfDoc && fieldName) {
-    const form = pdfDoc.getForm();
-    const field = form.createTextField(fieldName);
-    field.setText(String(value || ""));
-    field.addToPage(page, {
-      x: x + 2,
-      y: y - 28,
-      width: width - 4,
-      height: 16,
-      borderWidth: 0,
-    });
-    field.setFontSize(8);
-  } else {
-    // Static text fallback
-    page.drawText(String(value || ""), {
-      x: x + 4,
-      y: y - 24,
-      size: 8,
-      font: font,
-      color: COLORS.black,
-      maxWidth: width - 8,
-    });
-  }
-
-  return y - 32;
-}
-
-function drawTwoColumns(
-  page: PDFPage,
-  y: number,
-  label1: string, value1: string,
-  label2: string, value2: string,
-  font: PDFFont, boldFont: PDFFont,
-  pdfDoc?: PDFDocument,
-  fieldName1?: string, fieldName2?: string,
-): number {
-  const colWidth = (CONTENT_WIDTH - 10) / 2;
-  drawLabelValue(page, y, label1, value1, font, boldFont, MARGIN, colWidth, pdfDoc, fieldName1);
-  drawLabelValue(page, y, label2, value2, font, boldFont, MARGIN + colWidth + 10, colWidth, pdfDoc, fieldName2);
-  return y - 32;
-}
-
-function drawThreeColumns(
-  page: PDFPage,
-  y: number,
-  labels: string[], values: string[],
-  font: PDFFont, boldFont: PDFFont,
-  pdfDoc?: PDFDocument,
-  fieldNames?: string[],
-): number {
-  const colWidth = (CONTENT_WIDTH - 20) / 3;
-  for (let i = 0; i < 3; i++) {
-    drawLabelValue(page, y, labels[i] || "", values[i] || "", font, boldFont,
-      MARGIN + i * (colWidth + 10), colWidth, pdfDoc, fieldNames?.[i]);
-  }
-  return y - 32;
-}
-
-function drawCheckbox(page: PDFPage, y: number, label: string, checked: boolean, font: PDFFont, x: number = MARGIN): number {
-  // Checkbox box
-  page.drawRectangle({
-    x: x,
-    y: y - 10,
-    width: 10,
-    height: 10,
-    borderColor: COLORS.darkGray,
-    borderWidth: 0.5,
-    color: COLORS.white,
-  });
-  if (checked) {
-    page.drawText("X", { x: x + 1.5, y: y - 9, size: 8, font, color: COLORS.black });
-  }
-  page.drawText(label, { x: x + 14, y: y - 8, size: 7.5, font, color: COLORS.black });
-  return y - 16;
-}
-
-// ─── Header with INNOVA branding ───
-
-function drawHeader(page: PDFPage, font: PDFFont, boldFont: PDFFont, title: string, subtitle: string): number {
-  // Dark header bar
-  page.drawRectangle({
-    x: 0,
-    y: PAGE_HEIGHT - 70,
-    width: PAGE_WIDTH,
-    height: 70,
-    color: COLORS.headerBg,
-  });
-
-  // INNOVA text
-  page.drawText("INNOVA", {
-    x: PAGE_WIDTH - MARGIN - 120,
-    y: PAGE_HEIGHT - 35,
-    size: 22,
-    font: boldFont,
-    color: COLORS.white,
-  });
-  page.drawText("NEGÓCIOS IMOBILIÁRIOS", {
-    x: PAGE_WIDTH - MARGIN - 120,
-    y: PAGE_HEIGHT - 50,
-    size: 7,
-    font: font,
-    color: COLORS.white,
-  });
-
-  // Title
-  page.drawText(title, {
-    x: MARGIN,
-    y: PAGE_HEIGHT - 100,
-    size: 14,
-    font: boldFont,
-    color: COLORS.black,
-  });
-  page.drawText(subtitle, {
-    x: MARGIN,
-    y: PAGE_HEIGHT - 116,
-    size: 10,
-    font: boldFont,
-    color: COLORS.black,
-  });
-
-  // Date
-  const today = new Date().toLocaleDateString("pt-BR");
-  page.drawText(`DATA DO CADASTRO: ${today}`, {
-    x: PAGE_WIDTH - MARGIN - 140,
-    y: PAGE_HEIGHT - 100,
-    size: 8,
-    font: font,
-    color: COLORS.darkGray,
-  });
-
-  return PAGE_HEIGHT - 130;
-}
-
-// ─── Proponente / Sócio block ───
-
-function drawPersonBlock(
-  page: PDFPage,
-  y: number,
-  label: string,
+  coords: typeof PF_P1,
   data: {
-    nome: string;
-    sexo: string;
     cpf: string;
     nacionalidade: string;
     dataNasc: string;
     identidade: string;
     profissao: string;
-    estadoCivil: string;
-    dataCasamento: string;
-    regimeCasamento: string;
     rendaMensal: string;
-    telResidencial: string;
     celular: string;
     endereco: string;
     cep: string;
@@ -316,412 +253,232 @@ function drawPersonBlock(
     cidade: string;
     estado: string;
     email: string;
+    estadoCivil: EstadoCivilResult;
   },
   font: PDFFont,
   boldFont: PDFFont,
-  pdfDoc: PDFDocument,
-  prefix: string,
-  isPJ: boolean = false,
-): number {
-  y = drawSectionHeader(page, y, label, font, boldFont);
+) {
+  drawTextAt(page, data.cpf, coords.cpf.x, coords.cpf.y, font);
+  drawTextAt(page, data.nacionalidade, coords.nacionalidade.x, coords.nacionalidade.y, font);
+  drawTextAt(page, data.dataNasc, coords.dataNasc.x, coords.dataNasc.y, font);
+  drawTextAt(page, data.identidade, coords.identidade.x, coords.identidade.y, font);
+  drawTextAt(page, data.profissao, coords.profissao.x, coords.profissao.y, font);
+  drawTextAt(page, data.rendaMensal, coords.rendaMensal.x, coords.rendaMensal.y, font);
+  drawTextAt(page, data.celular, coords.celular.x, coords.celular.y, font);
+  drawTextAt(page, data.endereco, coords.endereco.x, coords.endereco.y, font, 7);
+  drawTextAt(page, data.cep, coords.cep.x, coords.cep.y, font);
+  drawTextAt(page, data.bairro, coords.bairro.x, coords.bairro.y, font);
+  drawTextAt(page, data.cidade, coords.cidade.x, coords.cidade.y, font);
+  drawTextAt(page, data.estado, coords.estado.x, coords.estado.y, font);
+  drawTextAt(page, data.email, coords.email.x, coords.email.y, font, 7);
 
-  // Row 1: Nome + Sexo
-  const col2w = 100;
-  const col1w = CONTENT_WIDTH - col2w - 10;
-  drawLabelValue(page, y, "Nome", data.nome, font, boldFont, MARGIN, col1w, pdfDoc, `${prefix}_nome`);
-  drawLabelValue(page, y, "Sexo", data.sexo, font, boldFont, MARGIN + col1w + 10, col2w, pdfDoc, `${prefix}_sexo`);
-  y -= 32;
-
-  // Row 2: CPF + Nacionalidade + Data Nasc
-  y = drawThreeColumns(page, y,
-    ["CPF Nº", "Nacionalidade", "Data de Nasc."],
-    [data.cpf, data.nacionalidade, data.dataNasc],
-    font, boldFont, pdfDoc,
-    [`${prefix}_cpf`, `${prefix}_nacionalidade`, `${prefix}_datanasc`],
-  );
-
-  // Row 3: Identidade + Profissão
-  y = drawTwoColumns(page, y,
-    "Identidade Nº", data.identidade,
-    isPJ ? "Renda Mensal R$" : "Profissão", isPJ ? data.rendaMensal : data.profissao,
-    font, boldFont, pdfDoc,
-    `${prefix}_identidade`, isPJ ? `${prefix}_renda` : `${prefix}_profissao`,
-  );
-
-  if (!isPJ) {
-    // Row 4: Estado Civil + Data Casamento
-    y = drawTwoColumns(page, y,
-      "Estado Civil", data.estadoCivil,
-      "Data de Casamento", data.dataCasamento,
-      font, boldFont, pdfDoc,
-      `${prefix}_estadocivil`, `${prefix}_datacasamento`,
-    );
-
-    // Row 5: Regime Casamento + Renda Mensal
-    y = drawTwoColumns(page, y,
-      "Regime de Casamento", data.regimeCasamento,
-      "Renda Mensal R$", data.rendaMensal,
-      font, boldFont, pdfDoc,
-      `${prefix}_regimecasamento`, `${prefix}_renda`,
-    );
+  // Estado civil checkbox
+  const cbKey = `cb_${data.estadoCivil.checkbox}` as keyof typeof coords;
+  if (coords[cbKey]) {
+    drawCheckMark(page, coords[cbKey].x, coords[cbKey].y, boldFont);
   }
 
-  // Row: Tel + Celular
-  y = drawTwoColumns(page, y,
-    "Tel. Residencial", data.telResidencial,
-    "Celular", data.celular,
-    font, boldFont, pdfDoc,
-    `${prefix}_telresidencial`, `${prefix}_celular`,
-  );
-
-  // Row: Endereço + CEP
-  const cepW = 80;
-  const endW = CONTENT_WIDTH - cepW - 10;
-  drawLabelValue(page, y, "Endereço Residencial / Nº / Complemento", data.endereco, font, boldFont, MARGIN, endW, pdfDoc, `${prefix}_endereco`);
-  drawLabelValue(page, y, "CEP", data.cep, font, boldFont, MARGIN + endW + 10, cepW, pdfDoc, `${prefix}_cep`);
-  y -= 32;
-
-  // Row: Bairro + Cidade + Estado
-  y = drawThreeColumns(page, y,
-    ["Bairro Residencial", "Cidade Residencial", "Estado"],
-    [data.bairro, data.cidade, data.estado],
-    font, boldFont, pdfDoc,
-    [`${prefix}_bairro`, `${prefix}_cidade`, `${prefix}_estado`],
-  );
-
-  // Row: Email
-  y = drawLabelValue(page, y, "E-mail", data.email, font, boldFont, MARGIN, CONTENT_WIDTH, pdfDoc, `${prefix}_email`);
-
-  return y - 8;
-}
-
-// ─── Empresa block (PJ only) ───
-
-function drawEmpresaBlock(
-  page: PDFPage,
-  y: number,
-  data: {
-    nome: string;
-    cnpj: string;
-    endereco: string;
-    cep: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    contato: string;
-    recado: string;
-    email: string;
-  },
-  font: PDFFont,
-  boldFont: PDFFont,
-  pdfDoc: PDFDocument,
-): number {
-  y = drawSectionHeader(page, y, "EMPRESA", font, boldFont);
-
-  y = drawLabelValue(page, y, "Empresa", data.nome, font, boldFont, MARGIN, CONTENT_WIDTH, pdfDoc, "empresa_nome");
-  y = drawLabelValue(page, y, "CNPJ/MF", data.cnpj, font, boldFont, MARGIN, CONTENT_WIDTH, pdfDoc, "empresa_cnpj");
-
-  // Endereço + CEP
-  const cepW = 80;
-  const endW = CONTENT_WIDTH - cepW - 10;
-  drawLabelValue(page, y, "Endereço / Nº / Complemento", data.endereco, font, boldFont, MARGIN, endW, pdfDoc, "empresa_endereco");
-  drawLabelValue(page, y, "CEP", data.cep, font, boldFont, MARGIN + endW + 10, cepW, pdfDoc, "empresa_cep");
-  y -= 32;
-
-  y = drawThreeColumns(page, y,
-    ["Bairro", "Cidade", "Estado"],
-    [data.bairro, data.cidade, data.estado],
-    font, boldFont, pdfDoc,
-    ["empresa_bairro", "empresa_cidade", "empresa_estado"],
-  );
-
-  y = drawThreeColumns(page, y,
-    ["Contato", "Recado", "E-mail"],
-    [data.contato, data.recado, data.email],
-    font, boldFont, pdfDoc,
-    ["empresa_contato", "empresa_recado", "empresa_email"],
-  );
-
-  return y - 8;
-}
-
-// ─── Check List block ───
-
-function drawCheckList(
-  page: PDFPage,
-  y: number,
-  isPJ: boolean,
-  hasConjuge: boolean,
-  font: PDFFont,
-  boldFont: PDFFont,
-  attachedFiles: string[],
-): number {
-  y = drawSectionHeader(page, y, "CHECK LIST DE DOCUMENTOS", font, boldFont);
-
-  if (isPJ) {
-    // Empresa docs
-    const hasCnpjDoc = attachedFiles.some(f => /cnpj/i.test(f));
-    const hasContratoSocial = attachedFiles.some(f => /contrato/i.test(f));
-    y = drawCheckbox(page, y, "CNPJ", hasCnpjDoc, font);
-    y = drawCheckbox(page, y, "Contrato Social", hasContratoSocial, font);
-    y -= 4;
-
-    // Sócio 1 docs
-    page.drawText("SÓCIO 1:", { x: MARGIN, y: y - 8, size: 7, font: boldFont, color: COLORS.black });
-    y -= 14;
-    const hasCnh = attachedFiles.some(f => /cnh/i.test(f));
-    const hasResidencia = attachedFiles.some(f => /resid/i.test(f));
-    y = drawCheckbox(page, y, "RG e CPF (ou CNH)", hasCnh, font);
-    y = drawCheckbox(page, y, "Comprovante de Residência", hasResidencia, font);
-  } else {
-    // PF - Proponente 1
-    const col1x = MARGIN;
-    const col2x = MARGIN + CONTENT_WIDTH / 2 + 5;
-
-    page.drawText("PROPONENTE 1:", { x: col1x, y: y - 8, size: 7, font: boldFont, color: COLORS.black });
-    if (hasConjuge) {
-      page.drawText("PROPONENTE 2:", { x: col2x, y: y - 8, size: 7, font: boldFont, color: COLORS.black });
+  // Regime de casamento checkbox
+  if (data.estadoCivil.regime) {
+    const regKey = `cb_${data.estadoCivil.regime}` as keyof typeof coords;
+    if (coords[regKey]) {
+      drawCheckMark(page, coords[regKey].x, coords[regKey].y, boldFont);
     }
-    y -= 14;
-
-    const hasCnh = attachedFiles.some(f => /cnh/i.test(f));
-    const hasResidencia = attachedFiles.some(f => /resid[eê]ncia/i.test(f));
-    const hasEstadoCivil = attachedFiles.some(f => /estado.?civil|casamento/i.test(f));
-
-    // Proponente 1
-    y = drawCheckbox(page, y, "RG e CPF (ou CNH)", hasCnh, font, col1x);
-    if (hasConjuge) drawCheckbox(page, y + 16, "RG e CPF (ou CNH)", false, font, col2x);
-
-    y = drawCheckbox(page, y, "Comprovante de Residência", hasResidencia, font, col1x);
-    if (hasConjuge) drawCheckbox(page, y + 16, "Comprovante de Residência", false, font, col2x);
-
-    y = drawCheckbox(page, y, "Comprovante de Estado Civil", hasEstadoCivil, font, col1x);
-    if (hasConjuge) drawCheckbox(page, y + 16, "Comprovante de Estado Civil", false, font, col2x);
   }
-
-  return y - 8;
 }
 
-// ─── Main: Generate Cadastro de Interesse PDF ───
+async function generatePfPdf(input: GeneratePdfInput): Promise<Uint8Array> {
+  const { answers, questions } = input;
+
+  // Fetch original template
+  const templateBytes = await fetchPdfTemplate(PF_TEMPLATE_URL);
+  const doc = await PDFDocument.load(templateBytes);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+  const page = doc.getPage(0);
+
+  // Data do cadastro
+  const cadastroDate = input.createdAt ?? new Date();
+  const dateParts = parseDateParts(cadastroDate);
+  drawTextAt(page, dateParts.day, PF_DATE.day.x, PF_DATE.day.y, font);
+  drawTextAt(page, dateParts.month, PF_DATE.month.x, PF_DATE.month.y, font);
+  drawTextAt(page, dateParts.year, PF_DATE.year.x, PF_DATE.year.y, font);
+
+  // Extract PF data from answers
+  const pfNome = String(getById(answers, "q23_pf_nome") || input.respondentName || "");
+  const pfCpf = String(getById(answers, "q24_pf_cpf") || "");
+  const pfNascimento = getById(answers, "q25_pf_nascimento");
+  const pfNacionalidade = String(getById(answers, "q27_pf_nacionalidade") || "");
+  const pfEstadoCivilRaw = getById(answers, "q28_pf_estado_civil");
+  const pfRg = String(getById(answers, "q29_pf_rg") || "");
+  const pfCelular = String(getById(answers, "q30_pf_celular") || "");
+  const pfEmail = String(getById(answers, "q31_pf_email") || input.respondentEmail || "");
+  const pfEnderecoRaw = getById(answers, "q32_pf_endereco");
+  const pfProfissao = String(getById(answers, "q33_pf_profissao") || "");
+  const pfRenda = getById(answers, "q34_pf_renda");
+
+  const addr = formatAddress(pfEnderecoRaw);
+  const estadoCivil = parseEstadoCivil(pfEstadoCivilRaw);
+
+  // If answer is a choice label from the form, also try to match by choice ID
+  let estadoCivilParsed = estadoCivil;
+  if (typeof pfEstadoCivilRaw === "string") {
+    estadoCivilParsed = parseEstadoCivil(pfEstadoCivilRaw);
+  }
+
+  // Fill Proponente 1
+  fillProponentePF(page, PF_P1, {
+    cpf: pfCpf,
+    nacionalidade: pfNacionalidade,
+    dataNasc: formatDate(pfNascimento),
+    identidade: pfRg,
+    profissao: pfProfissao,
+    rendaMensal: formatCurrency(pfRenda),
+    celular: pfCelular,
+    endereco: addr.full,
+    cep: addr.cep,
+    bairro: addr.bairro,
+    cidade: addr.cidade,
+    estado: addr.estado,
+    email: pfEmail,
+    estadoCivil: estadoCivilParsed,
+  }, font, boldFont);
+
+  // Fill Proponente 2 (cônjuge) if married
+  if (estadoCivilParsed.needsConjuge) {
+    const conjNome = String(getById(answers, "q41_conjuge_nome") || "");
+    const conjCpf = String(getById(answers, "q42_conjuge_cpf") || "");
+    const conjNascimento = getById(answers, "q43_conjuge_nascimento");
+    const conjCelular = String(getById(answers, "q44_conjuge_celular") || "");
+    const conjEmail = String(getById(answers, "q45_conjuge_email") || "");
+    const conjNacionalidade = String(getById(answers, "q47_conjuge_nacionalidade") || "");
+    const conjRg = String(getById(answers, "q48_conjuge_rg") || "");
+    const conjProfissao = String(getById(answers, "q49_conjuge_profissao") || "");
+
+    fillProponentePF(page, PF_P2, {
+      cpf: conjCpf,
+      nacionalidade: conjNacionalidade,
+      dataNasc: formatDate(conjNascimento),
+      identidade: conjRg,
+      profissao: conjProfissao,
+      rendaMensal: "", // Not asked for cônjuge
+      celular: conjCelular,
+      // Copy address from Proponente 1
+      endereco: addr.full,
+      cep: addr.cep,
+      bairro: addr.bairro,
+      cidade: addr.cidade,
+      estado: addr.estado,
+      email: conjEmail,
+      // Copy estado civil from Proponente 1
+      estadoCivil: estadoCivilParsed,
+    }, font, boldFont);
+  }
+
+  return await doc.save();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PJ PDF — Fill existing form fields in original template
+// ═══════════════════════════════════════════════════════════════
+
+async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
+  const { answers } = input;
+
+  // Fetch original template
+  const templateBytes = await fetchPdfTemplate(PJ_TEMPLATE_URL);
+  const doc = await PDFDocument.load(templateBytes);
+  const form = doc.getForm();
+
+  // Helper to safely set a text field
+  function setField(name: string, value: string) {
+    try {
+      const field = form.getTextField(name);
+      field.setText(String(value || ""));
+    } catch (e) {
+      // Field doesn't exist, skip
+      console.warn(`[PDF] Field "${name}" not found in PJ template`);
+    }
+  }
+
+  // Helper to safely check a checkbox
+  function checkBox(name: string) {
+    try {
+      const field = form.getCheckBox(name);
+      field.check();
+    } catch (e) {
+      console.warn(`[PDF] Checkbox "${name}" not found in PJ template`);
+    }
+  }
+
+  // Data do cadastro
+  const cadastroDate = input.createdAt ?? new Date();
+  const dateParts = parseDateParts(cadastroDate);
+  setField("Cad_dia", dateParts.day);
+  setField("Cad_mes", dateParts.month);
+  setField("Cad_ano", dateParts.year);
+
+  // Empresa data
+  setField("Empresa", String(getById(answers, "q14_pj_nome_empresa") || ""));
+  setField("CNPJ_Empresa", String(getById(answers, "q15_pj_cnpj") || ""));
+  setField("E-mail_Empresa", String(getById(answers, "q16_pj_email_comercial") || ""));
+
+  // Sócio 1 data
+  const socioNome = String(getById(answers, "q3_pj_nome_socio") || input.respondentName || "");
+  setField("Socio_1", socioNome);
+  setField("CPF_Socio_1", String(getById(answers, "q4_pj_cpf") || ""));
+
+  const nascimento = getById(answers, "q5_pj_nascimento");
+  const nascParts = parseDateParts(nascimento);
+  setField("Nasc_Socio1_dia", nascParts.day);
+  setField("Nasc_Socio1_mes", nascParts.month);
+  setField("Nasc_Socio1_ano", nascParts.year);
+
+  setField("Nacion_Socio_1", String(getById(answers, "q7_pj_nacionalidade") || ""));
+  setField("RG_Socio_1", String(getById(answers, "q8_pj_rg") || ""));
+  setField("Renda_Socio_1", formatCurrency(getById(answers, "q12_pj_renda")));
+
+  // Celular - split DDD and number
+  const celular = String(getById(answers, "q9_pj_celular") || "");
+  const celMatch = celular.match(/\(?(\d{2})\)?\s*(.+)/);
+  if (celMatch) {
+    setField("Ddd_Cel_Socio_1", celMatch[1]);
+    setField("Cel_Socio_1", celMatch[2].trim());
+  } else {
+    setField("Cel_Socio_1", celular);
+  }
+
+  setField("Email_Socio_1", String(getById(answers, "q10_pj_email") || ""));
+
+  // Endereço do sócio
+  const enderecoRaw = getById(answers, "q11_pj_endereco");
+  const addr = formatAddress(enderecoRaw);
+  setField("End_Socio_1", addr.full);
+  setField("Cep_Socio_1", addr.cep);
+  setField("Bairro_Socio_1", addr.bairro);
+  setField("Cidade_Socio_1", addr.cidade);
+  setField("Estado_Socio_1", addr.estado);
+
+  // Flatten form fields to make them non-editable (looks cleaner)
+  try {
+    form.flatten();
+  } catch {
+    // Some PDFs have orphaned widget refs that cause flatten to fail.
+    // The fields are still filled, so we just skip flattening.
+  }
+
+  return await doc.save();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Main export
+// ═══════════════════════════════════════════════════════════════
 
 export async function generateCadastroInteressePdf(input: GeneratePdfInput): Promise<Uint8Array> {
-  const { tipo, answers, questions } = input;
-  const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-
-  const titleSuffix = tipo === "pf" ? "PESSOA FÍSICA" : "PESSOA JURÍDICA";
-  let y = drawHeader(page, font, boldFont, "CADASTRO DE INTERESSE PARA EMPREENDIMENTO", titleSuffix);
-
-  // Collect attached file names for checklist
-  const attachedFiles: string[] = [];
-  for (const q of questions) {
-    if (q.type === "file-upload" && answers[q.id]) {
-      const val = answers[q.id];
-      const name = typeof val === "string" ? val : val?.filename || val?.name || q.title;
-      attachedFiles.push(String(name));
-    }
+  if (input.tipo === "pj") {
+    return generatePjPdf(input);
   }
-
-  if (tipo === "pj") {
-    // ─── PJ Flow ───
-    // Questions 3-12 are Sócio data, 13-16 are Empresa data
-
-    // Find empresa data
-    const empresaNome = findAnswerValue(answers, questions, /nome.*empresa|raz[aã]o.*social/i);
-    const empresaCnpj = findAnswerValue(answers, questions, /cnpj/i);
-    const empresaEmail = findAnswerValue(answers, questions, /e-?mail.*comerc|e-?mail.*corporat/i);
-
-    // Empresa block
-    y = drawEmpresaBlock(page, y, {
-      nome: String(empresaNome),
-      cnpj: String(empresaCnpj),
-      endereco: "",
-      cep: "",
-      bairro: "",
-      cidade: "",
-      estado: "",
-      contato: "",
-      recado: "",
-      email: String(empresaEmail),
-    }, font, boldFont, pdfDoc);
-
-    // Sócio 1 data (questions at the beginning of PJ flow)
-    const socioNome = findAnswerValue(answers, questions, /nome.*s[oó]cio|nome.*completo/i);
-    const socioCpf = findAnswerValue(answers, questions, /^cpf$/i);
-    const socioDataNasc = formatDate(findAnswerValue(answers, questions, /data.*nascimento/i));
-    const socioSexo = findAnswerValue(answers, questions, /sexo/i);
-    const socioNacionalidade = findAnswerValue(answers, questions, /nacionalidade/i);
-    const socioIdentidade = findAnswerValue(answers, questions, /identidade|rg/i);
-    const socioCelular = findAnswerValue(answers, questions, /celular/i);
-    const socioEmail = findAnswerValue(answers, questions, /^e-?mail$/i);
-    const socioEndereco = findAnswerValue(answers, questions, /endere[cç]o.*residencial/i);
-    const socioRenda = formatCurrency(findAnswerValue(answers, questions, /renda.*mensal/i));
-
-    const addr = formatAddress(socioEndereco);
-
-    y = drawPersonBlock(page, y, "SÓCIO 1", {
-      nome: String(socioNome),
-      sexo: String(socioSexo),
-      cpf: String(socioCpf),
-      nacionalidade: String(socioNacionalidade),
-      dataNasc: socioDataNasc,
-      identidade: String(socioIdentidade),
-      profissao: "",
-      estadoCivil: "",
-      dataCasamento: "",
-      regimeCasamento: "",
-      rendaMensal: socioRenda,
-      telResidencial: "",
-      celular: String(socioCelular),
-      endereco: addr.full,
-      cep: addr.cep,
-      bairro: addr.bairro,
-      cidade: addr.cidade,
-      estado: addr.estado,
-      email: String(socioEmail),
-    }, font, boldFont, pdfDoc, "socio1", true);
-
-    // Sócio 2 - empty editable block
-    y = drawPersonBlock(page, y, "SÓCIO 2", {
-      nome: "", sexo: "", cpf: "", nacionalidade: "", dataNasc: "",
-      identidade: "", profissao: "", estadoCivil: "", dataCasamento: "",
-      regimeCasamento: "", rendaMensal: "", telResidencial: "",
-      celular: "", endereco: "", cep: "", bairro: "", cidade: "",
-      estado: "", email: "",
-    }, font, boldFont, pdfDoc, "socio2", true);
-
-    // Check if we need a new page
-    if (y < 120) {
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      y = PAGE_HEIGHT - 40;
-    }
-
-    // Check list
-    y = drawCheckList(page, y, true, false, font, boldFont, attachedFiles);
-
-  } else {
-    // ─── PF Flow ───
-    // Questions 23-34 are Proponente 1, 40-49 are Cônjuge/Proponente 2
-
-    // Find the PF section (after PJ questions)
-    // We look for questions by title patterns
-    const pfNome = findAnswerValue(answers, questions, /^nome.*completo$/i);
-    const pfCpf = findAnswerValue(answers, questions, /^cpf$/i);
-    const pfDataNasc = formatDate(findAnswerValue(answers, questions, /data.*nascimento/i));
-    const pfSexo = findAnswerValue(answers, questions, /^sexo$/i);
-    const pfNacionalidade = findAnswerValue(answers, questions, /^nacionalidade$/i);
-    const pfEstadoCivil = findAnswerValue(answers, questions, /estado.*civil/i);
-    const pfIdentidade = findAnswerValue(answers, questions, /identidade|rg/i);
-    const pfCelular = findAnswerValue(answers, questions, /^celular$/i);
-    const pfEmail = findAnswerValue(answers, questions, /^e-?mail$/i);
-    const pfEndereco = findAnswerValue(answers, questions, /endere[cç]o.*residencial/i);
-    const pfProfissao = findAnswerValue(answers, questions, /profiss[aã]o/i);
-    const pfRenda = formatCurrency(findAnswerValue(answers, questions, /renda.*mensal/i));
-
-    const addr = formatAddress(pfEndereco);
-    const isCasado = /casad|uni[aã]o.*est[aá]vel/i.test(String(pfEstadoCivil));
-
-    y = drawPersonBlock(page, y, "PROPONENTE 1", {
-      nome: String(pfNome),
-      sexo: String(pfSexo),
-      cpf: String(pfCpf),
-      nacionalidade: String(pfNacionalidade),
-      dataNasc: pfDataNasc,
-      identidade: String(pfIdentidade),
-      profissao: String(pfProfissao),
-      estadoCivil: String(pfEstadoCivil),
-      dataCasamento: "",
-      regimeCasamento: "",
-      rendaMensal: pfRenda,
-      telResidencial: "",
-      celular: String(pfCelular),
-      endereco: addr.full,
-      cep: addr.cep,
-      bairro: addr.bairro,
-      cidade: addr.cidade,
-      estado: addr.estado,
-      email: String(pfEmail),
-    }, font, boldFont, pdfDoc, "prop1", false);
-
-    // Check if we need a new page for Proponente 2
-    if (y < 300) {
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      y = PAGE_HEIGHT - 40;
-    }
-
-    // Proponente 2 (cônjuge if married, otherwise empty)
-    if (isCasado) {
-      const conjNome = findAnswerValue(answers, questions, /nome.*c[oô]njuge/i);
-      const conjCpf = findAnswerValue(answers, questions, /cpf/i, 35); // After question 35
-      const conjDataNasc = formatDate(findAnswerValue(answers, questions, /data.*nascimento/i, 35));
-      const conjSexo = findAnswerValue(answers, questions, /sexo/i, 35);
-      const conjNacionalidade = findAnswerValue(answers, questions, /nacionalidade/i, 35);
-      const conjIdentidade = findAnswerValue(answers, questions, /identidade|rg/i, 35);
-      const conjCelular = findAnswerValue(answers, questions, /celular/i, 35);
-      const conjEmail = findAnswerValue(answers, questions, /e-?mail/i, 35);
-      const conjProfissao = findAnswerValue(answers, questions, /profiss[aã]o/i, 35);
-
-      y = drawPersonBlock(page, y, "PROPONENTE 2 (CÔNJUGE)", {
-        nome: String(conjNome),
-        sexo: String(conjSexo),
-        cpf: String(conjCpf),
-        nacionalidade: String(conjNacionalidade),
-        dataNasc: conjDataNasc,
-        identidade: String(conjIdentidade),
-        profissao: String(conjProfissao),
-        estadoCivil: String(pfEstadoCivil),
-        dataCasamento: "",
-        regimeCasamento: "",
-        rendaMensal: "",
-        telResidencial: "",
-        celular: String(conjCelular),
-        endereco: "",
-        cep: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        email: String(conjEmail),
-      }, font, boldFont, pdfDoc, "prop2", false);
-    } else {
-      // Empty Proponente 2 block (editable)
-      y = drawPersonBlock(page, y, "PROPONENTE 2", {
-        nome: "", sexo: "", cpf: "", nacionalidade: "", dataNasc: "",
-        identidade: "", profissao: "", estadoCivil: "", dataCasamento: "",
-        regimeCasamento: "", rendaMensal: "", telResidencial: "",
-        celular: "", endereco: "", cep: "", bairro: "", cidade: "",
-        estado: "", email: "",
-      }, font, boldFont, pdfDoc, "prop2", false);
-    }
-
-    // Check if we need a new page for checklist
-    if (y < 100) {
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      y = PAGE_HEIGHT - 40;
-    }
-
-    // Check list
-    y = drawCheckList(page, y, false, isCasado, font, boldFont, attachedFiles);
-  }
-
-  // Footer note
-  if (y < 60) {
-    page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-    y = PAGE_HEIGHT - 40;
-  }
-  y -= 20;
-  page.drawText("* ATENÇÃO: Aprovação Sujeita à consulta junto ao SPC, Associação Comercial, Banco Central, Serasa.", {
-    x: MARGIN,
-    y: y,
-    size: 7,
-    font: boldFont,
-    color: COLORS.darkGray,
-  });
-
-  const pdfBytes = await pdfDoc.save();
-  return pdfBytes;
+  return generatePfPdf(input);
 }
 
 /**
@@ -733,6 +490,10 @@ export async function mergeWithAttachments(
   cadastroPdf: Uint8Array,
   attachments: Array<{ url: string; filename: string; mimeType: string }>,
 ): Promise<Uint8Array> {
+  const PAGE_WIDTH = 595.28;
+  const PAGE_HEIGHT = 841.89;
+  const MARGIN = 40;
+
   const mainDoc = await PDFDocument.load(cadastroPdf);
 
   for (const att of attachments) {
@@ -743,14 +504,12 @@ export async function mergeWithAttachments(
       const bytes = new Uint8Array(buffer);
 
       if (att.mimeType === "application/pdf") {
-        // Merge PDF pages
         const extDoc = await PDFDocument.load(bytes);
         const pages = await mainDoc.copyPages(extDoc, extDoc.getPageIndices());
         for (const p of pages) {
           mainDoc.addPage(p);
         }
       } else if (att.mimeType.startsWith("image/")) {
-        // Embed image as full page
         let img;
         if (att.mimeType === "image/png") {
           img = await mainDoc.embedPng(bytes);
@@ -758,20 +517,18 @@ export async function mergeWithAttachments(
           img = await mainDoc.embedJpg(bytes);
         }
 
-        // Scale to fit A4
         const scale = Math.min(PAGE_WIDTH / img.width, PAGE_HEIGHT / img.height, 1);
         const w = img.width * scale;
         const h = img.height * scale;
 
         const newPage = mainDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-        // Add label
         const font = await mainDoc.embedFont(StandardFonts.Helvetica);
         newPage.drawText(att.filename, {
           x: MARGIN,
           y: PAGE_HEIGHT - 20,
           size: 8,
           font,
-          color: COLORS.medGray,
+          color: rgb(0.5, 0.5, 0.5),
         });
         newPage.drawImage(img, {
           x: (PAGE_WIDTH - w) / 2,

@@ -1011,6 +1011,7 @@ export const appRouter = router({
           questions,
           respondentName: response.respondentName ?? undefined,
           respondentEmail: response.respondentEmail ?? undefined,
+          createdAt: response.createdAt ?? undefined,
         });
 
         // Collect file attachments from answers

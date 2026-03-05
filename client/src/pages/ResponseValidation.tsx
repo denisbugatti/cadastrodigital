@@ -23,7 +23,7 @@ import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
   Download, Loader2, AlertTriangle, MessageSquare,
   Shield, User, Mail, Phone, Calendar, ShieldCheck,
-  Lock, Image as ImageIcon, ExternalLink, Eye,
+  Lock, Image as ImageIcon, ExternalLink, Eye, FileDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -118,9 +118,37 @@ export default function ResponseValidation() {
   const [rejectingQuestion, setRejectingQuestion] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
   const [isApproving, setIsApproving] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const bottomBarRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
+
+  // Handle PDF download
+  const handleDownloadPdf = async () => {
+    if (!responseId || isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    try {
+      const result = await utils.responses.generateFicha.fetch({ responseId });
+      const byteArray = Uint8Array.from(atob(result.base64), (c) => c.charCodeAt(0));
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.filename || "ficha.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("PDF gerado com sucesso!");
+    } catch (err: any) {
+      console.error("Error generating ficha:", err);
+      toast.error("Erro ao gerar ficha", {
+        description: err?.message || "Tente novamente",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Get response data
   const responseQuery = trpc.responses.getById.useQuery(
@@ -412,6 +440,24 @@ export default function ResponseValidation() {
                 {form?.title || "Formulário"}
               </p>
             </div>
+          </div>
+
+          {/* PDF Download Button */}
+          <div className="mt-3 pt-3 border-t border-border/50">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 text-xs font-semibold h-9 border-brand/30 text-brand hover:bg-brand/10 hover:text-brand transition-all"
+              disabled={isGeneratingPdf}
+              onClick={handleDownloadPdf}
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileDown className="w-3.5 h-3.5" />
+              )}
+              {isGeneratingPdf ? "Gerando PDF..." : "Baixar Ficha PDF"}
+            </Button>
           </div>
 
           {/* Contact info grid */}
