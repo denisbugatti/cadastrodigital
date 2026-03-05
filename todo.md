@@ -1306,3 +1306,4 @@
 - [x] Verificar e corrigir cor da fonte nos templates de e-mail (deve ser branca)
 - [x] Garantir que o formulário One Innovation apareça na Galeria de Templates (isTemplate=1 confirmado, parentFormId órfão limpo)
 - [x] Converter e-mails de Resend Templates para HTML inline com texto branco visível
+- [x] Fix: inviterName no e-mail de convite mostra "owner" em vez do nome real — agora usa customSession.name (staff logado) com fallback para ctx.user.name

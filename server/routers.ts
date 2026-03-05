@@ -165,9 +165,10 @@ export const appRouter = router({
           expiresAt,
         });
         const inviteUrl = `${input.origin}/aceitar-convite?token=${token}`;
+        const inviterDisplayName = cs?.name ?? ctx.user.name ?? "Administrador";
         await sendInviteEmail({
           to: input.email,
-          inviterName: ctx.user.name || "Administrador",
+          inviterName: inviterDisplayName,
           role: input.role,
           inviteUrl,
           inviteeName: input.name,
@@ -268,9 +269,11 @@ export const appRouter = router({
           expiresAt: newExpiresAt,
         } as any);
         const inviteUrl = `${input.origin}/aceitar-convite?token=${newToken}`;
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        const inviterDisplayName = cs?.name ?? ctx.user.name ?? "Administrador";
         await sendInviteEmail({
           to: invite.email,
-          inviterName: ctx.user.name || "Administrador",
+          inviterName: inviterDisplayName,
           role: invite.role,
           inviteUrl,
         });
