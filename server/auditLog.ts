@@ -13,6 +13,8 @@ export const AUDIT_ACTIONS = {
   FORM_UPDATE: "form.update",
   FORM_DELETE: "form.delete",
   FORM_DUPLICATE: "form.duplicate",
+  FORM_ASSIGN: "form.assign",
+  FORM_UNASSIGN: "form.unassign",
 
   // Staff actions
   STAFF_INVITE: "staff.invite",

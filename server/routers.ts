@@ -432,8 +432,80 @@ export const appRouter = router({
   // ─── Forms (admin only: master/diretor/gerente) ───
   forms: router({
     list: staffAdminProcedure.query(async ({ ctx }) => {
-      return db.getFormsByUser(ctx.user.id);
+      const allForms = await db.getFormsByUser(ctx.user.id);
+      const session = ctx.customSession as any;
+      // Master/diretor see all forms; gerentes only see assigned forms
+      if (session?.role === 'gerente' && session?.staffUserId) {
+        const assignedFormIds = await db.getFormIdsByStaff(session.staffUserId);
+        if (assignedFormIds.length === 0) return allForms; // If no assignments exist, show all (backward compat)
+        return allForms.filter((f: any) => assignedFormIds.includes(f.id));
+      }
+      return allForms;
     }),
+
+    /** Get assignments for a specific form */
+    getAssignments: staffAdminProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getFormAssignments(input.formId);
+      }),
+
+    /** Get assignments for multiple forms (batch) */
+    getAssignmentsBatch: staffAdminProcedure
+      .input(z.object({ formIds: z.array(z.number()) }))
+      .query(async ({ input }) => {
+        return db.getFormAssignmentsBatch(input.formIds);
+      }),
+
+    /** Set assignments for a form (replaces existing) */
+    setAssignments: staffFormOwnerProcedure
+      .input(z.object({
+        formId: z.number(),
+        staffUserIds: z.array(z.number()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.formId);
+        if (!form) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Formulário não encontrado' });
+        }
+        // Get current assignments for audit diff
+        const oldAssignments = await db.getFormAssignments(input.formId);
+        const oldIds = oldAssignments.map((a: any) => a.staffUserId);
+        
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        await db.setFormAssignments(input.formId, input.staffUserIds, cs?.staffUserId);
+
+        // Audit: log added users
+        const addedIds = input.staffUserIds.filter(id => !oldIds.includes(id));
+        const removedIds = oldIds.filter((id: number) => !input.staffUserIds.includes(id));
+
+        if (addedIds.length > 0) {
+          logAudit({
+            action: AUDIT_ACTIONS.FORM_ASSIGN,
+            staffUserId: cs?.staffUserId,
+            staffName: cs?.name ?? ctx.user.name,
+            staffRole: cs?.role,
+            targetType: 'form',
+            targetId: input.formId,
+            targetName: form.title,
+            details: { addedStaffIds: addedIds },
+          });
+        }
+        if (removedIds.length > 0) {
+          logAudit({
+            action: AUDIT_ACTIONS.FORM_UNASSIGN,
+            staffUserId: cs?.staffUserId,
+            staffName: cs?.name ?? ctx.user.name,
+            staffRole: cs?.role,
+            targetType: 'form',
+            targetId: input.formId,
+            targetName: form.title,
+            details: { removedStaffIds: removedIds },
+          });
+        }
+
+        return { success: true };
+      }),
 
     getBySlug: publicProcedure
       .input(z.object({ slug: z.string() }))

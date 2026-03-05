@@ -1124,3 +1124,15 @@
 - [x] Frontend: badge desaparece ao acessar o formulário (markSeen já existia)
 - [x] Corretor: badge nas respostas do corretor quando há novas atribuições
 - [x] 387 testes passando, 0 erros TypeScript
+
+## Vincular Formulário a Usuário
+- [x] Backend: criar tabela form_assignments (formId, staffUserId) para vincular formulários a staff
+- [x] Backend: procedures para atribuir/remover staff de formulários
+- [x] Backend: filtrar forms.list para mostrar apenas formulários vinculados (gerentes/corretores)
+- [x] Backend: master/diretor veem todos os formulários sempre
+- [x] Frontend: UI para atribuir usuários a formulários (dialog com multi-select de staff)
+- [x] Frontend: indicador visual nos cards de formulário mostrando quem está vinculado
+- [x] Frontend: gerentes/corretores só veem formulários atribuídos a eles
+- [x] Testes: verificar que filtro de formulários funciona por role
+- [x] Audit log para assign/unassign de formulários
+- [x] 405 testes passando, 0 erros TypeScript

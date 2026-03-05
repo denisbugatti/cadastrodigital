@@ -515,3 +515,21 @@ export const auditLogs = mysqlTable("audit_logs", {
 });
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+
+/**
+ * Form assignments — many-to-many relationship between forms and staff users.
+ * Allows admins to assign multiple staff members to each form.
+ * Staff members (gerentes/corretores) only see forms assigned to them.
+ * Master/diretor always see all forms regardless of assignments.
+ */
+export const formAssignments = mysqlTable("form_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  formId: int("formId").notNull(),
+  staffUserId: int("staffUserId").notNull(),
+  /** Who assigned this user to the form */
+  assignedBy: int("assignedBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type FormAssignment = typeof formAssignments.$inferSelect;
+export type InsertFormAssignment = typeof formAssignments.$inferInsert;

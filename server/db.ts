@@ -2263,3 +2263,111 @@ export async function getCorretorUnreadCount(staffUserId: number) {
     return { totalUnread, forms: formCounts };
   });
 }
+
+
+// ─── Form Assignments ────────────────────────────────────────────
+import { formAssignments } from "../drizzle/schema";
+
+/**
+ * Get all staff assigned to a specific form
+ */
+export async function getFormAssignments(formId: number) {
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select()
+      .from(formAssignments)
+      .where(eq(formAssignments.formId, formId));
+    return rows;
+  });
+}
+
+/**
+ * Get all form IDs assigned to a specific staff user
+ */
+export async function getFormIdsByStaff(staffUserId: number): Promise<number[]> {
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select({ formId: formAssignments.formId })
+      .from(formAssignments)
+      .where(eq(formAssignments.staffUserId, staffUserId));
+    return rows.map((r: any) => r.formId);
+  });
+}
+
+/**
+ * Assign a staff user to a form
+ */
+export async function assignStaffToForm(formId: number, staffUserId: number, assignedBy?: number) {
+  return withDbRetry(async (db) => {
+    // Check if already assigned
+    const existing = await db
+      .select()
+      .from(formAssignments)
+      .where(and(
+        eq(formAssignments.formId, formId),
+        eq(formAssignments.staffUserId, staffUserId)
+      ));
+    if (existing.length > 0) return existing[0];
+    
+    const [result] = await db.insert(formAssignments).values({
+      formId,
+      staffUserId,
+      assignedBy: assignedBy ?? null,
+    });
+    return { id: result.insertId, formId, staffUserId };
+  });
+}
+
+/**
+ * Remove a staff user from a form
+ */
+export async function removeStaffFromForm(formId: number, staffUserId: number) {
+  return withDbRetry(async (db) => {
+    await db
+      .delete(formAssignments)
+      .where(and(
+        eq(formAssignments.formId, formId),
+        eq(formAssignments.staffUserId, staffUserId)
+      ));
+  });
+}
+
+/**
+ * Set the full list of assigned staff for a form (replaces existing)
+ */
+export async function setFormAssignments(formId: number, staffUserIds: number[], assignedBy?: number) {
+  return withDbRetry(async (db) => {
+    // Remove all existing assignments
+    await db.delete(formAssignments).where(eq(formAssignments.formId, formId));
+    // Insert new assignments
+    if (staffUserIds.length > 0) {
+      await db.insert(formAssignments).values(
+        staffUserIds.map(staffUserId => ({
+          formId,
+          staffUserId,
+          assignedBy: assignedBy ?? null,
+        }))
+      );
+    }
+  });
+}
+
+/**
+ * Get assignments for multiple forms at once (for dashboard display)
+ */
+export async function getFormAssignmentsBatch(formIds: number[]) {
+  if (formIds.length === 0) return {};
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select()
+      .from(formAssignments)
+      .where(inArray(formAssignments.formId, formIds));
+    
+    const result: Record<number, number[]> = {};
+    for (const row of rows) {
+      if (!result[row.formId]) result[row.formId] = [];
+      result[row.formId].push(row.staffUserId);
+    }
+    return result;
+  });
+}

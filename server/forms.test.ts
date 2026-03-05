@@ -51,6 +51,11 @@ vi.mock("./db", () => ({
   // Activity log functions
   logActivity: vi.fn().mockResolvedValue({ id: 1 }),
   getActivityTimeline: vi.fn().mockResolvedValue([]),
+  // Form assignment functions
+  getFormAssignments: vi.fn().mockResolvedValue([]),
+  getFormAssignmentsBatch: vi.fn().mockResolvedValue({}),
+  setFormAssignments: vi.fn().mockResolvedValue(undefined),
+  getFormIdsByStaff: vi.fn().mockResolvedValue([]),
 }));
 
 // ─── Mock storage module ───

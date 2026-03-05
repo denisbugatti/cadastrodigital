@@ -39,6 +39,8 @@ import {
   BellRing,
   Mail,
   Eye,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -87,6 +89,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useUnreadResponses } from "@/hooks/useUnreadResponses";
+import { FormAssignmentDialog } from "@/components/FormAssignmentDialog";
 
 /* ─── Types ─── */
 
@@ -276,12 +279,20 @@ export default function Dashboard() {
   const [duplicateTarget, setDuplicateTarget] = useState<DashboardForm | null>(null);
   const [duplicateTitle, setDuplicateTitle] = useState("");
   const [duplicateFolderId, setDuplicateFolderId] = useState<string>("same");
+  const [assignTarget, setAssignTarget] = useState<DashboardForm | null>(null);
 
   const utils = trpc.useUtils();
 
   // ─── tRPC Queries ───
   const formsQuery = trpc.forms.list.useQuery(undefined);
   const workspacesQuery = trpc.workspaces.list.useQuery(undefined);
+
+  // Fetch assignments batch for all forms (to show badges)
+  const formIds = useMemo(() => (formsQuery.data ?? []).map((f: any) => f.id), [formsQuery.data]);
+  const assignmentsBatchQuery = trpc.forms.getAssignmentsBatch.useQuery(
+    { formIds },
+    { enabled: formIds.length > 0 }
+  );
 
   // ─── tRPC Mutations ───
   const createFormMutation = trpc.forms.create.useMutation({
@@ -1211,6 +1222,8 @@ export default function Dashboard() {
                     onExport={handleExportForm}
                     onExportCsv={handleExportCsv}
                     canEditForms={canEditForms}
+                    assignedCount={(assignmentsBatchQuery.data as any)?.[form.id]?.length ?? 0}
+                    onAssign={canEditForms ? (f) => setAssignTarget(f) : undefined}
                   />
                 ))}
               </AnimatePresence>
@@ -1402,6 +1415,16 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* ─── Form Assignment Dialog ─── */}
+      {assignTarget && (
+        <FormAssignmentDialog
+          open={!!assignTarget}
+          onOpenChange={(open) => { if (!open) setAssignTarget(null); }}
+          formId={assignTarget.id}
+          formTitle={assignTarget.title}
+        />
+      )}
+
       {/* ─── Mobile Bottom Navigation ─── */}
       <MobileBottomNav onLogout={logout} isAdmin={dashboardIsAdmin} unreadCount={totalUnread} />
     </div>
@@ -1423,9 +1446,11 @@ interface FormCardProps {
   onExport: (form: DashboardForm) => void;
   onExportCsv: (form: DashboardForm) => void;
   canEditForms: boolean;
+  assignedCount?: number;
+  onAssign?: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms, assignedCount, onAssign }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1550,6 +1575,15 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                 </DropdownMenuSub>
               )}
 
+              {canEditForms && onAssign && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onAssign(form); }}>
+                  <UserPlus size={15} className="mr-2" /> Vincular equipe
+                  {(assignedCount ?? 0) > 0 && (
+                    <span className="ml-auto text-xs text-brand font-semibold">{assignedCount}</span>
+                  )}
+                </DropdownMenuItem>
+              )}
+
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`); toast.success("Link copiado!"); }}>
                 <Share2 size={15} className="mr-2" /> Compartilhar link
               </DropdownMenuItem>
@@ -1659,6 +1693,16 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
               <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: currentFolder.color }} />
               {currentFolder.name}
             </span>
+          )}
+          {(assignedCount ?? 0) > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onAssign?.(form); }}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-body font-medium bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-colors"
+              title={`${assignedCount} membro(s) vinculado(s)`}
+            >
+              <UserCheck size={11} />
+              {assignedCount}
+            </button>
           )}
         </div>
         <span className="text-sm text-muted-foreground font-body">
