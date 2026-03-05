@@ -66,7 +66,7 @@ function createPool(): mysql.Pool {
  * Get or create the database instance.
  * Recreates the pool if it's too old to prevent stale connections.
  */
-function getDb(): any {
+export function getDb(): any {
   const now = Date.now();
 
   // Recreate pool if it's too old

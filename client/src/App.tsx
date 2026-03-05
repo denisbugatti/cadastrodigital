@@ -24,6 +24,7 @@ import CadenceManagement from "./pages/CadenceManagement";
 import CorretorResponses from "./pages/CorretorResponses";
 import CorretorDashboard from "./pages/CorretorDashboard";
 import FormCopiesManagement from "./pages/FormCopiesManagement";
+import AuditLog from "./pages/AuditLog";
 
 function Router() {
   return (
@@ -90,6 +91,13 @@ function Router() {
       <Route path={"/formularios-copias"}>
         <AdminRoute>
           <AppLayout><FormCopiesManagement /></AppLayout>
+        </AdminRoute>
+      </Route>
+
+      {/* Audit log */}
+      <Route path={"/auditoria"}>
+        <AdminRoute>
+          <AppLayout><AuditLog /></AppLayout>
         </AdminRoute>
       </Route>
 

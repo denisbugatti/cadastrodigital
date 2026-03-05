@@ -21,6 +21,7 @@ import { verifySessionToken } from "./authService";
 import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEmail, sendCadenceEmail, sendRejectionCadenceEmail } from "./emailService";
 import { generateInviteToken } from "./authService";
 import { getOrCreateOwnerUser } from "./ownerUser";
+import { logAudit, AUDIT_ACTIONS } from "./auditLog";
 
 /**
  * ownerFallbackProcedure:
@@ -74,16 +75,54 @@ export const appRouter = router({
         role: z.enum(["master", "diretor", "gerente", "corretor"]).optional(),
         active: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
+        const staffBefore = await staffDb.getStaffUserById(id);
         await staffDb.updateStaffUser(id, data as any);
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        if (input.role && staffBefore && input.role !== staffBefore.role) {
+          logAudit({
+            action: AUDIT_ACTIONS.STAFF_UPDATE_ROLE,
+            staffUserId: cs?.staffUserId,
+            staffName: cs?.name ?? ctx.user.name,
+            staffRole: cs?.role,
+            targetType: 'staff_user',
+            targetId: id,
+            targetName: staffBefore.name,
+            details: { oldRole: staffBefore.role, newRole: input.role },
+          });
+        }
+        if (input.active !== undefined && staffBefore && input.active !== staffBefore.active) {
+          logAudit({
+            action: input.active ? AUDIT_ACTIONS.STAFF_ACTIVATE : AUDIT_ACTIONS.STAFF_DEACTIVATE,
+            staffUserId: cs?.staffUserId,
+            staffName: cs?.name ?? ctx.user.name,
+            staffRole: cs?.role,
+            targetType: 'staff_user',
+            targetId: id,
+            targetName: staffBefore.name,
+            severity: input.active ? 'info' : 'warning',
+          });
+        }
         return { success: true };
       }),
 
     delete: staffAdminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const staffBefore = await staffDb.getStaffUserById(input.id);
         await staffDb.deleteStaffUser(input.id);
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: AUDIT_ACTIONS.STAFF_DELETE,
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'staff_user',
+          targetId: input.id,
+          targetName: staffBefore?.name,
+          severity: 'warning',
+        });
         return { success: true };
       }),
 
@@ -144,6 +183,16 @@ export const appRouter = router({
           }
         }
 
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: AUDIT_ACTIONS.STAFF_INVITE,
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'staff_user',
+          targetName: input.name ?? input.email,
+          details: { email: input.email, role: input.role },
+        });
         return { success: true, token };
       }),
 
@@ -422,7 +471,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const slug = input.slug || `form_${nanoid(10)}`;
-        return db.createForm({
+        const result = await db.createForm({
           slug,
           userId: ctx.user.id,
           title: input.title,
@@ -436,6 +485,17 @@ export const appRouter = router({
           color: input.color ?? "#0D8BD9",
           responseCount: 0,
         });
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: AUDIT_ACTIONS.FORM_CREATE,
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'form',
+          targetName: input.title,
+          details: { slug },
+        });
+        return result;
       }),
 
     update: staffFormOwnerProcedure
@@ -514,6 +574,17 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
         }
         await db.deleteForm(input.id);
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: AUDIT_ACTIONS.FORM_DELETE,
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'form',
+          targetId: input.id,
+          targetName: form.title,
+          severity: 'warning',
+        });
         return { success: true };
       }),
 
@@ -525,7 +596,19 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const newSlug = `form_${nanoid(10)}`;
-        return db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
+        const result = await db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: AUDIT_ACTIONS.FORM_DUPLICATE,
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'form',
+          targetId: input.id,
+          targetName: input.title,
+          details: { newSlug },
+        });
+        return result;
       }),
 
     /** Mark responses as seen — updates lastSeenResponseCount to current responseCount */
@@ -1968,6 +2051,43 @@ export const appRouter = router({
         const count = await db.batchStopCadences(input.cadenceIds);
         return { success: true, count };
       }),
+  }),
+
+  /** ─── Audit Logs ─── */
+  audit: router({
+    list: staffAdminProcedure
+      .input(z.object({
+        category: z.enum(["form", "staff", "response", "access", "settings"]).optional(),
+        action: z.string().optional(),
+        staffUserId: z.number().optional(),
+        search: z.string().optional(),
+        severity: z.enum(["info", "warning", "critical"]).optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        limit: z.number().min(1).max(100).optional(),
+        offset: z.number().min(0).optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const { queryAuditLogs } = await import("./auditLog");
+        return queryAuditLogs(input ?? {});
+      }),
+
+    stats: staffAdminProcedure.query(async () => {
+      const { queryAuditLogs } = await import("./auditLog");
+      const now = new Date();
+      const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const [recent, warnings] = await Promise.all([
+        queryAuditLogs({ startDate: last24h, limit: 1 }),
+        queryAuditLogs({ severity: 'warning', startDate: last7d, limit: 1 }),
+      ]);
+
+      return {
+        totalLast24h: recent.total,
+        warningsLast7d: warnings.total,
+      };
+    }),
   }),
 });
 

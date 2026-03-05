@@ -1098,3 +1098,18 @@
 - [x] Frontend: FormOwnerRoute bloqueia gerentes de acessar /editor (redireciona para /dashboard)
 - [x] Frontend: gerentes veem "Ver Respostas" ao invés de "Editar" nos cards de formulário
 - [x] Testes: 387 testes passando, incluindo 5 novos testes de staffFormOwnerProcedure
+
+## Auditoria de Abas/Navegação
+- [x] Verificar todas as abas do sidebar e mobile nav
+- [x] Identificar abas que apontam para páginas inexistentes ou vazias (Envios em massa, Gestão Financeira)
+- [x] Remover placeholders "Em breve" do mobile nav
+- [x] Remover páginas órfãs (Corretores.tsx, ComponentShowcase.tsx, FormPreviewPage.tsx, PermissionsPage.tsx)
+- [x] Todas as abas restantes funcionam corretamente (Formulários, Equipe, Performance, Cadências, Configurações, Auditoria)
+
+## Log de Auditoria
+- [x] Criar tabela audit_logs no banco (action, category, staffUserId, staffName, staffRole, targetType, targetId, targetName, details, severity, createdAt)
+- [x] Backend: registrar ações críticas (form.create/delete/duplicate, staff.invite/update_role/deactivate/activate/delete, access.login/blocked)
+- [x] Backend: procedures audit.list (com filtros: category, severity, search, paginação) e audit.stats (24h e 7d)
+- [x] Frontend: página /auditoria com cards, filtros, busca, badges de severidade/role, paginação, auto-refresh 30s
+- [x] Aba "Auditoria" adicionada ao sidebar com ícone ShieldCheck
+- [x] 387 testes passando, 0 erros TypeScript

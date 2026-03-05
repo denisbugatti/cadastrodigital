@@ -481,3 +481,37 @@ export const responseFolderAssignments = mysqlTable("response_folder_assignments
 
 export type ResponseFolderAssignment = typeof responseFolderAssignments.$inferSelect;
 export type InsertResponseFolderAssignment = typeof responseFolderAssignments.$inferInsert;
+
+
+/**
+ * Audit logs — records important actions for traceability.
+ * Tracks who did what, when, and with what details.
+ */
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Action performed (e.g., form.create, form.delete, staff.invite, access.blocked) */
+  action: varchar("action", { length: 100 }).notNull(),
+  /** Category for filtering (form, staff, response, access, settings) */
+  category: mysqlEnum("category", ["form", "staff", "response", "access", "settings"]).notNull(),
+  /** Staff user who performed the action */
+  staffUserId: int("staffUserId"),
+  /** Staff user name (denormalized for quick display) */
+  staffName: varchar("staffName", { length: 500 }),
+  /** Staff role at the time of action */
+  staffRole: varchar("staffRole", { length: 50 }),
+  /** Target entity type (form, staff_user, response, etc.) */
+  targetType: varchar("targetType", { length: 100 }),
+  /** Target entity ID */
+  targetId: int("targetId"),
+  /** Target entity name (denormalized) */
+  targetName: varchar("targetName", { length: 500 }),
+  /** Additional details as JSON */
+  details: json("details"),
+  /** IP address of the request */
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  /** Severity: info, warning, critical */
+  severity: mysqlEnum("severity", ["info", "warning", "critical"]).default("info").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;

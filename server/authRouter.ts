@@ -9,6 +9,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import * as staffDb from "./staffDb";
+import { logAudit, AUDIT_ACTIONS } from "./auditLog";
 import {
   hashPassword,
   verifyPassword,
@@ -114,6 +115,14 @@ export const customAuthRouter = router({
       for (const p of permissions) {
         permMap[p.permission] = p.granted;
       }
+
+      logAudit({
+        action: AUDIT_ACTIONS.ACCESS_LOGIN,
+        staffUserId: user.id,
+        staffName: user.name,
+        staffRole: user.role,
+        details: { email: user.email },
+      });
 
       return {
         success: true,

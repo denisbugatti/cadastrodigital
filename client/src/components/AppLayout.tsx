@@ -21,6 +21,7 @@ import {
   BellOff,
   BellRing,
   BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -34,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "performance", label: "Performance", icon: BarChart3, path: "/performance" },
   { id: "cadences", label: "Cadências", icon: Mail, path: "/cadencias", adminOnly: true },
   { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true },
+  { id: "audit", label: "Auditoria", icon: ShieldCheck, path: "/auditoria", adminOnly: true },
 ];
 
 /** Admin roles that can see admin-only nav items */

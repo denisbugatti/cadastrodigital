@@ -134,6 +134,13 @@
       "when": 1772571440117,
       "tag": "0018_foamy_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1772674227128,
+      "tag": "0019_pale_raza",
+      "breakpoints": true
     }
   ]
 }

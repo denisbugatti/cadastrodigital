@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { getOrCreateOwnerUser } from "../ownerUser";
+import { logAudit, AUDIT_ACTIONS } from "../auditLog";
 
 export const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -78,6 +79,15 @@ const requireStaffAdmin = t.middleware(async ({ ctx, next }) => {
       throw new TRPCError({ code: "FORBIDDEN", message: FORBIDDEN_CORRETOR_MSG });
     }
     if (!ADMIN_ROLES.includes(ctx.customSession.role)) {
+      // Log blocked access attempt
+      logAudit({
+        action: AUDIT_ACTIONS.ACCESS_BLOCKED,
+        staffUserId: ctx.customSession.staffUserId,
+        staffName: ctx.customSession.name,
+        staffRole: ctx.customSession.role,
+        details: { reason: 'corretor_admin_access', type: 'staffAdmin' },
+        severity: 'warning',
+      });
       throw new TRPCError({ code: "FORBIDDEN", message: FORBIDDEN_CORRETOR_MSG });
     }
   }
@@ -111,6 +121,15 @@ const requireStaffFormOwner = t.middleware(async ({ ctx, next }) => {
       throw new TRPCError({ code: "FORBIDDEN", message: FORBIDDEN_CORRETOR_MSG });
     }
     if (!FORM_OWNER_ROLES.includes(ctx.customSession.role)) {
+      // Log blocked access attempt
+      logAudit({
+        action: AUDIT_ACTIONS.ACCESS_BLOCKED,
+        staffUserId: ctx.customSession.staffUserId,
+        staffName: ctx.customSession.name,
+        staffRole: ctx.customSession.role,
+        details: { reason: 'gerente_form_edit', type: 'staffFormOwner' },
+        severity: 'warning',
+      });
       throw new TRPCError({ code: "FORBIDDEN", message: FORBIDDEN_GERENTE_FORMS_MSG });
     }
   }

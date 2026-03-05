@@ -15,8 +15,6 @@ import {
   Mail,
   MoreHorizontal,
   Settings,
-  Send,
-  DollarSign,
   X,
   LogOut,
 } from "lucide-react";
@@ -32,8 +30,6 @@ const MAIN_NAV = [
 /* ─── More Menu Items (shown in slide-up sheet) ─── */
 const MORE_ITEMS = [
   { id: "settings", label: "Configurações", icon: Settings, path: "/configuracoes", adminOnly: true },
-  { id: "mass-send", label: "Envios em massa", icon: Send, path: null, comingSoon: true },
-  { id: "financial", label: "Gestão Financeira", icon: DollarSign, path: null, comingSoon: true },
 ];
 
 interface MobileBottomNavProps {
@@ -144,9 +140,7 @@ export default function MobileBottomNav({ onLogout, isAdmin = true }: MobileBott
                     <button
                       key={item.id}
                       onClick={() => {
-                        if (item.comingSoon) {
-                          toast.info("Em breve!", { description: `${item.label} estará disponível em breve.` });
-                        } else if (item.path) {
+                        if (item.path) {
                           navigate(item.path);
                         }
                         setMoreOpen(false);
@@ -163,11 +157,6 @@ export default function MobileBottomNav({ onLogout, isAdmin = true }: MobileBott
                         <Icon size={18} className={isActive ? "text-brand" : "text-muted-foreground"} />
                       </div>
                       <span className="text-sm font-body font-medium">{item.label}</span>
-                      {item.comingSoon && (
-                        <span className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                          Em breve
-                        </span>
-                      )}
                     </button>
                   );
                 })}
