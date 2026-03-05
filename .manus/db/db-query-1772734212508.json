@@ -1,0 +1,20 @@
+{
+  "query": "SELECT r.id, r.formId, r.respondentName, r.isComplete, r.validationStatus, r.createdAt, f.title as form_title, f.isTemplate FROM form_responses r JOIN forms f ON r.formId = f.id ORDER BY r.createdAt DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT r.id, r.formId, r.respondentName, r.isComplete, r.validationStatus, r.createdAt, f.title as form_title, f.isTemplate FROM form_responses r JOIN forms f ON r.formId = f.id ORDER BY r.createdAt DESC LIMIT 20;",
+  "rows": [
+    {
+      "id": "30001",
+      "formId": "120001",
+      "respondentName": "Teste",
+      "isComplete": "1",
+      "validationStatus": "approved",
+      "createdAt": "2026-03-05 17:50:48",
+      "form_title": "Teste denis",
+      "isTemplate": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tformId\trespondentName\tisComplete\tvalidationStatus\tcreatedAt\tform_title\tisTemplate\n30001\t120001\tTeste\t1\tapproved\t2026-03-05 17:50:48\tTeste denis\t0\n",
+  "stderr": "",
+  "execution_time_ms": 369
+}

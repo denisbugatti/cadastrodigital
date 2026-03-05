@@ -1,0 +1,40 @@
+{
+  "query": "SELECT r.id, r.formId, r.respondentName, r.isComplete, r.validationStatus, r.createdAt, f.title as form_title, f.isTemplate, f.parentFormId, f.createdByStaffId FROM form_responses r JOIN forms f ON r.formId = f.id ORDER BY r.createdAt DESC LIMIT 20\\G",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT r.id, r.formId, r.respondentName, r.isComplete, r.validationStatus, r.createdAt, f.title as form_title, f.isTemplate, f.parentFormId, f.createdByStaffId FROM form_responses r JOIN forms f ON r.formId = f.id ORDER BY r.createdAt DESC LIMIT 20\\G",
+  "rows": [
+    {
+      "*************************** 1. row ***************************": "              id: 30001"
+    },
+    {
+      "*************************** 1. row ***************************": "          formId: 120001"
+    },
+    {
+      "*************************** 1. row ***************************": "  respondentName: Teste"
+    },
+    {
+      "*************************** 1. row ***************************": "      isComplete: 1"
+    },
+    {
+      "*************************** 1. row ***************************": "validationStatus: approved"
+    },
+    {
+      "*************************** 1. row ***************************": "       createdAt: 2026-03-05 17:50:48"
+    },
+    {
+      "*************************** 1. row ***************************": "      form_title: Teste denis"
+    },
+    {
+      "*************************** 1. row ***************************": "      isTemplate: 0"
+    },
+    {
+      "*************************** 1. row ***************************": "    parentFormId: 60002"
+    },
+    {
+      "*************************** 1. row ***************************": "createdByStaffId: NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "*************************** 1. row ***************************\n              id: 30001\n          formId: 120001\n  respondentName: Teste\n      isComplete: 1\nvalidationStatus: approved\n       createdAt: 2026-03-05 17:50:48\n      form_title: Teste denis\n      isTemplate: 0\n    parentFormId: 60002\ncreatedByStaffId: NULL\n",
+  "stderr": "",
+  "execution_time_ms": 378
+}

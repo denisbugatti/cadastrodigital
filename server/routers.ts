@@ -1019,18 +1019,30 @@ export const appRouter = router({
         return result;
       }),
 
-    listByForm: staffAdminProcedure
+    listByForm: staffAnyProcedure
       .input(z.object({ formId: z.number(), search: z.string().optional() }))
       .query(async ({ ctx, input }) => {
-        // Verify ownership
+        // Verify ownership or assignment
         const form = await db.getFormById(input.formId);
-        if (!form || form.userId !== ctx.user.id) {
+        if (!form) {
+          throw new Error("Form not found");
+        }
+
+        const session = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+
+        // Corretores can only see responses for forms assigned to them
+        if (session?.role === 'corretor') {
+          const assignedFormIds = await db.getFormIdsByStaff(session.staffUserId);
+          if (!assignedFormIds.includes(input.formId)) {
+            throw new Error("Access denied: form not assigned to you");
+          }
+        } else if (form.userId !== ctx.user.id) {
           throw new Error("Form not found or access denied");
         }
+
         let responses = await db.getResponsesByFormWithSearch(input.formId, input.search);
 
         // Gerentes only see responses from their corretores
-        const session = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
         if (session?.role === 'gerente') {
           const myCorretores = await staffDb.getCorretoresByManager(session.staffUserId);
           const corretorIds = new Set(myCorretores.map((c: any) => c.id));
