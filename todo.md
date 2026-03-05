@@ -1155,3 +1155,16 @@
 - [x] Alterar ThemeProvider defaultTheme para "dark"
 - [x] Garantir que localStorage theme-mode respeite o padrão dark
 - [x] Atualizar fallbacks em CorretorResponses, ResponseValidation e CorretorDashboard
+
+## Notificação push e in-app ao corretor em nova resposta
+- [x] Backend: criar tabela staff_notifications para notificações in-app
+- [x] Backend: endpoints CRUD para notificações in-app (listar, marcar como lida, contar não lidas)
+- [x] Backend: salvar notificação in-app ao criar resposta (inclusive para respostas parciais/incompletas)
+- [x] Backend: notificar todos os staff atribuídos via form_assignments (push + in-app)
+- [x] Frontend: componente StaffNotificationsPanel (sino com badge no header)
+- [x] Frontend: painel/dropdown de notificações com lista e badge de contagem
+- [x] Frontend: marcar como lida ao clicar na notificação
+- [x] Frontend: marcar todas como lidas
+- [x] Frontend: polling a cada 15s para atualizar contagem
+- [x] Adicionado em CorretorResponses e CorretorDashboard
+- [x] 419 testes passando

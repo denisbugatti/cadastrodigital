@@ -770,64 +770,109 @@ export const appRouter = router({
           userAgent: ctx.req.headers["user-agent"] ?? null,
         });
 
-        // Notify owner when a complete response is submitted
-        if (input.isComplete !== false) {
-          try {
-            const form = await db.getFormById(input.formId);
-            const formTitle = form?.title ?? "Formulário";
-            const respondent = input.respondentName || input.respondentEmail || "Anônimo";
-            // Platform notification
-            await notifyOwner({
-              title: `Nova resposta: ${formTitle}`,
-              content: `O formulário "${formTitle}" recebeu uma nova resposta de ${respondent}.`,
+        // Always notify assigned staff (even for incomplete/partial responses)
+        try {
+          const form = await db.getFormById(input.formId);
+          const formTitle = form?.title ?? "Formulário";
+          const respondent = input.respondentName || input.respondentEmail || "Anônimo";
+          const isComplete = input.isComplete !== false;
+          const statusLabel = isComplete ? "completa" : "parcial (em andamento)";
+
+          // Notify owner (platform + push) — always
+          notifyOwner({
+            title: `Nova resposta ${isComplete ? "" : "parcial "}: ${formTitle}`,
+            content: `O formulário "${formTitle}" recebeu uma resposta ${statusLabel} de ${respondent}.`,
+          }).catch((err) => console.warn("[Notification] Owner notify failed:", (err as any)?.message?.substring(0, 100)));
+          notifyOwnerNewResponse(formTitle, respondent).catch(() => {});
+
+          // Send protocol code email to respondent (only for complete responses)
+          if (isComplete && input.respondentEmail && result.protocolCode) {
+            sendProtocolEmail({
+              to: input.respondentEmail,
+              respondentName: input.respondentName ?? undefined,
+              protocolCode: result.protocolCode,
+              formTitle,
+            }).catch((err) => {
+              console.warn("[Email] Failed to send protocol email:", (err as Error)?.message?.substring(0, 100));
             });
-            // Web Push notification
-            await notifyOwnerNewResponse(formTitle, respondent);
+          }
 
-            // Send protocol code email to respondent (if email provided)
-            if (input.respondentEmail && result.protocolCode) {
-              sendProtocolEmail({
-                to: input.respondentEmail,
-                respondentName: input.respondentName ?? undefined,
-                protocolCode: result.protocolCode,
-                formTitle,
-              }).catch((err) => {
-                console.warn("[Email] Failed to send protocol email:", (err as Error)?.message?.substring(0, 100));
-              });
-            }
+          // Notify corretores via email (old system, only for complete responses)
+          if (isComplete && result.protocolCode) {
+            const questions: any[] = form?.questions ?? [];
+            notifyCorretoresNewSubmission({
+              formId: input.formId,
+              protocolCode: result.protocolCode,
+              formTitle,
+              respondentName: input.respondentName ?? undefined,
+              respondentEmail: input.respondentEmail ?? undefined,
+              answers: input.answers,
+              questions,
+            }).catch((err) => {
+              console.warn("[CorretorNotification] Failed:", (err as Error)?.message?.substring(0, 100));
+            });
+          }
 
-            // Notify corretores assigned to this form
-            if (result.protocolCode) {
-              const questions: any[] = form?.questions ?? [];
-              notifyCorretoresNewSubmission({
-                formId: input.formId,
-                protocolCode: result.protocolCode,
-                formTitle,
-                respondentName: input.respondentName ?? undefined,
-                respondentEmail: input.respondentEmail ?? undefined,
-                answers: input.answers,
-                questions,
-              }).catch((err) => {
-                console.warn("[CorretorNotification] Failed:", (err as Error)?.message?.substring(0, 100));
-              });
-            }
+          // Push notification to old assigned corretor (legacy field)
+          if (form?.assignedCorretorId) {
+            notifyCorretorPush({
+              staffUserId: form.assignedCorretorId,
+              formTitle,
+              respondentName: input.respondentName ?? undefined,
+              protocolCode: result.protocolCode ?? undefined,
+              formId: input.formId,
+            }).catch((err) => {
+              console.warn("[CorretorPush] Failed:", (err as Error)?.message?.substring(0, 100));
+            });
+          }
 
-            // Push notification to assigned corretor
-            if (form?.assignedCorretorId) {
+          // ─── NEW: Notify ALL assigned staff via form_assignments ───
+          // Push + in-app notifications for every staff member assigned to this form
+          const assignments = await db.getFormAssignments(input.formId);
+          if (assignments.length > 0) {
+            const staffIds = assignments.map((a: any) => a.staffUserId);
+            const notifTitle = `📋 Nova resposta ${isComplete ? "" : "parcial "}em ${formTitle}`;
+            const notifBody = respondent !== "Anônimo"
+              ? `${respondent} enviou uma resposta ${statusLabel} no formulário "${formTitle}"`
+              : `Nova resposta ${statusLabel} recebida no formulário "${formTitle}"`;
+
+            // In-app notifications (batch insert)
+            db.createStaffNotificationsBatch(
+              staffIds.map((staffUserId: number) => ({
+                staffUserId,
+                type: "new_response",
+                title: notifTitle,
+                body: notifBody,
+                link: "/corretor/respostas",
+                metadata: {
+                  formId: input.formId,
+                  formTitle,
+                  respondentName: input.respondentName ?? null,
+                  protocolCode: result.protocolCode ?? null,
+                  isComplete,
+                  responseId: result.id,
+                },
+              }))
+            ).catch((err) => console.warn("[InAppNotif] Batch create failed:", (err as any)?.message?.substring(0, 100)));
+
+            // Push notifications to each assigned staff user
+            for (const staffUserId of staffIds) {
+              // Skip if already notified via legacy assignedCorretorId
+              if (form?.assignedCorretorId === staffUserId) continue;
               notifyCorretorPush({
-                staffUserId: form.assignedCorretorId,
+                staffUserId,
                 formTitle,
                 respondentName: input.respondentName ?? undefined,
                 protocolCode: result.protocolCode ?? undefined,
                 formId: input.formId,
               }).catch((err) => {
-                console.warn("[CorretorPush] Failed:", (err as Error)?.message?.substring(0, 100));
+                console.warn(`[CorretorPush] Failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100));
               });
             }
-          } catch (err) {
-            // Don't fail the submission if notification fails
-            console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
           }
+        } catch (err) {
+          // Don't fail the submission if notification fails
+          console.warn("[Notification] Failed:", (err as any)?.message?.substring(0, 100));
         }
 
         // Log activity: response created
@@ -2150,6 +2195,48 @@ export const appRouter = router({
         return { totalUnread: 0, forms: [] };
       }
       return db.getCorretorUnreadCount(session.staffUserId);
+    }),
+  }),
+
+  /** ─── Staff In-App Notifications ─── */
+  staffNotifications: router({
+    /** List notifications for the current staff user */
+    list: staffAnyProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).optional(),
+        offset: z.number().min(0).optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        const session = ctx.customSession as any;
+        if (!session?.staffUserId) return [];
+        return db.getStaffNotifications(
+          session.staffUserId,
+          input?.limit ?? 50,
+          input?.offset ?? 0
+        );
+      }),
+
+    /** Count unread notifications for the current staff user */
+    unreadCount: staffAnyProcedure.query(async ({ ctx }) => {
+      const session = ctx.customSession as any;
+      if (!session?.staffUserId) return 0;
+      return db.countUnreadStaffNotifications(session.staffUserId);
+    }),
+
+    /** Mark a single notification as read */
+    markRead: staffAnyProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const session = ctx.customSession as any;
+        if (!session?.staffUserId) return;
+        await db.markStaffNotificationRead(input.id, session.staffUserId);
+      }),
+
+    /** Mark all notifications as read */
+    markAllRead: staffAnyProcedure.mutation(async ({ ctx }) => {
+      const session = ctx.customSession as any;
+      if (!session?.staffUserId) return;
+      await db.markAllStaffNotificationsRead(session.staffUserId);
     }),
   }),
 

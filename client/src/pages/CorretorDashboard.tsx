@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronUp, Award, Target, Timer,
 } from "lucide-react";
 import { Link } from "wouter";
+import { StaffNotificationsPanel } from "@/components/StaffNotificationsPanel";
 
 /* ─── Helper: format ms to human readable ─── */
 function formatDuration(ms: number): string {
@@ -251,7 +252,7 @@ export default function CorretorDashboard() {
               <ArrowLeft size={20} />
             </button>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <div className="p-2 rounded-xl bg-primary/10">
               <BarChart3 size={20} className="text-primary" />
             </div>
@@ -261,6 +262,9 @@ export default function CorretorDashboard() {
                 {isAdmin ? "Visão geral dos corretores" : "Suas métricas de validação"}
               </p>
             </div>
+          </div>
+          <div className="shrink-0">
+            <StaffNotificationsPanel />
           </div>
         </div>
       </header>

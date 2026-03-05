@@ -19,6 +19,7 @@ import {
   responseFolderAssignments, InsertResponseFolderAssignment,
   responseValidations,
   staffUsers,
+  staffNotifications, InsertStaffNotification,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2369,5 +2370,125 @@ export async function getFormAssignmentsBatch(formIds: number[]) {
       result[row.formId].push(row.staffUserId);
     }
     return result;
+  });
+}
+
+
+/* ─── Staff Notifications ─── */
+
+/**
+ * Create a staff notification
+ */
+export async function createStaffNotification(data: {
+  staffUserId: number;
+  type: string;
+  title: string;
+  body?: string;
+  link?: string;
+  metadata?: Record<string, any>;
+}) {
+  return withDbRetry(async (db) => {
+    const [result] = await db.insert(staffNotifications).values({
+      staffUserId: data.staffUserId,
+      type: data.type,
+      title: data.title,
+      body: data.body ?? null,
+      link: data.link ?? null,
+      metadata: data.metadata ?? null,
+    });
+    return result.insertId;
+  });
+}
+
+/**
+ * Create notifications in batch for multiple staff users
+ */
+export async function createStaffNotificationsBatch(notifications: Array<{
+  staffUserId: number;
+  type: string;
+  title: string;
+  body?: string;
+  link?: string;
+  metadata?: Record<string, any>;
+}>) {
+  if (notifications.length === 0) return;
+  return withDbRetry(async (db) => {
+    await db.insert(staffNotifications).values(
+      notifications.map((n) => ({
+        staffUserId: n.staffUserId,
+        type: n.type,
+        title: n.title,
+        body: n.body ?? null,
+        link: n.link ?? null,
+        metadata: n.metadata ?? null,
+      }))
+    );
+  });
+}
+
+/**
+ * Get notifications for a staff user (paginated, newest first)
+ */
+export async function getStaffNotifications(staffUserId: number, limit = 50, offset = 0) {
+  return withDbRetry(async (db) => {
+    return db
+      .select()
+      .from(staffNotifications)
+      .where(eq(staffNotifications.staffUserId, staffUserId))
+      .orderBy(desc(staffNotifications.createdAt))
+      .limit(limit)
+      .offset(offset);
+  });
+}
+
+/**
+ * Count unread notifications for a staff user
+ */
+export async function countUnreadStaffNotifications(staffUserId: number): Promise<number> {
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(staffNotifications)
+      .where(
+        and(
+          eq(staffNotifications.staffUserId, staffUserId),
+          eq(staffNotifications.isRead, false)
+        )
+      );
+    return rows[0]?.count ?? 0;
+  });
+}
+
+/**
+ * Mark a notification as read
+ */
+export async function markStaffNotificationRead(id: number, staffUserId: number) {
+  return withDbRetry(async (db) => {
+    await db
+      .update(staffNotifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(staffNotifications.id, id),
+          eq(staffNotifications.staffUserId, staffUserId)
+        )
+      );
+  });
+}
+
+/**
+ * Mark all notifications as read for a staff user
+ */
+export async function markAllStaffNotificationsRead(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    await db
+      .update(staffNotifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(staffNotifications.staffUserId, staffUserId),
+          eq(staffNotifications.isRead, false)
+        )
+      );
   });
 }

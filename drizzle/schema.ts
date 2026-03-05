@@ -533,3 +533,28 @@ export const formAssignments = mysqlTable("form_assignments", {
 });
 export type FormAssignment = typeof formAssignments.$inferSelect;
 export type InsertFormAssignment = typeof formAssignments.$inferInsert;
+
+/**
+ * Staff notifications — in-app notifications for staff users.
+ * Used to notify corretores/gerentes about new responses, assignments, etc.
+ */
+export const staffNotifications = mysqlTable("staff_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The staff user who receives this notification */
+  staffUserId: int("staffUserId").notNull(),
+  /** Notification type: new_response, form_assigned, form_unassigned, etc. */
+  type: varchar("type", { length: 50 }).notNull(),
+  /** Short title */
+  title: varchar("title", { length: 500 }).notNull(),
+  /** Body/description */
+  body: text("body"),
+  /** Whether the notification has been read */
+  isRead: boolean("isRead").default(false).notNull(),
+  /** Optional link to navigate to when clicked */
+  link: varchar("link", { length: 500 }),
+  /** Additional metadata as JSON */
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type StaffNotification = typeof staffNotifications.$inferSelect;
+export type InsertStaffNotification = typeof staffNotifications.$inferInsert;

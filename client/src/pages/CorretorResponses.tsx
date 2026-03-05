@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { StaffNotificationsPanel } from "@/components/StaffNotificationsPanel";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -962,6 +963,8 @@ export default function CorretorResponses() {
                   </span>
                 )}
               </button>
+              {/* In-app notifications panel */}
+              <StaffNotificationsPanel />
               {/* Push notification bell */}
               <button
                 className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
@@ -971,7 +974,7 @@ export default function CorretorResponses() {
                 }`}
                 onClick={togglePush}
                 disabled={pushLoading}
-                title={pushStatus?.hasActiveSubscription ? "Desativar notificações" : "Ativar notificações"}
+                title={pushStatus?.hasActiveSubscription ? "Desativar notificações push" : "Ativar notificações push"}
               >
                 {pushLoading ? (
                   <Loader2 size={14} className="animate-spin" />
