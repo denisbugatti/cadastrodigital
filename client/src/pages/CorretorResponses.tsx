@@ -599,17 +599,11 @@ export default function CorretorResponses() {
 
   const searchParam = useMemo(() => debouncedSearch.trim() || undefined, [debouncedSearch]);
 
-  // Get all forms to find which ones are assigned to this corretor
-  const { data: allForms, isLoading: formsLoading } = trpc.forms.list.useQuery(
+  // Get forms assigned to this staff user via form_assignments table
+  const { data: assignedForms = [], isLoading: formsLoading } = trpc.forms.myAssigned.useQuery(
     undefined,
     { enabled: !!me && me.type === "staff" }
   );
-
-  // Find forms assigned to this corretor (staff user)
-  const assignedForms = useMemo(() => {
-    if (!allForms || !me || me.type !== "staff") return [];
-    return allForms.filter((f: any) => f.assignedCorretorId === me.id);
-  }, [allForms, me]);
 
   // Selected form
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);

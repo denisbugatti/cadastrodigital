@@ -507,6 +507,17 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    /** List forms assigned to the current staff user (for corretores/gerentes) */
+    myAssigned: staffAnyProcedure.query(async ({ ctx }) => {
+      const session = ctx.customSession as any;
+      if (!session?.staffUserId) return [];
+      const assignedFormIds = await db.getFormIdsByStaff(session.staffUserId);
+      if (assignedFormIds.length === 0) return [];
+      // Fetch full form data for each assigned form
+      const allForms = await db.getFormsByUser(ctx.user.id);
+      return allForms.filter((f: any) => assignedFormIds.includes(f.id));
+    }),
+
     getBySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(async ({ input }) => {

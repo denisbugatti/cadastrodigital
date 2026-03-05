@@ -1,0 +1,24 @@
+{
+  "query": "SELECT id, name, email, role, active FROM staff_users ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, name, email, role, active FROM staff_users ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "120001",
+      "name": "Teste",
+      "email": "denis@nexoneinnovation.com.br",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "1",
+      "name": "Denis Bugatti",
+      "email": "contato@denisbugatti.com.br",
+      "role": "master",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tactive\n120001\tTeste\tdenis@nexoneinnovation.com.br\tcorretor\t1\n1\tDenis Bugatti\tcontato@denisbugatti.com.br\tmaster\t1\n",
+  "stderr": "",
+  "execution_time_ms": 371
+}

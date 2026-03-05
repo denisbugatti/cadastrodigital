@@ -1136,3 +1136,11 @@
 - [x] Testes: verificar que filtro de formulários funciona por role
 - [x] Audit log para assign/unassign de formulários
 - [x] 405 testes passando, 0 erros TypeScript
+
+## Bug: Formulário atribuído não aparece para o usuário
+- [x] Investigar por que o usuário vê "nenhum formulário atribuído" mesmo após atribuição
+- [x] Verificar dados no banco (form_assignments) — dados corretos (formId=120001, staffUserId=120001)
+- [x] Causa raiz: CorretorResponses usava forms.list (staffAdminProcedure, bloqueia corretores) + filtro por assignedCorretorId (campo antigo)
+- [x] Corrigir: criado endpoint forms.myAssigned (staffAnyProcedure) que usa form_assignments
+- [x] Atualizado CorretorResponses.tsx para usar trpc.forms.myAssigned
+- [x] 410 testes passando, 0 erros TypeScript

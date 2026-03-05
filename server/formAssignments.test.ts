@@ -402,3 +402,60 @@ describe("forms.list filtering by assignments for gerentes", () => {
     expect(result).toHaveLength(3); // sees all forms (backward compat)
   });
 });
+
+describe("forms.myAssigned", () => {
+  it("corretor sees only their assigned forms", async () => {
+    const ctx = createAuthContext(10, "corretor");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormIdsByStaff).mockResolvedValue([1, 3]);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm, sampleForm2, sampleForm3] as any);
+
+    const result = await caller.forms.myAssigned();
+
+    expect(db.getFormIdsByStaff).toHaveBeenCalledWith(10);
+    expect(result).toHaveLength(2);
+    expect(result.map((f: any) => f.id)).toEqual([1, 3]);
+  });
+
+  it("corretor sees empty array when no assignments exist", async () => {
+    const ctx = createAuthContext(10, "corretor");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormIdsByStaff).mockResolvedValue([]);
+
+    const result = await caller.forms.myAssigned();
+
+    expect(result).toHaveLength(0);
+    // Should NOT call getFormsByUser when no assignments
+    expect(db.getFormsByUser).not.toHaveBeenCalled();
+  });
+
+  it("gerente can also use myAssigned", async () => {
+    const ctx = createAuthContext(5, "gerente");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormIdsByStaff).mockResolvedValue([2]);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm, sampleForm2, sampleForm3] as any);
+
+    const result = await caller.forms.myAssigned();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(2);
+  });
+
+  it("master can also use myAssigned", async () => {
+    const ctx = createAuthContext(1, "master");
+    const caller = appRouter.createCaller(ctx);
+    vi.mocked(db.getFormIdsByStaff).mockResolvedValue([1]);
+    vi.mocked(db.getFormsByUser).mockResolvedValue([sampleForm, sampleForm2] as any);
+
+    const result = await caller.forms.myAssigned();
+
+    expect(result).toHaveLength(1);
+  });
+
+  it("rejects unauthenticated access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(caller.forms.myAssigned()).rejects.toThrow();
+  });
+});
