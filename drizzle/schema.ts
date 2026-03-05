@@ -43,6 +43,8 @@ export const staffUsers = mysqlTable("staff_users", {
   invitedBy: int("invitedBy"),
   /** For gerente/corretor: which team/group they belong to */
   teamId: int("teamId"),
+  /** Manager ID — links corretor to their gerente (staff_users.id) */
+  managerId: int("managerId"),
   /** Avatar URL */
   avatarUrl: text("avatarUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -1,9 +1,10 @@
 /**
  * Staff Management Page — Manage team members, send invites, edit roles.
+ * Includes hierarchy management panel for assigning corretores to gerentes.
  * Only accessible by master/diretor roles.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,8 @@ import { toast } from "sonner";
 import {
   ArrowLeft, UserPlus, Mail, Phone, RotateCw,
   Star, Building2, Users, Loader2, CheckCircle2, XCircle,
-  Crown, Briefcase, Pencil, Trash2, Clock,
+  Crown, Briefcase, Pencil, Trash2, Clock, ArrowRightLeft,
+  ChevronDown, ChevronRight, UserMinus,
 } from "lucide-react";
 
 const roleConfig: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
@@ -49,8 +51,12 @@ const roleConfig: Record<string, { label: string; icon: any; color: string; bgCo
   corretor: { label: "Corretor", icon: Briefcase, color: "text-green-500", bgColor: "bg-green-500/10" },
 };
 
+/* ─── Tabs ─── */
+type TabId = "membros" | "hierarquia";
+
 export default function StaffManagement() {
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState<TabId>("membros");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
@@ -180,175 +186,50 @@ export default function StaffManagement() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {/* Staff List */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden mb-8">
-          <div className="px-6 py-4 border-b border-border">
-            <h2 className="text-sm font-semibold text-foreground">
-              Membros da equipe ({staff.length})
-            </h2>
+      {/* Tabs */}
+      <div className="bg-card border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveTab("membros")}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "membros"
+                  ? "border-blue-500 text-blue-500"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Users className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+              Membros
+            </button>
+            <button
+              onClick={() => setActiveTab("hierarquia")}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "hierarquia"
+                  ? "border-blue-500 text-blue-500"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ArrowRightLeft className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+              Hierarquia
+            </button>
           </div>
-
-          {staffQuery.isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : staff.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Nenhum membro na equipe</p>
-              <p className="text-xs mt-1">Clique em "Convidar" para adicionar membros</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {staff.map((member: any) => {
-                const role = roleConfig[member.role] || roleConfig.corretor;
-                const RoleIcon = role.icon;
-                return (
-                  <div key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      {/* Avatar */}
-                      <div className={`w-10 h-10 rounded-full ${role.bgColor} flex items-center justify-center shrink-0`}>
-                        <RoleIcon className={`w-5 h-5 ${role.color}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-foreground">{member.name || member.email}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${role.bgColor} ${role.color} font-medium`}>
-                            {role.label}
-                          </span>
-                          {!member.active && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 font-medium">
-                              Inativo
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Mail className="w-3 h-3" /> {member.email}
-                          </span>
-                          {member.phone && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Phone className="w-3 h-3" /> {member.phone}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action buttons - always visible */}
-                    {member.role !== "master" && (
-                      <div className="flex items-center gap-1 shrink-0 ml-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingUser({ ...member })}
-                          className="text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 h-8 w-8 p-0"
-                          title="Editar"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteTarget(member)}
-                          className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
-                          title="Remover"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
+      </div>
 
-        {/* Pending Invites */}
-        {invites.length > 0 && (
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">
-                Convites pendentes ({invites.filter((i: any) => i.status === "pending").length})
-              </h2>
-            </div>
-            <div className="divide-y divide-border">
-              {invites.map((invite: any) => (
-                <div key={invite.id} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shrink-0">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-sm text-foreground truncate block">{invite.email}</span>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleConfig[invite.role]?.bgColor || 'bg-muted'} ${roleConfig[invite.role]?.color || 'text-muted-foreground'}`}>
-                          {roleConfig[invite.role]?.label || invite.role}
-                        </span>
-                        {invite.name && (
-                          <span className="text-xs text-muted-foreground">{invite.name}</span>
-                        )}
-                        {!invite.usedAt && invite.expiresAt ? (
-                          new Date(invite.expiresAt) > new Date() ? (
-                            <span className="text-xs text-amber-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> Expira em {new Date(invite.expiresAt).toLocaleDateString('pt-BR')}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-red-500 flex items-center gap-1">
-                              <XCircle className="w-3 h-3" /> Expirado
-                            </span>
-                          )
-                        ) : invite.usedAt ? (
-                          <span className="text-xs text-green-500 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Aceito
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  {/* Action buttons for pending (unused) invites */}
-                  {!invite.usedAt && (
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => resendInviteMutation.mutate({ id: invite.id, origin: window.location.origin })}
-                        disabled={resendInviteMutation.isPending}
-                        className="text-muted-foreground hover:text-green-600 hover:bg-green-500/10 h-8 w-8 p-0"
-                        title="Reenviar convite"
-                      >
-                        {resendInviteMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RotateCw className="w-4 h-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingInvite({ ...invite })}
-                        className="text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 h-8 w-8 p-0"
-                        title="Editar convite"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteInviteId(invite.id)}
-                        className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
-                        title="Excluir convite"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {activeTab === "membros" ? (
+          <MembrosTab
+            staff={staff}
+            invites={invites}
+            staffQuery={staffQuery}
+            setEditingUser={setEditingUser}
+            setDeleteTarget={setDeleteTarget}
+            resendInviteMutation={resendInviteMutation}
+            setEditingInvite={setEditingInvite}
+            setDeleteInviteId={setDeleteInviteId}
+          />
+        ) : (
+          <HierarquiaTab />
         )}
       </div>
 
@@ -656,6 +537,462 @@ export default function StaffManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Membros Tab — original staff list + invites
+   ═══════════════════════════════════════════════════════════════════════════ */
+function MembrosTab({
+  staff,
+  invites,
+  staffQuery,
+  setEditingUser,
+  setDeleteTarget,
+  resendInviteMutation,
+  setEditingInvite,
+  setDeleteInviteId,
+}: {
+  staff: any[];
+  invites: any[];
+  staffQuery: any;
+  setEditingUser: (u: any) => void;
+  setDeleteTarget: (u: any) => void;
+  resendInviteMutation: any;
+  setEditingInvite: (i: any) => void;
+  setDeleteInviteId: (id: number | null) => void;
+}) {
+  return (
+    <>
+      {/* Staff List */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden mb-8">
+        <div className="px-6 py-4 border-b border-border">
+          <h2 className="text-sm font-semibold text-foreground">
+            Membros da equipe ({staff.length})
+          </h2>
+        </div>
+
+        {staffQuery.isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : staff.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">Nenhum membro na equipe</p>
+            <p className="text-xs mt-1">Clique em "Convidar" para adicionar membros</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {staff.map((member: any) => {
+              const role = roleConfig[member.role] || roleConfig.corretor;
+              const RoleIcon = role.icon;
+              return (
+                <div key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full ${role.bgColor} flex items-center justify-center shrink-0`}>
+                      <RoleIcon className={`w-5 h-5 ${role.color}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground">{member.name || member.email}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${role.bgColor} ${role.color} font-medium`}>
+                          {role.label}
+                        </span>
+                        {!member.active && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 font-medium">
+                            Inativo
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> {member.email}
+                        </span>
+                        {member.phone && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Phone className="w-3 h-3" /> {member.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {member.role !== "master" && (
+                    <div className="flex items-center gap-1 shrink-0 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingUser({ ...member })}
+                        className="text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 h-8 w-8 p-0"
+                        title="Editar"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteTarget(member)}
+                        className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
+                        title="Remover"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Pending Invites */}
+      {invites.length > 0 && (
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">
+              Convites pendentes ({invites.filter((i: any) => i.status === "pending").length})
+            </h2>
+          </div>
+          <div className="divide-y divide-border">
+            {invites.map((invite: any) => (
+              <div key={invite.id} className="px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm text-foreground truncate block">{invite.email}</span>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleConfig[invite.role]?.bgColor || 'bg-muted'} ${roleConfig[invite.role]?.color || 'text-muted-foreground'}`}>
+                        {roleConfig[invite.role]?.label || invite.role}
+                      </span>
+                      {invite.name && (
+                        <span className="text-xs text-muted-foreground">{invite.name}</span>
+                      )}
+                      {!invite.usedAt && invite.expiresAt ? (
+                        new Date(invite.expiresAt) > new Date() ? (
+                          <span className="text-xs text-amber-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Expira em {new Date(invite.expiresAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-red-500 flex items-center gap-1">
+                            <XCircle className="w-3 h-3" /> Expirado
+                          </span>
+                        )
+                      ) : invite.usedAt ? (
+                        <span className="text-xs text-green-500 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Aceito
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+                {!invite.usedAt && (
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => resendInviteMutation.mutate({ id: invite.id, origin: window.location.origin })}
+                      disabled={resendInviteMutation.isPending}
+                      className="text-muted-foreground hover:text-green-600 hover:bg-green-500/10 h-8 w-8 p-0"
+                      title="Reenviar convite"
+                    >
+                      {resendInviteMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RotateCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingInvite({ ...invite })}
+                      className="text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 h-8 w-8 p-0"
+                      title="Editar convite"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteInviteId(invite.id)}
+                      className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
+                      title="Excluir convite"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Hierarquia Tab — visual panel for gerente→corretor assignments
+   ═══════════════════════════════════════════════════════════════════════════ */
+function HierarquiaTab() {
+  const utils = trpc.useUtils();
+  const gerentesQuery = trpc.staff.gerentes.useQuery();
+  const corretoresQuery = trpc.staff.corretoresWithManager.useQuery();
+
+  const assignMutation = trpc.staff.assignManager.useMutation({
+    onSuccess: () => {
+      toast.success("Corretor reatribuído com sucesso!");
+      utils.staff.corretoresWithManager.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const gerentes = gerentesQuery.data ?? [];
+  const corretores = corretoresQuery.data ?? [];
+
+  // Group corretores by managerId (with fallback to invitedBy)
+  const corretoresByManager = useMemo(() => {
+    const map: Record<number | string, typeof corretores> = { unassigned: [] };
+    for (const g of gerentes) {
+      map[g.id] = [];
+    }
+    for (const c of corretores) {
+      const mgId = c.managerId ?? c.invitedBy;
+      if (mgId && map[mgId]) {
+        map[mgId].push(c);
+      } else {
+        map["unassigned"].push(c);
+      }
+    }
+    return map;
+  }, [gerentes, corretores]);
+
+  const [expandedGerentes, setExpandedGerentes] = useState<Set<number | string>>(new Set(["unassigned"]));
+
+  const toggleExpand = (id: number | string) => {
+    setExpandedGerentes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Expand all gerentes on first load
+  useMemo(() => {
+    if (gerentes.length > 0) {
+      setExpandedGerentes(new Set([...gerentes.map((g: any) => g.id), "unassigned"]));
+    }
+  }, [gerentes.length]);
+
+  const isLoading = gerentesQuery.isLoading || corretoresQuery.isLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (gerentes.length === 0 && corretores.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <ArrowRightLeft className="w-10 h-10 mx-auto mb-3 opacity-50" />
+        <p className="text-sm">Nenhum gerente ou corretor cadastrado</p>
+        <p className="text-xs mt-1">Convide gerentes e corretores para gerenciar a hierarquia</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl border border-border p-4 mb-6">
+        <p className="text-sm text-muted-foreground">
+          <ArrowRightLeft className="w-4 h-4 inline-block mr-1.5 -mt-0.5 text-blue-500" />
+          Arraste ou use o dropdown para reatribuir corretores entre gerentes. Cada corretor pode ter apenas um gerente responsável.
+        </p>
+      </div>
+
+      {/* Gerente cards */}
+      {gerentes.map((gerente: any) => {
+        const assigned = corretoresByManager[gerente.id] ?? [];
+        const isExpanded = expandedGerentes.has(gerente.id);
+
+        return (
+          <div key={gerente.id} className="bg-card rounded-xl border border-border overflow-hidden">
+            {/* Gerente header */}
+            <button
+              onClick={() => toggleExpand(gerente.id)}
+              className="w-full px-5 py-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Building2 className="w-4.5 h-4.5 text-blue-500" />
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">{gerente.name}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium">
+                      Gerente
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{gerente.email}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                  {assigned.length} {assigned.length === 1 ? "corretor" : "corretores"}
+                </span>
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
+            </button>
+
+            {/* Corretores list */}
+            {isExpanded && (
+              <div className="border-t border-border">
+                {assigned.length === 0 ? (
+                  <div className="px-5 py-6 text-center text-muted-foreground">
+                    <UserMinus className="w-5 h-5 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">Nenhum corretor atribuído</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/50">
+                    {assigned.map((corretor: any) => (
+                      <CorretorRow
+                        key={corretor.id}
+                        corretor={corretor}
+                        gerentes={gerentes}
+                        currentManagerId={gerente.id}
+                        onAssign={(managerId) =>
+                          assignMutation.mutate({ corretorId: corretor.id, managerId })
+                        }
+                        isPending={assignMutation.isPending}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Unassigned corretores */}
+      {(corretoresByManager["unassigned"]?.length ?? 0) > 0 && (
+        <div className="bg-card rounded-xl border border-amber-500/30 overflow-hidden">
+          <button
+            onClick={() => toggleExpand("unassigned")}
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <UserMinus className="w-4.5 h-4.5 text-amber-500" />
+              </div>
+              <div className="text-left">
+                <span className="text-sm font-semibold text-foreground">Sem gerente</span>
+                <p className="text-xs text-muted-foreground">Corretores não atribuídos a nenhum gerente</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full">
+                {corretoresByManager["unassigned"].length}
+              </span>
+              {expandedGerentes.has("unassigned") ? (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+          </button>
+
+          {expandedGerentes.has("unassigned") && (
+            <div className="border-t border-amber-500/30">
+              <div className="divide-y divide-border/50">
+                {corretoresByManager["unassigned"].map((corretor: any) => (
+                  <CorretorRow
+                    key={corretor.id}
+                    corretor={corretor}
+                    gerentes={gerentes}
+                    currentManagerId={null}
+                    onAssign={(managerId) =>
+                      assignMutation.mutate({ corretorId: corretor.id, managerId })
+                    }
+                    isPending={assignMutation.isPending}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Corretor Row with reassignment dropdown ─── */
+function CorretorRow({
+  corretor,
+  gerentes,
+  currentManagerId,
+  onAssign,
+  isPending,
+}: {
+  corretor: any;
+  gerentes: any[];
+  currentManagerId: number | null;
+  onAssign: (managerId: number | null) => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="px-5 py-3 flex items-center justify-between hover:bg-accent/20 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+          <Briefcase className="w-4 h-4 text-green-500" />
+        </div>
+        <div className="min-w-0">
+          <span className="text-sm text-foreground">{corretor.name}</span>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-muted-foreground">{corretor.email}</span>
+            {!corretor.active && (
+              <span className="text-xs text-red-500">Inativo</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Select
+        value={currentManagerId?.toString() ?? "none"}
+        onValueChange={(val) => {
+          const newId = val === "none" ? null : parseInt(val, 10);
+          if (newId !== currentManagerId) {
+            onAssign(newId);
+          }
+        }}
+        disabled={isPending}
+      >
+        <SelectTrigger className="w-[180px] h-8 text-xs">
+          <SelectValue placeholder="Selecionar gerente" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">
+            <span className="text-amber-500">Sem gerente</span>
+          </SelectItem>
+          {gerentes.map((g) => (
+            <SelectItem key={g.id} value={g.id.toString()}>
+              {g.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

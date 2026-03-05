@@ -126,11 +126,55 @@ export async function getStaffUsersByRole(role: string) {
   });
 }
 
-/** Get all corretores invited by a specific manager (gerente) */
+/** Get all corretores assigned to a specific manager (gerente) via managerId, with fallback to invitedBy */
 export async function getCorretoresByManager(managerId: number) {
   return withRetry(async (db) => {
     return db.select().from(staffUsers)
-      .where(and(eq(staffUsers.invitedBy, managerId), eq(staffUsers.role, 'corretor')))
+      .where(and(
+        or(eq(staffUsers.managerId, managerId), eq(staffUsers.invitedBy, managerId)),
+        eq(staffUsers.role, 'corretor')
+      ))
+      .orderBy(staffUsers.name);
+  });
+}
+
+/** Assign a corretor to a manager (set managerId) */
+export async function assignCorretorToManager(corretorId: number, managerId: number | null) {
+  return withRetry(async (db) => {
+    await db.update(staffUsers)
+      .set({ managerId })
+      .where(eq(staffUsers.id, corretorId));
+  });
+}
+
+/** Get all gerentes */
+export async function getAllGerentes() {
+  return withRetry(async (db) => {
+    return db.select({
+      id: staffUsers.id,
+      name: staffUsers.name,
+      email: staffUsers.email,
+      phone: staffUsers.phone,
+      active: staffUsers.active,
+    }).from(staffUsers)
+      .where(eq(staffUsers.role, 'gerente'))
+      .orderBy(staffUsers.name);
+  });
+}
+
+/** Get all corretores with their manager info */
+export async function getAllCorretoresWithManager() {
+  return withRetry(async (db) => {
+    return db.select({
+      id: staffUsers.id,
+      name: staffUsers.name,
+      email: staffUsers.email,
+      phone: staffUsers.phone,
+      active: staffUsers.active,
+      managerId: staffUsers.managerId,
+      invitedBy: staffUsers.invitedBy,
+    }).from(staffUsers)
+      .where(eq(staffUsers.role, 'corretor'))
       .orderBy(staffUsers.name);
   });
 }

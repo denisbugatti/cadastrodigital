@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE staff_users su\nSET su.managerId = su.invitedBy\nWHERE su.role = 'corretor'\n  AND su.invitedBy IS NOT NULL\n  AND su.managerId IS NULL\n  AND EXISTS (\n    SELECT 1 FROM staff_users mgr\n    WHERE mgr.id = su.invitedBy\n    AND mgr.role = 'gerente'\n  )",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute UPDATE staff_users su\nSET su.managerId = su.invitedBy\nWHERE su.role = 'corretor'\n  AND su.invitedBy IS NOT NULL\n  AND su.managerId IS NULL\n  AND EXISTS (\n    SELECT 1 FROM staff_users mgr\n    WHERE mgr.id = su.invitedBy\n    AND mgr.role = 'gerente'\n  )",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 391
+}

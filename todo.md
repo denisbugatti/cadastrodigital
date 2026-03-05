@@ -1222,3 +1222,27 @@
 - [x] Frontend: remover Galeria de Templates para gerentes e corretores (route-level OwnerRoute)
 - [x] Frontend: OwnerRoute component para bloquear gerentes/corretores de acessar Settings, Audit, FormCopies via URL direta
 - [x] 428 testes passando, 0 erros TypeScript
+
+## Painel de vínculos gerente→corretor
+- [x] Backend: adicionar campo managerId na tabela staff_users (referência ao gerente responsável)
+- [x] Backend: endpoint para listar gerentes (staff.gerentes)
+- [x] Backend: endpoint para listar corretores com manager (staff.corretoresWithManager)
+- [x] Backend: endpoint para reatribuir corretor a outro gerente (staff.assignManager)
+- [x] Backend: migrar dados existentes (invitedBy → managerId para corretores)
+- [x] Frontend: criar painel visual na tela de Equipe (aba Hierarquia) com cards de gerentes e seus corretores
+- [x] Frontend: dropdown para reatribuir corretores entre gerentes
+- [x] Frontend: seção "Sem gerente" para corretores não atribuídos
+- [x] Frontend: apenas master/diretor pode reatribuir (staffFormOwnerProcedure)
+
+## Exportação de respostas filtrada por hierarquia
+- [x] Backend: exportação CSV já filtra por hierarquia (gerente vê só seus corretores via getCorretoresByManager)
+- [x] Backend: master/diretor exporta todas as respostas (sem filtro)
+- [x] Frontend: botão de exportar CSV na tela de respostas e Dashboard já existente
+
+## Dashboard de métricas por gerente
+- [x] Backend: endpoint de métricas por gerente (corretorPerformance.byManager) com funil de conversão
+- [x] Frontend: aba "Por Gerente" na tela de Performance com cards expandíveis por gerente
+- [x] Frontend: funil visual (FunnelBar) com aprovadas/revisão/incompletos/rejeitadas
+- [x] Frontend: detalhamento por corretor dentro de cada gerente
+- [x] Frontend: apenas admin (master/diretor) vê métricas de todos os gerentes
+- [x] 435 testes passando, 0 erros TypeScript

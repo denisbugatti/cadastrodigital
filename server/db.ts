@@ -1949,6 +1949,94 @@ export async function getAllCorretoresPerformance() {
 }
 
 /**
+ * Get performance metrics grouped by gerente (for admin dashboard).
+ * Each gerente shows aggregated metrics from their corretores.
+ */
+export async function getPerformanceByManager() {
+  return withDbRetry(async (db) => {
+    // Get all gerentes
+    const allGerentes = await db.select({
+      id: staffUsers.id,
+      name: staffUsers.name,
+      email: staffUsers.email,
+      active: staffUsers.active,
+    })
+      .from(staffUsers)
+      .where(eq(staffUsers.role, "gerente"));
+
+    const results = [];
+
+    for (const gerente of allGerentes) {
+      // Get corretores assigned to this gerente (managerId or invitedBy)
+      const myCorretores = await db.select({
+        id: staffUsers.id,
+        name: staffUsers.name,
+        managerId: staffUsers.managerId,
+      })
+        .from(staffUsers)
+        .where(and(
+          or(eq(staffUsers.managerId, gerente.id), eq(staffUsers.invitedBy, gerente.id)),
+          eq(staffUsers.role, "corretor")
+        ));
+
+      // Aggregate metrics from all corretores
+      let totalResponses = 0;
+      let completedResponses = 0;
+      let approvedResponses = 0;
+      let rejectedResponses = 0;
+      let pendingResponses = 0;
+      let inReviewResponses = 0;
+      let totalTimeMs = 0;
+      let timeCount = 0;
+      let formCount = 0;
+
+      const corretorDetails = [];
+
+      for (const corretor of myCorretores) {
+        const metrics = await getCorretorPerformance(corretor.id);
+        totalResponses += metrics.totalResponses;
+        completedResponses += metrics.completedResponses;
+        approvedResponses += metrics.approvedResponses;
+        rejectedResponses += metrics.rejectedResponses;
+        pendingResponses += metrics.pendingResponses;
+        inReviewResponses += metrics.inReviewResponses;
+        formCount += metrics.formCount;
+        if (metrics.avgValidationTimeMs > 0) {
+          totalTimeMs += metrics.avgValidationTimeMs;
+          timeCount++;
+        }
+        corretorDetails.push({
+          id: corretor.id,
+          name: corretor.name,
+          ...metrics,
+        });
+      }
+
+      results.push({
+        id: gerente.id,
+        name: gerente.name,
+        email: gerente.email,
+        active: gerente.active,
+        corretorCount: myCorretores.length,
+        totalResponses,
+        completedResponses,
+        approvedResponses,
+        rejectedResponses,
+        pendingResponses,
+        inReviewResponses,
+        approvalRate: totalResponses > 0 ? Math.round((approvedResponses / totalResponses) * 100) : 0,
+        rejectionRate: totalResponses > 0 ? Math.round((rejectedResponses / totalResponses) * 100) : 0,
+        avgValidationTimeMs: timeCount > 0 ? Math.round(totalTimeMs / timeCount) : 0,
+        formCount,
+        corretores: corretorDetails,
+      });
+    }
+
+    return results;
+  });
+}
+
+/**
  * Get child forms count for a parent form (for sync indicator).
  */
 export async function getChildFormsCount(parentFormId: number): Promise<number> {

@@ -276,6 +276,50 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+    /** Get all gerentes (for hierarchy management) */
+    gerentes: staffAdminProcedure.query(async () => {
+      return staffDb.getAllGerentes();
+    }),
+
+    /** Get all corretores with their manager assignment */
+    corretoresWithManager: staffAdminProcedure.query(async () => {
+      return staffDb.getAllCorretoresWithManager();
+    }),
+
+    /** Assign a corretor to a manager (master/diretor only) */
+    assignManager: staffFormOwnerProcedure
+      .input(z.object({
+        corretorId: z.number(),
+        managerId: z.number().nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Verify the corretor exists and is a corretor
+        const corretor = await staffDb.getStaffUserById(input.corretorId);
+        if (!corretor || corretor.role !== 'corretor') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Corretor n\u00e3o encontrado' });
+        }
+        // Verify the manager exists and is a gerente (if not null)
+        if (input.managerId !== null) {
+          const manager = await staffDb.getStaffUserById(input.managerId);
+          if (!manager || manager.role !== 'gerente') {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Gerente n\u00e3o encontrado' });
+          }
+        }
+        await staffDb.assignCorretorToManager(input.corretorId, input.managerId);
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: 'staff.assign_manager',
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'staff_user',
+          targetId: input.corretorId,
+          targetName: corretor.name,
+          details: { managerId: input.managerId },
+          severity: 'info',
+        });
+        return { success: true };
+      }),
   }),
 
   // ─── Permissions Management ───
@@ -1678,6 +1722,11 @@ export const appRouter = router({
     /** Get performance for ALL corretores (admin only) */
     all: staffAdminProcedure.query(async () => {
       return db.getAllCorretoresPerformance();
+    }),
+
+    /** Get performance grouped by manager (admin only) */
+    byManager: staffAdminProcedure.query(async () => {
+      return db.getPerformanceByManager();
     }),
   }),
 
