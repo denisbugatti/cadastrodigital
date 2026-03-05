@@ -1275,3 +1275,12 @@
 - [x] Frontend: badge "Template" (amber) e "Cópia" (blue) nos cards do Dashboard
 - [x] Frontend: toast de notificação ao master quando propagação é concluída ("X cópia(s) atualizada(s)")
 - [x] 435 testes passando, 0 erros TypeScript
+
+## Desconectar cópia do template
+- [x] Backend: endpoint disconnectFromTemplate (set parentFormId = null, staffFormOwnerProcedure)
+- [x] Backend: registrar no audit log a desconexão (FORM_TEMPLATE_SYNC com severity warning)
+- [x] Frontend: opção "Desconectar do template" no dropdown do card (com ícone Unlink, cor amber)
+- [x] Frontend: AlertDialog de confirmação com aviso de que não receberá mais atualizações
+- [x] Frontend: badge "Cópia" desaparece após desconexão (parentFormId = null)
+- [x] Frontend: DashboardForm interface atualizada com parentFormId e isTemplate
+- [x] 435 testes passando, 0 erros TypeScript

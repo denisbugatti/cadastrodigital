@@ -41,6 +41,7 @@ import {
   Eye,
   UserPlus,
   UserCheck,
+  Unlink,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -108,6 +109,8 @@ interface DashboardForm {
   workspaceId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  parentFormId: number | null;
+  isTemplate: boolean;
 }
 
 interface DashboardFolder {
@@ -280,6 +283,7 @@ export default function Dashboard() {
   const [duplicateTitle, setDuplicateTitle] = useState("");
   const [duplicateFolderId, setDuplicateFolderId] = useState<string>("same");
   const [assignTarget, setAssignTarget] = useState<DashboardForm | null>(null);
+  const [disconnectTarget, setDisconnectTarget] = useState<DashboardForm | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -338,6 +342,16 @@ export default function Dashboard() {
     },
   });
 
+  const disconnectMutation = trpc.forms.disconnectFromTemplate.useMutation({
+    onSuccess: () => {
+      utils.forms.list.invalidate();
+      toast.success("Formulário desconectado!", { description: "Este formulário agora é independente e não receberá mais atualizações do template." });
+    },
+    onError: (err) => {
+      toast.error("Erro ao desconectar", { description: err.message });
+    },
+  });
+
   // ─── Transform API data to dashboard format ───
   const forms: DashboardForm[] = useMemo(() => {
     if (!formsQuery.data) return [];
@@ -353,6 +367,8 @@ export default function Dashboard() {
       workspaceId: f.workspaceId,
       createdAt: new Date(f.createdAt),
       updatedAt: new Date(f.updatedAt),
+      parentFormId: f.parentFormId ?? null,
+      isTemplate: f.isTemplate ?? false,
     }));
   }, [formsQuery.data]);
 
@@ -1224,6 +1240,7 @@ export default function Dashboard() {
                     canEditForms={canEditForms}
                     assignedCount={(assignmentsBatchQuery.data as any)?.[form.id]?.length ?? 0}
                     onAssign={canEditForms ? (f) => setAssignTarget(f) : undefined}
+                    onDisconnect={canEditForms ? (f) => setDisconnectTarget(f) : undefined}
                   />
                 ))}
               </AnimatePresence>
@@ -1293,6 +1310,41 @@ export default function Dashboard() {
             >
               <Trash2 size={15} className="mr-1.5" />
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Disconnect from Template Dialog */}
+      <AlertDialog open={!!disconnectTarget} onOpenChange={(open) => !open && setDisconnectTarget(null)}>
+        <AlertDialogContent className="bg-card border-border shadow-2xl max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                <Unlink size={20} className="text-amber-500" />
+              </div>
+              <AlertDialogTitle className="font-display text-lg font-bold text-foreground">
+                Desconectar do template
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base text-muted-foreground font-body leading-relaxed">
+              Tem certeza que deseja desconectar{" "}
+              <span className="font-semibold text-foreground">"{disconnectTarget?.title}"</span>{" "}
+              do template original?
+              <span className="block mt-2 text-sm text-amber-600 font-medium">
+                Após desconectar, este formulário não receberá mais atualizações automáticas do template.
+              </span>
+              <span className="block mt-1 text-sm">Esta ação não pode ser desfeita.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogCancel className="font-body font-medium rounded-xl px-5">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => disconnectTarget && disconnectMutation.mutate({ id: disconnectTarget.id }, { onSettled: () => setDisconnectTarget(null) })}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-body font-semibold rounded-xl px-5 shadow-sm"
+            >
+              <Unlink size={15} className="mr-1.5" />
+              Desconectar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1448,9 +1500,10 @@ interface FormCardProps {
   canEditForms: boolean;
   assignedCount?: number;
   onAssign?: (form: DashboardForm) => void;
+  onDisconnect?: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms, assignedCount, onAssign }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms, assignedCount, onAssign, onDisconnect }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1595,6 +1648,17 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                   <Download size={15} className="mr-2" /> Exportar JSON
                 </DropdownMenuItem>
               )}
+              {canEditForms && form.parentFormId && onDisconnect && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onDisconnect(form); }}
+                    className="text-amber-600 focus:text-amber-600"
+                  >
+                    <Unlink size={15} className="mr-2" /> Desconectar do template
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1615,12 +1679,12 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
       ) : (
         <div className="flex items-center gap-2 mb-1.5">
           <h3 className="font-display text-lg font-bold text-foreground line-clamp-1">{form.title}</h3>
-          {(form as any).isTemplate && (
+          {form.isTemplate && (
             <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/20">
               Template
             </span>
           )}
-          {(form as any).parentFormId && (
+          {form.parentFormId && (
             <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-500 border border-blue-500/20">
               Cópia
             </span>

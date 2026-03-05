@@ -787,6 +787,33 @@ export const appRouter = router({
         return result;
       }),
 
+    /** Disconnect a copy from its parent template — makes it independent */
+    disconnectFromTemplate: staffFormOwnerProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.id);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
+        }
+        if (!(form as any).parentFormId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Este formulário não é uma cópia de template" });
+        }
+        await db.updateForm(input.id, { parentFormId: null } as any);
+        const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        logAudit({
+          action: AUDIT_ACTIONS.FORM_TEMPLATE_SYNC,
+          staffUserId: cs?.staffUserId,
+          staffName: cs?.name ?? ctx.user.name,
+          staffRole: cs?.role,
+          targetType: 'form',
+          targetId: input.id,
+          targetName: form.title,
+          details: { message: `Desconectou formulário do template (parentFormId: ${(form as any).parentFormId} → null)` },
+          severity: 'warning',
+        });
+        return { success: true };
+      }),
+
     /** Mark responses as seen — updates lastSeenResponseCount to current responseCount */
     markSeen: staffAdminProcedure
       .input(z.object({ formId: z.number() }))
