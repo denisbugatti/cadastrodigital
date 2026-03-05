@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useUnreadResponses } from "@/hooks/useUnreadResponses";
 import MobileBottomNav from "./MobileBottomNav";
 
 /* ─── Navigation Items ─── */
@@ -100,6 +101,7 @@ const SIDEBAR_EXPANDED_WIDTH = 240;
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, loading, isStaff, isCorretor, logout } = useCustomAuth();
+  const { totalUnread } = useUnreadResponses();
 
   // Filter nav items based on role — corretores only see non-admin items
   const staffRole = user?.type === "staff" ? (user as any).role : null;
@@ -191,6 +193,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeNavId === item.id;
+            const unreadBadge = item.id === "forms" ? totalUnread : 0;
             return (
               <Link key={item.id} href={item.path}>
                 <button
@@ -203,9 +206,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   }`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <Icon size={20} className={`shrink-0 ${isActive ? "text-brand" : ""}`} />
+                  <div className="relative shrink-0">
+                    <Icon size={20} className={isActive ? "text-brand" : ""} />
+                    {unreadBadge > 0 && sidebarCollapsed && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 animate-in fade-in zoom-in duration-300">
+                        {unreadBadge > 99 ? "99+" : unreadBadge}
+                      </span>
+                    )}
+                  </div>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-body truncate">{item.label}</span>
+                    <>
+                      <span className="text-sm font-body truncate flex-1 text-left">{item.label}</span>
+                      {unreadBadge > 0 && (
+                        <span className="min-w-[22px] h-[22px] flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-bold px-1.5 animate-in fade-in zoom-in duration-300 shrink-0">
+                          {unreadBadge > 99 ? "99+" : unreadBadge}
+                        </span>
+                      )}
+                    </>
                   )}
                 </button>
               </Link>
@@ -275,7 +292,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ─── Mobile Bottom Navigation (shared component) ─── */}
-      <MobileBottomNav onLogout={logout} isAdmin={isAdmin} />
+      <MobileBottomNav onLogout={logout} isAdmin={isAdmin} unreadCount={totalUnread} />
     </div>
   );
 }

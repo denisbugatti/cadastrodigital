@@ -1113,3 +1113,14 @@
 - [x] Frontend: página /auditoria com cards, filtros, busca, badges de severidade/role, paginação, auto-refresh 30s
 - [x] Aba "Auditoria" adicionada ao sidebar com ícone ShieldCheck
 - [x] 387 testes passando, 0 erros TypeScript
+
+## Notificações em Tempo Real — Badge no Sidebar
+- [x] Backend: notifications.unreadCount (admin/gerente/diretor) e notifications.corretorUnreadCount (corretor)
+- [x] Backend: getUnreadResponseCounts() e getCorretorUnreadCount() em db.ts (queries leves)
+- [x] Frontend: hook useUnreadResponses com polling a cada 20s (refetchIntervalInBackground)
+- [x] Frontend: badge vermelho no sidebar desktop "Formulários" (expandido e colapsado)
+- [x] Frontend: badge vermelho no mobile bottom nav "Formulários"
+- [x] Frontend: badge por formulário nos cards do dashboard (+N novas em vermelho)
+- [x] Frontend: badge desaparece ao acessar o formulário (markSeen já existia)
+- [x] Corretor: badge nas respostas do corretor quando há novas atribuições
+- [x] 387 testes passando, 0 erros TypeScript

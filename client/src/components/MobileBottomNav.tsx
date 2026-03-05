@@ -35,9 +35,10 @@ const MORE_ITEMS = [
 interface MobileBottomNavProps {
   onLogout?: () => void;
   isAdmin?: boolean;
+  unreadCount?: number;
 }
 
-export default function MobileBottomNav({ onLogout, isAdmin = true }: MobileBottomNavProps) {
+export default function MobileBottomNav({ onLogout, isAdmin = true, unreadCount = 0 }: MobileBottomNavProps) {
   const [location, navigate] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -71,7 +72,14 @@ export default function MobileBottomNav({ onLogout, isAdmin = true }: MobileBott
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  <div className="relative">
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                    {item.id === "forms" && unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-1">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <span className={`text-[10px] font-body leading-tight ${isActive ? "font-bold" : "font-medium"}`}>
                     {item.label}
                   </span>

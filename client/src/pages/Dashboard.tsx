@@ -86,6 +86,7 @@ import { createOneInnovationForm } from "@/lib/oneInnovationForm";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
+import { useUnreadResponses } from "@/hooks/useUnreadResponses";
 
 /* ─── Types ─── */
 
@@ -254,6 +255,7 @@ function NotificationBell() {
 
 export default function Dashboard() {
   const { logout, user, isCorretor, canEditForms } = useCustomAuth();
+  const { totalUnread } = useUnreadResponses();
   const dashboardIsAdmin = user?.type === "staff" ? ["master", "diretor", "gerente"].includes((user as any).role) : false;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -1401,7 +1403,7 @@ export default function Dashboard() {
       </Dialog>
 
       {/* ─── Mobile Bottom Navigation ─── */}
-      <MobileBottomNav onLogout={logout} isAdmin={dashboardIsAdmin} />
+      <MobileBottomNav onLogout={logout} isAdmin={dashboardIsAdmin} unreadCount={totalUnread} />
     </div>
   );
 }
@@ -1639,7 +1641,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
           <Users size={14} />
           {form.responseCount} respostas
           {(form as any).lastSeenResponseCount !== undefined && form.responseCount > (form as any).lastSeenResponseCount && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-brand text-white animate-pulse">
+            <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow-sm">
               +{form.responseCount - (form as any).lastSeenResponseCount}
             </span>
           )}

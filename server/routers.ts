@@ -2053,6 +2053,23 @@ export const appRouter = router({
       }),
   }),
 
+  /** ─── Notifications (real-time badge polling) ─── */
+  notifications: router({
+    /** Lightweight unread count for admin/gerente sidebar badge */
+    unreadCount: staffAdminProcedure.query(async ({ ctx }) => {
+      return db.getUnreadResponseCounts(ctx.user.id);
+    }),
+
+    /** Unread count for corretor sidebar badge */
+    corretorUnreadCount: staffAnyProcedure.query(async ({ ctx }) => {
+      const session = ctx.customSession as any;
+      if (!session?.staffUserId) {
+        return { totalUnread: 0, forms: [] };
+      }
+      return db.getCorretorUnreadCount(session.staffUserId);
+    }),
+  }),
+
   /** ─── Audit Logs ─── */
   audit: router({
     list: staffAdminProcedure

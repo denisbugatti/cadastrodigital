@@ -2202,3 +2202,64 @@ export async function getWeeklyStats(asOfDate: Date = new Date()): Promise<Weekl
     },
   };
 }
+
+
+/**
+ * Get unread response counts for all forms belonging to a user.
+ * Returns a lightweight summary: { totalUnread, forms: [{ formId, title, unread }] }
+ * Used for real-time badge polling without loading full form data.
+ */
+export async function getUnreadResponseCounts(userId: number) {
+  return withDbRetry(async (db) => {
+    const result = await db
+      .select({
+        id: forms.id,
+        title: forms.title,
+        responseCount: forms.responseCount,
+        lastSeenResponseCount: forms.lastSeenResponseCount,
+      })
+      .from(forms)
+      .where(eq(forms.userId, userId));
+
+    let totalUnread = 0;
+    const formCounts = result
+      .map((f: any) => {
+        const unread = Math.max(0, f.responseCount - f.lastSeenResponseCount);
+        totalUnread += unread;
+        return { formId: f.id, title: f.title, unread };
+      })
+      .filter((f: any) => f.unread > 0);
+
+    return { totalUnread, forms: formCounts };
+  });
+}
+
+/**
+ * Get unread response count for a specific corretor (staff user).
+ * Counts responses assigned to their forms that they haven't seen.
+ */
+export async function getCorretorUnreadCount(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    // Get forms assigned to this corretor
+    const assignedForms = await db
+      .select({
+        id: forms.id,
+        title: forms.title,
+        responseCount: forms.responseCount,
+        lastSeenResponseCount: forms.lastSeenResponseCount,
+      })
+      .from(forms)
+      .where(eq(forms.assignedCorretorId, staffUserId));
+
+    let totalUnread = 0;
+    const formCounts = assignedForms
+      .map((f: any) => {
+        const unread = Math.max(0, f.responseCount - f.lastSeenResponseCount);
+        totalUnread += unread;
+        return { formId: f.id, title: f.title, unread };
+      })
+      .filter((f: any) => f.unread > 0);
+
+    return { totalUnread, forms: formCounts };
+  });
+}
