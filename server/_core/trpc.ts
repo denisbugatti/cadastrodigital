@@ -2,6 +2,7 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG, FORBIDDEN_CORRETOR_MSG } from '@sh
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { getOrCreateOwnerUser } from "../ownerUser";
 
 export const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -48,12 +49,22 @@ export const adminProcedure = t.procedure.use(
  * Middleware that requires the user to be a staff member with admin-level role.
  * Blocks corretores from accessing admin procedures.
  * Allowed roles: master, diretor, gerente (NOT corretor).
+ *
+ * If ctx.user is null but customSession exists (DB failed in context.ts),
+ * we use getOrCreateOwnerUser() as fallback — this function NEVER fails.
  */
 const ADMIN_ROLES = ['master', 'diretor', 'gerente'];
 
 const requireStaffAdmin = t.middleware(async ({ ctx, next }) => {
-  // Must have a user (either Manus OAuth or custom auth)
-  if (!ctx.user) {
+  let user = ctx.user;
+
+  // If user is null but customSession exists, the DB lookup in context.ts failed.
+  // Use the robust getOrCreateOwnerUser() fallback (never fails).
+  if (!user && ctx.customSession) {
+    user = await getOrCreateOwnerUser();
+  }
+
+  if (!user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
@@ -68,7 +79,7 @@ const requireStaffAdmin = t.middleware(async ({ ctx, next }) => {
   }
   // If no customSession but user exists (Manus OAuth owner), allow through
 
-  return next({ ctx: { ...ctx, user: ctx.user } });
+  return next({ ctx: { ...ctx, user } });
 });
 
 /**
@@ -82,7 +93,15 @@ export const staffAdminProcedure = t.procedure.use(requireStaffAdmin);
  * Used for procedures that corretores need access to (validations, their own responses).
  */
 const requireStaffAny = t.middleware(async ({ ctx, next }) => {
-  if (!ctx.user) {
+  let user = ctx.user;
+
+  // If user is null but customSession exists, the DB lookup in context.ts failed.
+  // Use the robust getOrCreateOwnerUser() fallback (never fails).
+  if (!user && ctx.customSession) {
+    user = await getOrCreateOwnerUser();
+  }
+
+  if (!user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
@@ -90,7 +109,7 @@ const requireStaffAny = t.middleware(async ({ ctx, next }) => {
     throw new TRPCError({ code: "FORBIDDEN", message: 'Acesso restrito a membros da equipe' });
   }
 
-  return next({ ctx: { ...ctx, user: ctx.user } });
+  return next({ ctx: { ...ctx, user } });
 });
 
 /**

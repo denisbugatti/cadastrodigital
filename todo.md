@@ -1083,3 +1083,8 @@
 - [x] Frontend: AdminRoute component redireciona corretores para /corretor/respostas
 - [x] Corretor tem acesso APENAS a: /corretor/respostas, /corretor/performance, /validar/:id
 - [x] 382 testes passando, incluindo novos testes de RBAC (role-based access control)
+
+## BUG: Formulários não aparecem após mudanças de RBAC
+- [x] Investigar por que formulários não estão sendo listados após troca de ownerFallbackProcedure para staffAdminProcedure
+- [x] Causa raiz: staffAdminProcedure dependia de ctx.user que falhava quando context.ts não conseguia mapear staff → owner user
+- [x] Fix: extrair getOrCreateOwnerUser para ownerUser.ts (sem circular dependency) e usar como fallback no staffAdminProcedure/staffAnyProcedure
