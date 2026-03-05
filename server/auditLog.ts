@@ -15,6 +15,7 @@ export const AUDIT_ACTIONS = {
   FORM_DUPLICATE: "form.duplicate",
   FORM_ASSIGN: "form.assign",
   FORM_UNASSIGN: "form.unassign",
+  FORM_TEMPLATE_SYNC: "form.template_sync",
 
   // Staff actions
   STAFF_INVITE: "staff.invite",

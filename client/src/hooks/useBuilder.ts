@@ -77,9 +77,16 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
         sharing: formData.sharing,
         workspaceId: formData.workspaceId,
       }, {
-        onSuccess: () => {
+        onSuccess: (result) => {
           setIsSaved(true);
           setLastSavedAt(new Date().toISOString());
+          // Show sync notification if copies were updated
+          if (result && typeof result === 'object' && 'syncedCopies' in result && (result as any).syncedCopies > 0) {
+            const count = (result as any).syncedCopies;
+            import('sonner').then(({ toast }) => {
+              toast.info(`Template sincronizado`, { description: `${count} cópia(s) atualizada(s) automaticamente.` });
+            });
+          }
         },
         onError: (err) => {
           console.error("Failed to save form to database:", err);

@@ -708,11 +708,25 @@ export const appRouter = router({
         if (data.color !== undefined) syncableFields.color = data.color;
         if (data.status !== undefined) syncableFields.status = data.status;
 
+        let syncedCount = 0;
         if (Object.keys(syncableFields).length > 0) {
           try {
             const syncResult = await db.syncChildForms(id, syncableFields);
-            if (syncResult.synced > 0) {
-              console.log(`[FormSync] Synced ${syncResult.synced} child forms of parent ${id}`);
+            syncedCount = syncResult.synced;
+            if (syncedCount > 0) {
+              console.log(`[FormSync] Synced ${syncedCount} child forms of parent ${id}`);
+              const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+              logAudit({
+                action: AUDIT_ACTIONS.FORM_TEMPLATE_SYNC,
+                staffUserId: cs?.staffUserId,
+                staffName: cs?.name ?? ctx.user.name,
+                staffRole: cs?.role,
+                targetType: 'form',
+                targetId: id,
+                targetName: form.title,
+                details: { message: `Propagou alterações para ${syncedCount} cópia(s)`, syncedCount },
+                severity: 'info',
+              });
             }
           } catch (err) {
             console.error("[FormSync] Failed to sync child forms:", err);
@@ -720,7 +734,7 @@ export const appRouter = router({
           }
         }
 
-        return { success: true };
+        return { success: true, syncedCopies: syncedCount };
       }),
 
     delete: staffFormCreatorProcedure

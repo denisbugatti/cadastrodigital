@@ -1613,7 +1613,19 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
           autoFocus
         />
       ) : (
-        <h3 className="font-display text-lg font-bold text-foreground mb-1.5 line-clamp-1">{form.title}</h3>
+        <div className="flex items-center gap-2 mb-1.5">
+          <h3 className="font-display text-lg font-bold text-foreground line-clamp-1">{form.title}</h3>
+          {(form as any).isTemplate && (
+            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/20">
+              Template
+            </span>
+          )}
+          {(form as any).parentFormId && (
+            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-500 border border-blue-500/20">
+              Cópia
+            </span>
+          )}
+        </div>
       )}
       {/* Inline slug editing */}
       {isEditingSlug ? (

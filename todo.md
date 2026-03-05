@@ -1267,3 +1267,11 @@
 - [x] Frontend: gerente pode vincular formulários aos corretores na EquipeTab (botão Formulários com toggle)
 - [x] Fix: 404 em /formulario/:id/respostas já corrigido no código (link aponta para /responses/:id)
 - [x] 435 testes passando, 0 erros TypeScript
+
+## Propagação de alterações do template para cópias
+- [x] Backend: ao salvar um formulário template, propagar questions/design/description/webhook/color/status para todas as cópias (via parentFormId + syncChildForms)
+- [x] Backend: preservar slug, título personalizado e sharing das cópias ao propagar (só sincroniza campos syncableFields)
+- [x] Backend: registrar log de propagação no audit log (FORM_TEMPLATE_SYNC com contagem de cópias)
+- [x] Frontend: badge "Template" (amber) e "Cópia" (blue) nos cards do Dashboard
+- [x] Frontend: toast de notificação ao master quando propagação é concluída ("X cópia(s) atualizada(s)")
+- [x] 435 testes passando, 0 erros TypeScript
