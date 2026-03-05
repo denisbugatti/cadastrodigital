@@ -1203,3 +1203,12 @@
 - [x] Frontend: ao clicar em compartilhar, abre wa.me com link do PDF no S3
 - [x] Frontend: cache do PDF gerado por responseId (useRef Map) para evitar regenerar ao reabrir preview
 - [x] 428 testes passando, 0 erros TypeScript
+
+## Protocolo de Entrada + PDF unificado
+- [x] Upload do PDF Protocolo de Entrada para S3
+- [x] Protocolo tem 25 form fields editáveis — preenchimento direto via pdf-lib
+- [x] Backend: preencher dados do cliente no Protocolo (PF: nome, email, CPF, celular / PJ: nome empresa, email, CNPJ, celular)
+- [x] Backend: generateFullPdf() junta Protocolo + Ficha PF/PJ em um único PDF
+- [x] Backend: mergeWithAttachments() adiciona anexos (PDFs e imagens) ao final
+- [x] Atualizado endpoints generateFicha e shareFicha para usar generateFullPdf
+- [x] 428 testes passando, 0 erros TypeScript

@@ -1002,10 +1002,10 @@ export const appRouter = router({
           }
         }
 
-        const { generateCadastroInteressePdf, mergeWithAttachments } = await import("./pdfGenerator");
+        const { generateFullPdf, mergeWithAttachments } = await import("./pdfGenerator");
 
-        // Generate the cadastro PDF
-        let pdfBytes = await generateCadastroInteressePdf({
+        // Generate the full PDF (Protocolo de Entrada + Ficha PF/PJ)
+        let pdfBytes = await generateFullPdf({
           tipo,
           answers,
           questions,
@@ -1055,7 +1055,7 @@ export const appRouter = router({
         // Convert to base64 for transport
         const base64 = Buffer.from(pdfBytes).toString("base64");
         const respondent = response.respondentName || "cadastro";
-        const filename = `Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
+        const filename = `Protocolo_Ficha_${tipo.toUpperCase()}_${respondent.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}.pdf`;
 
         return { base64, filename, tipo };
       }),
@@ -1086,9 +1086,9 @@ export const appRouter = router({
           }
         }
 
-        const { generateCadastroInteressePdf, mergeWithAttachments } = await import("./pdfGenerator");
+        const { generateFullPdf, mergeWithAttachments } = await import("./pdfGenerator");
 
-        let pdfBytes = await generateCadastroInteressePdf({
+        let pdfBytes = await generateFullPdf({
           tipo,
           answers,
           questions,
@@ -1135,7 +1135,7 @@ export const appRouter = router({
         const fileKey = `fichas/${tipo}_${safeName}_${randomSuffix}.pdf`;
         const { url } = await storagePut(fileKey, Buffer.from(pdfBytes), "application/pdf");
 
-        return { url, filename: `Ficha_${tipo.toUpperCase()}_${respondent}.pdf` };
+        return { url, filename: `Protocolo_Ficha_${tipo.toUpperCase()}_${respondent}.pdf` };
       }),
 
     myResponses: publicProcedure

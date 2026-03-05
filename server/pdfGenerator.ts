@@ -9,6 +9,7 @@ import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 // ─── CDN URLs for the original PDF templates ───
 const PF_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPF_TEMPLATE_55882937.pdf";
 const PJ_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPJ_856f110c.pdf";
+const PROTOCOLO_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/ProtocolodeentradaemBRANCO_581f4fb5.pdf";
 
 // ─── Types ───
 
@@ -474,11 +475,77 @@ async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
 // Main export
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// Protocolo de Entrada — Fill form fields in original template
+// ═══════════════════════════════════════════════════════════════
+
+async function generateProtocoloPdf(input: GeneratePdfInput): Promise<Uint8Array> {
+  const { answers } = input;
+
+  const templateBytes = await fetchPdfTemplate(PROTOCOLO_TEMPLATE_URL);
+  const doc = await PDFDocument.load(templateBytes);
+  const form = doc.getForm();
+
+  function setField(name: string, value: string) {
+    try {
+      const field = form.getTextField(name);
+      field.setText(String(value || ""));
+    } catch {
+      // Field doesn't exist, skip
+    }
+  }
+
+  if (input.tipo === "pj") {
+    // PJ: nome da empresa no campo Nome_Cliente, CNPJ no campo CPF
+    setField("Nome_Cliente", String(getById(answers, "q14_pj_nome_empresa") || ""));
+    setField("E-mail_Cliente", String(getById(answers, "q10_pj_email") || getById(answers, "q16_pj_email_comercial") || ""));
+    setField("CPF_Cliente", String(getById(answers, "q15_pj_cnpj") || ""));
+    setField("Celular_Cliente", String(getById(answers, "q9_pj_celular") || ""));
+  } else {
+    // PF: dados da pessoa física
+    setField("Nome_Cliente", String(getById(answers, "q23_pf_nome") || input.respondentName || ""));
+    setField("E-mail_Cliente", String(getById(answers, "q31_pf_email") || input.respondentEmail || ""));
+    setField("CPF_Cliente", String(getById(answers, "q24_pf_cpf") || ""));
+    setField("Celular_Cliente", String(getById(answers, "q30_pf_celular") || ""));
+  }
+
+  // Flatten to make non-editable
+  try {
+    form.flatten();
+  } catch {
+    // Skip if flatten fails
+  }
+
+  return await doc.save();
+}
+
 export async function generateCadastroInteressePdf(input: GeneratePdfInput): Promise<Uint8Array> {
   if (input.tipo === "pj") {
     return generatePjPdf(input);
   }
   return generatePfPdf(input);
+}
+
+/**
+ * Generate the full unified PDF: Protocolo de Entrada + Ficha PF/PJ.
+ * Attachments are merged separately by the caller.
+ */
+export async function generateFullPdf(input: GeneratePdfInput): Promise<Uint8Array> {
+  // 1. Generate Protocolo de Entrada
+  const protocoloBytes = await generateProtocoloPdf(input);
+
+  // 2. Generate Ficha PF or PJ
+  const fichaBytes = await generateCadastroInteressePdf(input);
+
+  // 3. Merge: Protocolo first, then Ficha
+  const finalDoc = await PDFDocument.load(protocoloBytes);
+  const fichaDoc = await PDFDocument.load(fichaBytes);
+  const fichaPages = await finalDoc.copyPages(fichaDoc, fichaDoc.getPageIndices());
+  for (const p of fichaPages) {
+    finalDoc.addPage(p);
+  }
+
+  return await finalDoc.save();
 }
 
 /**
