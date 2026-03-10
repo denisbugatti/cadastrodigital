@@ -248,7 +248,7 @@ const Nav = memo(({ onPreencher }: { onPreencher: () => void }) => {
     >
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/formflow-icon-neon-bold-v3-E4JXcTSBipMP9mHxqnqGeZ.webp" alt="Cadastro Digital" className="w-8 h-8" />
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/logo-final-96_4457caf3.png" alt="Cadastro Digital" className="w-8 h-8 rounded-lg" />
           <span className="text-white font-semibold text-sm tracking-wide">CADASTRO DIGITAL</span>
         </div>
         <div className="hidden md:flex items-center gap-8">
