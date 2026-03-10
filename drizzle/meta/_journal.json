@@ -169,6 +169,20 @@
       "when": 1772726529484,
       "tag": "0023_lying_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1773114148684,
+      "tag": "0024_mushy_nighthawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1773114404839,
+      "tag": "0025_easy_shiva",
+      "breakpoints": true
     }
   ]
 }

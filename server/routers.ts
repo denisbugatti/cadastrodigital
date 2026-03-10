@@ -891,6 +891,7 @@ export const appRouter = router({
           timeSpentSeconds: input.timeSpentSeconds ?? null,
           ipAddress: (ctx.req.headers["x-forwarded-for"] as string) ?? ctx.req.ip ?? null,
           userAgent: ctx.req.headers["user-agent"] ?? null,
+          lastActivityAt: new Date(),
         });
 
         // Always notify assigned staff (even for incomplete/partial responses)
@@ -1090,7 +1091,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        await db.updateResponse(id, data);
+        await db.updateResponse(id, { ...data, lastActivityAt: new Date() });
 
         // Notify owner when a partial response becomes complete
         if (input.isComplete === true) {

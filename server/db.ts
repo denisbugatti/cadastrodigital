@@ -2580,3 +2580,59 @@ export async function markAllStaffNotificationsRead(staffUserId: number) {
       );
   });
 }
+
+/**
+ * Get incomplete responses that have been inactive for more than `timeoutMinutes`.
+ * Only returns responses that haven't already been notified about abandonment.
+ */
+export async function getAbandonedResponses(timeoutMinutes: number = 8): Promise<{
+  id: number;
+  formId: number;
+  respondentName: string | null;
+  respondentEmail: string | null;
+  answers: Record<string, any>;
+  protocolCode: string | null;
+  formTitle: string;
+  lastActivityAt: Date | null;
+  createdAt: Date;
+}[]> {
+  const db = getDb();
+  const cutoff = new Date(Date.now() - timeoutMinutes * 60 * 1000);
+
+  const results = await db
+    .select({
+      id: formResponses.id,
+      formId: formResponses.formId,
+      respondentName: formResponses.respondentName,
+      respondentEmail: formResponses.respondentEmail,
+      answers: formResponses.answers,
+      protocolCode: formResponses.protocolCode,
+      formTitle: forms.title,
+      lastActivityAt: formResponses.lastActivityAt,
+      createdAt: formResponses.createdAt,
+    })
+    .from(formResponses)
+    .innerJoin(forms, eq(formResponses.formId, forms.id))
+    .where(
+      and(
+        eq(formResponses.isComplete, false),
+        isNull(formResponses.abandonmentNotifiedAt),
+        lte(formResponses.lastActivityAt, cutoff),
+        eq(forms.status, "published"),
+      )
+    )
+    .limit(50);
+
+  return results;
+}
+
+/**
+ * Mark a response as having sent the abandonment notification.
+ */
+export async function markAbandonmentNotified(responseId: number): Promise<void> {
+  const db = getDb();
+  await db
+    .update(formResponses)
+    .set({ abandonmentNotifiedAt: new Date() })
+    .where(eq(formResponses.id, responseId));
+}

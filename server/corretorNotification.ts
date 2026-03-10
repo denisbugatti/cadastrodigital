@@ -34,6 +34,8 @@ export interface CorretorNotificationParams {
   submittedAt: Date;
   /** Whether this is a partial (incomplete) response */
   isPartial?: boolean;
+  /** Whether the client abandoned the form (timeout) */
+  isAbandoned?: boolean;
   /** All answers mapped as question title → display value */
   answersDisplay?: Array<{ label: string; value: string; isFile?: boolean }>;
   /** Files attached to this response */
@@ -106,6 +108,7 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
     formTitle,
     submittedAt,
     isPartial,
+    isAbandoned,
     answersDisplay,
     fileAttachments,
   } = params;
@@ -129,9 +132,13 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
       <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #6366f1); padding: 12px 24px; border-radius: 12px; margin-bottom: 16px;">
         <span style="font-size: 28px;">&#128276;</span>
       </div>
-      <h1 style="color: #f1f5f9; font-size: 22px; font-weight: 700; margin: 8px 0 4px;">${isPartial ? "Nova Resposta Parcial" : "Novo Cadastro Recebido"}</h1>
+      <h1 style="color: #f1f5f9; font-size: 22px; font-weight: 700; margin: 8px 0 4px;">${isAbandoned ? "Formul\u00e1rio Abandonado" : isPartial ? "Nova Resposta Parcial" : "Novo Cadastro Recebido"}</h1>
       <p style="color: #94a3b8; font-size: 14px; margin: 0;">${escapeHtml(formTitle)}</p>
-      ${isPartial ? `<div style="display: inline-block; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); border-radius: 6px; padding: 4px 12px; margin-top: 10px;"><span style="color: #fbbf24; font-size: 12px; font-weight: 600;">&#9888; RESPOSTA PARCIAL</span></div>` : ""}
+      ${isAbandoned
+        ? `<div style="display: inline-block; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); border-radius: 6px; padding: 4px 12px; margin-top: 10px;"><span style="color: #f87171; font-size: 12px; font-weight: 600;">&#9888; CLIENTE ABANDONOU O FORMUL\u00c1RIO</span></div>`
+        : isPartial
+          ? `<div style="display: inline-block; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); border-radius: 6px; padding: 4px 12px; margin-top: 10px;"><span style="color: #fbbf24; font-size: 12px; font-weight: 600;">&#9888; RESPOSTA PARCIAL</span></div>`
+          : ""}
     </div>
 
     <!-- Greeting -->
@@ -140,9 +147,11 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
         Ol&aacute; <strong style="color: #ffffff;">${escapeHtml(corretorName)}</strong>,
       </p>
       <p style="color: #cbd5e1; font-size: 14px; margin: 0; line-height: 1.6;">
-        ${isPartial
-          ? "Uma resposta parcial foi recebida. O cliente ainda n&atilde;o completou o formul&aacute;rio, mas j&aacute; respondeu algumas perguntas."
-          : "Um novo cadastro foi recebido e atribu&iacute;do a voc&ecirc;. Confira os detalhes abaixo."}
+        ${isAbandoned
+          ? "O cliente iniciou o preenchimento do formul&aacute;rio mas <strong style='color:#f87171;'>abandonou ap&oacute;s 8 minutos sem atividade</strong>. Abaixo est&atilde;o as respostas que ele preencheu at&eacute; o momento. Recomendamos entrar em contato o quanto antes."
+          : isPartial
+            ? "Uma resposta parcial foi recebida. O cliente ainda n&atilde;o completou o formul&aacute;rio, mas j&aacute; respondeu algumas perguntas."
+            : "Um novo cadastro foi recebido e atribu&iacute;do a voc&ecirc;. Confira os detalhes abaixo."}
       </p>
     </div>
 
@@ -205,9 +214,11 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
     const { data, error } = await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [params.corretorEmail],
-      subject: params.isPartial
-        ? `Resposta parcial: ${params.protocolCode} — ${params.formTitle}`
-        : `Novo cadastro: ${params.protocolCode} — ${params.formTitle}`,
+      subject: params.isAbandoned
+        ? `⚠️ Formulário abandonado: ${params.respondentName ?? "Cliente"} — ${params.formTitle}`
+        : params.isPartial
+          ? `Resposta parcial: ${params.protocolCode} — ${params.formTitle}`
+          : `Novo cadastro: ${params.protocolCode} — ${params.formTitle}`,
       html: buildCorretorNotificationHtml(params),
     });
 
@@ -338,6 +349,7 @@ export async function notifyCorretoresNewSubmission(params: {
   questions?: any[];
   responseId?: number;
   isPartial?: boolean;
+  isAbandoned?: boolean;
 }): Promise<{ sent: number; failed: number }> {
   const db = await import("./db");
   
@@ -400,6 +412,7 @@ export async function notifyCorretoresNewSubmission(params: {
         formTitle: params.formTitle,
         submittedAt: new Date(),
         isPartial: params.isPartial,
+        isAbandoned: params.isAbandoned,
         answersDisplay,
         fileAttachments,
       });

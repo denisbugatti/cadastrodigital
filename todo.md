@@ -1309,3 +1309,7 @@
 - [x] Fix: inviterName no e-mail de convite mostra "owner" em vez do nome real — agora usa customSession.name (staff logado) com fallback para ctx.user.name
 - [x] Criar e-mail automático para corretor vinculado ao formulário quando nova resposta é submetida (com dados + links de arquivos)
 - [x] Enviar notificação por e-mail ao corretor também para respostas parciais (mesmo 1 pergunta respondida)
+- [x] Implementar detecção de abandono de formulário (timeout 8min sem atividade)
+  - [x] Campo lastActivityAt no schema (atualizado a cada submit/update)
+  - [x] Job no servidor que verifica abandonos a cada 2min
+  - [x] E-mail de abandono para o corretor com badge vermelho + respostas parciais do cliente

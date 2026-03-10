@@ -213,6 +213,10 @@ export const formResponses = mysqlTable("form_responses", {
   reviewNotes: text("reviewNotes"),
   /** When a follow-up email was sent for incomplete submissions */
   followUpSentAt: timestamp("followUpSentAt"),
+  /** Last heartbeat/activity from the respondent (updated on each answer or ping) */
+  lastActivityAt: timestamp("lastActivityAt").defaultNow(),
+  /** When the abandonment notification was sent to the corretor */
+  abandonmentNotifiedAt: timestamp("abandonmentNotifiedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -416,6 +420,7 @@ export const activityLog = mysqlTable("activity_log", {
     "rejection_email_sent",
     "approval_email_sent",
     "protocol_email_sent",
+    "abandonment_detected",
   ]).notNull(),
   /** Human-readable description */
   description: text("description"),

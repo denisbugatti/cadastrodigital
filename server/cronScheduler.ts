@@ -16,6 +16,7 @@ import {
 } from "./emailService";
 import { notifyOwner } from "./_core/notification";
 import { sendPushToUser, sendPushToStaffUser } from "./pushNotification";
+import { notifyCorretoresNewSubmission } from "./corretorNotification";
 
 /** How often to check (in ms). We check every 60 seconds. */
 const CHECK_INTERVAL_MS = 60 * 1000;
@@ -25,6 +26,9 @@ let lastEnrollDate = "";
 let lastProcessDate = "";
 let lastInactivityCheckDate = "";
 let lastWeeklySummaryDate = "";
+
+/** Track last abandonment check (runs every 2 minutes) */
+let lastAbandonmentCheckTime = 0;
 
 /**
  * Get the current site URL from environment or fallback.
@@ -367,6 +371,67 @@ async function tick(): Promise<void> {
     lastWeeklySummaryDate = now.toISOString().slice(0, 10);
     await runWeeklySummary();
   }
+
+  // Abandonment check runs every 2 minutes
+  const timeSinceLastAbandonmentCheck = now.getTime() - lastAbandonmentCheckTime;
+  if (timeSinceLastAbandonmentCheck >= 2 * 60 * 1000) {
+    lastAbandonmentCheckTime = now.getTime();
+    await runAbandonmentCheck();
+  }
+}
+
+/**
+ * Abandonment check — runs every 2 minutes.
+ * Finds incomplete responses with no activity for 8+ minutes and notifies the corretor.
+ */
+async function runAbandonmentCheck(): Promise<void> {
+  try {
+    const abandoned = await db.getAbandonedResponses(8); // 8 minutes timeout
+    if (abandoned.length === 0) return;
+
+    console.log(`[Cron] Found ${abandoned.length} abandoned response(s). Notifying corretores...`);
+
+    for (const resp of abandoned) {
+      try {
+        // Get the form to access questions
+        const form = await db.getFormById(resp.formId);
+        const questions: any[] = form?.questions ?? [];
+
+        // Send abandonment notification to corretores
+        const result = await notifyCorretoresNewSubmission({
+          formId: resp.formId,
+          protocolCode: resp.protocolCode ?? `ABANDONO-${resp.id}`,
+          formTitle: resp.formTitle,
+          respondentName: resp.respondentName ?? undefined,
+          respondentEmail: resp.respondentEmail ?? undefined,
+          answers: resp.answers,
+          questions,
+          responseId: resp.id,
+          isPartial: true,
+          isAbandoned: true,
+        });
+
+        // Mark as notified so we don't send again
+        await db.markAbandonmentNotified(resp.id);
+
+        if (result.sent > 0) {
+          console.log(`[Cron] Abandonment notification sent for response #${resp.id} (${resp.respondentName ?? "An\u00f4nimo"}) to ${result.sent} corretor(es)`);
+
+          // Log activity
+          db.logActivity({
+            responseId: resp.id,
+            formId: resp.formId,
+            activityType: "abandonment_detected",
+            description: `Cliente ${resp.respondentName ?? resp.respondentEmail ?? "An\u00f4nimo"} abandonou o formul\u00e1rio ap\u00f3s 8 min de inatividade. Corretor notificado.`,
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn(`[Cron] Failed to process abandonment for response #${resp.id}:`, (err as Error)?.message?.substring(0, 100));
+      }
+    }
+  } catch (err) {
+    console.error("[Cron] Abandonment check error:", (err as Error).message);
+  }
 }
 
 /**
@@ -375,7 +440,7 @@ async function tick(): Promise<void> {
  */
 export function startCronScheduler(): void {
   console.log(
-    "[Cron] Scheduler started. Enrollment: daily at 9am BRT. Processing: Mon/Wed/Fri at 9am BRT. Inactivity check: daily at 10am BRT. Weekly summary: Mon at 9am BRT."
+    "[Cron] Scheduler started. Enrollment: daily at 9am BRT. Processing: Mon/Wed/Fri at 9am BRT. Inactivity check: daily at 10am BRT. Weekly summary: Mon at 9am BRT. Abandonment check: every 2 min."
   );
 
   // Run the tick every minute
