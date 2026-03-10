@@ -617,17 +617,73 @@ export default function ResponseValidation() {
                 </a>
               );
             } else {
-              const answerStr = typeof parsedAnswer === "object"
-                ? Array.isArray(parsedAnswer)
-                  ? parsedAnswer.join(", ")
-                  : Object.entries(parsedAnswer as any).map(([k, v]) => `${k}: ${v}`).join(" | ")
-                : String(parsedAnswer ?? "");
+              // Format structured objects (address, etc.) nicely
+              let formattedContent: React.ReactNode;
 
-              displayContent = (
-                <div className="rounded-lg bg-secondary/40 border border-border/30 px-3 py-2.5">
+              if (typeof parsedAnswer === "object" && !Array.isArray(parsedAnswer) && parsedAnswer !== null) {
+                const obj = parsedAnswer as Record<string, any>;
+
+                // Detect address-like objects
+                const isAddress = obj.cep || obj.street || obj.city || obj.state || obj.neighborhood;
+                if (isAddress) {
+                  const parts: string[] = [];
+                  if (obj.street) {
+                    let line = obj.street;
+                    if (obj.number) line += `, ${obj.number}`;
+                    if (obj.complement) line += ` — ${obj.complement}`;
+                    parts.push(line);
+                  }
+                  if (obj.neighborhood) parts.push(obj.neighborhood);
+                  const cityState = [obj.city, obj.state].filter(Boolean).join("/");
+                  if (cityState) parts.push(cityState);
+                  if (obj.cep) parts.push(`CEP ${obj.cep}`);
+
+                  formattedContent = (
+                    <div className="space-y-1">
+                      {parts.map((part, i) => (
+                        <p key={i} className="text-[13px] text-foreground/90 font-body leading-relaxed">
+                          {i === 0 ? <span className="font-semibold">{part}</span> : part}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                } else {
+                  // Generic object: render as label/value pairs
+                  const labelMap: Record<string, string> = {
+                    name: "Nome", email: "E-mail", phone: "Telefone", cpf: "CPF", cnpj: "CNPJ",
+                    street: "Rua", number: "Número", complement: "Complemento",
+                    neighborhood: "Bairro", city: "Cidade", state: "Estado", cep: "CEP",
+                    country: "País", zip: "CEP", zipCode: "CEP",
+                  };
+                  formattedContent = (
+                    <div className="space-y-1">
+                      {Object.entries(obj).filter(([, v]) => v !== null && v !== undefined && v !== "").map(([k, v]) => (
+                        <div key={k} className="flex items-baseline gap-2">
+                          <span className="text-[11px] text-muted-foreground shrink-0 min-w-[70px]">
+                            {labelMap[k] || k}
+                          </span>
+                          <span className="text-[13px] text-foreground/90 font-body font-medium">
+                            {String(v)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+              } else {
+                const answerStr = Array.isArray(parsedAnswer)
+                  ? parsedAnswer.join(", ")
+                  : String(parsedAnswer ?? "");
+                formattedContent = (
                   <p className="text-[13px] text-foreground/90 font-body leading-relaxed break-words">
                     {answerStr || <span className="text-muted-foreground italic text-xs">Sem resposta</span>}
                   </p>
+                );
+              }
+
+              displayContent = (
+                <div className="rounded-lg bg-secondary/40 border border-border/30 px-3 py-2.5">
+                  {formattedContent}
                 </div>
               );
             }
