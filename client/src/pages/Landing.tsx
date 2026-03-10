@@ -248,9 +248,7 @@ const Nav = memo(({ onPreencher }: { onPreencher: () => void }) => {
     >
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#70BEFA] to-[#3b82f6] flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/favicon-neon-96_e4eccc90.png" alt="Cadastro Digital" className="w-8 h-8 rounded-lg" />
           <span className="text-white font-semibold text-sm tracking-wide">CADASTRO DIGITAL</span>
         </div>
         <div className="hidden md:flex items-center gap-8">

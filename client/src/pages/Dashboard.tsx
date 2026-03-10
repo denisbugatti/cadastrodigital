@@ -687,12 +687,7 @@ export default function Dashboard() {
               <Menu size={20} />
             </button>
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand flex items-center justify-center brand-shadow">
-                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                  <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
-                </svg>
-              </div>
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/favicon-neon-96_e4eccc90.png" alt="Cadastro Digital" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl" />
               <span className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight hidden sm:inline">Cadastro Digital</span>
             </Link>
           </div>

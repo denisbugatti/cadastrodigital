@@ -117,9 +117,7 @@ export default function Login() {
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 mb-4">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/favicon-neon-192_7d61fdab.png" alt="Cadastro Digital" className="w-16 h-16 rounded-2xl mb-4 mx-auto" />
             <h1 className="text-2xl font-bold text-white">Cadastro Digital</h1>
             <p className="text-slate-400 text-sm mt-1">Plataforma segura protegida pela LGPD</p>
           </div>
