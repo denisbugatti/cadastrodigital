@@ -687,7 +687,7 @@ export default function Dashboard() {
               <Menu size={20} />
             </button>
             <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
-              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/favicon-neon-96_e4eccc90.png" alt="Cadastro Digital" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl" />
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/formflow-icon-neon-bold-v3-E4JXcTSBipMP9mHxqnqGeZ.webp" alt="Cadastro Digital" className="w-8 h-8 sm:w-9 sm:h-9" />
               <span className="font-display text-lg sm:text-xl font-bold text-foreground tracking-tight hidden sm:inline">Cadastro Digital</span>
             </Link>
           </div>
