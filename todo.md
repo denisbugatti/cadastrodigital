@@ -1321,3 +1321,4 @@
 - [x] Verificar: Os 2 formulários vinculados ao Rogério são idênticos (mesmas perguntas do template)? SIM - todos 3 formulários têm exatamente as mesmas 52 perguntas
 - [x] Bug: Arquivos/fotos na tela de validação do corretor exibem JSON bruto em vez de preview de imagem ou link clicável (corrigido: detecção de tipo file-upload + parsing automático de JSON de arquivo)
 - [x] Bug: Endereço na tela de validação exibe JSON bruto em vez de formato legível (corrigido: formatação inteligente de endereços e objetos estruturados)
+- [x] Adicionar lightbox/zoom — ao clicar na imagem na tela de validação, abrir em tela cheia para facilitar a validação de documentos

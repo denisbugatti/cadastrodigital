@@ -24,6 +24,7 @@ import {
   Download, Loader2, AlertTriangle, MessageSquare,
   Shield, User, Mail, Phone, Calendar, ShieldCheck,
   Lock, Image as ImageIcon, ExternalLink, Eye, FileDown, Share2,
+  X, ZoomIn, ZoomOut, RotateCw, Maximize2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -123,6 +124,9 @@ export default function ResponseValidation() {
   const [pdfFilename, setPdfFilename] = useState("ficha.pdf");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [lightboxRotation, setLightboxRotation] = useState(0);
   const pdfCacheRef = useRef<Map<number, { url: string; filename: string }>>(new Map());
   const bottomBarRef = useRef<HTMLDivElement>(null);
 
@@ -570,14 +574,17 @@ export default function ResponseValidation() {
             if (isFile && typeof parsedAnswer === "string" && parsedAnswer.startsWith("http")) {
               const isImage = parsedAnswer.match(/\.(jpg|jpeg|png|gif|webp)$/i);
               displayContent = isImage ? (
-                <a href={parsedAnswer} target="_blank" rel="noopener noreferrer" className="block group">
+                <button
+                  onClick={() => { setLightboxImage({ url: parsedAnswer, alt: question?.title || "Documento" }); setLightboxZoom(1); setLightboxRotation(0); }}
+                  className="block group cursor-zoom-in text-left"
+                >
                   <div className="relative rounded-lg overflow-hidden border border-border/50 max-w-[280px]">
                     <img src={parsedAnswer} alt="Documento" className="w-full h-auto" loading="lazy" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <Eye className="w-5 h-5 text-white drop-shadow-lg" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Maximize2 className="w-5 h-5 text-white drop-shadow-lg" />
                     </div>
                   </div>
-                </a>
+                </button>
               ) : (
                 <a
                   href={parsedAnswer}
@@ -596,14 +603,17 @@ export default function ResponseValidation() {
               const mimeType = (parsedAnswer as any).mimeType || "";
               const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || mimeType.startsWith("image/");
               displayContent = isImage ? (
-                <a href={url} target="_blank" rel="noopener noreferrer" className="block group">
+                <button
+                  onClick={() => { setLightboxImage({ url, alt: filename }); setLightboxZoom(1); setLightboxRotation(0); }}
+                  className="block group cursor-zoom-in text-left"
+                >
                   <div className="relative rounded-lg overflow-hidden border border-border/50 max-w-[280px]">
                     <img src={url} alt={filename} className="w-full h-auto" loading="lazy" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <Eye className="w-5 h-5 text-white drop-shadow-lg" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Maximize2 className="w-5 h-5 text-white drop-shadow-lg" />
                     </div>
                   </div>
-                </a>
+                </button>
               ) : (
                 <a
                   href={url}
@@ -1021,6 +1031,97 @@ export default function ResponseValidation() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Image Lightbox ─── */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col"
+            onClick={() => setLightboxImage(null)}
+          >
+            {/* Lightbox toolbar */}
+            <div
+              className="flex items-center justify-between px-4 py-3 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-sm text-white/80 font-medium truncate max-w-[50%]">
+                {lightboxImage.alt}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setLightboxZoom((z) => Math.max(0.5, z - 0.25))}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                  title="Diminuir zoom"
+                >
+                  <ZoomOut className="w-4.5 h-4.5" />
+                </button>
+                <span className="text-xs text-white/60 font-mono min-w-[40px] text-center">
+                  {Math.round(lightboxZoom * 100)}%
+                </span>
+                <button
+                  onClick={() => setLightboxZoom((z) => Math.min(4, z + 0.25))}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                  title="Aumentar zoom"
+                >
+                  <ZoomIn className="w-4.5 h-4.5" />
+                </button>
+                <button
+                  onClick={() => setLightboxRotation((r) => r + 90)}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                  title="Girar"
+                >
+                  <RotateCw className="w-4.5 h-4.5" />
+                </button>
+                <a
+                  href={lightboxImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                  title="Abrir original"
+                >
+                  <ExternalLink className="w-4.5 h-4.5" />
+                </a>
+                <button
+                  onClick={() => setLightboxImage(null)}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all ml-2"
+                  title="Fechar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Lightbox image */}
+            <div
+              className="flex-1 flex items-center justify-center overflow-auto p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setLightboxImage(null);
+              }}
+            >
+              <motion.img
+                key={lightboxImage.url}
+                src={lightboxImage.url}
+                alt={lightboxImage.alt}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{
+                  scale: lightboxZoom,
+                  opacity: 1,
+                  rotate: lightboxRotation,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default"
+                onClick={(e) => e.stopPropagation()}
+                draggable={false}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
