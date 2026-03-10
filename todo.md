@@ -1314,3 +1314,4 @@
   - [x] Job no servidor que verifica abandonos a cada 2min
   - [x] E-mail de abandono para o corretor com badge vermelho + respostas parciais do cliente
 - [x] Bug: Login mostra "login realizado com sucesso" mas não entra no sistema — cache do customAuth.me invalidado antes do navigate
+- [x] Criar logo em formato de ícone de aplicativo (app icon) — neon glow document+checkmark aplicado em favicon, PWA manifest e splash screen
