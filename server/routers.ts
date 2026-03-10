@@ -920,7 +920,7 @@ export const appRouter = router({
             });
           }
 
-          // Notify corretores via email (old system, only for complete responses)
+          // Notify corretores via email with full response data + file links
           if (isComplete && result.protocolCode) {
             const questions: any[] = form?.questions ?? [];
             notifyCorretoresNewSubmission({
@@ -931,6 +931,7 @@ export const appRouter = router({
               respondentEmail: input.respondentEmail ?? undefined,
               answers: input.answers,
               questions,
+              responseId: result.id,
             }).catch((err) => {
               console.warn("[CorretorNotification] Failed:", (err as Error)?.message?.substring(0, 100));
             });

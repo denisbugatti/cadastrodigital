@@ -1,5 +1,7 @@
 /**
  * Corretor Notification Service — One Innovation Design
+ * Sends email to corretor when a new response is submitted on their form.
+ * Includes: all answers (question → response) + file attachment links.
  * Uses inline HTML with dark background + white text for guaranteed visibility.
  */
 
@@ -30,6 +32,66 @@ export interface CorretorNotificationParams {
   protocolCode: string;
   formTitle: string;
   submittedAt: Date;
+  /** All answers mapped as question title → display value */
+  answersDisplay?: Array<{ label: string; value: string; isFile?: boolean }>;
+  /** Files attached to this response */
+  fileAttachments?: Array<{ filename: string; url: string; mimeType?: string }>;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildAnswerRows(answers: Array<{ label: string; value: string; isFile?: boolean }>): string {
+  if (!answers || answers.length === 0) return "";
+
+  const rows = answers.map((a) => {
+    const displayValue = a.isFile
+      ? `<a href="${escapeHtml(a.value)}" target="_blank" style="color: #60a5fa; text-decoration: underline; font-size: 13px;">Ver arquivo</a>`
+      : `<span style="color: #f1f5f9; font-size: 13px; word-break: break-word;">${escapeHtml(a.value)}</span>`;
+
+    return `
+      <tr>
+        <td style="padding: 10px 16px; color: #94a3b8; font-size: 12px; border-bottom: 1px solid #1e293b; vertical-align: top; width: 35%;">${escapeHtml(a.label)}</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #1e293b; vertical-align: top;">${displayValue}</td>
+      </tr>`;
+  }).join("");
+
+  return `
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+      <h2 style="color: #f1f5f9; font-size: 15px; font-weight: 600; margin: 0 0 16px;">Respostas do Formulário</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+        ${rows}
+      </table>
+    </div>`;
+}
+
+function buildFileSection(files: Array<{ filename: string; url: string; mimeType?: string }>): string {
+  if (!files || files.length === 0) return "";
+
+  const fileRows = files.map((f) => {
+    const isImage = f.mimeType?.startsWith("image/");
+    const icon = isImage ? "🖼️" : "📎";
+    return `
+      <tr>
+        <td style="padding: 8px 16px; border-bottom: 1px solid #1e293b;">
+          <span style="font-size: 16px; margin-right: 8px;">${icon}</span>
+          <a href="${escapeHtml(f.url)}" target="_blank" style="color: #60a5fa; font-size: 13px; text-decoration: underline; word-break: break-all;">${escapeHtml(f.filename)}</a>
+        </td>
+      </tr>`;
+  }).join("");
+
+  return `
+    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+      <h2 style="color: #f1f5f9; font-size: 15px; font-weight: 600; margin: 0 0 16px;">📁 Arquivos Anexados (${files.length})</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+        ${fileRows}
+      </table>
+    </div>`;
 }
 
 function buildCorretorNotificationHtml(params: CorretorNotificationParams): string {
@@ -41,6 +103,8 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
     protocolCode,
     formTitle,
     submittedAt,
+    answersDisplay,
+    fileAttachments,
   } = params;
 
   const dateStr = submittedAt.toLocaleDateString("pt-BR", {
@@ -63,16 +127,16 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
         <span style="font-size: 28px;">&#128276;</span>
       </div>
       <h1 style="color: #f1f5f9; font-size: 22px; font-weight: 700; margin: 8px 0 4px;">Novo Cadastro Recebido</h1>
-      <p style="color: #94a3b8; font-size: 14px; margin: 0;">${formTitle}</p>
+      <p style="color: #94a3b8; font-size: 14px; margin: 0;">${escapeHtml(formTitle)}</p>
     </div>
 
     <!-- Greeting -->
     <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
       <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Ol&aacute; <strong style="color: #ffffff;">${corretorName}</strong>,
+        Ol&aacute; <strong style="color: #ffffff;">${escapeHtml(corretorName)}</strong>,
       </p>
       <p style="color: #cbd5e1; font-size: 14px; margin: 0; line-height: 1.6;">
-        Um novo cadastro foi recebido e atribu&iacute;do a voc&ecirc;.
+        Um novo cadastro foi recebido e atribu&iacute;do a voc&ecirc;. Confira os detalhes abaixo.
       </p>
     </div>
 
@@ -80,25 +144,25 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
     <div style="text-align: center; margin: 24px 0;">
       <div style="display: inline-block; background: rgba(59,130,246,0.15); border: 1.5px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 16px 32px;">
         <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px;">Protocolo</p>
-        <span style="color: #60a5fa; font-size: 22px; font-weight: 700; letter-spacing: 0.15em; font-family: monospace;">${protocolCode}</span>
+        <span style="color: #60a5fa; font-size: 22px; font-weight: 700; letter-spacing: 0.15em; font-family: monospace;">${escapeHtml(protocolCode)}</span>
       </div>
     </div>
 
-    <!-- Client Details -->
+    <!-- Client Summary -->
     <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
       <h2 style="color: #f1f5f9; font-size: 15px; font-weight: 600; margin: 0 0 16px;">Dados do Cliente</h2>
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding: 10px 0; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">Nome</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${respondentName || "N&atilde;o informado"}</td>
+          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${escapeHtml(respondentName || "Não informado")}</td>
         </tr>
         <tr>
           <td style="padding: 10px 0; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">E-mail</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${respondentEmail || "N&atilde;o informado"}</td>
+          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${escapeHtml(respondentEmail || "Não informado")}</td>
         </tr>
         <tr>
           <td style="padding: 10px 0; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">Telefone</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${respondentPhone || "N&atilde;o informado"}</td>
+          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${escapeHtml(respondentPhone || "Não informado")}</td>
         </tr>
         <tr>
           <td style="padding: 10px 0; color: #94a3b8; font-size: 13px;">Data</td>
@@ -106,6 +170,12 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
         </tr>
       </table>
     </div>
+
+    <!-- All Answers -->
+    ${buildAnswerRows(answersDisplay ?? [])}
+
+    <!-- File Attachments -->
+    ${buildFileSection(fileAttachments ?? [])}
 
     <p style="color: #94a3b8; font-size: 13px; text-align: center; line-height: 1.5;">
       Acesse o painel para validar este cadastro.
@@ -146,7 +216,109 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
 }
 
 /**
+ * Parse answers from the response and map them to question titles.
+ * Also extracts file upload URLs.
+ */
+function buildAnswersDisplay(
+  answers: Record<string, any>,
+  questions: any[]
+): { answersDisplay: Array<{ label: string; value: string; isFile?: boolean }>; fileUrls: Array<{ filename: string; url: string; mimeType?: string }> } {
+  const answersDisplay: Array<{ label: string; value: string; isFile?: boolean }> = [];
+  const fileUrls: Array<{ filename: string; url: string; mimeType?: string }> = [];
+
+  // Skip non-content question types
+  const skipTypes = new Set(["welcome", "thank-you", "statement"]);
+
+  for (const q of questions) {
+    if (skipTypes.has(q.type)) continue;
+
+    const answer = answers[q.id];
+    if (answer === undefined || answer === null || answer === "") continue;
+
+    const label = q.title || q.id;
+
+    // Handle file-upload type
+    if (q.type === "file-upload") {
+      try {
+        const fileData = typeof answer === "string" ? JSON.parse(answer) : answer;
+        if (fileData && fileData.url) {
+          answersDisplay.push({
+            label,
+            value: fileData.url,
+            isFile: true,
+          });
+          fileUrls.push({
+            filename: fileData.filename || "arquivo",
+            url: fileData.url,
+            mimeType: fileData.mimeType,
+          });
+        } else {
+          answersDisplay.push({ label, value: String(answer) });
+        }
+      } catch {
+        answersDisplay.push({ label, value: String(answer) });
+      }
+      continue;
+    }
+
+    // Handle address type (object)
+    if (q.type === "address" && typeof answer === "object") {
+      const parts = [answer.street, answer.number, answer.complement, answer.neighborhood, answer.city, answer.state, answer.cep]
+        .filter(Boolean);
+      answersDisplay.push({ label, value: parts.join(", ") || JSON.stringify(answer) });
+      continue;
+    }
+
+    // Handle matrix type (object of row→column)
+    if (q.type === "matrix" && typeof answer === "object" && !Array.isArray(answer)) {
+      const matrixStr = Object.entries(answer)
+        .map(([row, col]) => `${row}: ${col}`)
+        .join("; ");
+      answersDisplay.push({ label, value: matrixStr || "—" });
+      continue;
+    }
+
+    // Handle ranking (array)
+    if (q.type === "ranking" && Array.isArray(answer)) {
+      answersDisplay.push({ label, value: answer.join(" → ") });
+      continue;
+    }
+
+    // Handle multiple-select (array)
+    if (Array.isArray(answer)) {
+      answersDisplay.push({ label, value: answer.join(", ") });
+      continue;
+    }
+
+    // Handle choice-based questions — map choice ID to label
+    if (q.choices && typeof answer === "string") {
+      const choice = q.choices.find((c: any) => c.id === answer);
+      answersDisplay.push({ label, value: choice?.label || answer });
+      continue;
+    }
+
+    // Handle yes-no
+    if (q.type === "yes-no") {
+      answersDisplay.push({ label, value: answer === true || answer === "true" ? "Sim" : "Não" });
+      continue;
+    }
+
+    // Handle checkbox
+    if (q.type === "checkbox") {
+      answersDisplay.push({ label, value: answer === true || answer === "true" ? "Aceito" : "Não aceito" });
+      continue;
+    }
+
+    // Default: stringify
+    answersDisplay.push({ label, value: String(answer) });
+  }
+
+  return { answersDisplay, fileUrls };
+}
+
+/**
  * Notify all active corretores assigned to a form about a new submission.
+ * Now includes full response data and file links.
  */
 export async function notifyCorretoresNewSubmission(params: {
   formId: number;
@@ -156,6 +328,7 @@ export async function notifyCorretoresNewSubmission(params: {
   respondentEmail?: string;
   answers?: Record<string, any>;
   questions?: any[];
+  responseId?: number;
 }): Promise<{ sent: number; failed: number }> {
   const db = await import("./db");
   
@@ -164,13 +337,42 @@ export async function notifyCorretoresNewSubmission(params: {
     return { sent: 0, failed: 0 };
   }
 
+  // Build structured answers display and extract file URLs
+  let answersDisplay: Array<{ label: string; value: string; isFile?: boolean }> = [];
+  let fileAttachments: Array<{ filename: string; url: string; mimeType?: string }> = [];
   let respondentPhone: string | undefined;
+
   if (params.answers && params.questions) {
+    const parsed = buildAnswersDisplay(params.answers, params.questions);
+    answersDisplay = parsed.answersDisplay;
+    fileAttachments = parsed.fileUrls;
+
+    // Extract phone from answers
     for (const q of params.questions) {
       if (/telefone|celular|whatsapp|phone/i.test(q.title) && params.answers[q.id]) {
         respondentPhone = String(params.answers[q.id]);
         break;
       }
+    }
+  }
+
+  // Also get files from the database (files table) for this response
+  if (params.responseId) {
+    try {
+      const dbFiles = await db.getFilesByResponse(params.responseId);
+      for (const f of dbFiles) {
+        // Avoid duplicates (file might already be in answersDisplay from the answer JSON)
+        const alreadyIncluded = fileAttachments.some((fa) => fa.url === f.url);
+        if (!alreadyIncluded) {
+          fileAttachments.push({
+            filename: f.filename,
+            url: f.url,
+            mimeType: f.mimeType ?? undefined,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[CorretorNotification] Failed to fetch files from DB:", (err as Error)?.message?.substring(0, 80));
     }
   }
 
@@ -188,6 +390,8 @@ export async function notifyCorretoresNewSubmission(params: {
         protocolCode: params.protocolCode,
         formTitle: params.formTitle,
         submittedAt: new Date(),
+        answersDisplay,
+        fileAttachments,
       });
       if (success) sent++;
       else failed++;
