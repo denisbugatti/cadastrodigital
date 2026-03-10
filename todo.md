@@ -1326,3 +1326,4 @@
 - [x] Botão de download direto no lightbox para salvar imagem no dispositivo
 - [x] Notificações no web app para novas respostas recebidas nos formulários (StaffNotificationsPanel integrado no sidebar desktop e header mobile)
 - [x] Bug: Endereço aparece como JSON bruto na tela de validação e no e-mail (corrigido: parse de JSON string + formatação legível em ambos)
+- [x] Aplicar Variação 4 como favicon do web app e logo do sistema
