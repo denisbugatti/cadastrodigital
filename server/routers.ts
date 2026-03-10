@@ -921,17 +921,19 @@ export const appRouter = router({
           }
 
           // Notify corretores via email with full response data + file links
-          if (isComplete && result.protocolCode) {
+          // Fires for ALL responses (complete and partial) so corretor can follow up immediately
+          {
             const questions: any[] = form?.questions ?? [];
             notifyCorretoresNewSubmission({
               formId: input.formId,
-              protocolCode: result.protocolCode,
+              protocolCode: result.protocolCode ?? `PARCIAL-${result.id}`,
               formTitle,
               respondentName: input.respondentName ?? undefined,
               respondentEmail: input.respondentEmail ?? undefined,
               answers: input.answers,
               questions,
               responseId: result.id,
+              isPartial: !isComplete,
             }).catch((err) => {
               console.warn("[CorretorNotification] Failed:", (err as Error)?.message?.substring(0, 100));
             });

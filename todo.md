@@ -1308,3 +1308,4 @@
 - [x] Converter e-mails de Resend Templates para HTML inline com texto branco visível
 - [x] Fix: inviterName no e-mail de convite mostra "owner" em vez do nome real — agora usa customSession.name (staff logado) com fallback para ctx.user.name
 - [x] Criar e-mail automático para corretor vinculado ao formulário quando nova resposta é submetida (com dados + links de arquivos)
+- [x] Enviar notificação por e-mail ao corretor também para respostas parciais (mesmo 1 pergunta respondida)
