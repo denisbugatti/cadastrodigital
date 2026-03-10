@@ -352,11 +352,52 @@ export async function notifyCorretoresNewSubmission(params: {
   isAbandoned?: boolean;
 }): Promise<{ sent: number; failed: number }> {
   const db = await import("./db");
+  const staffDb = await import("./staffDb");
   
-  const activeCorretores = await db.getActiveCorretoresByForm(params.formId);
-  if (activeCorretores.length === 0) {
+  // 1. Legacy: get corretores from form_corretores table
+  const legacyCorretores = await db.getActiveCorretoresByForm(params.formId);
+
+  // 2. New: get staff users from form_assignments table
+  const assignments = await db.getFormAssignments(params.formId);
+  const staffRecipients: Array<{ name: string; email: string }> = [];
+  
+  for (const assignment of assignments) {
+    try {
+      const staffUser = await staffDb.getStaffUserById(assignment.staffUserId);
+      if (staffUser && staffUser.active && staffUser.email) {
+        staffRecipients.push({ name: staffUser.name, email: staffUser.email });
+      }
+    } catch (err) {
+      console.warn(`[CorretorNotification] Failed to fetch staff user ${assignment.staffUserId}:`, (err as Error)?.message?.substring(0, 80));
+    }
+  }
+
+  // 3. Merge both lists, deduplicate by email
+  const allRecipients: Array<{ name: string; email: string }> = [];
+  const seenEmails = new Set<string>();
+
+  for (const c of legacyCorretores) {
+    const email = c.email?.toLowerCase();
+    if (email && !seenEmails.has(email)) {
+      seenEmails.add(email);
+      allRecipients.push({ name: c.name, email: c.email });
+    }
+  }
+
+  for (const s of staffRecipients) {
+    const email = s.email?.toLowerCase();
+    if (email && !seenEmails.has(email)) {
+      seenEmails.add(email);
+      allRecipients.push({ name: s.name, email: s.email });
+    }
+  }
+
+  if (allRecipients.length === 0) {
+    console.log(`[CorretorNotification] No recipients found for form ${params.formId} (legacy: ${legacyCorretores.length}, assignments: ${assignments.length})`);
     return { sent: 0, failed: 0 };
   }
+
+  console.log(`[CorretorNotification] Found ${allRecipients.length} recipient(s) for form ${params.formId}: ${allRecipients.map(r => r.email).join(", ")}`);
 
   // Build structured answers display and extract file URLs
   let answersDisplay: Array<{ label: string; value: string; isFile?: boolean }> = [];
@@ -400,11 +441,11 @@ export async function notifyCorretoresNewSubmission(params: {
   let sent = 0;
   let failed = 0;
 
-  for (const corretor of activeCorretores) {
+  for (const recipient of allRecipients) {
     try {
       const success = await sendCorretorNotification({
-        corretorName: corretor.name,
-        corretorEmail: corretor.email,
+        corretorName: recipient.name,
+        corretorEmail: recipient.email,
         respondentName: params.respondentName,
         respondentEmail: params.respondentEmail,
         respondentPhone,
@@ -419,11 +460,11 @@ export async function notifyCorretoresNewSubmission(params: {
       if (success) sent++;
       else failed++;
     } catch (err) {
-      console.warn(`[CorretorNotification] Failed for ${corretor.email}:`, (err as Error)?.message?.substring(0, 80));
+      console.warn(`[CorretorNotification] Failed for ${recipient.email}:`, (err as Error)?.message?.substring(0, 80));
       failed++;
     }
   }
 
-  console.log(`[CorretorNotification] Notified ${sent}/${activeCorretores.length} corretores for form ${params.formId}`);
+  console.log(`[CorretorNotification] Notified ${sent}/${allRecipients.length} corretores for form ${params.formId}`);
   return { sent, failed };
 }

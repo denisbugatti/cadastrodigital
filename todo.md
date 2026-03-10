@@ -1317,3 +1317,5 @@
 - [x] Criar logo em formato de ícone de aplicativo (app icon) — neon glow document+checkmark aplicado em favicon, PWA manifest e splash screen
 - [x] Usar ícone neon glow (documento + checkmark azul neon sobre fundo dark) como ícone do web app
 - [x] Atualizar logo no header (landing + dashboard + login) para ícone neon glow — sem mexer nos formulários
+- [x] Bug: Corretor Rogério não recebe e-mail de notificação quando respostas são submetidas nos formulários vinculados a ele (corrigido: notifyCorretoresNewSubmission agora busca staff users via form_assignments além do legado form_corretores)
+- [x] Verificar: Os 2 formulários vinculados ao Rogério são idênticos (mesmas perguntas do template)? SIM - todos 3 formulários têm exatamente as mesmas 52 perguntas

@@ -1,0 +1,17 @@
+{
+  "query": "\n-- 1. Find Rogério in staff_users\nSELECT id, name, email, role, active FROM staff_users WHERE name LIKE '%oger%' OR name LIKE '%Roger%';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute \n-- 1. Find Rogério in staff_users\nSELECT id, name, email, role, active FROM staff_users WHERE name LIKE '%oger%' OR name LIKE '%Roger%';\n",
+  "rows": [
+    {
+      "id": "210002",
+      "name": "Rogerio",
+      "email": "rogerio@nexoneinnovation.com.br",
+      "role": "corretor",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tactive\n210002\tRogerio\trogerio@nexoneinnovation.com.br\tcorretor\t1\n",
+  "stderr": "",
+  "execution_time_ms": 587
+}
