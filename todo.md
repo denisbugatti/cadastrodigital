@@ -1319,3 +1319,4 @@
 - [x] Atualizar logo no header (landing + dashboard + login) para ícone neon glow — sem mexer nos formulários
 - [x] Bug: Corretor Rogério não recebe e-mail de notificação quando respostas são submetidas nos formulários vinculados a ele (corrigido: notifyCorretoresNewSubmission agora busca staff users via form_assignments além do legado form_corretores)
 - [x] Verificar: Os 2 formulários vinculados ao Rogério são idênticos (mesmas perguntas do template)? SIM - todos 3 formulários têm exatamente as mesmas 52 perguntas
+- [x] Bug: Arquivos/fotos na tela de validação do corretor exibem JSON bruto em vez de preview de imagem ou link clicável (corrigido: detecção de tipo file-upload + parsing automático de JSON de arquivo)

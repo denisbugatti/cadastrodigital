@@ -547,18 +547,32 @@ export default function ResponseValidation() {
             const question = questionMap[questionId];
             const validation = validationMap[questionId];
             const status = validation?.status || "pending";
-            const isFile = question?.type === "file" || question?.type === "image";
+            const isFileType = question?.type === "file" || question?.type === "image" || question?.type === "file-upload";
+            // Also detect file-like JSON answers in non-file fields
+            const isFileAnswer = !isFileType && typeof answer === "string" && answer.startsWith("{") && answer.includes('"url"') && answer.includes('"filename"');
+            const isFile = isFileType || isFileAnswer;
             const isPending = status === "pending";
+
+            // Parse file answer if it's a JSON string
+            let parsedAnswer = answer;
+            if (typeof answer === "string" && answer.startsWith("{")) {
+              try {
+                const parsed = JSON.parse(answer);
+                if (parsed && typeof parsed === "object" && parsed.url) {
+                  parsedAnswer = parsed;
+                }
+              } catch {}
+            }
 
             // Determine answer display
             let displayContent: React.ReactNode;
 
-            if (isFile && typeof answer === "string" && answer.startsWith("http")) {
-              const isImage = answer.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            if (isFile && typeof parsedAnswer === "string" && parsedAnswer.startsWith("http")) {
+              const isImage = parsedAnswer.match(/\.(jpg|jpeg|png|gif|webp)$/i);
               displayContent = isImage ? (
-                <a href={answer} target="_blank" rel="noopener noreferrer" className="block group">
+                <a href={parsedAnswer} target="_blank" rel="noopener noreferrer" className="block group">
                   <div className="relative rounded-lg overflow-hidden border border-border/50 max-w-[280px]">
-                    <img src={answer} alt="Documento" className="w-full h-auto" loading="lazy" />
+                    <img src={parsedAnswer} alt="Documento" className="w-full h-auto" loading="lazy" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <Eye className="w-5 h-5 text-white drop-shadow-lg" />
                     </div>
@@ -566,7 +580,7 @@ export default function ResponseValidation() {
                 </a>
               ) : (
                 <a
-                  href={answer}
+                  href={parsedAnswer}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-3 py-2 bg-secondary/80 rounded-lg text-xs text-brand hover:bg-secondary transition-colors font-body group"
@@ -576,10 +590,11 @@ export default function ResponseValidation() {
                   <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
               );
-            } else if (isFile && typeof answer === "object" && (answer as any)?.url) {
-              const url = (answer as any).url;
-              const filename = (answer as any).filename || "Arquivo";
-              const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            } else if (isFile && typeof parsedAnswer === "object" && (parsedAnswer as any)?.url) {
+              const url = (parsedAnswer as any).url;
+              const filename = (parsedAnswer as any).filename || "Arquivo";
+              const mimeType = (parsedAnswer as any).mimeType || "";
+              const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || mimeType.startsWith("image/");
               displayContent = isImage ? (
                 <a href={url} target="_blank" rel="noopener noreferrer" className="block group">
                   <div className="relative rounded-lg overflow-hidden border border-border/50 max-w-[280px]">
@@ -602,11 +617,11 @@ export default function ResponseValidation() {
                 </a>
               );
             } else {
-              const answerStr = typeof answer === "object"
-                ? Array.isArray(answer)
-                  ? answer.join(", ")
-                  : Object.entries(answer as any).map(([k, v]) => `${k}: ${v}`).join(" | ")
-                : String(answer ?? "");
+              const answerStr = typeof parsedAnswer === "object"
+                ? Array.isArray(parsedAnswer)
+                  ? parsedAnswer.join(", ")
+                  : Object.entries(parsedAnswer as any).map(([k, v]) => `${k}: ${v}`).join(" | ")
+                : String(parsedAnswer ?? "");
 
               displayContent = (
                 <div className="rounded-lg bg-secondary/40 border border-border/30 px-3 py-2.5">
