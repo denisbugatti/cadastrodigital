@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useUnreadResponses } from "@/hooks/useUnreadResponses";
+import { StaffNotificationsPanel } from "./StaffNotificationsPanel";
 import MobileBottomNav from "./MobileBottomNav";
 
 /* ─── Navigation Items ─── */
@@ -238,8 +239,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Bottom section */}
         <div className="border-t border-border p-3 space-y-2 shrink-0">
-          {/* Notification bell */}
-          <div className={`flex ${sidebarCollapsed ? "justify-center" : "px-1"}`}>
+          {/* Notification bells: push + in-app */}
+          <div className={`flex items-center ${sidebarCollapsed ? "flex-col gap-2 justify-center" : "gap-2 px-1"}`}>
+            <StaffNotificationsPanel />
             <NotificationBell compact={sidebarCollapsed} />
           </div>
 
@@ -294,6 +296,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="flex-1 min-w-0 pb-20 lg:pb-0 transition-all duration-300"
         style={{ marginLeft: isDesktop ? sidebarWidth : 0 }}
       >
+        {/* Mobile top bar with notifications */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-30">
+          <span className="font-display text-base font-bold text-foreground tracking-tight">Cadastro Digital</span>
+          <div className="flex items-center gap-1">
+            <StaffNotificationsPanel />
+            <NotificationBell compact />
+          </div>
+        </div>
         {children}
       </main>
 

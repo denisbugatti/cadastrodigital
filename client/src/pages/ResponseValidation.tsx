@@ -5,7 +5,7 @@
  * Cadence starts automatically after validation (no manual button).
  */
 
-import { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,193 @@ function ProgressRing({ percent, size = 40, strokeWidth = 3 }: { percent: number
         strokeDasharray={circumference}
       />
     </svg>
+  );
+}
+
+// ─── Lightbox Overlay with Pinch-to-Zoom & Download ───
+function LightboxOverlay({
+  image,
+  zoom,
+  rotation,
+  onZoomChange,
+  onRotationChange,
+  onClose,
+}: {
+  image: { url: string; alt: string };
+  zoom: number;
+  rotation: number;
+  onZoomChange: (z: number | ((prev: number) => number)) => void;
+  onRotationChange: (r: number | ((prev: number) => number)) => void;
+  onClose: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastDistRef = useRef<number | null>(null);
+  const baseZoomRef = useRef(zoom);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Pinch-to-zoom handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastDistRef.current = Math.hypot(dx, dy);
+      baseZoomRef.current = zoom;
+    }
+  }, [zoom]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastDistRef.current !== null) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const scale = dist / lastDistRef.current;
+      const newZoom = Math.min(4, Math.max(0.5, baseZoomRef.current * scale));
+      onZoomChange(newZoom);
+    }
+  }, [onZoomChange]);
+
+  const handleTouchEnd = useCallback(() => {
+    lastDistRef.current = null;
+  }, []);
+
+  // Download handler
+  const handleDownload = useCallback(async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch(image.url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      // Extract filename from URL or use alt
+      const urlParts = image.url.split("/");
+      const rawName = urlParts[urlParts.length - 1] || "documento";
+      // Remove random prefix (e.g., "XAo1guJf-IMG_1570.jpeg" -> "IMG_1570.jpeg")
+      const cleanName = rawName.includes("-") ? rawName.substring(rawName.indexOf("-") + 1) : rawName;
+      link.download = cleanName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Fallback: open in new tab
+      window.open(image.url, "_blank");
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [image.url]);
+
+  // Keyboard: Escape to close, +/- for zoom
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "+" || e.key === "=") onZoomChange((z: number) => Math.min(4, z + 0.25));
+      if (e.key === "-") onZoomChange((z: number) => Math.max(0.5, z - 0.25));
+      if (e.key === "r" || e.key === "R") onRotationChange((r: number) => r + 90);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, onZoomChange, onRotationChange]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col"
+      onClick={onClose}
+    >
+      {/* Toolbar */}
+      <div
+        className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-xs sm:text-sm text-white/80 font-medium truncate max-w-[40%]">
+          {image.alt}
+        </p>
+        <div className="flex items-center gap-0.5 sm:gap-1">
+          <button
+            onClick={() => onZoomChange((z: number) => Math.max(0.5, z - 0.25))}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+            title="Diminuir zoom"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="text-[10px] sm:text-xs text-white/60 font-mono min-w-[36px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={() => onZoomChange((z: number) => Math.min(4, z + 0.25))}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+            title="Aumentar zoom"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onRotationChange((r: number) => r + 90)}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+            title="Girar"
+          >
+            <RotateCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50"
+            title="Baixar imagem"
+          >
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          </button>
+          <a
+            href={image.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
+            title="Abrir original"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </a>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all ml-1 sm:ml-2"
+            title="Fechar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Image area with pinch-to-zoom */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center overflow-auto p-4 touch-none"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <motion.img
+          key={image.url}
+          src={image.url}
+          alt={image.alt}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{
+            scale: zoom,
+            opacity: 1,
+            rotate: rotation,
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default select-none"
+          onClick={(e) => e.stopPropagation()}
+          draggable={false}
+        />
+      </div>
+    </motion.div>
   );
 }
 
@@ -1035,91 +1222,14 @@ export default function ResponseValidation() {
       {/* ─── Image Lightbox ─── */}
       <AnimatePresence>
         {lightboxImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col"
-            onClick={() => setLightboxImage(null)}
-          >
-            {/* Lightbox toolbar */}
-            <div
-              className="flex items-center justify-between px-4 py-3 shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-sm text-white/80 font-medium truncate max-w-[50%]">
-                {lightboxImage.alt}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setLightboxZoom((z) => Math.max(0.5, z - 0.25))}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
-                  title="Diminuir zoom"
-                >
-                  <ZoomOut className="w-4.5 h-4.5" />
-                </button>
-                <span className="text-xs text-white/60 font-mono min-w-[40px] text-center">
-                  {Math.round(lightboxZoom * 100)}%
-                </span>
-                <button
-                  onClick={() => setLightboxZoom((z) => Math.min(4, z + 0.25))}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
-                  title="Aumentar zoom"
-                >
-                  <ZoomIn className="w-4.5 h-4.5" />
-                </button>
-                <button
-                  onClick={() => setLightboxRotation((r) => r + 90)}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
-                  title="Girar"
-                >
-                  <RotateCw className="w-4.5 h-4.5" />
-                </button>
-                <a
-                  href={lightboxImage.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all"
-                  title="Abrir original"
-                >
-                  <ExternalLink className="w-4.5 h-4.5" />
-                </a>
-                <button
-                  onClick={() => setLightboxImage(null)}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all ml-2"
-                  title="Fechar"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Lightbox image */}
-            <div
-              className="flex-1 flex items-center justify-center overflow-auto p-4"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setLightboxImage(null);
-              }}
-            >
-              <motion.img
-                key={lightboxImage.url}
-                src={lightboxImage.url}
-                alt={lightboxImage.alt}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{
-                  scale: lightboxZoom,
-                  opacity: 1,
-                  rotate: lightboxRotation,
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default"
-                onClick={(e) => e.stopPropagation()}
-                draggable={false}
-              />
-            </div>
-          </motion.div>
+          <LightboxOverlay
+            image={lightboxImage}
+            zoom={lightboxZoom}
+            rotation={lightboxRotation}
+            onZoomChange={setLightboxZoom}
+            onRotationChange={setLightboxRotation}
+            onClose={() => setLightboxImage(null)}
+          />
         )}
       </AnimatePresence>
     </div>
