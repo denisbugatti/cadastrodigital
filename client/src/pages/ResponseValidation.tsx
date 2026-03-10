@@ -744,12 +744,12 @@ export default function ResponseValidation() {
             const isFile = isFileType || isFileAnswer;
             const isPending = status === "pending";
 
-            // Parse file answer if it's a JSON string
+            // Parse JSON string answers (files, addresses, etc.)
             let parsedAnswer = answer;
             if (typeof answer === "string" && answer.startsWith("{")) {
               try {
                 const parsed = JSON.parse(answer);
-                if (parsed && typeof parsed === "object" && parsed.url) {
+                if (parsed && typeof parsed === "object") {
                   parsedAnswer = parsed;
                 }
               } catch {}

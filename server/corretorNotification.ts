@@ -282,9 +282,15 @@ function buildAnswersDisplay(
 
     // Handle address type (object)
     if (q.type === "address" && typeof answer === "object") {
-      const parts = [answer.street, answer.number, answer.complement, answer.neighborhood, answer.city, answer.state, answer.cep]
-        .filter(Boolean);
-      answersDisplay.push({ label, value: parts.join(", ") || JSON.stringify(answer) });
+      const addr = answer as any;
+      let line = addr.street || "";
+      if (addr.number) line += `, ${addr.number}`;
+      if (addr.complement) line += ` \u2014 ${addr.complement}`;
+      if (addr.neighborhood) line += ` \u2014 ${addr.neighborhood}`;
+      const cityState = [addr.city, addr.state].filter(Boolean).join("/");
+      if (cityState) line += `, ${cityState}`;
+      if (addr.cep) line += ` \u2014 CEP ${addr.cep}`;
+      answersDisplay.push({ label, value: line || JSON.stringify(answer) });
       continue;
     }
 
@@ -326,6 +332,34 @@ function buildAnswersDisplay(
     if (q.type === "checkbox") {
       answersDisplay.push({ label, value: answer === true || answer === "true" ? "Aceito" : "Não aceito" });
       continue;
+    }
+
+    // Try to parse JSON string (address, etc.) before falling back to stringify
+    if (typeof answer === "string" && answer.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(answer);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          // Check if it's an address-like object
+          if (parsed.cep || parsed.street || parsed.city || parsed.state || parsed.neighborhood) {
+            let line = parsed.street || "";
+            if (parsed.number) line += `, ${parsed.number}`;
+            if (parsed.complement) line += ` \u2014 ${parsed.complement}`;
+            if (parsed.neighborhood) line += ` \u2014 ${parsed.neighborhood}`;
+            const cityState = [parsed.city, parsed.state].filter(Boolean).join("/");
+            if (cityState) line += `, ${cityState}`;
+            if (parsed.cep) line += ` \u2014 CEP ${parsed.cep}`;
+            answersDisplay.push({ label, value: line });
+            continue;
+          }
+          // Generic object: render as key: value pairs
+          const pairs = Object.entries(parsed)
+            .filter(([, v]) => v !== null && v !== undefined && v !== "")
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(", ");
+          answersDisplay.push({ label, value: pairs || String(answer) });
+          continue;
+        }
+      } catch {}
     }
 
     // Default: stringify
