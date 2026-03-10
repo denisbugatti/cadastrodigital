@@ -14,6 +14,7 @@ import { User, Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function ClientRegister() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const [showPassword, setShowPassword] = useState(false);
 
   const [name, setName] = useState("");
@@ -24,8 +25,10 @@ export default function ClientRegister() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const registerMutation = trpc.customAuth.clientRegister.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Cadastro realizado com sucesso!");
+      // Invalidate the cached auth state so route guards see the new session
+      await utils.customAuth.me.invalidate();
       navigate("/portal");
     },
     onError: (err) => {

@@ -16,6 +16,7 @@ type LoginTab = "staff" | "client";
 
 export default function Login() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const [tab, setTab] = useState<LoginTab>("staff");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -28,8 +29,10 @@ export default function Login() {
   const [clientPassword, setClientPassword] = useState("");
 
   const staffLogin = trpc.customAuth.staffLogin.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success("Login realizado com sucesso!");
+      // Invalidate the cached auth state so route guards see the new session
+      await utils.customAuth.me.invalidate();
       // Redirect corretores to their dedicated responses page
       if (data.user.role === "corretor") {
         navigate("/corretor/respostas");
@@ -43,8 +46,10 @@ export default function Login() {
   });
 
   const clientLogin = trpc.customAuth.clientLogin.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Login realizado com sucesso!");
+      // Invalidate the cached auth state so route guards see the new session
+      await utils.customAuth.me.invalidate();
       navigate("/portal");
     },
     onError: (err) => {

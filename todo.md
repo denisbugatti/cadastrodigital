@@ -1313,3 +1313,4 @@
   - [x] Campo lastActivityAt no schema (atualizado a cada submit/update)
   - [x] Job no servidor que verifica abandonos a cada 2min
   - [x] E-mail de abandono para o corretor com badge vermelho + respostas parciais do cliente
+- [x] Bug: Login mostra "login realizado com sucesso" mas não entra no sistema — cache do customAuth.me invalidado antes do navigate

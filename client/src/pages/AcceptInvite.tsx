@@ -13,6 +13,7 @@ import { Shield, Loader2, Eye, EyeOff, CheckCircle2, XCircle } from "lucide-reac
 
 export default function AcceptInvite() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const search = useSearch();
   const params = new URLSearchParams(search);
   const token = params.get("token") || "";
@@ -28,8 +29,10 @@ export default function AcceptInvite() {
   );
 
   const acceptMutation = trpc.customAuth.acceptInvite.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success("Conta criada com sucesso! Bem-vindo(a)!");
+      // Invalidate the cached auth state so route guards see the new session
+      await utils.customAuth.me.invalidate();
       // Redirect corretores to their dedicated responses page
       if (data.user.role === "corretor") {
         navigate("/corretor/respostas");
