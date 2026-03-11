@@ -177,7 +177,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-4 h-16 border-b border-border shrink-0">
           <Link href="/" className="flex items-center gap-2.5 min-w-0">
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/logo-final-96_4457caf3.png" alt="Cadastro Digital" className="w-9 h-9 rounded-xl shrink-0" />
+            <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center brand-shadow shrink-0">
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                <path d="M3 5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V13C15 14.1046 14.1046 15 13 15H5C3.89543 15 3 14.1046 3 13V5Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M6 7.5H12M6 10.5H9.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
+              </svg>
+            </div>
             {!sidebarCollapsed && (
               <motion.span
                 initial={{ opacity: 0, x: -8 }}
