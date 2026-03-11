@@ -2025,14 +2025,14 @@ export const appRouter = router({
         return {
           ogTitle: "Cadastro Digital | One Innovation",
           ogDescription: "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
-          ogImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-pwa-512_5f5ba7e0.png",
+          ogImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-512_55a155cb.png",
           ogUrl: "https://one.cadastrodigital.com.br",
         };
       }
       return {
         ogTitle: settings.ogTitle ?? "Cadastro Digital | One Innovation",
         ogDescription: settings.ogDescription ?? "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
-        ogImage: settings.ogImage ?? "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-pwa-512_5f5ba7e0.png",
+        ogImage: settings.ogImage ?? "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-512_55a155cb.png",
         ogUrl: settings.ogUrl ?? "https://one.cadastrodigital.com.br",
       };
     }),

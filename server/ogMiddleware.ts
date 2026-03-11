@@ -44,7 +44,7 @@ function escapeHtml(str: string): string {
 }
 
 const DEFAULT_OG_IMAGE =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-pwa-512_5f5ba7e0.png";
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-512_55a155cb.png";
 const DEFAULT_OG_TITLE = "Cadastro Digital | One Innovation";
 const DEFAULT_OG_DESCRIPTION = "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.";
 const BASE_URL = "https://one.cadastrodigital.com.br";

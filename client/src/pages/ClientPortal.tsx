@@ -111,7 +111,7 @@ export default function ClientPortal() {
       <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-logo-128_38a89225.png" alt="Cadastro Digital" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl" />
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-128_dca06931.png" alt="Cadastro Digital" className="w-9 h-9 sm:w-10 sm:h-10" />
             <div>
               <h1 className="text-foreground font-semibold text-sm">Cadastro Digital</h1>
               <p className="text-muted-foreground text-xs truncate max-w-[150px] sm:max-w-none">{clientUser.name}</p>

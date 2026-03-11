@@ -1338,3 +1338,10 @@
 - [x] Atualizar ícones PWA no manifest.json
 - [x] Verificar Login page e Client Portal header
 - [x] NÃO mexer em formulários individuais — confirmado
+
+## Bug: Logo shield com borda branca
+- [x] Remover borda branca visível no logo shield (fundo branco do PNG aparece no tema escuro)
+
+## Bug: Logo shield com borda branca / fundo indesejado
+- [x] Criar logo limpo: escudo azul com check branco, fundo transparente, sem bordas
+- [x] Aplicar em todo o sistema (sidebar, landing, login, client portal, favicon, PWA)
