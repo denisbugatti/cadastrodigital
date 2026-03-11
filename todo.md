@@ -1326,3 +1326,15 @@
 - [x] Botão de download direto no lightbox para salvar imagem no dispositivo
 - [x] Notificações no web app para novas respostas recebidas nos formulários (StaffNotificationsPanel integrado no sidebar desktop e header mobile)
 - [x] Bug: Endereço aparece como JSON bruto na tela de validação e no e-mail (corrigido: parse de JSON string + formatação legível em ambos)
+- [x] Aplicar ícone escudo azul com checkmark como favicon e logo em todo o sistema
+
+## Logo do Sistema — Escudo Azul com Checkmark (shield-icon-v2)
+- [x] Atualizar logo no header da Landing page (substituir neon-bold por shield)
+- [x] Atualizar logo no footer da Landing page (substituir Shield icon por imagem)
+- [x] Atualizar logo no sidebar do Dashboard (AppLayout)
+- [x] Atualizar favicon (32, 96, .ico) no index.html
+- [x] Atualizar apple-touch-icon no index.html
+- [x] Atualizar splash screen logo no index.html
+- [x] Atualizar ícones PWA no manifest.json
+- [x] Verificar Login page e Client Portal header
+- [x] NÃO mexer em formulários individuais — confirmado
