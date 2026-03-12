@@ -1381,3 +1381,9 @@
 
 ## Ajuste: Logo na Landing page está pequeno
 - [x] Aumentar tamanho do logo no header da Landing page
+
+## Bug: Logo do web app com margem branca
+- [x] Remover margem/fundo branco do ícone PWA — logo deve preencher o ícone inteiro
+
+## Bug: Login não redireciona automaticamente
+- [x] Após "Login com sucesso", redirecionar automaticamente para o dashboard sem precisar clicar "Voltar"

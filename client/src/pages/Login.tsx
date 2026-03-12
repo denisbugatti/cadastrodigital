@@ -31,13 +31,12 @@ export default function Login() {
   const staffLogin = trpc.customAuth.staffLogin.useMutation({
     onSuccess: async (data) => {
       toast.success("Login realizado com sucesso!");
-      // Invalidate the cached auth state so route guards see the new session
-      await utils.customAuth.me.invalidate();
-      // Redirect corretores to their dedicated responses page
+      // Full page reload to ensure session cookie is read correctly
+      // Using window.location.href instead of navigate to avoid stale cache issues
       if (data.user.role === "corretor") {
-        navigate("/corretor/respostas");
+        window.location.href = "/corretor/respostas";
       } else {
-        navigate("/dashboard");
+        window.location.href = "/dashboard";
       }
     },
     onError: (err) => {
@@ -48,9 +47,8 @@ export default function Login() {
   const clientLogin = trpc.customAuth.clientLogin.useMutation({
     onSuccess: async () => {
       toast.success("Login realizado com sucesso!");
-      // Invalidate the cached auth state so route guards see the new session
-      await utils.customAuth.me.invalidate();
-      navigate("/portal");
+      // Full page reload to ensure session cookie is read correctly
+      window.location.href = "/portal";
     },
     onError: (err) => {
       toast.error(err.message);
@@ -117,7 +115,7 @@ export default function Login() {
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="text-center mb-8">
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/app-icon-3d-128_63073465.png" alt="Cadastro Digital" className="w-16 h-16 mb-4 mx-auto" />
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/app-icon-3d-full-128_5d7552e4.png" alt="Cadastro Digital" className="w-16 h-16 mb-4 mx-auto" />
             <h1 className="text-2xl font-bold text-white">Cadastro Digital</h1>
             <p className="text-slate-400 text-sm mt-1">Plataforma segura protegida pela LGPD</p>
           </div>
