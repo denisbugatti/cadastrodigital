@@ -1378,3 +1378,6 @@
 - [x] Atualizar favicon, apple-touch-icon, splash screen no index.html
 - [x] Atualizar PWA manifest.json
 - [x] NÃO mexer nos emails nem nos formulários — confirmado
+
+## Ajuste: Logo na Landing page está pequeno
+- [x] Aumentar tamanho do logo no header da Landing page
