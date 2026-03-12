@@ -1364,3 +1364,6 @@
 - [x] Cidade: campo separado
 - [x] Estado: campo separado
 - [x] CEP: campo separado
+
+## PDF PJ: Copiar endereço do sócio para empresa
+- [x] No PDF PJ, copiar endereço residencial do sócio 1 para o endereço da empresa

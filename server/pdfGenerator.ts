@@ -553,16 +553,15 @@ async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
   setField("CNPJ_Empresa", String(getById(answers, "q15_pj_cnpj") || ""));
   setField("E-mail_Empresa", String(getById(answers, "q16_pj_email_comercial") || ""));
 
-  // Endereço da empresa
+  // Endereço da empresa — usa endereço do sócio 1 como fallback
   const endEmpresa = getById(answers, "q17_pj_endereco_empresa");
-  if (endEmpresa && typeof endEmpresa === "object") {
-    const addrEmp = formatAddress(endEmpresa);
-    setField("End_Empresa", addrEmp.full);
-    setField("CEP_Empresa", addrEmp.cep);
-    setField("Bairro_Empresa", addrEmp.bairro);
-    setField("Cidade_Empresa", addrEmp.cidade);
-    setField("Estado_Empresa", addrEmp.estado);
-  }
+  const endSocio = getById(answers, "q11_pj_endereco");
+  const addrEmp = formatAddress(endEmpresa || endSocio);
+  setField("End_Empresa", addrEmp.full);
+  setField("CEP_Empresa", addrEmp.cep);
+  setField("Bairro_Empresa", addrEmp.bairro);
+  setField("Cidade_Empresa", addrEmp.cidade);
+  setField("Estado_Empresa", addrEmp.estado);
 
   // Contato / Recado
   setField("Contato_Empresa", String(getById(answers, "q18_pj_contato") || ""));
