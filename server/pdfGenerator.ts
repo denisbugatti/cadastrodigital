@@ -1,15 +1,15 @@
 /**
  * PDF Generator for Cadastro de Interesse (PF / PJ)
- * Overlays form response data onto the original Innova PDF templates.
- * - PF: text overlay (no form fields in original)
- * - PJ: fills existing form fields in original
+ * Fills AcroForm fields in the original Innova PDF templates.
+ * Both PF and PJ templates include:
+ *   - Page 1: Protocolo de Entrada
+ *   - Page 2: Ficha de Cadastro (PF or PJ)
  */
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 
-// ─── CDN URLs for the original PDF templates ───
-const PF_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPF_TEMPLATE_55882937.pdf";
-const PJ_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPJ_856f110c.pdf";
-const PROTOCOLO_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/ProtocolodeentradaemBRANCO_581f4fb5.pdf";
+// ─── CDN URLs for the PDF templates (v2 — with AcroForm fields) ───
+const PF_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPF_TEMPLATE_v2_3e43d33d.pdf";
+const PJ_TEMPLATE_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/FICHAPJ_TEMPLATE_v2_b91826e4.pdf";
 
 // ─── Types ───
 
@@ -73,7 +73,13 @@ function getById(answers: ResponseAnswers, id: string): any {
 }
 
 function formatAddress(addr: any): { full: string; bairro: string; cidade: string; estado: string; cep: string } {
-  if (!addr || typeof addr !== "object") return { full: "", bairro: "", cidade: "", estado: "", cep: "" };
+  if (!addr || typeof addr !== "object") {
+    // Try to parse string address
+    if (typeof addr === "string" && addr.trim()) {
+      return { full: addr, bairro: "", cidade: "", estado: "", cep: "" };
+    }
+    return { full: "", bairro: "", cidade: "", estado: "", cep: "" };
+  }
   const parts = [addr.street, addr.number, addr.complement].filter(Boolean).join(", ");
   return {
     full: parts || "",
@@ -124,14 +130,21 @@ async function fetchPdfTemplate(url: string): Promise<Uint8Array> {
   return new Uint8Array(buffer);
 }
 
+/** Split phone into DDD + number */
+function splitPhone(phone: string): { ddd: string; number: string } {
+  if (!phone) return { ddd: "", number: "" };
+  const s = String(phone).replace(/[^\d]/g, "");
+  if (s.length >= 10) {
+    return { ddd: s.substring(0, 2), number: s.substring(2) };
+  }
+  return { ddd: "", number: s };
+}
+
 // ─── Estado Civil mapping ───
 
 interface EstadoCivilResult {
-  /** Which checkbox to mark: solteiro, casado, uniao_estavel, divorciado, viuvo */
   checkbox: "solteiro" | "casado" | "uniao_estavel" | "divorciado" | "viuvo";
-  /** Which regime checkbox to mark (only if casado) */
   regime?: "comunhao_parcial" | "comunhao_universal" | "separacao_total" | "pacto_nupcial";
-  /** Whether cônjuge data should be filled */
   needsConjuge: boolean;
 }
 
@@ -154,7 +167,6 @@ function parseEstadoCivil(val: any): EstadoCivilResult {
     return { checkbox: "casado", regime: "separacao_total", needsConjuge: true };
   }
   if (/casad/i.test(s)) {
-    // Generic "casado" — default to comunhão parcial
     return { checkbox: "casado", regime: "comunhao_parcial", needsConjuge: true };
   }
   if (/separad.*judicial/i.test(s)) {
@@ -167,148 +179,167 @@ function parseEstadoCivil(val: any): EstadoCivilResult {
     return { checkbox: "viuvo", needsConjuge: false };
   }
 
-  // Fallback
   return { checkbox: "solteiro", needsConjuge: false };
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PF PDF — Text overlay on original template (no form fields)
-// ═══════════════════════════════════════════════════════════════
+// ─── Radio button value mapping for AcroForm ───
 
-/** Proponente 1 field coordinates (verified against grid overlay) */
-const PF_P1 = {
-  // Value text positions (inside the boxes)
-  cpf:            { x: 57,  y: 607 },
-  nacionalidade:  { x: 282, y: 607 },
-  dataNasc:       { x: 492, y: 607 },
-  identidade:     { x: 57,  y: 582 },
-  profissao:      { x: 222, y: 582 },
-  rendaMensal:    { x: 57,  y: 507 },
-  celular:        { x: 435, y: 507 },
-  endereco:       { x: 57,  y: 487 },
-  cep:            { x: 510, y: 487 },
-  bairro:         { x: 57,  y: 467 },
-  cidade:         { x: 252, y: 467 },
-  estado:         { x: 462, y: 467 },
-  email:          { x: 57,  y: 447 },
-
-  // Estado civil checkboxes (X mark positions)
-  cb_solteiro:       { x: 67,  y: 553 },
-  cb_casado:         { x: 139, y: 553 },
-  cb_uniao_estavel:  { x: 211, y: 553 },
-  cb_divorciado:     { x: 316, y: 553 },
-  cb_viuvo:          { x: 406, y: 553 },
-
-  // Regime de casamento checkboxes
-  cb_comunhao_parcial:   { x: 69,  y: 528 },
-  cb_comunhao_universal: { x: 216, y: 528 },
-  cb_separacao_total:    { x: 376, y: 528 },
-  cb_pacto_nupcial:      { x: 486, y: 528 },
-};
-
-/** Proponente 2 = same x, y shifted down by ~220 */
-const P2_Y_OFFSET = -220;
-const PF_P2 = Object.fromEntries(
-  Object.entries(PF_P1).map(([k, v]) => [k, { x: v.x, y: v.y + P2_Y_OFFSET }])
-) as typeof PF_P1;
-
-/** Data do cadastro position */
-const PF_DATE = { day: { x: 440, y: 800 }, month: { x: 460, y: 800 }, year: { x: 480, y: 800 } };
-
-function drawTextAt(page: PDFPage, text: string, x: number, y: number, font: PDFFont, size = 8) {
-  if (!text) return;
-  page.drawText(String(text), {
-    x,
-    y,
-    size,
-    font,
-    color: rgb(0, 0, 0),
-    maxWidth: 200,
-  });
+/** Map estado civil to the AcroForm radio button value for Group2/Group5 */
+function getEstadoCivilRadioValue(ec: EstadoCivilResult): string | null {
+  const map: Record<string, string> = {
+    solteiro: "Opção1",
+    casado: "Opção2",
+    uniao_estavel: "Opção3",
+    divorciado: "Opção4",
+    viuvo: "Opção5",
+  };
+  return map[ec.checkbox] || null;
 }
 
-function drawCheckMark(page: PDFPage, x: number, y: number, font: PDFFont) {
-  page.drawText("X", {
-    x,
-    y,
-    size: 9,
-    font,
-    color: rgb(0, 0, 0),
-  });
+/** Map regime de casamento to the AcroForm radio button value for Group3/Group6 */
+function getRegimeRadioValue(regime?: string): string | null {
+  if (!regime) return null;
+  const map: Record<string, string> = {
+    comunhao_parcial: "Opção1",
+    comunhao_universal: "Opção2",
+    separacao_total: "Opção3",
+    pacto_nupcial: "Opção4",
+  };
+  return map[regime] || null;
 }
 
-function fillProponentePF(
-  page: PDFPage,
-  coords: typeof PF_P1,
-  data: {
-    cpf: string;
-    nacionalidade: string;
-    dataNasc: string;
-    identidade: string;
-    profissao: string;
-    rendaMensal: string;
-    celular: string;
-    endereco: string;
-    cep: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    email: string;
-    estadoCivil: EstadoCivilResult;
-  },
-  font: PDFFont,
-  boldFont: PDFFont,
+/** Map sexo to the AcroForm radio button value for Group1/Group4 */
+function getSexoRadioValue(sexo: any): string | null {
+  if (!sexo) return null;
+  const s = String(sexo).toLowerCase();
+  if (/masc|homem|male/i.test(s)) return "Opção1";
+  if (/fem|mulher|female/i.test(s)) return "Opção2";
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Shared: Fill Protocolo de Entrada fields (Page 1 of both PDFs)
+// ═══════════════════════════════════════════════════════════════
+
+function fillProtocoloFields(
+  form: any,
+  input: GeneratePdfInput,
 ) {
-  drawTextAt(page, data.cpf, coords.cpf.x, coords.cpf.y, font);
-  drawTextAt(page, data.nacionalidade, coords.nacionalidade.x, coords.nacionalidade.y, font);
-  drawTextAt(page, data.dataNasc, coords.dataNasc.x, coords.dataNasc.y, font);
-  drawTextAt(page, data.identidade, coords.identidade.x, coords.identidade.y, font);
-  drawTextAt(page, data.profissao, coords.profissao.x, coords.profissao.y, font);
-  drawTextAt(page, data.rendaMensal, coords.rendaMensal.x, coords.rendaMensal.y, font);
-  drawTextAt(page, data.celular, coords.celular.x, coords.celular.y, font);
-  drawTextAt(page, data.endereco, coords.endereco.x, coords.endereco.y, font, 7);
-  drawTextAt(page, data.cep, coords.cep.x, coords.cep.y, font);
-  drawTextAt(page, data.bairro, coords.bairro.x, coords.bairro.y, font);
-  drawTextAt(page, data.cidade, coords.cidade.x, coords.cidade.y, font);
-  drawTextAt(page, data.estado, coords.estado.x, coords.estado.y, font);
-  drawTextAt(page, data.email, coords.email.x, coords.email.y, font, 7);
+  const { answers, tipo } = input;
 
-  // Estado civil checkbox
-  const cbKey = `cb_${data.estadoCivil.checkbox}` as keyof typeof coords;
-  if (coords[cbKey]) {
-    drawCheckMark(page, coords[cbKey].x, coords[cbKey].y, boldFont);
-  }
-
-  // Regime de casamento checkbox
-  if (data.estadoCivil.regime) {
-    const regKey = `cb_${data.estadoCivil.regime}` as keyof typeof coords;
-    if (coords[regKey]) {
-      drawCheckMark(page, coords[regKey].x, coords[regKey].y, boldFont);
+  function setField(name: string, value: string) {
+    try {
+      const field = form.getTextField(name);
+      field.setText(String(value || ""));
+    } catch {
+      // Field doesn't exist in this template, skip
     }
   }
+
+  if (tipo === "pj") {
+    // PJ: company name as client, CNPJ as CPF
+    setField("Nome_Cliente", String(getById(answers, "q14_pj_nome_empresa") || ""));
+    setField("E-mail_Cliente", String(getById(answers, "q10_pj_email") || getById(answers, "q16_pj_email_comercial") || ""));
+    setField("CPF_Cliente", String(getById(answers, "q15_pj_cnpj") || ""));
+    setField("Celular_Cliente", String(getById(answers, "q9_pj_celular") || ""));
+  } else {
+    // PF: person data
+    setField("Nome_Cliente", String(getById(answers, "q23_pf_nome") || input.respondentName || ""));
+    setField("E-mail_Cliente", String(getById(answers, "q31_pf_email") || input.respondentEmail || ""));
+    setField("CPF_Cliente", String(getById(answers, "q24_pf_cpf") || ""));
+    setField("Celular_Cliente", String(getById(answers, "q30_pf_celular") || ""));
+  }
+
+  // Empreendimento fields (shared — these come from form context, not always answered)
+  // Leave blank if not available — corretor fills manually
+  setField("Empreendimento", "");
+  setField("Unidade", "");
+  setField("FAC", "");
+  setField("Nome_Coordenador", "");
+  setField("CPF_Coordenador", "");
+
+  // Responsáveis — these are typically filled by the corretor/system
+  // Leave blank for now
+  setField("Nome_Diretor", "");
+  setField("CPF_Diretor", "");
+  setField("Nome_Superintendente", "");
+  setField("CPF_Superintendente", "");
+  setField("Nome_Gerente", "");
+  setField("CPF_Gerente", "");
+  setField("Nome_Corretor", "");
+  setField("CPF_Corretor", "");
+
+  // Fifty fields — leave blank
+  setField("Nome_Diretor2", "");
+  setField("CPF_Diretor2", "");
+  setField("Nome_Superintendente2", "");
+  setField("CPF_Superintendente2", "");
+  setField("Nome_Gerente2", "");
+  setField("CPF_Gerente2", "");
+  setField("Nome_Corretor2", "");
+  setField("CPF_Corretor2", "");
 }
 
-async function generatePfPdf(input: GeneratePdfInput): Promise<Uint8Array> {
-  const { answers, questions } = input;
+// ═══════════════════════════════════════════════════════════════
+// PF PDF — Fill AcroForm fields in the new template
+// ═══════════════════════════════════════════════════════════════
 
-  // Fetch original template
+async function generatePfPdf(input: GeneratePdfInput): Promise<Uint8Array> {
+  const { answers } = input;
+
   const templateBytes = await fetchPdfTemplate(PF_TEMPLATE_URL);
   const doc = await PDFDocument.load(templateBytes);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
-  const page = doc.getPage(0);
+  const form = doc.getForm();
+
+  function setField(name: string, value: string) {
+    try {
+      const field = form.getTextField(name);
+      field.setText(String(value || ""));
+    } catch {
+      // Field doesn't exist, skip silently
+    }
+  }
+
+  function setRadio(name: string, value: string | null) {
+    if (!value) return;
+    try {
+      const field = form.getRadioGroup(name);
+      field.select(value);
+    } catch {
+      // Radio group doesn't exist or value invalid, skip
+    }
+  }
+
+  function checkBox(name: string) {
+    try {
+      const field = form.getCheckBox(name);
+      field.check();
+    } catch {
+      // Checkbox doesn't exist, skip
+    }
+  }
+
+  // ── Fill Protocolo de Entrada (Page 1) ──
+  fillProtocoloFields(form, input);
+
+  // ── Fill Ficha PF (Page 2) ──
 
   // Data do cadastro
   const cadastroDate = input.createdAt ?? new Date();
   const dateParts = parseDateParts(cadastroDate);
-  drawTextAt(page, dateParts.day, PF_DATE.day.x, PF_DATE.day.y, font);
-  drawTextAt(page, dateParts.month, PF_DATE.month.x, PF_DATE.month.y, font);
-  drawTextAt(page, dateParts.year, PF_DATE.year.x, PF_DATE.year.y, font);
+  setField("Cad_dia", dateParts.day);
+  setField("Cad_mes", dateParts.month);
+  setField("Cad_ano", dateParts.year);
 
-  // Extract PF data from answers
+  // Empreendimento (page 2 fields)
+  setField("End_Empreendimento", "");
+  setField("Planta", "");
+
+  // ── Proponente 1 ──
   const pfNome = String(getById(answers, "q23_pf_nome") || input.respondentName || "");
   const pfCpf = String(getById(answers, "q24_pf_cpf") || "");
   const pfNascimento = getById(answers, "q25_pf_nascimento");
+  const pfSexo = getById(answers, "q26_pf_sexo");
   const pfNacionalidade = String(getById(answers, "q27_pf_nacionalidade") || "");
   const pfEstadoCivilRaw = getById(answers, "q28_pf_estado_civil");
   const pfRg = String(getById(answers, "q29_pf_rg") || "");
@@ -321,146 +352,121 @@ async function generatePfPdf(input: GeneratePdfInput): Promise<Uint8Array> {
   const addr = formatAddress(pfEnderecoRaw);
   const estadoCivil = parseEstadoCivil(pfEstadoCivilRaw);
 
-  // If answer is a choice label from the form, also try to match by choice ID
-  let estadoCivilParsed = estadoCivil;
-  if (typeof pfEstadoCivilRaw === "string") {
-    estadoCivilParsed = parseEstadoCivil(pfEstadoCivilRaw);
+  setField("Propon_1", pfNome);
+  setField("CPF_Propon_1", pfCpf);
+  setField("Nacion_Propon_1", pfNacionalidade);
+  setField("Profis_Propon_1", pfProfissao);
+
+  // Data de nascimento
+  const nascParts = parseDateParts(pfNascimento);
+  setField("Nasc_Prop1_dia", nascParts.day);
+  setField("Nasc_Prop1_mes", nascParts.month);
+  setField("Nasc_Prop1_ano", nascParts.year);
+
+  // RG
+  setField("RG_Propon_1", pfRg);
+  // If RG has a digit separator, split it
+  const rgMatch = pfRg.match(/^(.+?)[-\s]?(\d)$/);
+  if (rgMatch) {
+    setField("RG_Propon_1", rgMatch[1]);
+    setField("Dig_RG_Propon_1", rgMatch[2]);
   }
 
-  // Fill Proponente 1
-  fillProponentePF(page, PF_P1, {
-    cpf: pfCpf,
-    nacionalidade: pfNacionalidade,
-    dataNasc: formatDate(pfNascimento),
-    identidade: pfRg,
-    profissao: pfProfissao,
-    rendaMensal: formatCurrency(pfRenda),
-    celular: pfCelular,
-    endereco: addr.full,
-    cep: addr.cep,
-    bairro: addr.bairro,
-    cidade: addr.cidade,
-    estado: addr.estado,
-    email: pfEmail,
-    estadoCivil: estadoCivilParsed,
-  }, font, boldFont);
+  // Sexo (Group1 radio)
+  setRadio("Group1", getSexoRadioValue(pfSexo));
 
-  // Fill Proponente 2 (cônjuge) if married
-  if (estadoCivilParsed.needsConjuge) {
+  // Estado civil (Group2 radio)
+  setRadio("Group2", getEstadoCivilRadioValue(estadoCivil));
+
+  // Data de casamento (if applicable)
+  if (estadoCivil.needsConjuge) {
+    const conjCasamento = getById(answers, "q40_conjuge_data_casamento");
+    const casParts = parseDateParts(conjCasamento);
+    setField("Cas_Prop1_dia", casParts.day);
+    setField("Cas_Prop1_mes", casParts.month);
+    setField("Cas_Prop1_ano", casParts.year);
+  }
+
+  // Regime de casamento (Group3 radio)
+  setRadio("Group3", getRegimeRadioValue(estadoCivil.regime));
+
+  // Renda
+  setField("Renda_Propon_1", formatCurrency(pfRenda));
+
+  // Telefone / Celular
+  const celParts = splitPhone(pfCelular);
+  setField("Ddd_Cel_Propon_1", celParts.ddd);
+  setField("Cel_Propon_1", celParts.number);
+
+  // Endereço
+  setField("End_Propon_1", addr.full);
+  setField("Cep_Propon_1", addr.cep);
+  setField("Bairro_Propon_1", addr.bairro);
+  setField("Cidade_Propon_1", addr.cidade);
+  setField("Estado_Propon_1", addr.estado);
+  setField("Email_Propon_1", pfEmail);
+
+  // ── Proponente 2 (cônjuge) — only if married ──
+  if (estadoCivil.needsConjuge) {
     const conjNome = String(getById(answers, "q41_conjuge_nome") || "");
     const conjCpf = String(getById(answers, "q42_conjuge_cpf") || "");
     const conjNascimento = getById(answers, "q43_conjuge_nascimento");
     const conjCelular = String(getById(answers, "q44_conjuge_celular") || "");
     const conjEmail = String(getById(answers, "q45_conjuge_email") || "");
+    const conjSexo = getById(answers, "q46_conjuge_sexo");
     const conjNacionalidade = String(getById(answers, "q47_conjuge_nacionalidade") || "");
     const conjRg = String(getById(answers, "q48_conjuge_rg") || "");
     const conjProfissao = String(getById(answers, "q49_conjuge_profissao") || "");
 
-    fillProponentePF(page, PF_P2, {
-      cpf: conjCpf,
-      nacionalidade: conjNacionalidade,
-      dataNasc: formatDate(conjNascimento),
-      identidade: conjRg,
-      profissao: conjProfissao,
-      rendaMensal: "", // Not asked for cônjuge
-      celular: conjCelular,
-      // Copy address from Proponente 1
-      endereco: addr.full,
-      cep: addr.cep,
-      bairro: addr.bairro,
-      cidade: addr.cidade,
-      estado: addr.estado,
-      email: conjEmail,
-      // Copy estado civil from Proponente 1
-      estadoCivil: estadoCivilParsed,
-    }, font, boldFont);
-  }
+    setField("Propon_2", conjNome);
+    setField("CPF_Propon_2", conjCpf);
+    setField("Nacion_Propon_2", conjNacionalidade);
+    setField("Profis_Propon_2", conjProfissao);
 
-  return await doc.save();
-}
+    const conjNascParts = parseDateParts(conjNascimento);
+    setField("Nasc_Prop2_dia", conjNascParts.day);
+    setField("Nasc_Prop2_mes", conjNascParts.month);
+    setField("Nasc_Prop2_ano", conjNascParts.year);
 
-// ═══════════════════════════════════════════════════════════════
-// PJ PDF — Fill existing form fields in original template
-// ═══════════════════════════════════════════════════════════════
-
-async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
-  const { answers } = input;
-
-  // Fetch original template
-  const templateBytes = await fetchPdfTemplate(PJ_TEMPLATE_URL);
-  const doc = await PDFDocument.load(templateBytes);
-  const form = doc.getForm();
-
-  // Helper to safely set a text field
-  function setField(name: string, value: string) {
-    try {
-      const field = form.getTextField(name);
-      field.setText(String(value || ""));
-    } catch (e) {
-      // Field doesn't exist, skip
-      console.warn(`[PDF] Field "${name}" not found in PJ template`);
+    // RG cônjuge
+    const conjRgMatch = conjRg.match(/^(.+?)[-\s]?(\d)$/);
+    if (conjRgMatch) {
+      setField("RG_Propon_2", conjRgMatch[1]);
+      setField("Dig_RG_Propon_2", conjRgMatch[2]);
+    } else {
+      setField("RG_Propon_2", conjRg);
     }
+
+    // Sexo cônjuge (Group4 radio)
+    setRadio("Group4", getSexoRadioValue(conjSexo));
+
+    // Estado civil cônjuge = same as proponente 1
+    setRadio("Group5", getEstadoCivilRadioValue(estadoCivil));
+
+    // Data casamento cônjuge = same
+    const casParts2 = parseDateParts(getById(answers, "q40_conjuge_data_casamento"));
+    setField("Cas_Prop2_dia", casParts2.day);
+    setField("Cas_Prop2_mes", casParts2.month);
+    setField("Cas_Prop2_ano", casParts2.year);
+
+    // Regime cônjuge = same
+    setRadio("Group6", getRegimeRadioValue(estadoCivil.regime));
+
+    // Celular cônjuge
+    const conjCelParts = splitPhone(conjCelular);
+    setField("Ddd_Cel_Propon_2", conjCelParts.ddd);
+    setField("Cel_Propon_2", conjCelParts.number);
+
+    // Endereço cônjuge = same as proponente 1
+    setField("End_Propon_2", addr.full);
+    setField("Cep_Propon_2", addr.cep);
+    setField("Bairro_Propon_2", addr.bairro);
+    setField("Cidade_Propon_2", addr.cidade);
+    setField("Estado_Propon_2", addr.estado);
+    setField("Email_Propon_2", conjEmail);
   }
 
-  // Helper to safely check a checkbox
-  function checkBox(name: string) {
-    try {
-      const field = form.getCheckBox(name);
-      field.check();
-    } catch (e) {
-      console.warn(`[PDF] Checkbox "${name}" not found in PJ template`);
-    }
-  }
-
-  // Data do cadastro
-  const cadastroDate = input.createdAt ?? new Date();
-  const dateParts = parseDateParts(cadastroDate);
-  setField("Cad_dia", dateParts.day);
-  setField("Cad_mes", dateParts.month);
-  setField("Cad_ano", dateParts.year);
-
-  // Empresa data
-  setField("Empresa", String(getById(answers, "q14_pj_nome_empresa") || ""));
-  setField("CNPJ_Empresa", String(getById(answers, "q15_pj_cnpj") || ""));
-  setField("E-mail_Empresa", String(getById(answers, "q16_pj_email_comercial") || ""));
-
-  // Sócio 1 data
-  const socioNome = String(getById(answers, "q3_pj_nome_socio") || input.respondentName || "");
-  setField("Socio_1", socioNome);
-  setField("CPF_Socio_1", String(getById(answers, "q4_pj_cpf") || ""));
-
-  const nascimento = getById(answers, "q5_pj_nascimento");
-  const nascParts = parseDateParts(nascimento);
-  setField("Nasc_Socio1_dia", nascParts.day);
-  setField("Nasc_Socio1_mes", nascParts.month);
-  setField("Nasc_Socio1_ano", nascParts.year);
-
-  setField("Nacion_Socio_1", String(getById(answers, "q7_pj_nacionalidade") || ""));
-  setField("RG_Socio_1", String(getById(answers, "q8_pj_rg") || ""));
-  setField("Renda_Socio_1", formatCurrency(getById(answers, "q12_pj_renda")));
-
-  // Celular - split DDD and number
-  const celular = String(getById(answers, "q9_pj_celular") || "");
-  const celMatch = celular.match(/\(?(\d{2})\)?\s*(.+)/);
-  if (celMatch) {
-    setField("Ddd_Cel_Socio_1", celMatch[1]);
-    setField("Cel_Socio_1", celMatch[2].trim());
-  } else {
-    setField("Cel_Socio_1", celular);
-  }
-
-  setField("Email_Socio_1", String(getById(answers, "q10_pj_email") || ""));
-
-  // Endereço do sócio
-  const enderecoRaw = getById(answers, "q11_pj_endereco");
-  const addr = formatAddress(enderecoRaw);
-  setField("End_Socio_1", addr.full);
-  setField("Cep_Socio_1", addr.cep);
-  setField("Bairro_Socio_1", addr.bairro);
-  setField("Cidade_Socio_1", addr.cidade);
-  setField("Estado_Socio_1", addr.estado);
-
-  // Flatten form fields to make them non-editable (looks cleaner)
+  // Flatten form fields to make non-editable
   try {
     form.flatten();
   } catch {
@@ -472,17 +478,13 @@ async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Main export
+// PJ PDF — Fill AcroForm fields in the new template
 // ═══════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════
-// Protocolo de Entrada — Fill form fields in original template
-// ═══════════════════════════════════════════════════════════════
-
-async function generateProtocoloPdf(input: GeneratePdfInput): Promise<Uint8Array> {
+async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
   const { answers } = input;
 
-  const templateBytes = await fetchPdfTemplate(PROTOCOLO_TEMPLATE_URL);
+  const templateBytes = await fetchPdfTemplate(PJ_TEMPLATE_URL);
   const doc = await PDFDocument.load(templateBytes);
   const form = doc.getForm();
 
@@ -495,21 +497,152 @@ async function generateProtocoloPdf(input: GeneratePdfInput): Promise<Uint8Array
     }
   }
 
-  if (input.tipo === "pj") {
-    // PJ: nome da empresa no campo Nome_Cliente, CNPJ no campo CPF
-    setField("Nome_Cliente", String(getById(answers, "q14_pj_nome_empresa") || ""));
-    setField("E-mail_Cliente", String(getById(answers, "q10_pj_email") || getById(answers, "q16_pj_email_comercial") || ""));
-    setField("CPF_Cliente", String(getById(answers, "q15_pj_cnpj") || ""));
-    setField("Celular_Cliente", String(getById(answers, "q9_pj_celular") || ""));
-  } else {
-    // PF: dados da pessoa física
-    setField("Nome_Cliente", String(getById(answers, "q23_pf_nome") || input.respondentName || ""));
-    setField("E-mail_Cliente", String(getById(answers, "q31_pf_email") || input.respondentEmail || ""));
-    setField("CPF_Cliente", String(getById(answers, "q24_pf_cpf") || ""));
-    setField("Celular_Cliente", String(getById(answers, "q30_pf_celular") || ""));
+  function setRadio(name: string, value: string | null) {
+    if (!value) return;
+    try {
+      const field = form.getRadioGroup(name);
+      field.select(value);
+    } catch {
+      // Radio group doesn't exist or value invalid, skip
+    }
   }
 
-  // Flatten to make non-editable
+  function checkBox(name: string) {
+    try {
+      const field = form.getCheckBox(name);
+      field.check();
+    } catch {
+      // Checkbox doesn't exist, skip
+    }
+  }
+
+  // ── Fill Protocolo de Entrada (Page 1) ──
+  fillProtocoloFields(form, input);
+
+  // ── Fill Ficha PJ (Page 2) ──
+
+  // Data do cadastro
+  const cadastroDate = input.createdAt ?? new Date();
+  const dateParts = parseDateParts(cadastroDate);
+  setField("Cad_dia", dateParts.day);
+  setField("Cad_mes", dateParts.month);
+  setField("Cad_ano", dateParts.year);
+
+  // Empreendimento (page 2)
+  setField("End_Empreendimento", "");
+  setField("Planta", "");
+
+  // ── Empresa data ──
+  setField("Empresa", String(getById(answers, "q14_pj_nome_empresa") || ""));
+  setField("CNPJ_Empresa", String(getById(answers, "q15_pj_cnpj") || ""));
+  setField("E-mail_Empresa", String(getById(answers, "q16_pj_email_comercial") || ""));
+
+  // Endereço da empresa
+  const endEmpresa = getById(answers, "q17_pj_endereco_empresa");
+  if (endEmpresa && typeof endEmpresa === "object") {
+    const addrEmp = formatAddress(endEmpresa);
+    setField("End_Empresa", addrEmp.full);
+    setField("CEP_Empresa", addrEmp.cep);
+    setField("Bairro_Empresa", addrEmp.bairro);
+    setField("Cidade_Empresa", addrEmp.cidade);
+    setField("Estado_Empresa", addrEmp.estado);
+  }
+
+  // Contato / Recado
+  setField("Contato_Empresa", String(getById(answers, "q18_pj_contato") || ""));
+  setField("Recado_Empresa", String(getById(answers, "q19_pj_recado") || ""));
+
+  // ── Sócio 1 ──
+  const socioNome = String(getById(answers, "q3_pj_nome_socio") || input.respondentName || "");
+  setField("Socio_1", socioNome);
+  setField("CPF_Socio_1", String(getById(answers, "q4_pj_cpf") || ""));
+
+  const nascimento = getById(answers, "q5_pj_nascimento");
+  const nascParts = parseDateParts(nascimento);
+  setField("Nasc_Socio1_dia", nascParts.day);
+  setField("Nasc_Socio1_mes", nascParts.month);
+  setField("Nasc_Socio1_ano", nascParts.year);
+
+  setField("Nacion_Socio_1", String(getById(answers, "q7_pj_nacionalidade") || ""));
+
+  // RG
+  const rg = String(getById(answers, "q8_pj_rg") || "");
+  const rgMatch = rg.match(/^(.+?)[-\s]?(\d)$/);
+  if (rgMatch) {
+    setField("RG_Socio_1", rgMatch[1]);
+    setField("Dig_RG_Socio_1", rgMatch[2]);
+  } else {
+    setField("RG_Socio_1", rg);
+  }
+
+  setField("Renda_Socio_1", formatCurrency(getById(answers, "q12_pj_renda")));
+
+  // Celular
+  const celular = String(getById(answers, "q9_pj_celular") || "");
+  const celParts = splitPhone(celular);
+  setField("Ddd_Cel_Socio_1", celParts.ddd);
+  setField("Cel_Socio_1", celParts.number);
+
+  setField("Email_Socio_1", String(getById(answers, "q10_pj_email") || ""));
+
+  // Endereço do sócio
+  const enderecoRaw = getById(answers, "q11_pj_endereco");
+  const addr = formatAddress(enderecoRaw);
+  setField("End_Socio_1", addr.full);
+  setField("Cep_Socio_1", addr.cep);
+  setField("Bairro_Socio_1", addr.bairro);
+  setField("Cidade_Socio_1", addr.cidade);
+  setField("Estado_Socio_1", addr.estado);
+
+  // Sexo sócio 1 (Group1 radio)
+  const sexo1 = getById(answers, "q6_pj_sexo");
+  setRadio("Group1", getSexoRadioValue(sexo1));
+
+  // ── Sócio 2 (if available) ──
+  const socio2Nome = String(getById(answers, "q20_pj_socio2_nome") || "");
+  if (socio2Nome) {
+    setField("Socio_2", socio2Nome);
+    setField("CPF_Socio_2", String(getById(answers, "q21_pj_socio2_cpf") || ""));
+
+    const nasc2 = getById(answers, "q22_pj_socio2_nascimento");
+    const nasc2Parts = parseDateParts(nasc2);
+    setField("Nasc_Socio2_dia", nasc2Parts.day);
+    setField("Nasc_Socio2_mes", nasc2Parts.month);
+    setField("Nasc_Socio2_ano", nasc2Parts.year);
+
+    setField("Nacion_Socio_2", String(getById(answers, "q23_pj_socio2_nacionalidade") || ""));
+
+    const rg2 = String(getById(answers, "q24_pj_socio2_rg") || "");
+    const rg2Match = rg2.match(/^(.+?)[-\s]?(\d)$/);
+    if (rg2Match) {
+      setField("RG_Socio_2", rg2Match[1]);
+      setField("Dig_RG_Socio_2", rg2Match[2]);
+    } else {
+      setField("RG_Socio_2", rg2);
+    }
+
+    setField("Renda_Socio_2", formatCurrency(getById(answers, "q25_pj_socio2_renda") || ""));
+
+    const cel2 = String(getById(answers, "q26_pj_socio2_celular") || "");
+    const cel2Parts = splitPhone(cel2);
+    setField("Ddd_Cel_Socio_2", cel2Parts.ddd);
+    setField("Cel_Socio_2", cel2Parts.number);
+
+    setField("Email_Socio_2", String(getById(answers, "q27_pj_socio2_email") || ""));
+
+    const end2 = getById(answers, "q28_pj_socio2_endereco");
+    const addr2 = formatAddress(end2);
+    setField("End_Socio_2", addr2.full);
+    setField("Cep_Socio_2", addr2.cep);
+    setField("Bairro_Socio_2", addr2.bairro);
+    setField("Cidade_Socio_2", addr2.cidade);
+    setField("Estado_Socio_2", addr2.estado);
+
+    const sexo2 = getById(answers, "q29_pj_socio2_sexo");
+    setRadio("Group2", getSexoRadioValue(sexo2));
+  }
+
+  // Flatten form fields
   try {
     form.flatten();
   } catch {
@@ -519,6 +652,10 @@ async function generateProtocoloPdf(input: GeneratePdfInput): Promise<Uint8Array
   return await doc.save();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Main exports
+// ═══════════════════════════════════════════════════════════════
+
 export async function generateCadastroInteressePdf(input: GeneratePdfInput): Promise<Uint8Array> {
   if (input.tipo === "pj") {
     return generatePjPdf(input);
@@ -527,25 +664,12 @@ export async function generateCadastroInteressePdf(input: GeneratePdfInput): Pro
 }
 
 /**
- * Generate the full unified PDF: Protocolo de Entrada + Ficha PF/PJ.
- * Attachments are merged separately by the caller.
+ * Generate the full unified PDF.
+ * The new templates already include Protocolo (page 1) + Ficha (page 2),
+ * so no separate merging is needed.
  */
 export async function generateFullPdf(input: GeneratePdfInput): Promise<Uint8Array> {
-  // 1. Generate Protocolo de Entrada
-  const protocoloBytes = await generateProtocoloPdf(input);
-
-  // 2. Generate Ficha PF or PJ
-  const fichaBytes = await generateCadastroInteressePdf(input);
-
-  // 3. Merge: Protocolo first, then Ficha
-  const finalDoc = await PDFDocument.load(protocoloBytes);
-  const fichaDoc = await PDFDocument.load(fichaBytes);
-  const fichaPages = await finalDoc.copyPages(fichaDoc, fichaDoc.getPageIndices());
-  for (const p of fichaPages) {
-    finalDoc.addPage(p);
-  }
-
-  return await finalDoc.save();
+  return generateCadastroInteressePdf(input);
 }
 
 /**

@@ -3,52 +3,59 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock fetch for PDF template loading
 const mockPdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // %PDF header
 
-vi.mock("pdf-lib", () => {
-  const mockPage = {
-    drawText: vi.fn(),
-    getWidth: () => 595.32,
-    getHeight: () => 841.92,
-  };
+const mockTextField = {
+  setText: vi.fn(),
+};
 
-  const mockTextField = {
-    setText: vi.fn(),
-  };
+const mockCheckBox = {
+  check: vi.fn(),
+};
 
-  const mockCheckBox = {
-    check: vi.fn(),
-  };
+const mockRadioGroup = {
+  select: vi.fn(),
+};
 
-  const mockForm = {
-    getTextField: vi.fn(() => mockTextField),
-    getCheckBox: vi.fn(() => mockCheckBox),
-    flatten: vi.fn(),
-  };
+const mockForm = {
+  getTextField: vi.fn(() => mockTextField),
+  getCheckBox: vi.fn(() => mockCheckBox),
+  getRadioGroup: vi.fn(() => mockRadioGroup),
+  flatten: vi.fn(),
+};
 
-  const mockDoc = {
-    getPage: vi.fn(() => mockPage),
-    getForm: vi.fn(() => mockForm),
-    embedFont: vi.fn(() => ({ name: "Helvetica" })),
-    save: vi.fn(() => Promise.resolve(new Uint8Array([0x25, 0x50, 0x44, 0x46]))),
-    getPageCount: () => 1,
-    getPageIndices: () => [0],
-    copyPages: vi.fn(() => Promise.resolve([mockPage])),
-    addPage: vi.fn(() => mockPage),
-    embedPng: vi.fn(() => Promise.resolve({ width: 100, height: 100 })),
-    embedJpg: vi.fn(() => Promise.resolve({ width: 100, height: 100 })),
-  };
+const mockPage = {
+  drawText: vi.fn(),
+  drawImage: vi.fn(),
+  drawRectangle: vi.fn(),
+  getWidth: () => 595.32,
+  getHeight: () => 841.92,
+  getSize: vi.fn(() => ({ width: 595, height: 842 })),
+};
 
-  return {
-    PDFDocument: {
-      load: vi.fn(() => Promise.resolve(mockDoc)),
-      create: vi.fn(() => Promise.resolve(mockDoc)),
-    },
-    StandardFonts: {
-      Helvetica: "Helvetica",
-      HelveticaBold: "HelveticaBold",
-    },
-    rgb: vi.fn((r: number, g: number, b: number) => ({ r, g, b })),
-  };
-});
+const mockDoc = {
+  getForm: vi.fn(() => mockForm),
+  getPages: vi.fn(() => [mockPage, mockPage]),
+  getPage: vi.fn(() => mockPage),
+  getPageCount: vi.fn(() => 2),
+  getPageIndices: vi.fn(() => [0, 1]),
+  addPage: vi.fn(() => mockPage),
+  embedFont: vi.fn(() => ({ name: "Helvetica" })),
+  embedJpg: vi.fn(() => Promise.resolve({ width: 100, height: 100 })),
+  embedPng: vi.fn(() => Promise.resolve({ width: 100, height: 100 })),
+  copyPages: vi.fn(() => Promise.resolve([mockPage])),
+  save: vi.fn(() => Promise.resolve(new Uint8Array([0x25, 0x50, 0x44, 0x46]))),
+};
+
+vi.mock("pdf-lib", () => ({
+  PDFDocument: {
+    load: vi.fn(() => Promise.resolve(mockDoc)),
+    create: vi.fn(() => Promise.resolve(mockDoc)),
+  },
+  StandardFonts: {
+    Helvetica: "Helvetica",
+    HelveticaBold: "HelveticaBold",
+  },
+  rgb: vi.fn((r: number, g: number, b: number) => ({ r, g, b })),
+}));
 
 // Mock global fetch
 global.fetch = vi.fn(() =>
@@ -63,7 +70,7 @@ describe("pdfGenerator", () => {
     vi.clearAllMocks();
   });
 
-  it("should generate a PF PDF with correct data overlay", async () => {
+  it("should generate a PF PDF filling AcroForm fields", async () => {
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
     const result = await generateCadastroInteressePdf({
@@ -97,12 +104,18 @@ describe("pdfGenerator", () => {
 
     expect(result).toBeInstanceOf(Uint8Array);
     expect(result.length).toBeGreaterThan(0);
+    // Verify it fetched the PF template
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("FICHAPF_TEMPLATE")
     );
+    // Verify AcroForm fields were filled
+    expect(mockForm.getTextField).toHaveBeenCalled();
+    expect(mockTextField.setText).toHaveBeenCalled();
+    // Verify flatten was called
+    expect(mockForm.flatten).toHaveBeenCalled();
   });
 
-  it("should generate a PJ PDF filling form fields", async () => {
+  it("should generate a PJ PDF filling AcroForm fields", async () => {
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
     const result = await generateCadastroInteressePdf({
@@ -137,10 +150,13 @@ describe("pdfGenerator", () => {
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("FICHAPJ")
     );
+    expect(mockForm.getTextField).toHaveBeenCalled();
+    expect(mockTextField.setText).toHaveBeenCalled();
+    expect(mockForm.flatten).toHaveBeenCalled();
   });
 
   it("should fill Proponente 2 when estado civil is casado", async () => {
-    const { PDFDocument } = await import("pdf-lib");
+    vi.clearAllMocks();
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
     await generateCadastroInteressePdf({
@@ -171,20 +187,14 @@ describe("pdfGenerator", () => {
       createdAt: new Date("2026-03-05"),
     });
 
-    // Verify the PDF template was loaded
-    expect(PDFDocument.load).toHaveBeenCalled();
-
-    // Verify drawText was called (for both proponentes)
-    const doc = await (PDFDocument.load as any).mock.results[0].value;
-    const page = doc.getPage(0);
-    // Should have many drawText calls for both P1 and P2
-    expect(page.drawText.mock.calls.length).toBeGreaterThan(10);
+    // Verify Proponente 2 fields were set
+    const setTextCalls = mockTextField.setText.mock.calls.map((c: any[]) => c[0]);
+    expect(setTextCalls).toContain("Ana Santos");
+    expect(setTextCalls).toContain("555.666.777-88");
   });
 
   it("should NOT fill Proponente 2 when estado civil is solteiro", async () => {
-    const { PDFDocument } = await import("pdf-lib");
-    vi.mocked(PDFDocument.load).mockClear();
-
+    vi.clearAllMocks();
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
     await generateCadastroInteressePdf({
@@ -207,19 +217,75 @@ describe("pdfGenerator", () => {
       createdAt: new Date("2026-03-05"),
     });
 
-    const doc = await (PDFDocument.load as any).mock.results[0].value;
-    const page = doc.getPage(0);
-    // Should have fewer drawText calls (only P1, no P2)
-    const callCount = page.drawText.mock.calls.length;
-    // P1 has ~14 text draws + 1 checkbox = ~15, P2 would add ~14 more
-    expect(callCount).toBeLessThan(20);
+    // Proponente 2 fields should NOT have been filled with conjuge data
+    const setTextCalls = mockTextField.setText.mock.calls.map((c: any[]) => c[0]);
+    expect(setTextCalls).not.toContain("Ana Santos");
+  });
+
+  it("should fill Protocolo fields for PF on page 1", async () => {
+    vi.clearAllMocks();
+    const { generateCadastroInteressePdf } = await import("./pdfGenerator");
+
+    await generateCadastroInteressePdf({
+      tipo: "pf",
+      answers: {
+        q23_pf_nome: "Test User",
+        q24_pf_cpf: "000.111.222-33",
+        q31_pf_email: "test@email.com",
+        q30_pf_celular: "(11) 91111-2222",
+      },
+      questions: [],
+      respondentName: "Test User",
+    });
+
+    // Verify Protocolo fields were filled (Nome_Cliente, CPF_Cliente, etc.)
+    const getFieldCalls = mockForm.getTextField.mock.calls.map((c: any[]) => c[0]);
+    expect(getFieldCalls).toContain("Nome_Cliente");
+    expect(getFieldCalls).toContain("CPF_Cliente");
+    expect(getFieldCalls).toContain("E-mail_Cliente");
+    expect(getFieldCalls).toContain("Celular_Cliente");
+  });
+
+  it("should fill Protocolo fields for PJ with company data", async () => {
+    vi.clearAllMocks();
+    const { generateCadastroInteressePdf } = await import("./pdfGenerator");
+
+    await generateCadastroInteressePdf({
+      tipo: "pj",
+      answers: {
+        q14_pj_nome_empresa: "Empresa XYZ",
+        q15_pj_cnpj: "99.888.777/0001-66",
+        q10_pj_email: "empresa@xyz.com",
+        q9_pj_celular: "(21) 95555-4444",
+      },
+      questions: [],
+    });
+
+    const setTextCalls = mockTextField.setText.mock.calls.map((c: any[]) => c[0]);
+    expect(setTextCalls).toContain("Empresa XYZ");
+    expect(setTextCalls).toContain("99.888.777/0001-66");
+  });
+
+  it("should split phone into DDD and number correctly", async () => {
+    vi.clearAllMocks();
+    const { generateCadastroInteressePdf } = await import("./pdfGenerator");
+
+    await generateCadastroInteressePdf({
+      tipo: "pf",
+      answers: {
+        q30_pf_celular: "(11) 99999-8888",
+      },
+      questions: [],
+    });
+
+    const setTextCalls = mockTextField.setText.mock.calls.map((c: any[]) => c[0]);
+    expect(setTextCalls).toContain("11");
+    expect(setTextCalls).toContain("999998888");
   });
 
   it("should correctly parse estado civil choices", async () => {
-    // We test the internal parseEstadoCivil logic indirectly through generateCadastroInteressePdf
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
-    // Test various estado civil values
     const testCases = [
       { input: "Solteiro(a)", expectConjuge: false },
       { input: "Casado(a) (União estável)", expectConjuge: true },
@@ -237,7 +303,6 @@ describe("pdfGenerator", () => {
         answers: {
           q28_pf_estado_civil: tc.input,
           q32_pf_endereco: { street: "Rua A", number: "1", neighborhood: "B", city: "C", state: "SP", zipCode: "00000-000" },
-          // Add cônjuge data to verify it's used or not
           q41_conjuge_nome: "Cônjuge Teste",
           q42_conjuge_cpf: "111.111.111-11",
         },
@@ -247,6 +312,20 @@ describe("pdfGenerator", () => {
 
       expect(result).toBeInstanceOf(Uint8Array);
     }
+  });
+
+  it("should generate full PDF without separate protocolo merge", async () => {
+    const { generateFullPdf } = await import("./pdfGenerator");
+
+    const result = await generateFullPdf({
+      tipo: "pf",
+      answers: { q23_pf_nome: "Test" },
+      questions: [],
+    });
+
+    expect(result).toBeInstanceOf(Uint8Array);
+    // generateFullPdf now delegates directly to generateCadastroInteressePdf
+    // since the new templates already include protocolo + ficha
   });
 
   it("should merge with attachments (PDF)", async () => {
@@ -271,10 +350,9 @@ describe("pdfGenerator", () => {
     expect(result).toBeInstanceOf(Uint8Array);
   });
 
-  it("should handle missing answers gracefully", async () => {
+  it("should handle missing answers gracefully (PF)", async () => {
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
-    // PF with almost no answers
     const result = await generateCadastroInteressePdf({
       tipo: "pf",
       answers: {},
@@ -285,7 +363,7 @@ describe("pdfGenerator", () => {
     expect(result).toBeInstanceOf(Uint8Array);
   });
 
-  it("should handle PJ with missing answers gracefully", async () => {
+  it("should handle missing answers gracefully (PJ)", async () => {
     const { generateCadastroInteressePdf } = await import("./pdfGenerator");
 
     const result = await generateCadastroInteressePdf({
@@ -296,5 +374,36 @@ describe("pdfGenerator", () => {
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
+  });
+
+  it("should set sexo radio group for PF", async () => {
+    vi.clearAllMocks();
+    const { generateCadastroInteressePdf } = await import("./pdfGenerator");
+
+    await generateCadastroInteressePdf({
+      tipo: "pf",
+      answers: {
+        q26_pf_sexo: "Masculino",
+      },
+      questions: [],
+    });
+
+    // Should have tried to select radio for sexo
+    expect(mockRadioGroup.select).toHaveBeenCalled();
+  });
+
+  it("should set estado civil radio group", async () => {
+    vi.clearAllMocks();
+    const { generateCadastroInteressePdf } = await import("./pdfGenerator");
+
+    await generateCadastroInteressePdf({
+      tipo: "pf",
+      answers: {
+        q28_pf_estado_civil: "União Estável",
+      },
+      questions: [],
+    });
+
+    expect(mockRadioGroup.select).toHaveBeenCalled();
   });
 });

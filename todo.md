@@ -1345,3 +1345,14 @@
 ## Bug: Logo shield com borda branca / fundo indesejado
 - [x] Criar logo limpo: escudo azul com check branco, fundo transparente, sem bordas
 - [x] Aplicar em todo o sistema (sidebar, landing, login, client portal, favicon, PWA)
+
+## Preenchimento Automático de PDF com Templates Editáveis (PF e PJ)
+- [x] Upload dos templates PDF editáveis (FICHAPF e FICHAPJ) para S3
+- [x] Instalar lib pdf-lib no servidor para preencher campos AcroForm dos PDFs (já existia)
+- [x] Criar endpoint tRPC para gerar PDF preenchido a partir de uma resposta (já existia, atualizado)
+- [x] Mapear respostas do formulário → campos do PDF PF (103 campos AcroForm)
+- [x] Mapear respostas do formulário → campos do PDF PJ (100 campos AcroForm)
+- [x] Detectar automaticamente se é PF ou PJ pela resposta (CPF vs CNPJ) (já existia)
+- [x] Integrar botão "Gerar PDF" na interface do corretor (ResponseDetail) (já existia)
+- [x] Preview de PDF antes do download (já existia)
+- [x] Cache do PDF gerado para evitar regeneração (já existia)
