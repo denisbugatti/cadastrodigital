@@ -248,7 +248,7 @@ const Nav = memo(({ onPreencher }: { onPreencher: () => void }) => {
     >
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-128_dca06931.png" alt="Cadastro Digital" className="w-8 h-8" />
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/app-icon-3d-128_63073465.png" alt="Cadastro Digital" className="w-8 h-8" />
           <span className="text-white font-semibold text-sm tracking-wide">CADASTRO DIGITAL</span>
         </div>
         <div className="hidden md:flex items-center gap-8">
@@ -687,7 +687,7 @@ export default function Landing() {
       <footer className="py-10 border-t border-white/[0.04]">
         <div className="max-w-6xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-128_dca06931.png" alt="Cadastro Digital" className="w-7 h-7" />
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/app-icon-3d-128_63073465.png" alt="Cadastro Digital" className="w-7 h-7" />
             <span className="text-white/40 text-sm">Cadastro Digital © {new Date().getFullYear()}</span>
           </div>
           <div className="flex items-center gap-2 text-white/30 text-xs">

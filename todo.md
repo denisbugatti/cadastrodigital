@@ -1367,3 +1367,14 @@
 
 ## PDF PJ: Copiar endereço do sócio para empresa
 - [x] No PDF PJ, copiar endereço residencial do sócio 1 para o endereço da empresa
+
+## Trocar logo do sistema — Escudo 3D metálico (app_icon_glass_v2)
+- [x] Gerar variantes de tamanho (32, 96, 128, 180, 192, 512) do novo logo 3D
+- [x] Upload para CDN
+- [x] Atualizar Landing page (header + footer) — NÃO mexer em formulários
+- [x] Atualizar Login page
+- [x] Atualizar Sidebar (AppLayout)
+- [x] Atualizar ClientPortal header
+- [x] Atualizar favicon, apple-touch-icon, splash screen no index.html
+- [x] Atualizar PWA manifest.json
+- [x] NÃO mexer nos emails nem nos formulários — confirmado

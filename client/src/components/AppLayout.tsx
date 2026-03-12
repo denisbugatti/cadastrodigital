@@ -178,7 +178,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2.5 px-4 h-16 border-b border-border shrink-0">
           <Link href="/" className="flex items-center gap-2.5 min-w-0">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/shield-clean-128_dca06931.png"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/app-icon-3d-128_63073465.png"
               alt="Cadastro Digital"
               className="w-9 h-9 shrink-0"
             />
