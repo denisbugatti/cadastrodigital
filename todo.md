@@ -1356,3 +1356,11 @@
 - [x] Integrar botão "Gerar PDF" na interface do corretor (ResponseDetail) (já existia)
 - [x] Preview de PDF antes do download (já existia)
 - [x] Cache do PDF gerado para evitar regeneração (já existia)
+
+## Bug: Endereço no PDF aparece como JSON bruto
+- [x] Corrigir parsing de endereço no pdfGenerator — separar objeto em campos individuais
+- [x] Endereço/Nº/Complemento: rua + número + complemento
+- [x] Bairro: campo separado
+- [x] Cidade: campo separado
+- [x] Estado: campo separado
+- [x] CEP: campo separado

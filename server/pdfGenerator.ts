@@ -73,13 +73,29 @@ function getById(answers: ResponseAnswers, id: string): any {
 }
 
 function formatAddress(addr: any): { full: string; bairro: string; cidade: string; estado: string; cep: string } {
-  if (!addr || typeof addr !== "object") {
-    // Try to parse string address
-    if (typeof addr === "string" && addr.trim()) {
-      return { full: addr, bairro: "", cidade: "", estado: "", cep: "" };
+  const empty = { full: "", bairro: "", cidade: "", estado: "", cep: "" };
+  if (!addr) return empty;
+
+  // If addr is a JSON string, parse it first
+  if (typeof addr === "string") {
+    const trimmed = addr.trim();
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (typeof parsed === "object" && parsed !== null) {
+          return formatAddress(parsed); // recurse with parsed object
+        }
+      } catch {
+        // Not valid JSON, treat as plain text
+      }
     }
-    return { full: "", bairro: "", cidade: "", estado: "", cep: "" };
+    // Plain text address — can't split into parts
+    return { full: trimmed, bairro: "", cidade: "", estado: "", cep: "" };
   }
+
+  if (typeof addr !== "object") return empty;
+
+  // Build "Rua X, 123, Complemento" from structured fields
   const parts = [addr.street, addr.number, addr.complement].filter(Boolean).join(", ");
   return {
     full: parts || "",
