@@ -1442,3 +1442,14 @@
 - [x] Frontend: tela/modal de configurações de notificação no painel do corretor
 - [x] Tipos configuráveis: novas respostas, aprovações, rejeições
 - [x] Testes unitários (19 novos testes de preferências + 498 testes totais passando)
+
+## Migrar emails para templates do Resend
+- [x] Reescrever emailService.ts: sendInviteEmail → template one-invite-staff
+- [x] Reescrever emailService.ts: sendProtocolEmail → template one-protocol-pending
+- [x] Reescrever emailService.ts: sendApprovalEmail → template one-approval
+- [x] Reescrever emailService.ts: sendRejectionEmail → template one-rejection
+- [x] Reescrever emailService.ts: sendCadenceEmail → templates one-cadence-abandono-v1/v2/v3
+- [x] Reescrever emailService.ts: sendRejectionCadenceEmail → templates one-cadence-rejection-v1/v2/v3
+- [x] Reescrever corretorNotification.ts: sendCorretorNotification → template one-corretor-notification
+- [x] Manter sendFollowUpEmail e sendWeeklyReportEmail com inline HTML (sem template no Resend)
+- [x] Atualizar testes (496 testes passando)

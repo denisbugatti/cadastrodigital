@@ -1,7 +1,18 @@
 /**
- * Email Service — One Innovation Design System
- * All emails use inline HTML with dark background + white text for guaranteed visibility.
- * Sender: one@cadastrodigital.com.br
+ * Email Service — One Innovation
+ * Uses Resend templates (managed via Resend dashboard) for all transactional emails.
+ * Templates are identified by alias and receive variables for dynamic content.
+ * 
+ * Template aliases:
+ *   one-invite-staff          → Convite Staff
+ *   one-protocol-pending      → Cadastro Pendente - Protocolo
+ *   one-approval              → Cadastro Aprovado
+ *   one-rejection             → Revisão Necessária
+ *   one-cadence-abandono-v1/v2/v3  → Cadência Abandono (3 variações)
+ *   one-cadence-rejection-v1/v2/v3 → Cadência Reprovação (3 variações)
+ * 
+ * Emails without a Resend template (sendFollowUpEmail, sendWeeklySummaryEmail) 
+ * continue using inline HTML.
  */
 
 import { Resend } from "resend";
@@ -23,7 +34,42 @@ const FROM_EMAIL = "one@cadastrodigital.com.br";
 const FROM_NAME = "One Innovation";
 
 /**
- * Generic helper to send an email with inline HTML.
+ * Send an email using a Resend template (by alias).
+ */
+async function sendTemplateEmail(params: {
+  to: string;
+  subject: string;
+  templateAlias: string;
+  variables: Record<string, string>;
+}): Promise<boolean> {
+  const resend = getResendClient();
+  if (!resend) return false;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: [params.to],
+      subject: params.subject,
+      template: {
+        id: params.templateAlias,
+        variables: params.variables,
+      },
+    } as any);
+
+    if (error) {
+      console.error("[Email] Template send error:", error);
+      return false;
+    }
+    console.log(`[Email] Sent template '${params.templateAlias}' to ${params.to} (id: ${data?.id})`);
+    return true;
+  } catch (err) {
+    console.error("[Email] Template send failed:", (err as Error).message);
+    return false;
+  }
+}
+
+/**
+ * Fallback: send an email with inline HTML (for emails without Resend templates).
  */
 async function sendHtmlEmail(params: {
   to: string;
@@ -53,7 +99,252 @@ async function sendHtmlEmail(params: {
   }
 }
 
-/* ─── Shared HTML wrapper ─── */
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL 1: CONVITE PARA CORRETORES/GERENTES (Boas-vindas)
+   Template: one-invite-staff
+   Variables: INVITEE_NAME, INVITER_NAME, ROLE_DISPLAY, INVITE_URL
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface InviteEmailParams {
+  to: string;
+  inviterName: string;
+  role: string;
+  inviteUrl: string;
+  inviteeName?: string;
+}
+
+export async function sendInviteEmail(params: InviteEmailParams): Promise<boolean> {
+  const { to, inviterName, role, inviteUrl, inviteeName } = params;
+
+  const roleLabel: Record<string, string> = {
+    diretor: "Diretor(a)",
+    gerente: "Gerente",
+    corretor: "Corretor(a)",
+  };
+  const roleDisplay = roleLabel[role] || role;
+
+  return sendTemplateEmail({
+    to,
+    subject: `Bem-vindo(a) à One Innovation — ${inviterName} convidou você`,
+    templateAlias: "one-invite-staff",
+    variables: {
+      INVITEE_NAME: inviteeName || "Olá",
+      INVITER_NAME: inviterName,
+      ROLE_DISPLAY: roleDisplay,
+      INVITE_URL: inviteUrl,
+    },
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL 2: CADASTRO COMPLETO — PENDENTE DE APROVAÇÃO
+   Template: one-protocol-pending
+   Variables: CLIENT_NAME, PROTOCOL_CODE, FORM_TITLE
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface ProtocolEmailParams {
+  to: string;
+  respondentName?: string;
+  protocolCode: string;
+  formTitle: string;
+}
+
+export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<boolean> {
+  const { to, respondentName, protocolCode, formTitle } = params;
+
+  return sendTemplateEmail({
+    to,
+    subject: `Protocolo ${protocolCode} — Cadastro recebido com sucesso`,
+    templateAlias: "one-protocol-pending",
+    variables: {
+      CLIENT_NAME: respondentName || "Olá",
+      PROTOCOL_CODE: protocolCode,
+      FORM_TITLE: formTitle,
+    },
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL 3: CADASTRO APROVADO — PARABÉNS!
+   Template: one-approval
+   Variables: CLIENT_NAME
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface ApprovalEmailParams {
+  to: string;
+  clientName: string;
+}
+
+export async function sendApprovalEmail(params: ApprovalEmailParams): Promise<boolean> {
+  const { to, clientName } = params;
+
+  return sendTemplateEmail({
+    to,
+    subject: `Parabéns, ${clientName}! Seu cadastro foi aprovado!`,
+    templateAlias: "one-approval",
+    variables: {
+      CLIENT_NAME: clientName,
+    },
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL 4: REENVIO DE DOCUMENTO / CORREÇÃO DE DADOS
+   Template: one-rejection
+   Variables: CLIENT_NAME, REASON, FORM_URL
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface RejectionEmailParams {
+  to: string;
+  clientName: string;
+  reason: string;
+  formUrl?: string;
+}
+
+export async function sendRejectionEmail(params: RejectionEmailParams): Promise<boolean> {
+  const { to, clientName, reason, formUrl } = params;
+
+  return sendTemplateEmail({
+    to,
+    subject: `Atenção: Revisão necessária no seu cadastro`,
+    templateAlias: "one-rejection",
+    variables: {
+      CLIENT_NAME: clientName,
+      REASON: reason,
+      FORM_URL: formUrl || "",
+    },
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL 5: CADÊNCIA DE ABANDONO (cadastro incompleto)
+   Templates: one-cadence-abandono-v1, v2, v3
+   Variables: CLIENT_NAME, FORM_TITLE, FORM_URL
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface CadenceEmailParams {
+  to: string;
+  clientName?: string;
+  formTitle: string;
+  formUrl: string;
+  sequenceNumber: number;
+  totalInSequence: number;
+}
+
+function getCadenceSubject(sequenceNumber: number): string {
+  const variation = ((sequenceNumber - 1) % 3) + 1;
+  switch (variation) {
+    case 1: return "Seu cadastro está quase pronto!";
+    case 2: return "Não perca essa oportunidade!";
+    case 3:
+    default: return "Lembrete: finalize seu cadastro";
+  }
+}
+
+export async function sendCadenceEmail(params: CadenceEmailParams): Promise<boolean> {
+  const { to, clientName, formTitle, formUrl, sequenceNumber, totalInSequence } = params;
+  const variation = ((sequenceNumber - 1) % 3) + 1;
+  const templateAlias = `one-cadence-abandono-v${variation}`;
+  const subject = `${getCadenceSubject(sequenceNumber)} — ${formTitle}`;
+
+  const result = await sendTemplateEmail({
+    to,
+    subject,
+    templateAlias,
+    variables: {
+      CLIENT_NAME: clientName || "Olá",
+      FORM_TITLE: formTitle,
+      FORM_URL: formUrl,
+    },
+  });
+
+  if (result) {
+    console.log(`[Email] Cadence ${sequenceNumber}/${totalInSequence} sent to ${to}`);
+  }
+  return result;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL 6: CADÊNCIA DE REPROVAÇÃO (precisa corrigir)
+   Templates: one-cadence-rejection-v1, v2, v3
+   Variables: CLIENT_NAME, FORM_TITLE, FORM_URL, REASON
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface RejectionCadenceEmailParams {
+  to: string;
+  clientName?: string;
+  formTitle: string;
+  formUrl: string;
+  reason: string;
+  sequenceNumber: number;
+  totalInSequence: number;
+}
+
+function getRejectionCadenceSubject(sequenceNumber: number): string {
+  const variation = ((sequenceNumber - 1) % 3) + 1;
+  switch (variation) {
+    case 1: return "Lembrete: ajuste necessário no seu cadastro";
+    case 2: return "Seu cadastro está quase aprovado!";
+    case 3:
+    default: return "Não perca sua vaga — corrija seu cadastro";
+  }
+}
+
+export async function sendRejectionCadenceEmail(params: RejectionCadenceEmailParams): Promise<boolean> {
+  const { to, clientName, formTitle, formUrl, reason, sequenceNumber, totalInSequence } = params;
+  const variation = ((sequenceNumber - 1) % 3) + 1;
+  const templateAlias = `one-cadence-rejection-v${variation}`;
+  const subject = getRejectionCadenceSubject(sequenceNumber);
+
+  const result = await sendTemplateEmail({
+    to,
+    subject,
+    templateAlias,
+    variables: {
+      CLIENT_NAME: clientName || "Olá",
+      FORM_TITLE: formTitle,
+      FORM_URL: formUrl,
+      REASON: reason,
+    },
+  });
+
+  if (result) {
+    console.log(`[Email] Rejection cadence ${sequenceNumber}/${totalInSequence} sent to ${to}`);
+  }
+  return result;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEGACY: Follow-up Email (delegates to cadence v1)
+   ═══════════════════════════════════════════════════════════════ */
+
+export interface FollowUpEmailParams {
+  to: string;
+  clientName?: string;
+  formTitle: string;
+  formUrl: string;
+}
+
+export async function sendFollowUpEmail(params: FollowUpEmailParams): Promise<boolean> {
+  return sendCadenceEmail({
+    ...params,
+    sequenceNumber: 1,
+    totalInSequence: 1,
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL: Weekly Summary Report for Admin
+   No Resend template — uses inline HTML.
+   ═══════════════════════════════════════════════════════════════ */
+
+import type { WeeklyStats } from "./db";
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+/* ─── Shared HTML wrapper (only for weekly report) ─── */
 function emailWrapper(content: string): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -81,402 +372,11 @@ function headerBlock(emoji: string, title: string, subtitle?: string): string {
     </div>`;
 }
 
-function infoRow(label: string, value: string): string {
-  return `
-    <tr>
-      <td style="padding: 10px 16px; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">${label}</td>
-      <td style="padding: 10px 16px; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${value}</td>
-    </tr>`;
-}
-
-function ctaButton(url: string, text: string, color: string = "#3b82f6"): string {
-  return `
-    <div style="text-align: center; margin: 28px 0;">
-      <a href="${url}" target="_blank" style="display: inline-block; background: ${color}; color: #ffffff; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; text-decoration: none;">${text}</a>
-    </div>`;
-}
-
 function cardBlock(content: string): string {
   return `
     <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
       ${content}
     </div>`;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL 1: CONVITE PARA CORRETORES/GERENTES (Boas-vindas)
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface InviteEmailParams {
-  to: string;
-  inviterName: string;
-  role: string;
-  inviteUrl: string;
-  inviteeName?: string;
-}
-
-export async function sendInviteEmail(params: InviteEmailParams): Promise<boolean> {
-  const { to, inviterName, role, inviteUrl, inviteeName } = params;
-
-  const roleLabel: Record<string, string> = {
-    diretor: "Diretor(a)",
-    gerente: "Gerente",
-    corretor: "Corretor(a)",
-  };
-  const roleDisplay = roleLabel[role] || role;
-  const name = inviteeName || "Olá";
-
-  const html = emailWrapper(`
-    ${headerBlock("🎉", "Bem-vindo(a) à One Innovation!")}
-    ${cardBlock(`
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Olá <strong style="color: #ffffff;">${name}</strong>,
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
-        <strong style="color: #f1f5f9;">${inviterName}</strong> convidou você para fazer parte da equipe como <strong style="color: #3b82f6;">${roleDisplay}</strong>.
-      </p>
-      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
-        Clique no botão abaixo para criar sua conta e começar.
-      </p>
-    `)}
-    ${ctaButton(inviteUrl, "Aceitar Convite")}
-    <p style="color: #64748b; font-size: 12px; text-align: center;">Se você não esperava este convite, pode ignorar este e-mail.</p>
-  `);
-
-  return sendHtmlEmail({ to, subject: `Bem-vindo(a) à One Innovation — ${inviterName} convidou você`, html });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL 2: CADASTRO COMPLETO — PENDENTE DE APROVAÇÃO
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface ProtocolEmailParams {
-  to: string;
-  respondentName?: string;
-  protocolCode: string;
-  formTitle: string;
-}
-
-export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<boolean> {
-  const { to, respondentName, protocolCode, formTitle } = params;
-  const name = respondentName || "Olá";
-
-  const html = emailWrapper(`
-    ${headerBlock("✅", "Cadastro Recebido!", formTitle)}
-    ${cardBlock(`
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Olá <strong style="color: #ffffff;">${name}</strong>,
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
-        Seu cadastro foi recebido com sucesso e está em análise. Guarde o código de protocolo abaixo:
-      </p>
-      <div style="text-align: center; margin: 20px 0;">
-        <div style="display: inline-block; background: rgba(59,130,246,0.15); border: 1.5px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 16px 32px;">
-          <span style="color: #60a5fa; font-size: 24px; font-weight: 700; letter-spacing: 0.15em; font-family: monospace;">${protocolCode}</span>
-        </div>
-      </div>
-      <p style="color: #94a3b8; font-size: 13px; margin: 16px 0 0; text-align: center; line-height: 1.5;">
-        Você receberá uma notificação quando seu cadastro for analisado.
-      </p>
-    `)}
-  `);
-
-  return sendHtmlEmail({ to, subject: `Protocolo ${protocolCode} — Cadastro recebido com sucesso`, html });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL 3: CADASTRO APROVADO — PARABÉNS!
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface ApprovalEmailParams {
-  to: string;
-  clientName: string;
-}
-
-export async function sendApprovalEmail(params: ApprovalEmailParams): Promise<boolean> {
-  const { to, clientName } = params;
-
-  const html = emailWrapper(`
-    ${headerBlock("🎉", "Cadastro Aprovado!")}
-    ${cardBlock(`
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Parabéns <strong style="color: #ffffff;">${clientName}</strong>!
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
-        Seu cadastro foi <strong style="color: #22c55e;">aprovado</strong> com sucesso! 🎉
-      </p>
-      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
-        Em breve, nosso corretor entrará em contato com os próximos passos.
-      </p>
-    `)}
-    <div style="text-align: center; margin: 24px 0;">
-      <div style="display: inline-block; background: rgba(34,197,94,0.12); border: 1.5px solid rgba(34,197,94,0.3); border-radius: 10px; padding: 14px 28px;">
-        <span style="color: #22c55e; font-size: 18px; font-weight: 600;">✓ Aprovado</span>
-      </div>
-    </div>
-  `);
-
-  return sendHtmlEmail({ to, subject: `Parabéns, ${clientName}! Seu cadastro foi aprovado!`, html });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL 4: REENVIO DE DOCUMENTO / CORREÇÃO DE DADOS
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface RejectionEmailParams {
-  to: string;
-  clientName: string;
-  reason: string;
-  formUrl?: string;
-}
-
-export async function sendRejectionEmail(params: RejectionEmailParams): Promise<boolean> {
-  const { to, clientName, reason, formUrl } = params;
-
-  const html = emailWrapper(`
-    ${headerBlock("⚠️", "Revisão Necessária")}
-    ${cardBlock(`
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Olá <strong style="color: #ffffff;">${clientName}</strong>,
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
-        Identificamos um ponto que precisa de atenção no seu cadastro:
-      </p>
-      <div style="background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; padding: 14px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px;">
-        <p style="color: #fca5a5; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
-      </div>
-      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
-        Por favor, corrija o item acima para que possamos dar continuidade ao seu processo.
-      </p>
-    `)}
-    ${formUrl ? ctaButton(formUrl, "Corrigir Cadastro", "#ef4444") : ""}
-  `);
-
-  return sendHtmlEmail({ to, subject: `Atenção: Revisão necessária no seu cadastro`, html });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL 5: CADÊNCIA DE ABANDONO (cadastro incompleto)
-   3 variações para rotação ao longo das semanas
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface CadenceEmailParams {
-  to: string;
-  clientName?: string;
-  formTitle: string;
-  formUrl: string;
-  sequenceNumber: number;
-  totalInSequence: number;
-}
-
-function buildCadenceHtml(variation: number, clientName: string, formTitle: string, formUrl: string): string {
-  const name = clientName || "Olá";
-
-  if (variation === 1) {
-    return emailWrapper(`
-      ${headerBlock("📝", "Seu cadastro está quase pronto!", formTitle)}
-      ${cardBlock(`
-        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-          Olá <strong style="color: #ffffff;">${name}</strong>,
-        </p>
-        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
-          Notamos que você começou seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> mas ainda não finalizou.
-        </p>
-        <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
-          Falta pouco! Continue de onde parou e garanta sua vaga.
-        </p>
-      `)}
-      ${ctaButton(formUrl, "Continuar Cadastro")}
-    `);
-  }
-
-  if (variation === 2) {
-    return emailWrapper(`
-      ${headerBlock("🏠", "Não perca essa oportunidade!", formTitle)}
-      ${cardBlock(`
-        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-          Olá <strong style="color: #ffffff;">${name}</strong>,
-        </p>
-        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
-          Seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> ainda está incompleto. As vagas são limitadas!
-        </p>
-        <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
-          Finalize agora e dê o próximo passo rumo ao seu novo apartamento.
-        </p>
-      `)}
-      ${ctaButton(formUrl, "Finalizar Agora", "#f59e0b")}
-    `);
-  }
-
-  // variation 3
-  return emailWrapper(`
-    ${headerBlock("⏰", "Lembrete: finalize seu cadastro", formTitle)}
-    ${cardBlock(`
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Olá <strong style="color: #ffffff;">${name}</strong>,
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px; line-height: 1.6;">
-        Este é um lembrete amigável: seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> ainda não foi concluído.
-      </p>
-      <p style="color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6;">
-        Complete seu cadastro para que possamos prosseguir com o atendimento.
-      </p>
-    `)}
-    ${ctaButton(formUrl, "Completar Cadastro")}
-  `);
-}
-
-function getCadenceSubject(sequenceNumber: number): string {
-  const variation = ((sequenceNumber - 1) % 3) + 1;
-  switch (variation) {
-    case 1: return "Seu cadastro está quase pronto!";
-    case 2: return "Não perca essa oportunidade!";
-    case 3:
-    default: return "Lembrete: finalize seu cadastro";
-  }
-}
-
-export async function sendCadenceEmail(params: CadenceEmailParams): Promise<boolean> {
-  const { to, clientName, formTitle, formUrl, sequenceNumber, totalInSequence } = params;
-  const variation = ((sequenceNumber - 1) % 3) + 1;
-  const subject = `${getCadenceSubject(sequenceNumber)} — ${formTitle}`;
-  const html = buildCadenceHtml(variation, clientName || "Olá", formTitle, formUrl);
-
-  const result = await sendHtmlEmail({ to, subject, html });
-
-  if (result) {
-    console.log(`[Email] Cadence ${sequenceNumber}/${totalInSequence} sent to ${to}`);
-  }
-  return result;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL 6: CADÊNCIA DE REPROVAÇÃO (precisa corrigir)
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface RejectionCadenceEmailParams {
-  to: string;
-  clientName?: string;
-  formTitle: string;
-  formUrl: string;
-  reason: string;
-  sequenceNumber: number;
-  totalInSequence: number;
-}
-
-function buildRejectionCadenceHtml(variation: number, clientName: string, formTitle: string, formUrl: string, reason: string): string {
-  const name = clientName || "Olá";
-
-  if (variation === 1) {
-    return emailWrapper(`
-      ${headerBlock("🔧", "Ajuste necessário no seu cadastro", formTitle)}
-      ${cardBlock(`
-        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-          Olá <strong style="color: #ffffff;">${name}</strong>,
-        </p>
-        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
-          Precisamos de uma correção no seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong>:
-        </p>
-        <div style="background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; padding: 14px 16px; border-radius: 0 8px 8px 0;">
-          <p style="color: #fca5a5; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
-        </div>
-      `)}
-      ${ctaButton(formUrl, "Corrigir Cadastro", "#ef4444")}
-    `);
-  }
-
-  if (variation === 2) {
-    return emailWrapper(`
-      ${headerBlock("✨", "Seu cadastro está quase aprovado!", formTitle)}
-      ${cardBlock(`
-        <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-          Olá <strong style="color: #ffffff;">${name}</strong>,
-        </p>
-        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
-          Falta apenas um ajuste para aprovarmos seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong>:
-        </p>
-        <div style="background: rgba(245,158,11,0.08); border-left: 3px solid #f59e0b; padding: 14px 16px; border-radius: 0 8px 8px 0;">
-          <p style="color: #fcd34d; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
-        </div>
-      `)}
-      ${ctaButton(formUrl, "Ajustar Agora", "#f59e0b")}
-    `);
-  }
-
-  // variation 3
-  return emailWrapper(`
-    ${headerBlock("⚡", "Não perca sua vaga!", formTitle)}
-    ${cardBlock(`
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Olá <strong style="color: #ffffff;">${name}</strong>,
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px; line-height: 1.6;">
-        Seu cadastro em <strong style="color: #f1f5f9;">${formTitle}</strong> precisa de uma correção para ser aprovado:
-      </p>
-      <div style="background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; padding: 14px 16px; border-radius: 0 8px 8px 0;">
-        <p style="color: #fca5a5; font-size: 14px; margin: 0; line-height: 1.5;">${reason}</p>
-      </div>
-      <p style="color: #94a3b8; font-size: 13px; margin: 16px 0 0; line-height: 1.5;">
-        Corrija o quanto antes para garantir sua vaga.
-      </p>
-    `)}
-    ${ctaButton(formUrl, "Corrigir e Garantir Vaga", "#ef4444")}
-  `);
-}
-
-function getRejectionCadenceSubject(sequenceNumber: number): string {
-  const variation = ((sequenceNumber - 1) % 3) + 1;
-  switch (variation) {
-    case 1: return "Lembrete: ajuste necessário no seu cadastro";
-    case 2: return "Seu cadastro está quase aprovado!";
-    case 3:
-    default: return "Não perca sua vaga — corrija seu cadastro";
-  }
-}
-
-export async function sendRejectionCadenceEmail(params: RejectionCadenceEmailParams): Promise<boolean> {
-  const { to, clientName, formTitle, formUrl, reason, sequenceNumber, totalInSequence } = params;
-  const variation = ((sequenceNumber - 1) % 3) + 1;
-  const subject = getRejectionCadenceSubject(sequenceNumber);
-  const html = buildRejectionCadenceHtml(variation, clientName || "Olá", formTitle, formUrl, reason);
-
-  const result = await sendHtmlEmail({ to, subject, html });
-
-  if (result) {
-    console.log(`[Email] Rejection cadence ${sequenceNumber}/${totalInSequence} sent to ${to}`);
-  }
-  return result;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   LEGACY: Follow-up Email (simple, single send)
-   Kept for backwards compatibility
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface FollowUpEmailParams {
-  to: string;
-  clientName?: string;
-  formTitle: string;
-  formUrl: string;
-}
-
-export async function sendFollowUpEmail(params: FollowUpEmailParams): Promise<boolean> {
-  return sendCadenceEmail({
-    ...params,
-    sequenceNumber: 1,
-    totalInSequence: 1,
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMAIL: Weekly Summary Report for Admin
-   Sent every Monday at 9am BRT with weekly statistics.
-   ═══════════════════════════════════════════════════════════════ */
-
-import type { WeeklyStats } from "./db";
-
-function formatDate(d: Date): string {
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function buildWeeklySummaryHtml(stats: WeeklyStats): string {
@@ -628,4 +528,4 @@ export async function sendWeeklySummaryEmail(params: {
 }
 
 // Export for testing
-export { buildWeeklySummaryHtml };
+export { sendTemplateEmail, sendHtmlEmail, buildWeeklySummaryHtml };

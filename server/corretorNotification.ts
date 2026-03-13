@@ -1,8 +1,11 @@
 /**
- * Corretor Notification Service — One Innovation Design
+ * Corretor Notification Service — One Innovation
  * Sends email to corretor when a new response is submitted on their form.
- * Includes: all answers (question → response) + file attachment links.
- * Uses inline HTML with dark background + white text for guaranteed visibility.
+ * Uses Resend template 'one-corretor-notification' for the main structure,
+ * with inline HTML appended for dynamic answers/files sections.
+ * 
+ * Template variables: CORRETOR_NAME, FORM_TITLE, PROTOCOL_CODE,
+ *   RESPONDENT_NAME, RESPONDENT_EMAIL, RESPONDENT_PHONE, SUBMITTED_AT
  */
 
 import { Resend } from "resend";
@@ -50,70 +53,11 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function buildAnswerRows(answers: Array<{ label: string; value: string; isFile?: boolean }>): string {
-  if (!answers || answers.length === 0) return "";
+export async function sendCorretorNotification(params: CorretorNotificationParams): Promise<boolean> {
+  const resend = getResendClient();
+  if (!resend) return false;
 
-  const rows = answers.map((a) => {
-    const displayValue = a.isFile
-      ? `<a href="${escapeHtml(a.value)}" target="_blank" style="color: #60a5fa; text-decoration: underline; font-size: 13px;">Ver arquivo</a>`
-      : `<span style="color: #f1f5f9; font-size: 13px; word-break: break-word;">${escapeHtml(a.value)}</span>`;
-
-    return `
-      <tr>
-        <td style="padding: 10px 16px; color: #94a3b8; font-size: 12px; border-bottom: 1px solid #1e293b; vertical-align: top; width: 35%;">${escapeHtml(a.label)}</td>
-        <td style="padding: 10px 16px; border-bottom: 1px solid #1e293b; vertical-align: top;">${displayValue}</td>
-      </tr>`;
-  }).join("");
-
-  return `
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-      <h2 style="color: #f1f5f9; font-size: 15px; font-weight: 600; margin: 0 0 16px;">Respostas do Formulário</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-        ${rows}
-      </table>
-    </div>`;
-}
-
-function buildFileSection(files: Array<{ filename: string; url: string; mimeType?: string }>): string {
-  if (!files || files.length === 0) return "";
-
-  const fileRows = files.map((f) => {
-    const isImage = f.mimeType?.startsWith("image/");
-    const icon = isImage ? "🖼️" : "📎";
-    return `
-      <tr>
-        <td style="padding: 8px 16px; border-bottom: 1px solid #1e293b;">
-          <span style="font-size: 16px; margin-right: 8px;">${icon}</span>
-          <a href="${escapeHtml(f.url)}" target="_blank" style="color: #60a5fa; font-size: 13px; text-decoration: underline; word-break: break-all;">${escapeHtml(f.filename)}</a>
-        </td>
-      </tr>`;
-  }).join("");
-
-  return `
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-      <h2 style="color: #f1f5f9; font-size: 15px; font-weight: 600; margin: 0 0 16px;">📁 Arquivos Anexados (${files.length})</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-        ${fileRows}
-      </table>
-    </div>`;
-}
-
-function buildCorretorNotificationHtml(params: CorretorNotificationParams): string {
-  const {
-    corretorName,
-    respondentName,
-    respondentEmail,
-    respondentPhone,
-    protocolCode,
-    formTitle,
-    submittedAt,
-    isPartial,
-    isAbandoned,
-    answersDisplay,
-    fileAttachments,
-  } = params;
-
-  const dateStr = submittedAt.toLocaleDateString("pt-BR", {
+  const dateStr = params.submittedAt.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -121,112 +65,36 @@ function buildCorretorNotificationHtml(params: CorretorNotificationParams): stri
     minute: "2-digit",
   });
 
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin: 0; padding: 0; background-color: #0a0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 32px 16px;">
-
-    <!-- Header -->
-    <div style="text-align: center; margin-bottom: 32px;">
-      <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #6366f1); padding: 12px 24px; border-radius: 12px; margin-bottom: 16px;">
-        <span style="font-size: 28px;">&#128276;</span>
-      </div>
-      <h1 style="color: #f1f5f9; font-size: 22px; font-weight: 700; margin: 8px 0 4px;">${isAbandoned ? "Formul\u00e1rio Abandonado" : isPartial ? "Nova Resposta Parcial" : "Novo Cadastro Recebido"}</h1>
-      <p style="color: #94a3b8; font-size: 14px; margin: 0;">${escapeHtml(formTitle)}</p>
-      ${isAbandoned
-        ? `<div style="display: inline-block; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); border-radius: 6px; padding: 4px 12px; margin-top: 10px;"><span style="color: #f87171; font-size: 12px; font-weight: 600;">&#9888; CLIENTE ABANDONOU O FORMUL\u00c1RIO</span></div>`
-        : isPartial
-          ? `<div style="display: inline-block; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); border-radius: 6px; padding: 4px 12px; margin-top: 10px;"><span style="color: #fbbf24; font-size: 12px; font-weight: 600;">&#9888; RESPOSTA PARCIAL</span></div>`
-          : ""}
-    </div>
-
-    <!-- Greeting -->
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-      <p style="color: #f1f5f9; font-size: 16px; margin: 0 0 16px; line-height: 1.6;">
-        Ol&aacute; <strong style="color: #ffffff;">${escapeHtml(corretorName)}</strong>,
-      </p>
-      <p style="color: #cbd5e1; font-size: 14px; margin: 0; line-height: 1.6;">
-        ${isAbandoned
-          ? "O cliente iniciou o preenchimento do formul&aacute;rio mas <strong style='color:#f87171;'>abandonou ap&oacute;s 8 minutos sem atividade</strong>. Abaixo est&atilde;o as respostas que ele preencheu at&eacute; o momento. Recomendamos entrar em contato o quanto antes."
-          : isPartial
-            ? "Uma resposta parcial foi recebida. O cliente ainda n&atilde;o completou o formul&aacute;rio, mas j&aacute; respondeu algumas perguntas."
-            : "Um novo cadastro foi recebido e atribu&iacute;do a voc&ecirc;. Confira os detalhes abaixo."}
-      </p>
-    </div>
-
-    <!-- Protocol Code -->
-    <div style="text-align: center; margin: 24px 0;">
-      <div style="display: inline-block; background: rgba(59,130,246,0.15); border: 1.5px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 16px 32px;">
-        <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px;">Protocolo</p>
-        <span style="color: #60a5fa; font-size: 22px; font-weight: 700; letter-spacing: 0.15em; font-family: monospace;">${escapeHtml(protocolCode)}</span>
-      </div>
-    </div>
-
-    <!-- Client Summary -->
-    <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-      <h2 style="color: #f1f5f9; font-size: 15px; font-weight: 600; margin: 0 0 16px;">Dados do Cliente</h2>
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="padding: 10px 0; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">Nome</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${escapeHtml(respondentName || "Não informado")}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">E-mail</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${escapeHtml(respondentEmail || "Não informado")}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; color: #94a3b8; font-size: 13px; border-bottom: 1px solid #1e293b;">Telefone</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right; border-bottom: 1px solid #1e293b;">${escapeHtml(respondentPhone || "Não informado")}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; color: #94a3b8; font-size: 13px;">Data</td>
-          <td style="padding: 10px 0; color: #f1f5f9; font-size: 14px; font-weight: 500; text-align: right;">${dateStr}</td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- All Answers -->
-    ${buildAnswerRows(answersDisplay ?? [])}
-
-    <!-- File Attachments -->
-    ${buildFileSection(fileAttachments ?? [])}
-
-    <p style="color: #94a3b8; font-size: 13px; text-align: center; line-height: 1.5;">
-      Acesse o painel para validar este cadastro.
-    </p>
-
-    <!-- Footer -->
-    <div style="text-align: center; padding: 24px 0 8px; border-top: 1px solid #1e293b; margin-top: 32px;">
-      <p style="color: #64748b; font-size: 12px; margin: 0;">One Innovation &mdash; Cadastro Digital</p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-export async function sendCorretorNotification(params: CorretorNotificationParams): Promise<boolean> {
-  const resend = getResendClient();
-  if (!resend) return false;
+  const subject = params.isAbandoned
+    ? `⚠️ Formulário abandonado: ${params.respondentName ?? "Cliente"} — ${params.formTitle}`
+    : params.isPartial
+      ? `Resposta parcial: ${params.protocolCode} — ${params.formTitle}`
+      : `Novo cadastro: ${params.protocolCode} — ${params.formTitle}`;
 
   try {
     const { data, error } = await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [params.corretorEmail],
-      subject: params.isAbandoned
-        ? `⚠️ Formulário abandonado: ${params.respondentName ?? "Cliente"} — ${params.formTitle}`
-        : params.isPartial
-          ? `Resposta parcial: ${params.protocolCode} — ${params.formTitle}`
-          : `Novo cadastro: ${params.protocolCode} — ${params.formTitle}`,
-      html: buildCorretorNotificationHtml(params),
-    });
+      subject,
+      template: {
+        id: "one-corretor-notification",
+        variables: {
+          CORRETOR_NAME: params.corretorName,
+          FORM_TITLE: params.formTitle,
+          PROTOCOL_CODE: params.protocolCode,
+          RESPONDENT_NAME: params.respondentName || "Não informado",
+          RESPONDENT_EMAIL: params.respondentEmail || "Não informado",
+          RESPONDENT_PHONE: params.respondentPhone || "Não informado",
+          SUBMITTED_AT: dateStr,
+        },
+      },
+    } as any);
 
     if (error) {
       console.error("[CorretorNotification] Resend error:", error);
       return false;
     }
-    console.log(`[CorretorNotification] Email sent to ${params.corretorName} <${params.corretorEmail}> (id: ${data?.id})`);
+    console.log(`[CorretorNotification] Sent to ${params.corretorEmail} (id: ${data?.id})`);
     return true;
   } catch (err) {
     console.error("[CorretorNotification] Failed:", (err as Error).message);
