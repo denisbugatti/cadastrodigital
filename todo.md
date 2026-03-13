@@ -1429,3 +1429,8 @@
 - [x] Ícones diferenciados no painel: CircleCheck (aprovado), CircleX (rejeitado), UserPlus (atribuído), FileText (resposta)
 - [x] Service worker: ações contextuais (Ver respostas / Ver cadastro) conforme tipo de notificação
 - [x] 28 novos testes unitários para sistema de notificações (479 testes totais)
+
+## Notificações de novas respostas apenas para corretor
+- [x] Remover notificação ao owner (notifyOwner + notifyOwnerNewResponse) no submitResponse
+- [x] Manter apenas notificação in-app + push para corretores atribuídos ao formulário
+- [x] Também corrigido completePartialResponse: agora notifica corretores em vez do owner

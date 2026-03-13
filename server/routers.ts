@@ -959,12 +959,7 @@ export const appRouter = router({
           const isComplete = input.isComplete !== false;
           const statusLabel = isComplete ? "completa" : "parcial (em andamento)";
 
-          // Notify owner (platform + push) — always
-          notifyOwner({
-            title: `Nova resposta ${isComplete ? "" : "parcial "}: ${formTitle}`,
-            content: `O formulário "${formTitle}" recebeu uma resposta ${statusLabel} de ${respondent}.`,
-          }).catch((err) => console.warn("[Notification] Owner notify failed:", (err as any)?.message?.substring(0, 100)));
-          notifyOwnerNewResponse(formTitle, respondent).catch(() => {});
+          // Owner notifications removed — only corretores receive new response notifications
 
           // Send protocol code email to respondent (only for complete responses)
           if (isComplete && input.respondentEmail && result.protocolCode) {
@@ -1150,20 +1145,42 @@ export const appRouter = router({
         const { id, ...data } = input;
         await db.updateResponse(id, { ...data, lastActivityAt: new Date() });
 
-        // Notify owner when a partial response becomes complete
+        // Notify corretores when a partial response becomes complete
         if (input.isComplete === true) {
           try {
             const response = await db.getResponseById(id);
             if (response) {
               const form = await db.getFormById(response.formId);
-              const formTitle = form?.title ?? "Formulário";
-              const respondent = response.respondentName || response.respondentEmail || "Anônimo";
-              await notifyOwner({
-                title: `Nova resposta: ${formTitle}`,
-                content: `O formulário "${formTitle}" recebeu uma nova resposta completa de ${respondent}.`,
-              });
+              const formTitle = form?.title ?? "Formul\u00e1rio";
+              const respondent = response.respondentName || response.respondentEmail || "An\u00f4nimo";
+
               // Stop any active abandono cadences for this response
               await db.stopCadencesForResponse(id, "form_completed");
+
+              // Notify assigned corretores (in-app + push)
+              const assignments = await db.getFormAssignments(response.formId);
+              const staffIds = assignments.map((a: any) => a.staffUserId);
+              if (form?.assignedCorretorId && !staffIds.includes(form.assignedCorretorId)) {
+                staffIds.push(form.assignedCorretorId);
+              }
+              if (staffIds.length > 0) {
+                const notifTitle = `\ud83d\udccb Cadastro completado: ${formTitle}`;
+                const notifBody = `${respondent} completou o cadastro no formul\u00e1rio "${formTitle}".`;
+                db.createStaffNotificationsBatch(
+                  staffIds.map((staffUserId: number) => ({
+                    staffUserId,
+                    type: "new_response" as const,
+                    title: notifTitle,
+                    body: notifBody,
+                    link: "/corretor/respostas",
+                    metadata: { formId: response.formId, formTitle, respondentName: respondent, responseId: id, isComplete: true },
+                  }))
+                ).catch((err) => console.warn("[InAppNotif] Completion batch failed:", (err as any)?.message?.substring(0, 100)));
+                for (const staffUserId of staffIds) {
+                  notifyCorretorPush({ staffUserId, formTitle, respondentName: respondent, formId: response.formId })
+                    .catch((err) => console.warn(`[CorretorPush] Completion push failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100)));
+                }
+              }
 
               // Log activity: response completed
               db.logActivity({
@@ -1174,7 +1191,7 @@ export const appRouter = router({
               }).catch(() => {});
             }
           } catch (err) {
-            console.warn("[Notification] Failed to notify owner:", (err as any)?.message?.substring(0, 100));
+            console.warn("[Notification] Failed to notify corretores:", (err as any)?.message?.substring(0, 100));
           }
         }
 
