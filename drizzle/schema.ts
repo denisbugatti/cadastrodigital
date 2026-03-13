@@ -569,3 +569,23 @@ export const staffNotifications = mysqlTable("staff_notifications", {
 });
 export type StaffNotification = typeof staffNotifications.$inferSelect;
 export type InsertStaffNotification = typeof staffNotifications.$inferInsert;
+
+/**
+ * Staff notification preferences — per-user settings for which notification types to receive.
+ * Each row represents a notification type preference for a specific staff user.
+ * Defaults: all enabled. If no row exists for a type, it’s treated as enabled.
+ */
+export const staffNotificationPreferences = mysqlTable("staff_notification_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The staff user these preferences belong to */
+  staffUserId: int("staffUserId").notNull(),
+  /** Notification type key: new_response, response_approved, response_rejected */
+  notificationType: varchar("notificationType", { length: 50 }).notNull(),
+  /** Whether in-app (sino) notifications are enabled for this type */
+  inAppEnabled: boolean("inAppEnabled").default(true).notNull(),
+  /** Whether push notifications are enabled for this type */
+  pushEnabled: boolean("pushEnabled").default(true).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type StaffNotificationPreference = typeof staffNotificationPreferences.$inferSelect;
+export type InsertStaffNotificationPreference = typeof staffNotificationPreferences.$inferInsert;

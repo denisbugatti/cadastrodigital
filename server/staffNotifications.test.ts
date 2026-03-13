@@ -62,6 +62,23 @@ vi.mock("./db", () => ({
   markAllStaffNotificationsRead: vi.fn(),
   createStaffNotification: vi.fn(),
   createStaffNotificationsBatch: vi.fn(),
+  // Notification preferences
+  getNotificationPreferencesForStaff: vi.fn().mockImplementation((staffIds: number[]) => {
+    // Default: all enabled
+    const map = new Map();
+    for (const id of staffIds) {
+      map.set(id, { inApp: true, push: true });
+    }
+    return Promise.resolve(map);
+  }),
+  getStaffNotificationPreferences: vi.fn(),
+  upsertStaffNotificationPreference: vi.fn(),
+  isNotificationEnabled: vi.fn(),
+  NOTIFICATION_TYPES: [
+    { key: "new_response", label: "Novas respostas", description: "..." },
+    { key: "response_approved", label: "Cadastro aprovado", description: "..." },
+    { key: "response_rejected", label: "Cadastro rejeitado", description: "..." },
+  ],
 }));
 
 vi.mock("./storage", () => ({

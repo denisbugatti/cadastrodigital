@@ -17,7 +17,7 @@ import {
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
   FolderInput, FolderMinus, Check, Palette, CalendarDays, SortAsc, SortDesc, BarChart3,
-  Copy, Link2,
+  Copy, Link2, Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -988,6 +988,14 @@ export default function CorretorResponses() {
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full ring-2 ring-card" />
                 )}
               </button>
+              <Link href="/corretor/configuracoes">
+                <button
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all active:scale-95"
+                  title="Configurações de notificação"
+                >
+                  <Settings size={14} />
+                </button>
+              </Link>
               <button
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] text-muted-foreground hover:text-foreground hover:bg-secondary transition-all active:scale-95"
                 onClick={() => logoutMutation.mutate()}

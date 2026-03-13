@@ -505,26 +505,34 @@ export const appRouter = router({
               }
 
               if (staffIds.length > 0) {
-                // In-app notifications (batch insert)
-                db.createStaffNotificationsBatch(
-                  staffIds.map((staffUserId: number) => ({
-                    staffUserId,
-                    type: newStatus === "approved" ? "response_approved" : "response_rejected",
-                    title: notifTitle,
-                    body: notifBody,
-                    link: "/corretor/respostas",
-                    metadata: {
-                      formId: response.formId,
-                      formTitle,
-                      respondentName: respondent,
-                      responseId: input.responseId,
-                      validationStatus: newStatus,
-                    },
-                  }))
-                ).catch((err) => console.warn("[InAppNotif] Status change batch failed:", (err as any)?.message?.substring(0, 100)));
+                const notifType = newStatus === "approved" ? "response_approved" : "response_rejected";
+                // Check preferences for each staff user
+                const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, notifType);
 
-                // Push notifications to each assigned staff user
+                // In-app notifications — only for staff who have in-app enabled
+                const inAppStaffIds = staffIds.filter((id: number) => prefsMap.get(id)?.inApp !== false);
+                if (inAppStaffIds.length > 0) {
+                  db.createStaffNotificationsBatch(
+                    inAppStaffIds.map((staffUserId: number) => ({
+                      staffUserId,
+                      type: notifType,
+                      title: notifTitle,
+                      body: notifBody,
+                      link: "/corretor/respostas",
+                      metadata: {
+                        formId: response.formId,
+                        formTitle,
+                        respondentName: respondent,
+                        responseId: input.responseId,
+                        validationStatus: newStatus,
+                      },
+                    }))
+                  ).catch((err) => console.warn("[InAppNotif] Status change batch failed:", (err as any)?.message?.substring(0, 100)));
+                }
+
+                // Push notifications — only for staff who have push enabled
                 for (const staffUserId of staffIds) {
+                  if (prefsMap.get(staffUserId)?.push === false) continue;
                   notifyCorretorStatusChange({
                     staffUserId,
                     formTitle,
@@ -1005,8 +1013,7 @@ export const appRouter = router({
             });
           }
 
-          // ─── NEW: Notify ALL assigned staff via form_assignments ───
-          // Push + in-app notifications for every staff member assigned to this form
+          // ─── Notify ALL assigned staff via form_assignments (respecting preferences) ───
           const assignments = await db.getFormAssignments(input.formId);
           if (assignments.length > 0) {
             const staffIds = assignments.map((a: any) => a.staffUserId);
@@ -1015,27 +1022,34 @@ export const appRouter = router({
               ? `${respondent} enviou uma resposta ${statusLabel} no formulário "${formTitle}"`
               : `Nova resposta ${statusLabel} recebida no formulário "${formTitle}"`;
 
-            // In-app notifications (batch insert)
-            db.createStaffNotificationsBatch(
-              staffIds.map((staffUserId: number) => ({
-                staffUserId,
-                type: "new_response",
-                title: notifTitle,
-                body: notifBody,
-                link: "/corretor/respostas",
-                metadata: {
-                  formId: input.formId,
-                  formTitle,
-                  respondentName: input.respondentName ?? null,
-                  protocolCode: result.protocolCode ?? null,
-                  isComplete,
-                  responseId: result.id,
-                },
-              }))
-            ).catch((err) => console.warn("[InAppNotif] Batch create failed:", (err as any)?.message?.substring(0, 100)));
+            // Check preferences for each staff user
+            const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, "new_response");
 
-            // Push notifications to each assigned staff user
+            // In-app notifications — only for staff who have in-app enabled
+            const inAppStaffIds = staffIds.filter((id: number) => prefsMap.get(id)?.inApp !== false);
+            if (inAppStaffIds.length > 0) {
+              db.createStaffNotificationsBatch(
+                inAppStaffIds.map((staffUserId: number) => ({
+                  staffUserId,
+                  type: "new_response",
+                  title: notifTitle,
+                  body: notifBody,
+                  link: "/corretor/respostas",
+                  metadata: {
+                    formId: input.formId,
+                    formTitle,
+                    respondentName: input.respondentName ?? null,
+                    protocolCode: result.protocolCode ?? null,
+                    isComplete,
+                    responseId: result.id,
+                  },
+                }))
+              ).catch((err) => console.warn("[InAppNotif] Batch create failed:", (err as any)?.message?.substring(0, 100)));
+            }
+
+            // Push notifications — only for staff who have push enabled
             for (const staffUserId of staffIds) {
+              if (prefsMap.get(staffUserId)?.push === false) continue;
               // Skip if already notified via legacy assignedCorretorId
               if (form?.assignedCorretorId === staffUserId) continue;
               notifyCorretorPush({
@@ -1166,17 +1180,28 @@ export const appRouter = router({
               if (staffIds.length > 0) {
                 const notifTitle = `\ud83d\udccb Cadastro completado: ${formTitle}`;
                 const notifBody = `${respondent} completou o cadastro no formul\u00e1rio "${formTitle}".`;
-                db.createStaffNotificationsBatch(
-                  staffIds.map((staffUserId: number) => ({
-                    staffUserId,
-                    type: "new_response" as const,
-                    title: notifTitle,
-                    body: notifBody,
-                    link: "/corretor/respostas",
-                    metadata: { formId: response.formId, formTitle, respondentName: respondent, responseId: id, isComplete: true },
-                  }))
-                ).catch((err) => console.warn("[InAppNotif] Completion batch failed:", (err as any)?.message?.substring(0, 100)));
+
+                // Check preferences for each staff user
+                const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, "new_response");
+
+                // In-app notifications \u2014 only for staff who have in-app enabled
+                const inAppStaffIds = staffIds.filter((sid: number) => prefsMap.get(sid)?.inApp !== false);
+                if (inAppStaffIds.length > 0) {
+                  db.createStaffNotificationsBatch(
+                    inAppStaffIds.map((staffUserId: number) => ({
+                      staffUserId,
+                      type: "new_response" as const,
+                      title: notifTitle,
+                      body: notifBody,
+                      link: "/corretor/respostas",
+                      metadata: { formId: response.formId, formTitle, respondentName: respondent, responseId: id, isComplete: true },
+                    }))
+                  ).catch((err) => console.warn("[InAppNotif] Completion batch failed:", (err as any)?.message?.substring(0, 100)));
+                }
+
+                // Push notifications \u2014 only for staff who have push enabled
                 for (const staffUserId of staffIds) {
+                  if (prefsMap.get(staffUserId)?.push === false) continue;
                   notifyCorretorPush({ staffUserId, formTitle, respondentName: respondent, formId: response.formId })
                     .catch((err) => console.warn(`[CorretorPush] Completion push failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100)));
                 }
@@ -2598,6 +2623,35 @@ export const appRouter = router({
       if (!session?.staffUserId) return;
       await db.markAllStaffNotificationsRead(session.staffUserId);
     }),
+  }),
+
+  /** ─── Staff Notification Preferences ─── */
+  notificationPreferences: router({
+    /** Get all notification preferences for the current staff user */
+    get: staffAnyProcedure.query(async ({ ctx }) => {
+      const session = ctx.customSession as any;
+      if (!session?.staffUserId) return [];
+      return db.getStaffNotificationPreferences(session.staffUserId);
+    }),
+
+    /** Update a single notification preference */
+    update: staffAnyProcedure
+      .input(z.object({
+        notificationType: z.string(),
+        inAppEnabled: z.boolean(),
+        pushEnabled: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const session = ctx.customSession as any;
+        if (!session?.staffUserId) throw new TRPCError({ code: "UNAUTHORIZED" });
+        await db.upsertStaffNotificationPreference(
+          session.staffUserId,
+          input.notificationType,
+          input.inAppEnabled,
+          input.pushEnabled,
+        );
+        return { success: true };
+      }),
   }),
 
   /** ─── Audit Logs ─── */

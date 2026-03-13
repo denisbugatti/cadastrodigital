@@ -20,6 +20,7 @@ import {
   responseValidations,
   staffUsers,
   staffNotifications, InsertStaffNotification,
+  staffNotificationPreferences, InsertStaffNotificationPreference,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2635,4 +2636,161 @@ export async function markAbandonmentNotified(responseId: number): Promise<void>
     .update(formResponses)
     .set({ abandonmentNotifiedAt: new Date() })
     .where(eq(formResponses.id, responseId));
+}
+
+/* ─── Staff Notification Preferences ─── */
+
+/** Default notification types with their labels */
+export const NOTIFICATION_TYPES = [
+  { key: "new_response", label: "Novas respostas", description: "Quando um novo cadastro é enviado no seu formulário" },
+  { key: "response_approved", label: "Cadastro aprovado", description: "Quando um cadastro é aprovado" },
+  { key: "response_rejected", label: "Cadastro rejeitado", description: "Quando um cadastro é rejeitado" },
+] as const;
+
+export type NotificationTypeKey = typeof NOTIFICATION_TYPES[number]["key"];
+
+/**
+ * Get all notification preferences for a staff user.
+ * Returns defaults (all enabled) for types that don't have a row yet.
+ */
+export async function getStaffNotificationPreferences(staffUserId: number) {
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select()
+      .from(staffNotificationPreferences)
+      .where(eq(staffNotificationPreferences.staffUserId, staffUserId));
+
+    // Build a map of existing preferences
+    const prefsMap = new Map(rows.map((r: any) => [r.notificationType, r]));
+
+    // Return all types with defaults for missing ones
+    return NOTIFICATION_TYPES.map((t) => {
+      const existing = prefsMap.get(t.key);
+      return {
+        notificationType: t.key,
+        label: t.label,
+        description: t.description,
+        inAppEnabled: existing ? (existing as any).inAppEnabled : true,
+        pushEnabled: existing ? (existing as any).pushEnabled : true,
+      };
+    });
+  });
+}
+
+/**
+ * Update a single notification preference for a staff user.
+ * Creates the row if it doesn't exist (upsert).
+ */
+export async function upsertStaffNotificationPreference(
+  staffUserId: number,
+  notificationType: string,
+  inAppEnabled: boolean,
+  pushEnabled: boolean,
+) {
+  return withDbRetry(async (db) => {
+    // Check if row exists
+    const existing = await db
+      .select()
+      .from(staffNotificationPreferences)
+      .where(
+        and(
+          eq(staffNotificationPreferences.staffUserId, staffUserId),
+          eq(staffNotificationPreferences.notificationType, notificationType),
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(staffNotificationPreferences)
+        .set({ inAppEnabled, pushEnabled })
+        .where(
+          and(
+            eq(staffNotificationPreferences.staffUserId, staffUserId),
+            eq(staffNotificationPreferences.notificationType, notificationType),
+          )
+        );
+    } else {
+      await db.insert(staffNotificationPreferences).values({
+        staffUserId,
+        notificationType,
+        inAppEnabled,
+        pushEnabled,
+      });
+    }
+  });
+}
+
+/**
+ * Check if a specific notification type is enabled for a staff user.
+ * Returns { inApp: boolean, push: boolean }.
+ * Defaults to both enabled if no preference row exists.
+ */
+export async function isNotificationEnabled(
+  staffUserId: number,
+  notificationType: string,
+): Promise<{ inApp: boolean; push: boolean }> {
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select()
+      .from(staffNotificationPreferences)
+      .where(
+        and(
+          eq(staffNotificationPreferences.staffUserId, staffUserId),
+          eq(staffNotificationPreferences.notificationType, notificationType),
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) {
+      // No preference set = both enabled by default
+      return { inApp: true, push: true };
+    }
+
+    return {
+      inApp: (rows[0] as any).inAppEnabled,
+      push: (rows[0] as any).pushEnabled,
+    };
+  });
+}
+
+/**
+ * Batch check notification preferences for multiple staff users and a single type.
+ * Returns a Map<staffUserId, { inApp: boolean, push: boolean }>.
+ * Users without preferences default to both enabled.
+ */
+export async function getNotificationPreferencesForStaff(
+  staffUserIds: number[],
+  notificationType: string,
+): Promise<Map<number, { inApp: boolean; push: boolean }>> {
+  if (staffUserIds.length === 0) return new Map();
+
+  return withDbRetry(async (db) => {
+    const rows = await db
+      .select()
+      .from(staffNotificationPreferences)
+      .where(
+        and(
+          inArray(staffNotificationPreferences.staffUserId, staffUserIds),
+          eq(staffNotificationPreferences.notificationType, notificationType),
+        )
+      );
+
+    const prefsMap = new Map<number, { inApp: boolean; push: boolean }>();
+    for (const row of rows) {
+      prefsMap.set((row as any).staffUserId, {
+        inApp: (row as any).inAppEnabled,
+        push: (row as any).pushEnabled,
+      });
+    }
+
+    // Fill defaults for users without preferences
+    for (const id of staffUserIds) {
+      if (!prefsMap.has(id)) {
+        prefsMap.set(id, { inApp: true, push: true });
+      }
+    }
+
+    return prefsMap;
+  });
 }

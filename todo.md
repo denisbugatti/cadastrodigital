@@ -1434,3 +1434,11 @@
 - [x] Remover notificação ao owner (notifyOwner + notifyOwnerNewResponse) no submitResponse
 - [x] Manter apenas notificação in-app + push para corretores atribuídos ao formulário
 - [x] Também corrigido completePartialResponse: agora notifica corretores em vez do owner
+
+## Preferências de Notificação por Corretor
+- [x] Schema: tabela staff_notification_preferences (staffUserId, notificationType, inAppEnabled, pushEnabled)
+- [x] Backend: CRUD de preferências (get, upsert) via tRPC
+- [x] Backend: filtrar notificações in-app e push conforme preferências do corretor
+- [x] Frontend: tela/modal de configurações de notificação no painel do corretor
+- [x] Tipos configuráveis: novas respostas, aprovações, rejeições
+- [x] Testes unitários (19 novos testes de preferências + 498 testes totais passando)

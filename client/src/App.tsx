@@ -24,6 +24,7 @@ import ClientRegister from "./pages/ClientRegister";
 import CadenceManagement from "./pages/CadenceManagement";
 import CorretorResponses from "./pages/CorretorResponses";
 import CorretorDashboard from "./pages/CorretorDashboard";
+import CorretorSettings from "./pages/CorretorSettings";
 import FormCopiesManagement from "./pages/FormCopiesManagement";
 import AuditLog from "./pages/AuditLog";
 
@@ -105,6 +106,9 @@ function Router() {
       {/* ─── Corretor routes (accessible by all staff) ─── */}
       {/* Corretor-only responses page */}
       <Route path={"/corretor/respostas"} component={CorretorResponses} />
+
+      {/* Corretor notification settings */}
+      <Route path={"/corretor/configuracoes"} component={CorretorSettings} />
 
       {/* Performance dashboard (corretor + admin) */}
       <Route path={"/corretor/performance"} component={CorretorDashboard} />
