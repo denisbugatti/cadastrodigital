@@ -289,8 +289,12 @@ export const customAuthRouter = router({
       // If the invite has an auto-created form, assign it to the new staff user
       if ((invite as any).formId) {
         try {
-          const { updateForm } = await import("./db");
+          const { updateForm, assignStaffToForm } = await import("./db");
+          // Legacy field
           await updateForm((invite as any).formId, { assignedCorretorId: id });
+          // New: insert into form_assignments table (used by "Vincular Equipe" UI)
+          await assignStaffToForm((invite as any).formId, id, invite.invitedBy);
+          console.log(`[AcceptInvite] Form ${(invite as any).formId} assigned to staff ${id} via formAssignments`);
         } catch (err) {
           console.error("[AcceptInvite] Failed to assign form to corretor:", err);
         }

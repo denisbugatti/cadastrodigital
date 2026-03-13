@@ -1409,3 +1409,7 @@
 
 ## Bug: Navegação /validar/-1 ao voltar da validação
 - [x] Quando corretor volta da validação de resposta para o menu de respostas, redireciona para /validar/-1 causando erro
+
+## Bug: Formulário não vincula automaticamente ao corretor ao aceitar convite
+- [x] Diagnosticar por que a vinculação automática não funciona quando o corretor aceita o convite
+- [x] Corrigir para que o formulário duplicado seja atribuído ao corretor automaticamente
