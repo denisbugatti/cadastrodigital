@@ -12,7 +12,7 @@ import { TRPCError } from "@trpc/server";
 import { t } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
 import { notifyOwner } from "./_core/notification";
-import { notifyOwnerNewResponse, notifyCorretorPush } from "./pushNotification";
+import { notifyOwnerNewResponse, notifyCorretorPush, notifyCorretorStatusChange } from "./pushNotification";
 import { sendProtocolEmail } from "./emailService";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { customAuthRouter } from "./authRouter";
@@ -482,6 +482,63 @@ export const appRouter = router({
               description: `Cadência de reprovação iniciada (3x/semana por 2 meses)`,
               metadata: { cadenceType: "reprovacao" },
             }).catch(() => {});
+          }
+
+          // ─── Notify assigned corretores about status change (approved/rejected) ───
+          if (newStatus === "approved" || newStatus === "rejected") {
+            try {
+              const form = await db.getFormById(response.formId);
+              const formTitle = form?.title || "Formulário";
+              const respondent = response.respondentName || "Cliente";
+              const statusLabel = newStatus === "approved" ? "aprovado" : "rejeitado";
+              const statusEmoji = newStatus === "approved" ? "✅" : "❌";
+              const notifTitle = `${statusEmoji} Cadastro ${statusLabel}: ${respondent}`;
+              const notifBody = `O cadastro de ${respondent} no formulário "${formTitle}" foi ${statusLabel}.`;
+
+              // Get all assigned staff for this form
+              const assignments = await db.getFormAssignments(response.formId);
+              const staffIds = assignments.map((a: any) => a.staffUserId);
+
+              // Also include legacy assignedCorretorId
+              if (form?.assignedCorretorId && !staffIds.includes(form.assignedCorretorId)) {
+                staffIds.push(form.assignedCorretorId);
+              }
+
+              if (staffIds.length > 0) {
+                // In-app notifications (batch insert)
+                db.createStaffNotificationsBatch(
+                  staffIds.map((staffUserId: number) => ({
+                    staffUserId,
+                    type: newStatus === "approved" ? "response_approved" : "response_rejected",
+                    title: notifTitle,
+                    body: notifBody,
+                    link: "/corretor/respostas",
+                    metadata: {
+                      formId: response.formId,
+                      formTitle,
+                      respondentName: respondent,
+                      responseId: input.responseId,
+                      validationStatus: newStatus,
+                    },
+                  }))
+                ).catch((err) => console.warn("[InAppNotif] Status change batch failed:", (err as any)?.message?.substring(0, 100)));
+
+                // Push notifications to each assigned staff user
+                for (const staffUserId of staffIds) {
+                  notifyCorretorStatusChange({
+                    staffUserId,
+                    formTitle,
+                    respondentName: respondent,
+                    formId: response.formId,
+                    status: newStatus as "approved" | "rejected",
+                  }).catch((err) => {
+                    console.warn(`[CorretorPush] Status change push failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100));
+                  });
+                }
+              }
+            } catch (err) {
+              console.warn("[Notification] Status change notification failed:", (err as any)?.message?.substring(0, 100));
+            }
           }
         }
         return { success: true };
@@ -1566,6 +1623,27 @@ export const appRouter = router({
         auth: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const session = ctx.customSession as any;
+        // Staff users: save to staff_push_subscriptions table
+        if (session?.type === "staff" && session?.staffUserId) {
+          const result = await db.saveStaffPushSubscription({
+            staffUserId: session.staffUserId,
+            endpoint: input.endpoint,
+            p256dh: input.p256dh,
+            auth: input.auth,
+            userAgent: null,
+          });
+          // Also save to owner push_subscriptions for owner-level notifications
+          await db.savePushSubscription({
+            userId: ctx.user.id,
+            endpoint: input.endpoint,
+            p256dh: input.p256dh,
+            auth: input.auth,
+            userAgent: null,
+          }).catch(() => {});
+          return { success: true, updated: result.updated };
+        }
+        // Fallback: save to push_subscriptions (owner)
         const result = await db.savePushSubscription({
           userId: ctx.user.id,
           endpoint: input.endpoint,
@@ -1581,12 +1659,28 @@ export const appRouter = router({
         endpoint: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const session = ctx.customSession as any;
+        // Staff users: remove from staff_push_subscriptions
+        if (session?.type === "staff" && session?.staffUserId) {
+          await db.deleteStaffPushSubscription(session.staffUserId, input.endpoint);
+        }
+        // Also remove from owner push_subscriptions
         await db.deletePushSubscription(ctx.user.id, input.endpoint);
         return { success: true };
       }),
 
     status: staffAnyProcedure
       .query(async ({ ctx }) => {
+        const session = ctx.customSession as any;
+        // Staff users: check staff_push_subscriptions
+        if (session?.type === "staff" && session?.staffUserId) {
+          const subs = await db.getActiveStaffPushSubscriptions(session.staffUserId);
+          return {
+            subscriptionCount: subs.filter((s: any) => s.active).length,
+            hasActiveSubscription: subs.some((s: any) => s.active),
+          };
+        }
+        // Fallback: check push_subscriptions (owner)
         const subs = await db.getActivePushSubscriptions(ctx.user.id);
         return {
           subscriptionCount: subs.filter((s: any) => s.active).length,

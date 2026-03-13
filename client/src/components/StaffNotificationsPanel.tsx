@@ -5,7 +5,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
-import { Bell, Check, CheckCheck, Clock, FileText, Loader2, X, Volume2, VolumeX } from "lucide-react";
+import { Bell, Check, CheckCheck, CircleCheck, CircleX, Clock, FileText, Loader2, UserPlus, X, Volume2, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 
@@ -308,11 +308,23 @@ export function StaffNotificationsPanel() {
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                           notif.type === "new_response"
                             ? "bg-blue-500/10 text-blue-500"
+                            : notif.type === "response_approved"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : notif.type === "response_rejected"
+                            ? "bg-red-500/10 text-red-500"
                             : notif.type === "form_assigned"
                             ? "bg-green-500/10 text-green-500"
                             : "bg-muted text-muted-foreground"
                         }`}>
-                          <FileText size={14} />
+                          {notif.type === "response_approved" ? (
+                            <CircleCheck size={14} />
+                          ) : notif.type === "response_rejected" ? (
+                            <CircleX size={14} />
+                          ) : notif.type === "form_assigned" ? (
+                            <UserPlus size={14} />
+                          ) : (
+                            <FileText size={14} />
+                          )}
                         </div>
 
                         {/* Content */}

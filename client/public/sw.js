@@ -42,6 +42,15 @@ self.addEventListener('push', (event) => {
     };
   }
 
+  // Determine action label based on notification type
+  const notifType = payload.data?.type || '';
+  let actionLabel = 'Ver detalhes';
+  if (notifType === 'new_response_corretor' || notifType === 'new_response') {
+    actionLabel = 'Ver respostas';
+  } else if (notifType === 'status_change_corretor') {
+    actionLabel = 'Ver cadastro';
+  }
+
   const options = {
     body: payload.body || 'Nova notificação',
     icon: payload.icon || '/icons/icon-192x192.png',
@@ -54,7 +63,7 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     requireInteraction: false,
     actions: [
-      { action: 'open', title: 'Ver respostas' },
+      { action: 'open', title: actionLabel },
       { action: 'dismiss', title: 'Dispensar' },
     ],
   };

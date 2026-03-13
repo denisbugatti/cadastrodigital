@@ -209,6 +209,45 @@ export async function notifyCorretorPush(params: {
   }
 }
 
+/**
+ * Notify the corretor when a cadastro status changes (approved/rejected).
+ */
+export async function notifyCorretorStatusChange(params: {
+  staffUserId: number;
+  formTitle: string;
+  respondentName?: string;
+  formId?: number;
+  status: "approved" | "rejected";
+}) {
+  try {
+    const statusLabel = params.status === "approved" ? "aprovado" : "rejeitado";
+    const statusEmoji = params.status === "approved" ? "\u2705" : "\u274c";
+    const title = `${statusEmoji} Cadastro ${statusLabel}!`;
+    const body = params.respondentName
+      ? `O cadastro de ${params.respondentName} no formulário "${params.formTitle}" foi ${statusLabel}.`
+      : `Um cadastro no formulário "${params.formTitle}" foi ${statusLabel}.`;
+
+    await sendPushToStaffUser(params.staffUserId, {
+      title,
+      body,
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-72x72.png",
+      url: "/corretor/respostas",
+      tag: `status-change-${params.formId || 'unknown'}-${params.status}`,
+      data: {
+        type: "status_change_corretor",
+        formTitle: params.formTitle,
+        respondentName: params.respondentName,
+        formId: params.formId,
+        status: params.status,
+        timestamp: Date.now(),
+      },
+    });
+  } catch (err: any) {
+    console.error("[Push] Error notifying corretor status change:", err?.message?.substring(0, 100));
+  }
+}
+
 export async function notifyOwnerNewResponse(formTitle: string, respondentName?: string) {
   try {
     // Get the owner user

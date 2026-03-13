@@ -1413,3 +1413,19 @@
 ## Bug: Formulário não vincula automaticamente ao corretor ao aceitar convite
 - [x] Diagnosticar por que a vinculação automática não funciona quando o corretor aceita o convite
 - [x] Corrigir para que o formulário duplicado seja atribuído ao corretor automaticamente
+
+## Notificações In-App + Push para Corretores
+- [x] Analisar infraestrutura existente (tabela staff_notifications, push_subscriptions, service worker)
+- [x] Backend: triggers de notificação para novos cadastros (nova resposta no formulário do corretor)
+- [x] Backend: triggers para atualizações de cadastros (aprovação, rejeição, edição)
+- [x] Frontend: ícone de sino com badge no header/sidebar do dashboard
+- [x] Frontend: painel/dropdown de notificações ao clicar no sino
+- [x] Frontend: marcar como lida ao clicar na notificação
+- [x] Push: service worker para receber push notifications
+- [x] Push: subscription management (pedir permissão, salvar subscription)
+- [x] Push: enviar push quando novo cadastro ou atualização chegar
+- [x] NÃO mexer em formulários nem emails
+- [x] Bug fix: push.subscribe salvava na tabela errada (push_subscriptions em vez de staff_push_subscriptions)
+- [x] Ícones diferenciados no painel: CircleCheck (aprovado), CircleX (rejeitado), UserPlus (atribuído), FileText (resposta)
+- [x] Service worker: ações contextuais (Ver respostas / Ver cadastro) conforme tipo de notificação
+- [x] 28 novos testes unitários para sistema de notificações (479 testes totais)
