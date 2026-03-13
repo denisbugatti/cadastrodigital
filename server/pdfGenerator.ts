@@ -203,11 +203,11 @@ function parseEstadoCivil(val: any): EstadoCivilResult {
 /** Map estado civil to the AcroForm radio button value for Group2/Group5 */
 function getEstadoCivilRadioValue(ec: EstadoCivilResult): string | null {
   const map: Record<string, string> = {
-    solteiro: "Opção1",
-    casado: "Opção2",
-    uniao_estavel: "Opção3",
-    divorciado: "Opção4",
-    viuvo: "Opção5",
+    solteiro: "Escolha1",
+    casado: "Escolha2",
+    uniao_estavel: "Escolha3",
+    divorciado: "Escolha4",
+    viuvo: "Escolha5",
   };
   return map[ec.checkbox] || null;
 }
@@ -216,10 +216,10 @@ function getEstadoCivilRadioValue(ec: EstadoCivilResult): string | null {
 function getRegimeRadioValue(regime?: string): string | null {
   if (!regime) return null;
   const map: Record<string, string> = {
-    comunhao_parcial: "Opção1",
-    comunhao_universal: "Opção2",
-    separacao_total: "Opção3",
-    pacto_nupcial: "Opção4",
+    comunhao_parcial: "Escolha1",
+    comunhao_universal: "Escolha2",
+    separacao_total: "Escolha3",
+    pacto_nupcial: "Escolha4",
   };
   return map[regime] || null;
 }
@@ -228,8 +228,8 @@ function getRegimeRadioValue(regime?: string): string | null {
 function getSexoRadioValue(sexo: any): string | null {
   if (!sexo) return null;
   const s = String(sexo).toLowerCase();
-  if (/masc|homem|male/i.test(s)) return "Opção1";
-  if (/fem|mulher|female/i.test(s)) return "Opção2";
+  if (/masc|homem|male/i.test(s)) return "Escolha1";
+  if (/fem|mulher|female/i.test(s)) return "Escolha2";
   return null;
 }
 

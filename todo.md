@@ -1394,3 +1394,9 @@
 
 ## Logo desatualizado no Dashboard
 - [x] Atualizar logo no Dashboard.tsx para o novo escudo 3D metálico
+
+## Ajustar radio buttons de Sexo e campos Estado Civil/Regime no PDF
+- [x] Verificar nomes exatos dos radio buttons de Sexo no AcroForm (PF e PJ)
+- [x] Ajustar mapeamento de Sexo para valores corretos do AcroForm (Escolha1=Masc, Escolha2=Fem)
+- [x] Verificar campos de Estado Civil e Regime de Casamento no AcroForm
+- [x] Ajustar mapeamento de Estado Civil e Regime de Casamento (Escolha1-5 e Escolha1-4)
