@@ -1400,3 +1400,9 @@
 - [x] Ajustar mapeamento de Sexo para valores corretos do AcroForm (Escolha1=Masc, Escolha2=Fem)
 - [x] Verificar campos de Estado Civil e Regime de Casamento no AcroForm
 - [x] Ajustar mapeamento de Estado Civil e Regime de Casamento (Escolha1-5 e Escolha1-4)
+
+## Juntar documentos anexados ao PDF preenchido
+- [x] Ao gerar o PDF, incluir os documentos anexados pelo cliente (CNH, comprovantes, etc.) após a ficha preenchida
+- [x] Converter imagens (JPG, PNG) para páginas PDF (já implementado)
+- [x] Mesclar PDFs anexados diretamente (já implementado)
+- [x] Gerar um único PDF final: ficha preenchida + todos os anexos (corrigido parse de JSON string)

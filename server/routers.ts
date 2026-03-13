@@ -1167,8 +1167,12 @@ export const appRouter = router({
         const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
         for (const q of questions) {
           if (q.type === "file-upload" && answers[q.id]) {
-            const val = answers[q.id];
-            if (typeof val === "object" && val.url) {
+            let val = answers[q.id];
+            // Parse JSON string if needed (FileUploadInput stores as JSON.stringify)
+            if (typeof val === "string" && val.trim().startsWith("{")) {
+              try { val = JSON.parse(val); } catch { /* not JSON */ }
+            }
+            if (typeof val === "object" && val !== null && val.url) {
               attachments.push({
                 url: val.url,
                 filename: val.filename || val.name || q.title,
@@ -1249,8 +1253,12 @@ export const appRouter = router({
         const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
         for (const q of questions) {
           if (q.type === "file-upload" && answers[q.id]) {
-            const val = answers[q.id];
-            if (typeof val === "object" && val.url) {
+            let val = answers[q.id];
+            // Parse JSON string if needed (FileUploadInput stores as JSON.stringify)
+            if (typeof val === "string" && val.trim().startsWith("{")) {
+              try { val = JSON.parse(val); } catch { /* not JSON */ }
+            }
+            if (typeof val === "object" && val !== null && val.url) {
               attachments.push({
                 url: val.url,
                 filename: val.filename || val.name || q.title,
