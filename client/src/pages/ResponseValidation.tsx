@@ -532,7 +532,7 @@ export default function ResponseValidation() {
 
     setTimeout(() => {
       setIsApproving(false);
-      navigate(-1 as any);
+      window.history.back();
     }, 800);
   };
 
@@ -580,7 +580,7 @@ export default function ResponseValidation() {
           <p className="text-xs text-muted-foreground font-body mb-4">
             Esta resposta pode ter sido removida ou o link é inválido.
           </p>
-          <Button variant="outline" onClick={() => navigate(-1 as any)} className="gap-2">
+          <Button variant="outline" onClick={() => window.history.back()} className="gap-2">
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Button>
         </div>
@@ -599,7 +599,7 @@ export default function ResponseValidation() {
           {/* Top row */}
           <div className="flex items-center gap-3 py-3">
             <button
-              onClick={() => navigate(-1 as any)}
+              onClick={() => window.history.back()}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all shrink-0 active:scale-95"
             >
               <ArrowLeft className="w-4.5 h-4.5" />

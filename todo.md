@@ -1406,3 +1406,6 @@
 - [x] Converter imagens (JPG, PNG) para páginas PDF (já implementado)
 - [x] Mesclar PDFs anexados diretamente (já implementado)
 - [x] Gerar um único PDF final: ficha preenchida + todos os anexos (corrigido parse de JSON string)
+
+## Bug: Navegação /validar/-1 ao voltar da validação
+- [x] Quando corretor volta da validação de resposta para o menu de respostas, redireciona para /validar/-1 causando erro
