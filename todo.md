@@ -1391,3 +1391,6 @@
 ## Bug: Login no preview não entra no sistema
 - [x] Após fazer login no preview, o sistema não redireciona para o dashboard — diagnosticar e corrigir
 - [x] Implementar fallback de autenticação via localStorage/header para funcionar em iframes (preview Manus)
+
+## Logo desatualizado no Dashboard
+- [x] Atualizar logo no Dashboard.tsx para o novo escudo 3D metálico
