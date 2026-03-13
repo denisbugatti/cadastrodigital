@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Shield, User, Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { setStoredToken } from "@/lib/authToken";
 
 type LoginTab = "staff" | "client";
 
@@ -30,13 +31,17 @@ export default function Login() {
 
   const staffLogin = trpc.customAuth.staffLogin.useMutation({
     onSuccess: async (data) => {
+      // Store token in localStorage as fallback for iframe contexts where cookies are blocked
+      if (data.token) {
+        setStoredToken(data.token);
+      }
       toast.success("Login realizado com sucesso!");
-      // Full page reload to ensure session cookie is read correctly
-      // Using window.location.href instead of navigate to avoid stale cache issues
+      // Invalidate cache and navigate (works in both iframe and direct contexts)
+      await utils.customAuth.me.invalidate();
       if (data.user.role === "corretor") {
-        window.location.href = "/corretor/respostas";
+        navigate("/corretor/respostas", { replace: true });
       } else {
-        window.location.href = "/dashboard";
+        navigate("/dashboard", { replace: true });
       }
     },
     onError: (err) => {
@@ -45,10 +50,15 @@ export default function Login() {
   });
 
   const clientLogin = trpc.customAuth.clientLogin.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      // Store token in localStorage as fallback for iframe contexts where cookies are blocked
+      if (data.token) {
+        setStoredToken(data.token);
+      }
       toast.success("Login realizado com sucesso!");
-      // Full page reload to ensure session cookie is read correctly
-      window.location.href = "/portal";
+      // Invalidate cache and navigate (works in both iframe and direct contexts)
+      await utils.customAuth.me.invalidate();
+      navigate("/portal", { replace: true });
     },
     onError: (err) => {
       toast.error(err.message);

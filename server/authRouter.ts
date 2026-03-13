@@ -29,7 +29,14 @@ export const customAuthRouter = router({
    */
   me: publicProcedure.query(async ({ ctx }) => {
     const cookies = parseCookies(ctx.req.headers.cookie);
-    const token = cookies.get(COOKIE_NAME);
+    let token = cookies.get(COOKIE_NAME);
+    // Fallback: read token from Authorization header (for iframe/preview contexts where cookies are blocked)
+    if (!token) {
+      const authHeader = ctx.req.headers.authorization;
+      if (authHeader?.startsWith("Bearer ")) {
+        token = authHeader.slice(7);
+      }
+    }
     const session = await verifySessionToken(token);
 
     if (!session) return null;
@@ -126,6 +133,7 @@ export const customAuthRouter = router({
 
       return {
         success: true,
+        token, // Return token so frontend can store in localStorage as fallback for iframe contexts
         user: {
           type: "staff" as const,
           id: user.id,
@@ -174,6 +182,7 @@ export const customAuthRouter = router({
 
       return {
         success: true,
+        token, // Return token so frontend can store in localStorage as fallback for iframe contexts
         user: {
           type: "client" as const,
           id: user.id,
@@ -227,6 +236,7 @@ export const customAuthRouter = router({
 
       return {
         success: true,
+        token, // Return token so frontend can store in localStorage as fallback for iframe contexts
         user: {
           type: "client" as const,
           id,
@@ -298,6 +308,7 @@ export const customAuthRouter = router({
 
       return {
         success: true,
+        token, // Return token so frontend can store in localStorage as fallback for iframe contexts
         user: {
           type: "staff" as const,
           id,

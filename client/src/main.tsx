@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { getStoredToken } from "@/lib/authToken";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createRoot } from "react-dom/client";
@@ -45,6 +46,15 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      headers() {
+        // Send auth token via Authorization header as fallback for iframe contexts
+        // where third-party cookies are blocked
+        const token = getStoredToken();
+        if (token) {
+          return { Authorization: `Bearer ${token}` };
+        }
+        return {};
+      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

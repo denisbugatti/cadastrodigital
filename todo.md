@@ -1387,3 +1387,7 @@
 
 ## Bug: Login não redireciona automaticamente
 - [x] Após "Login com sucesso", redirecionar automaticamente para o dashboard sem precisar clicar "Voltar"
+
+## Bug: Login no preview não entra no sistema
+- [x] Após fazer login no preview, o sistema não redireciona para o dashboard — diagnosticar e corrigir
+- [x] Implementar fallback de autenticação via localStorage/header para funcionar em iframes (preview Manus)

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Shield, Loader2, Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react";
+import { setStoredToken } from "@/lib/authToken";
 
 export default function AcceptInvite() {
   const [, navigate] = useLocation();
@@ -30,6 +31,10 @@ export default function AcceptInvite() {
 
   const acceptMutation = trpc.customAuth.acceptInvite.useMutation({
     onSuccess: async (data) => {
+      // Store token in localStorage as fallback for iframe contexts where cookies are blocked
+      if (data.token) {
+        setStoredToken(data.token);
+      }
       toast.success("Conta criada com sucesso! Bem-vindo(a)!");
       // Invalidate the cached auth state so route guards see the new session
       await utils.customAuth.me.invalidate();

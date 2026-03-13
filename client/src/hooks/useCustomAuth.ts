@@ -4,6 +4,7 @@
  */
 
 import { trpc } from "@/lib/trpc";
+import { clearStoredToken } from "@/lib/authToken";
 import { useCallback, useMemo } from "react";
 
 export type StaffUser = {
@@ -49,6 +50,8 @@ export function useCustomAuth() {
     } catch {
       // Ignore errors
     } finally {
+      // Clear localStorage token (used as fallback in iframe contexts)
+      clearStoredToken();
       utils.customAuth.me.setData(undefined, null);
       await utils.customAuth.me.invalidate();
       // Redirect to landing page after logout

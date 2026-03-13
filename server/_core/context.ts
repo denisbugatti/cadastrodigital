@@ -59,7 +59,14 @@ export async function createContext(
   if (!user) {
     try {
       const cookies = parseCookies(opts.req.headers.cookie);
-      const token = cookies.get(COOKIE_NAME);
+      let token = cookies.get(COOKIE_NAME);
+      // Fallback: read token from Authorization header (for iframe/preview contexts where cookies are blocked)
+      if (!token) {
+        const authHeader = opts.req.headers.authorization;
+        if (authHeader?.startsWith("Bearer ")) {
+          token = authHeader.slice(7);
+        }
+      }
       if (token) {
         const session = await verifySessionToken(token);
         if (session) {
