@@ -1453,3 +1453,12 @@
 - [x] Reescrever corretorNotification.ts: sendCorretorNotification → template one-corretor-notification
 - [x] Manter sendFollowUpEmail e sendWeeklyReportEmail com inline HTML (sem template no Resend)
 - [x] Atualizar testes (496 testes passando)
+
+## Fix: Email de protocolo (one-protocol-pending)
+- [x] Fonte: template já usa #FFFFFF (branco) — problema era do cliente de email
+- [x] Texto "Galvao" → "One Innovation" (código sempre envia "One Innovation" como FORM_TITLE)
+- [x] Texto "análise do jurídico" → "análise de crédito" + "apto a ser cliente One Innovation" (template atualizado via API Resend)
+- [x] "Aguarde a análise do jurídico" → "Aguarde a análise de crédito" (próximos passos atualizados)
+- [x] Template republicado no Resend (one-protocol-pending)
+- [x] Testes atualizados (496 passando)
+- [x] Próximos passos: atualizados no template para refletir análise de crédito

@@ -116,7 +116,7 @@ describe("Email Service — Resend Templates", () => {
       expect(call.template.id).toBe("one-protocol-pending");
       expect(call.template.variables.CLIENT_NAME).toBe("Carlos Oliveira");
       expect(call.template.variables.PROTOCOL_CODE).toBe("ABC-123");
-      expect(call.template.variables.FORM_TITLE).toBe("Cadastro One Innovation");
+      expect(call.template.variables.FORM_TITLE).toBe("One Innovation");
     });
 
     it("should use 'Olá' when respondentName is not provided", async () => {

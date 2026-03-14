@@ -150,8 +150,10 @@ export interface ProtocolEmailParams {
 }
 
 export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<boolean> {
-  const { to, respondentName, protocolCode, formTitle } = params;
+  const { to, respondentName, protocolCode } = params;
 
+  // Always use "One Innovation" — the client registered with One Innovation,
+  // not with the specific form/corretor name.
   return sendTemplateEmail({
     to,
     subject: `Protocolo ${protocolCode} — Cadastro recebido com sucesso`,
@@ -159,7 +161,7 @@ export async function sendProtocolEmail(params: ProtocolEmailParams): Promise<bo
     variables: {
       CLIENT_NAME: respondentName || "Olá",
       PROTOCOL_CODE: protocolCode,
-      FORM_TITLE: formTitle,
+      FORM_TITLE: "One Innovation",
     },
   });
 }
