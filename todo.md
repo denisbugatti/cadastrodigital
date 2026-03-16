@@ -1462,3 +1462,6 @@
 - [x] Template republicado no Resend (one-protocol-pending)
 - [x] Testes atualizados (496 passando)
 - [x] Próximos passos: atualizados no template para refletir análise de crédito
+
+## Fix: Setas de navegação do formulário — centralizar no mobile
+- [x] Mover setas de navegação (up/down) para o centro da tela no mobile (bottom-center em vez de bottom-right)

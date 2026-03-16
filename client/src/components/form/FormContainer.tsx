@@ -463,7 +463,7 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered) ─── */}
       {showNav && (
         <motion.div
-          className="absolute right-2 sm:right-6 bottom-4 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-30 flex flex-col gap-1.5 sm:gap-2"
+          className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 bottom-6 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-30 flex flex-row sm:flex-col gap-3 sm:gap-2"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
