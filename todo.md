@@ -1465,3 +1465,10 @@
 
 ## Fix: Setas de navegação do formulário — centralizar no mobile
 - [x] Mover setas de navegação (up/down) para o centro da tela no mobile (bottom-center em vez de bottom-right)
+
+## Fix: Upload de arquivos no formulário
+- [x] Investigar e corrigir erros ao subir arquivos (era auth: files.upload usava staffAnyProcedure, criado files.publicUpload com publicProcedure)
+- [x] Permitir subir mais de 1 arquivo (botão de upload continua visível após upload, com layout compacto "Adicionar mais arquivos")
+- [x] Manter preview/lista dos documentos já enviados na tela (com AnimatePresence, ícones por tipo, botão de remover)
+- [x] Suporte a múltiplos formatos: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, WebP, HEIC, HEIF
+- [x] 10 novos testes (506 testes totais passando)

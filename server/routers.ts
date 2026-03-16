@@ -1636,6 +1636,36 @@ export const appRouter = router({
         return { id: record.id, url, fileKey };
       }),
 
+    /** Public upload — used by form respondents (no auth required) */
+    publicUpload: publicProcedure
+      .input(z.object({
+        filename: z.string(),
+        contentBase64: z.string(),
+        mimeType: z.string(),
+        formId: z.number().optional(),
+        context: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        // Validate file size (10MB max from base64)
+        const buffer = Buffer.from(input.contentBase64, "base64");
+        if (buffer.length > 10 * 1024 * 1024) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo muito grande. Máximo: 10MB" });
+        }
+        // Validate mime type (only common document/image types)
+        const allowedMimes = [
+          "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif",
+          "application/pdf",
+          "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ];
+        if (!allowedMimes.includes(input.mimeType)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não permitido" });
+        }
+        const fileKey = `form-uploads/${nanoid(8)}-${input.filename}`;
+        const { url } = await storagePut(fileKey, buffer, input.mimeType);
+        return { url, fileKey, filename: input.filename, mimeType: input.mimeType };
+      }),
+
     listByForm: staffAnyProcedure
       .input(z.object({ formId: z.number() }))
       .query(async ({ input }) => {
