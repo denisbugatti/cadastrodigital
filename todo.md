@@ -1472,3 +1472,9 @@
 - [x] Manter preview/lista dos documentos já enviados na tela (com AnimatePresence, ícones por tipo, botão de remover)
 - [x] Suporte a múltiplos formatos: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, WebP, HEIC, HEIF
 - [x] 10 novos testes (506 testes totais passando)
+
+## Fix: Setas de navegação quase invisíveis no mobile (fundo azul)
+- [ ] Aumentar contraste/visibilidade das setas no mobile — fundo branco sólido ou borda mais forte
+
+## Fix: Setas de navegação no mobile devem ficar iguais ao preview
+- [x] Setas reposicionadas: lado direito, vertical, centralizado verticalmente (igual ao preview), cores originais mantidas

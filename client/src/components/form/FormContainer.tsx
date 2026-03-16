@@ -460,10 +460,10 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
         </motion.div>
       )}
 
-      {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered) ─── */}
+      {/* ─── Navigation Arrows (RIGHT SIDE, vertically centered — same as preview) ─── */}
       {showNav && (
         <motion.div
-          className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 bottom-6 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-30 flex flex-row sm:flex-col gap-3 sm:gap-2"
+          className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
