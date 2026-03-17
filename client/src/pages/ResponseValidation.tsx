@@ -325,6 +325,7 @@ export default function ResponseValidation() {
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxRotation, setLightboxRotation] = useState(0);
+  const [reopenedValidation, setReopenedValidation] = useState(false);
   const pdfCacheRef = useRef<Map<number, { url: string; filename: string }>>(new Map());
   const bottomBarRef = useRef<HTMLDivElement>(null);
 
@@ -602,7 +603,6 @@ export default function ResponseValidation() {
   }
 
   const isAlreadyFinalized = response.validationStatus === "approved" || response.validationStatus === "rejected";
-  const [reopenedValidation, setReopenedValidation] = useState(false);
   const isAlreadyApproved = isAlreadyFinalized && !reopenedValidation;
 
   const handleReopenValidation = () => {

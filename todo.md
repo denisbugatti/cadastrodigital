@@ -1512,3 +1512,16 @@
 - [x] Frontend: botão "Reabrir Validação" no ValidationDrawer do admin (ResponsesPanel.tsx)
 - [x] Ao finalizar novamente, envia novo email consolidado
 - [x] 525 testes passando (19 novos testes para confirmação e re-validação)
+
+## Bug: Email com protocolo fica com altura infinita
+- [x] Investigar template de email com código de protocolo enviado ao cliente
+- [x] Identificar causa raiz: min-height:100vh incompatível com clientes de email
+- [x] Corrigir template one-protocol-pending via API do Resend (remover min-height:100vh)
+- [x] Corrigir TODOS os 10 outros templates que tinham o mesmo bug
+- [x] Templates corrigidos e publicados via API
+
+## Bug: Botão de validar resposta dá erro de runtime (crash)
+- [x] Investigar stack trace do erro no site publicado (one.cadastrodigital.com.br)
+- [x] Causa raiz: useState chamado condicionalmente após early returns (viola regras dos React Hooks)
+- [x] Corrigido: movido useState(reopenedValidation) para antes dos early returns
+- [x] 525 testes passando, zero erros de TypeScript
