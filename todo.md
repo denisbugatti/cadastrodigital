@@ -1500,3 +1500,15 @@
 - [x] Frontend: botão "Aprovar Cadastro"/"Concluir Validação" no ResponseValidation agora chama finalizeValidation
 - [x] Email consolidado: usa template one-approval ou one-rejection do Resend
 - [x] 506 testes passando
+
+## Dialog de confirmação antes de finalizar validação
+- [x] Frontend: adicionar AlertDialog antes de chamar finalizeValidation (ResponseValidation.tsx)
+- [x] Frontend: dialog de confirmação já existia no ValidationDrawer (ResponsesPanel.tsx)
+- [x] Mensagem: mostra resumo (campos aprovados/reprovados) + "Confirmar e Enviar Email"
+
+## Permitir re-validação após finalizar
+- [x] Backend: já suporta re-validação (upsert nas validações + finalizeValidation sem restrição de status)
+- [x] Frontend: botão "Reabrir Validação" na tela de validação do corretor (ResponseValidation.tsx)
+- [x] Frontend: botão "Reabrir Validação" no ValidationDrawer do admin (ResponsesPanel.tsx)
+- [x] Ao finalizar novamente, envia novo email consolidado
+- [x] 525 testes passando (19 novos testes para confirmação e re-validação)

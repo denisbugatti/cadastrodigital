@@ -14,7 +14,7 @@ import {
   Lock, Loader2, Check, AlertTriangle, MessageSquare,
   ExternalLink, Image as ImageIcon, File as FileIcon,
   MoreHorizontal, Clock, User, Phone, Users,
-  MailCheck, Pause, Send, MailPlus, Mail,
+  MailCheck, Pause, Send, MailPlus, Mail, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -79,6 +79,10 @@ function ValidationDrawer({
   const [rejectingField, setRejectingField] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [showConfirmFinalize, setShowConfirmFinalize] = useState(false);
+  const [reopenedValidation, setReopenedValidation] = useState(false);
+
+  const isAlreadyFinalized = (response.validationStatus === "approved" || response.validationStatus === "rejected") && !reopenedValidation;
 
   const validations = validationsQuery.data ?? [];
   const files = filesQuery.data ?? [];
@@ -391,8 +395,38 @@ function ValidationDrawer({
             </div>
           )}
 
+          {/* ─── Reabrir Validação Button (when already finalized) ─── */}
+          {isAlreadyFinalized && totalFields > 0 && (
+            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50 space-y-2">
+              <div className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-semibold ${
+                response.validationStatus === "approved"
+                  ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
+                  : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
+              }`}>
+                {response.validationStatus === "approved" ? (
+                  <><CheckCircle2 size={16} /> Validação finalizada — Aprovado</>
+                ) : (
+                  <><XCircle size={16} /> Validação finalizada — Rejeitado</>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setReopenedValidation(true);
+                  toast.info("Validação reaberta. Modifique e finalize novamente.");
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-950/50 border border-amber-200 dark:border-amber-800 transition-all"
+              >
+                <RotateCcw size={16} />
+                Reabrir Validação
+              </button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                Reabra para modificar validações e enviar um novo email ao cliente.
+              </p>
+            </div>
+          )}
+
           {/* ─── Finalizar Validação Button ─── */}
-          {pendingFields === 0 && totalFields > 0 && (
+          {!isAlreadyFinalized && pendingFields === 0 && totalFields > 0 && (
             <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50 space-y-2">
               {/* Status summary */}
               <div className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-semibold ${
@@ -409,7 +443,7 @@ function ValidationDrawer({
 
               {/* Finalizar button */}
               <button
-                onClick={() => finalizeMutation.mutate({ responseId: response.id })}
+                onClick={() => setShowConfirmFinalize(true)}
                 disabled={finalizeMutation.isPending}
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-white transition-all shadow-sm disabled:opacity-50 ${
                   approvedFields === totalFields
@@ -431,6 +465,80 @@ function ValidationDrawer({
           )}
         </div>
       </motion.div>
+
+      {/* ── Confirm finalize dialog ── */}
+      <AnimatePresence>
+        {showConfirmFinalize && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-[60]"
+              onClick={() => setShowConfirmFinalize(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed left-4 right-4 sm:left-auto sm:right-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bottom-4 sm:bottom-auto sm:w-[400px] bg-card rounded-2xl border border-border shadow-2xl z-[61] p-5"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`p-2 rounded-xl ${
+                  approvedFields === totalFields
+                    ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600"
+                    : "bg-amber-100 dark:bg-amber-950/50 text-amber-600"
+                }`}>
+                  {approvedFields === totalFields ? <ShieldCheck size={20} /> : <ShieldAlert size={20} />}
+                </div>
+                <div>
+                  <h4 className="text-sm font-display font-bold text-foreground">
+                    Finalizar validação?
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Esta ação enviará um email ao cliente.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-secondary/50 rounded-xl p-3 mb-4 text-xs text-muted-foreground space-y-1">
+                <p><strong className="text-foreground">{approvedFields}</strong> campo{approvedFields !== 1 ? "s" : ""} aprovado{approvedFields !== 1 ? "s" : ""}</p>
+                {rejectedFields > 0 && (
+                  <p><strong className="text-foreground">{rejectedFields}</strong> campo{rejectedFields !== 1 ? "s" : ""} reprovado{rejectedFields !== 1 ? "s" : ""}</p>
+                )}
+                <p className="pt-1 border-t border-border/50 mt-1">
+                  {approvedFields === totalFields
+                    ? "O cliente receberá um email de aprovação."
+                    : "O cliente receberá um email com os itens a corrigir."}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowConfirmFinalize(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:bg-secondary transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfirmFinalize(false);
+                    finalizeMutation.mutate({ responseId: response.id });
+                  }}
+                  disabled={finalizeMutation.isPending}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-white transition-all disabled:opacity-50 ${
+                    approvedFields === totalFields
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-brand hover:bg-brand/90"
+                  }`}
+                >
+                  {finalizeMutation.isPending ? "Enviando..." : "Confirmar e Enviar"}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── Reject justification modal ── */}
       <AnimatePresence>

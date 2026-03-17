@@ -18,13 +18,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
   Download, Loader2, AlertTriangle, MessageSquare,
   Shield, User, Mail, Phone, Calendar, ShieldCheck,
   Lock, Image as ImageIcon, ExternalLink, Eye, FileDown, Share2,
-  X, ZoomIn, ZoomOut, RotateCw, Maximize2,
+  X, ZoomIn, ZoomOut, RotateCw, Maximize2, Send, RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -306,6 +316,7 @@ export default function ResponseValidation() {
   const [rejectingQuestion, setRejectingQuestion] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
   const [isApproving, setIsApproving] = useState(false);
+  const [showConfirmFinalize, setShowConfirmFinalize] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [pdfFilename, setPdfFilename] = useState("ficha.pdf");
@@ -433,13 +444,16 @@ export default function ResponseValidation() {
     onSuccess: (data) => {
       utils.validations.byResponse.invalidate({ responseId });
       utils.responses.getById.invalidate({ id: responseId });
+      setIsApproving(false);
       const statusMsg = data.status === "approved" ? "aprovado" : "com pendências";
       toast.success(`Validação finalizada! Cadastro ${statusMsg}.`, {
         description: "Email consolidado enviado ao cliente.",
       });
-      setTimeout(() => window.history.back(), 1200);
     },
-    onError: (err) => toast.error(err.message || "Erro ao finalizar validação"),
+    onError: (err) => {
+      setIsApproving(false);
+      toast.error(err.message || "Erro ao finalizar validação");
+    },
   });
 
   const response = responseQuery.data as any;
@@ -526,6 +540,11 @@ export default function ResponseValidation() {
       toast.error("Valide todas as respostas antes de aprovar o cadastro");
       return;
     }
+    setShowConfirmFinalize(true);
+  };
+
+  const confirmFinalize = () => {
+    setShowConfirmFinalize(false);
     setIsApproving(true);
     finalizeMutation.mutate({ responseId });
   };
@@ -582,7 +601,14 @@ export default function ResponseValidation() {
     );
   }
 
-  const isAlreadyApproved = response.validationStatus === "approved";
+  const isAlreadyFinalized = response.validationStatus === "approved" || response.validationStatus === "rejected";
+  const [reopenedValidation, setReopenedValidation] = useState(false);
+  const isAlreadyApproved = isAlreadyFinalized && !reopenedValidation;
+
+  const handleReopenValidation = () => {
+    setReopenedValidation(true);
+    toast.info("Validação reaberta. Modifique as validações e finalize novamente.");
+  };
   const answerEntries = Object.entries(answers);
 
   return (
@@ -1022,54 +1048,105 @@ export default function ResponseValidation() {
                   </div>
                 </div>
 
-                {/* Aprovar Cadastro button */}
-                <Button
-                  size="default"
-                  className={`gap-1.5 text-xs sm:text-sm font-semibold px-4 sm:px-6 h-10 sm:h-11 transition-all duration-300 shrink-0 active:scale-[0.97] ${
-                    validationProgress.allValidated
-                      ? validationProgress.allApproved
-                        ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25"
-                        : "bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/25"
-                      : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                  }`}
-                  disabled={!validationProgress.allValidated || isApproving || isAlreadyApproved}
-                  onClick={handleAproveCadastro}
-                >
-                  {isApproving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : !validationProgress.allValidated ? (
-                    <Lock className="w-3.5 h-3.5" />
-                  ) : validationProgress.allApproved ? (
-                    <ShieldCheck className="w-4 h-4" />
-                  ) : (
-                    <Shield className="w-4 h-4" />
-                  )}
-                  <span className="hidden sm:inline">
-                    {isAlreadyApproved
-                      ? "Cadastro Aprovado"
-                      : !validationProgress.allValidated
-                      ? "Validar Todas"
-                      : validationProgress.allApproved
-                      ? "Aprovar Cadastro"
-                      : "Concluir Validação"
-                    }
-                  </span>
-                  <span className="sm:hidden">
-                    {isAlreadyApproved
-                      ? "Aprovado"
-                      : !validationProgress.allValidated
-                      ? "Validar"
-                      : validationProgress.allApproved
-                      ? "Aprovar"
-                      : "Concluir"
-                    }
-                  </span>
-                </Button>
+                {/* Reabrir Validação button (when already finalized) */}
+                {isAlreadyApproved && (
+                  <Button
+                    size="default"
+                    variant="outline"
+                    className="gap-1.5 text-xs sm:text-sm font-semibold px-4 sm:px-6 h-10 sm:h-11 transition-all duration-300 shrink-0 active:scale-[0.97] border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-500"
+                    onClick={handleReopenValidation}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span className="hidden sm:inline">Reabrir Validação</span>
+                    <span className="sm:hidden">Reabrir</span>
+                  </Button>
+                )}
+
+                {/* Aprovar Cadastro / Finalizar button */}
+                {!isAlreadyApproved && (
+                  <Button
+                    size="default"
+                    className={`gap-1.5 text-xs sm:text-sm font-semibold px-4 sm:px-6 h-10 sm:h-11 transition-all duration-300 shrink-0 active:scale-[0.97] ${
+                      validationProgress.allValidated
+                        ? validationProgress.allApproved
+                          ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25"
+                          : "bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/25"
+                        : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                    }`}
+                    disabled={!validationProgress.allValidated || isApproving}
+                    onClick={handleAproveCadastro}
+                  >
+                    {isApproving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : !validationProgress.allValidated ? (
+                      <Lock className="w-3.5 h-3.5" />
+                    ) : validationProgress.allApproved ? (
+                      <Send className="w-4 h-4" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {!validationProgress.allValidated
+                        ? "Validar Todas"
+                        : "Finalizar e Enviar Email"
+                      }
+                    </span>
+                    <span className="sm:hidden">
+                      {!validationProgress.allValidated
+                        ? "Validar"
+                        : "Finalizar"
+                      }
+                    </span>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* ─── Confirm Finalize Dialog ─── */}
+      <AlertDialog open={showConfirmFinalize} onOpenChange={setShowConfirmFinalize}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-base flex items-center gap-2">
+              {validationProgress.allApproved ? (
+                <ShieldCheck className="w-5 h-5 text-green-600" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              )}
+              Finalizar validação?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-body text-sm space-y-2">
+              <span className="block">
+                {validationProgress.allApproved
+                  ? "Todos os campos foram aprovados. O cliente receberá um email de aprovação."
+                  : `${validationProgress.approvedFields} campo(s) aprovado(s) e ${validationProgress.rejectedFields} reprovado(s). O cliente receberá um email com os itens a corrigir.`
+                }
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Você poderá reabrir a validação posteriormente, se necessário.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-body text-xs">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmFinalize}
+              className={`font-body text-xs gap-1.5 ${
+                validationProgress.allApproved
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-amber-600 hover:bg-amber-700 text-white"
+              }`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              Confirmar e Enviar Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ─── Reject Dialog ─── */}
       <Dialog open={!!rejectingQuestion} onOpenChange={() => setRejectingQuestion(null)}>
