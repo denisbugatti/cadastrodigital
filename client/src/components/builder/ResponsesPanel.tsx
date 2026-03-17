@@ -66,6 +66,16 @@ function ValidationDrawer({
     onError: (err) => toast.error(err.message || "Erro ao validar"),
   });
 
+  const finalizeMutation = trpc.validations.finalizeValidation.useMutation({
+    onSuccess: (data) => {
+      validationsQuery.refetch();
+      utils.responses.listByForm.invalidate({ formId });
+      const statusMsg = data.status === "approved" ? "aprovado" : "rejeitado";
+      toast.success(`Validação finalizada! Cadastro ${statusMsg}. Email enviado ao cliente.`);
+    },
+    onError: (err) => toast.error(err.message || "Erro ao finalizar validação"),
+  });
+
   const [rejectingField, setRejectingField] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
@@ -381,13 +391,42 @@ function ValidationDrawer({
             </div>
           )}
 
-          {/* All approved indicator */}
-          {pendingFields === 0 && totalFields > 0 && approvedFields === totalFields && (
-            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50">
-              <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
-                <CheckCircle2 size={16} />
-                Todas as respostas aprovadas
+          {/* ─── Finalizar Validação Button ─── */}
+          {pendingFields === 0 && totalFields > 0 && (
+            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50 space-y-2">
+              {/* Status summary */}
+              <div className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-semibold ${
+                approvedFields === totalFields
+                  ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
+                  : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+              }`}>
+                {approvedFields === totalFields ? (
+                  <><CheckCircle2 size={16} /> Todas as respostas aprovadas</>
+                ) : (
+                  <><AlertTriangle size={16} /> {approvedFields} aprovado{approvedFields !== 1 ? "s" : ""}, {rejectedFields} reprovado{rejectedFields !== 1 ? "s" : ""}</>
+                )}
               </div>
+
+              {/* Finalizar button */}
+              <button
+                onClick={() => finalizeMutation.mutate({ responseId: response.id })}
+                disabled={finalizeMutation.isPending}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-white transition-all shadow-sm disabled:opacity-50 ${
+                  approvedFields === totalFields
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-brand hover:bg-brand/90"
+                }`}
+              >
+                {finalizeMutation.isPending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Send size={16} />
+                )}
+                Finalizar Validação e Enviar Email
+              </button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                Um email consolidado será enviado ao cliente com o resultado da validação.
+              </p>
             </div>
           )}
         </div>

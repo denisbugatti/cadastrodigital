@@ -1478,3 +1478,25 @@
 
 ## Fix: Setas de navegação no mobile devem ficar iguais ao preview
 - [x] Setas reposicionadas: lado direito, vertical, centralizado verticalmente (igual ao preview), cores originais mantidas
+
+## Fix: Cor da fonte preta no email de protocolo (deve ser branca)
+- [x] Forçar cor branca em todos os textos do template one-protocol-pending no Resend (anti-dark-mode override)
+- [x] Adicionado meta color-scheme: light only para prevenir inversão de cores
+- [x] Adicionado CSS override para dark mode (data-ogsc + prefers-color-scheme)
+- [x] Template atualizado e republicado via API
+
+## Fix: Aplicar cor branca (anti-dark-mode) em TODOS os templates do Resend
+- [x] Buscar HTML de todos os 11 templates via API (12 encontrados, 1 vazio ignorado)
+- [x] Adicionar meta color-scheme: light only em todos
+- [x] Adicionar CSS override para dark mode (data-ogsc + prefers-color-scheme) em todos
+- [x] Adicionar fallback de cor inline (#FFFFFF) em td, p, h1-h3, span, li, strong, b, a
+- [x] Republicar todos os 11 templates com sucesso (0 falhas)
+
+## Consolidar emails de validação (1 email no final em vez de 1 por campo)
+- [x] Analisar fluxo atual: validate endpoint + envio de email por campo
+- [x] Backend: remover envio de email individual do validate endpoint
+- [x] Backend: criar endpoint finalizeValidation que envia 1 email consolidado
+- [x] Frontend: botão "Finalizar Validação e Enviar Email" no ValidationDrawer (ResponsesPanel)
+- [x] Frontend: botão "Aprovar Cadastro"/"Concluir Validação" no ResponseValidation agora chama finalizeValidation
+- [x] Email consolidado: usa template one-approval ou one-rejection do Resend
+- [x] 506 testes passando

@@ -429,6 +429,19 @@ export default function ResponseValidation() {
     onError: (err) => toast.error(err.message),
   });
 
+  const finalizeMutation = trpc.validations.finalizeValidation.useMutation({
+    onSuccess: (data) => {
+      utils.validations.byResponse.invalidate({ responseId });
+      utils.responses.getById.invalidate({ id: responseId });
+      const statusMsg = data.status === "approved" ? "aprovado" : "com pendências";
+      toast.success(`Validação finalizada! Cadastro ${statusMsg}.`, {
+        description: "Email consolidado enviado ao cliente.",
+      });
+      setTimeout(() => window.history.back(), 1200);
+    },
+    onError: (err) => toast.error(err.message || "Erro ao finalizar validação"),
+  });
+
   const response = responseQuery.data as any;
   const form = formQuery.data as any;
   const validations = (validationsQuery.data ?? []) as any[];
@@ -513,27 +526,8 @@ export default function ResponseValidation() {
       toast.error("Valide todas as respostas antes de aprovar o cadastro");
       return;
     }
-
     setIsApproving(true);
-
-    const overallStatus = response?.validationStatus;
-
-    if (overallStatus === "approved") {
-      toast.success("Cadastro aprovado!", {
-        description: "O cliente receberá um email de confirmação.",
-      });
-    } else if (overallStatus === "rejected") {
-      toast.info("Cadastro com pendências", {
-        description: "O cliente receberá um email com os itens a corrigir. A cadência de follow-up foi iniciada automaticamente.",
-      });
-    } else {
-      toast.success("Validação concluída!");
-    }
-
-    setTimeout(() => {
-      setIsApproving(false);
-      window.history.back();
-    }, 800);
+    finalizeMutation.mutate({ responseId });
   };
 
   // Auto-scroll to next pending field after validation

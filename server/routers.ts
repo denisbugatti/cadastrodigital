@@ -415,141 +415,170 @@ export const appRouter = router({
             performedByName: ctx.user.name || undefined,
           }).catch(() => {});
 
-          // Send email notifications based on status
-          if (allApproved && response.respondentEmail) {
-            await sendApprovalEmail({
-              to: response.respondentEmail,
-              clientName: response.respondentName || "Cliente",
-            });
-            // Stop any active cadences for this response
-            await db.stopCadencesForResponse(input.responseId, "form_approved");
-
-            // Log overall approval
-            db.logActivity({
-              responseId: input.responseId,
-              formId: response.formId,
-              activityType: "overall_approved",
-              description: `Cadastro aprovado! Email de aprovação enviado para ${response.respondentEmail}`,
-              performedBy: ctx.user.id,
-              performedByName: ctx.user.name || undefined,
-            }).catch(() => {});
-            db.logActivity({
-              responseId: input.responseId,
-              formId: response.formId,
-              activityType: "approval_email_sent",
-              description: `Email de aprovação enviado para ${response.respondentEmail}`,
-              metadata: { email: response.respondentEmail },
-            }).catch(() => {});
-          } else if (hasRejection && response.respondentEmail) {
-            const rejections = allValidations.filter((v: any) => v.status === "rejected");
-            const reasons = rejections.map((v: any) => v.justification || "Documento/dado precisa de revisão").join("; ");
-            await sendRejectionEmail({
-              to: response.respondentEmail,
-              clientName: response.respondentName || "Cliente",
-              reason: reasons,
-            });
-            // Start rejection cadence (3x/week for 2 months)
-            await db.createEmailCadence({
-              responseId: input.responseId,
-              formId: response.formId,
-              cadenceType: "reprovacao",
-              recipientEmail: response.respondentEmail,
-              recipientName: response.respondentName || undefined,
-              rejectionReason: reasons,
-            });
-
-            // Log overall rejection
-            db.logActivity({
-              responseId: input.responseId,
-              formId: response.formId,
-              activityType: "overall_rejected",
-              description: `Cadastro rejeitado. Motivo: ${reasons}`,
-              performedBy: ctx.user.id,
-              performedByName: ctx.user.name || undefined,
-              metadata: { reasons },
-            }).catch(() => {});
-            db.logActivity({
-              responseId: input.responseId,
-              formId: response.formId,
-              activityType: "rejection_email_sent",
-              description: `Email de rejeição enviado para ${response.respondentEmail}`,
-              metadata: { email: response.respondentEmail, reasons },
-            }).catch(() => {});
-            db.logActivity({
-              responseId: input.responseId,
-              formId: response.formId,
-              activityType: "cadence_started",
-              description: `Cadência de reprovação iniciada (3x/semana por 2 meses)`,
-              metadata: { cadenceType: "reprovacao" },
-            }).catch(() => {});
-          }
-
-          // ─── Notify assigned corretores about status change (approved/rejected) ───
-          if (newStatus === "approved" || newStatus === "rejected") {
-            try {
-              const form = await db.getFormById(response.formId);
-              const formTitle = form?.title || "Formulário";
-              const respondent = response.respondentName || "Cliente";
-              const statusLabel = newStatus === "approved" ? "aprovado" : "rejeitado";
-              const statusEmoji = newStatus === "approved" ? "✅" : "❌";
-              const notifTitle = `${statusEmoji} Cadastro ${statusLabel}: ${respondent}`;
-              const notifBody = `O cadastro de ${respondent} no formulário "${formTitle}" foi ${statusLabel}.`;
-
-              // Get all assigned staff for this form
-              const assignments = await db.getFormAssignments(response.formId);
-              const staffIds = assignments.map((a: any) => a.staffUserId);
-
-              // Also include legacy assignedCorretorId
-              if (form?.assignedCorretorId && !staffIds.includes(form.assignedCorretorId)) {
-                staffIds.push(form.assignedCorretorId);
-              }
-
-              if (staffIds.length > 0) {
-                const notifType = newStatus === "approved" ? "response_approved" : "response_rejected";
-                // Check preferences for each staff user
-                const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, notifType);
-
-                // In-app notifications — only for staff who have in-app enabled
-                const inAppStaffIds = staffIds.filter((id: number) => prefsMap.get(id)?.inApp !== false);
-                if (inAppStaffIds.length > 0) {
-                  db.createStaffNotificationsBatch(
-                    inAppStaffIds.map((staffUserId: number) => ({
-                      staffUserId,
-                      type: notifType,
-                      title: notifTitle,
-                      body: notifBody,
-                      link: "/corretor/respostas",
-                      metadata: {
-                        formId: response.formId,
-                        formTitle,
-                        respondentName: respondent,
-                        responseId: input.responseId,
-                        validationStatus: newStatus,
-                      },
-                    }))
-                  ).catch((err) => console.warn("[InAppNotif] Status change batch failed:", (err as any)?.message?.substring(0, 100)));
-                }
-
-                // Push notifications — only for staff who have push enabled
-                for (const staffUserId of staffIds) {
-                  if (prefsMap.get(staffUserId)?.push === false) continue;
-                  notifyCorretorStatusChange({
-                    staffUserId,
-                    formTitle,
-                    respondentName: respondent,
-                    formId: response.formId,
-                    status: newStatus as "approved" | "rejected",
-                  }).catch((err) => {
-                    console.warn(`[CorretorPush] Status change push failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100));
-                  });
-                }
-              }
-            } catch (err) {
-              console.warn("[Notification] Status change notification failed:", (err as any)?.message?.substring(0, 100));
-            }
-          }
+          // NOTE: Emails and notifications are NOT sent here anymore.
+          // They are sent via the "finalizeValidation" endpoint after the corretor
+          // finishes reviewing all fields and clicks "Finalizar Validação".
         }
         return { success: true };
+      }),
+
+    finalizeValidation: staffAnyProcedure
+      .input(z.object({
+        responseId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+
+        const allValidations = await staffDb.getValidationsByResponse(input.responseId);
+        const questions = response.answers ? Object.keys(response.answers as any) : [];
+        const allValidated = questions.every(qId =>
+          allValidations.some((v: any) => v.questionId === qId && v.status !== "pending")
+        );
+
+        if (!allValidated) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Ainda há campos pendentes de validação" });
+        }
+
+        const allApproved = allValidations.every((v: any) => v.status === "approved");
+        const hasRejection = allValidations.some((v: any) => v.status === "rejected");
+
+        let newStatus: string = "in_review";
+        if (allApproved) newStatus = "approved";
+        else if (hasRejection) newStatus = "rejected";
+
+        // Update final status
+        await db.updateResponse(input.responseId, {
+          validationStatus: newStatus as any,
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+        });
+
+        // Send consolidated email
+        if (allApproved && response.respondentEmail) {
+          await sendApprovalEmail({
+            to: response.respondentEmail,
+            clientName: response.respondentName || "Cliente",
+          });
+          await db.stopCadencesForResponse(input.responseId, "form_approved");
+
+          db.logActivity({
+            responseId: input.responseId,
+            formId: response.formId,
+            activityType: "overall_approved",
+            description: `Cadastro aprovado! Email de aprovação enviado para ${response.respondentEmail}`,
+            performedBy: ctx.user.id,
+            performedByName: ctx.user.name || undefined,
+          }).catch(() => {});
+          db.logActivity({
+            responseId: input.responseId,
+            formId: response.formId,
+            activityType: "approval_email_sent",
+            description: `Email de aprovação enviado para ${response.respondentEmail}`,
+            metadata: { email: response.respondentEmail },
+          }).catch(() => {});
+        } else if (hasRejection && response.respondentEmail) {
+          const rejections = allValidations.filter((v: any) => v.status === "rejected");
+          const reasons = rejections.map((v: any) => v.justification || "Documento/dado precisa de revisão").join("; ");
+          await sendRejectionEmail({
+            to: response.respondentEmail,
+            clientName: response.respondentName || "Cliente",
+            reason: reasons,
+          });
+          await db.createEmailCadence({
+            responseId: input.responseId,
+            formId: response.formId,
+            cadenceType: "reprovacao",
+            recipientEmail: response.respondentEmail,
+            recipientName: response.respondentName || undefined,
+            rejectionReason: reasons,
+          });
+
+          db.logActivity({
+            responseId: input.responseId,
+            formId: response.formId,
+            activityType: "overall_rejected",
+            description: `Cadastro rejeitado. Motivo: ${reasons}`,
+            performedBy: ctx.user.id,
+            performedByName: ctx.user.name || undefined,
+            metadata: { reasons },
+          }).catch(() => {});
+          db.logActivity({
+            responseId: input.responseId,
+            formId: response.formId,
+            activityType: "rejection_email_sent",
+            description: `Email de rejeição enviado para ${response.respondentEmail}`,
+            metadata: { email: response.respondentEmail, reasons },
+          }).catch(() => {});
+          db.logActivity({
+            responseId: input.responseId,
+            formId: response.formId,
+            activityType: "cadence_started",
+            description: `Cadência de reprovação iniciada (3x/semana por 2 meses)`,
+            metadata: { cadenceType: "reprovacao" },
+          }).catch(() => {});
+        }
+
+        // ─── Notify assigned corretores about status change ───
+        if (newStatus === "approved" || newStatus === "rejected") {
+          try {
+            const form = await db.getFormById(response.formId);
+            const formTitle = form?.title || "Formulário";
+            const respondent = response.respondentName || "Cliente";
+            const statusLabel = newStatus === "approved" ? "aprovado" : "rejeitado";
+            const statusEmoji = newStatus === "approved" ? "✅" : "❌";
+            const notifTitle = `${statusEmoji} Cadastro ${statusLabel}: ${respondent}`;
+            const notifBody = `O cadastro de ${respondent} no formulário "${formTitle}" foi ${statusLabel}.`;
+
+            const assignments = await db.getFormAssignments(response.formId);
+            const staffIds = assignments.map((a: any) => a.staffUserId);
+            if (form?.assignedCorretorId && !staffIds.includes(form.assignedCorretorId)) {
+              staffIds.push(form.assignedCorretorId);
+            }
+
+            if (staffIds.length > 0) {
+              const notifType = newStatus === "approved" ? "response_approved" : "response_rejected";
+              const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, notifType);
+
+              const inAppStaffIds = staffIds.filter((id: number) => prefsMap.get(id)?.inApp !== false);
+              if (inAppStaffIds.length > 0) {
+                db.createStaffNotificationsBatch(
+                  inAppStaffIds.map((staffUserId: number) => ({
+                    staffUserId,
+                    type: notifType,
+                    title: notifTitle,
+                    body: notifBody,
+                    link: "/corretor/respostas",
+                    metadata: {
+                      formId: response.formId,
+                      formTitle,
+                      respondentName: respondent,
+                      responseId: input.responseId,
+                      validationStatus: newStatus,
+                    },
+                  }))
+                ).catch((err) => console.warn("[InAppNotif] Status change batch failed:", (err as any)?.message?.substring(0, 100)));
+              }
+
+              for (const staffUserId of staffIds) {
+                if (prefsMap.get(staffUserId)?.push === false) continue;
+                notifyCorretorStatusChange({
+                  staffUserId,
+                  formTitle,
+                  respondentName: respondent,
+                  formId: response.formId,
+                  status: newStatus as "approved" | "rejected",
+                }).catch((err) => {
+                  console.warn(`[CorretorPush] Status change push failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100));
+                });
+              }
+            }
+          } catch (err) {
+            console.warn("[Notification] Status change notification failed:", (err as any)?.message?.substring(0, 100));
+          }
+        }
+
+        return { success: true, status: newStatus };
       }),
   }),
 
