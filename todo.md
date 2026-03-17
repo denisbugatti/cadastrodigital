@@ -1532,3 +1532,9 @@
 - [x] Corrigido: SlugResolver.tsx - useQuery/useMemo após early return de INTERNAL_PATHS
 - [x] Verificado: AppLayout.tsx e ResponsesPanel.tsx são falsos positivos (returns dentro de callbacks)
 - [x] 525 testes passando, zero erros de TypeScript
+
+## ESLint: Adicionar regra react-hooks/rules-of-hooks
+- [x] Instalar eslint-plugin-react-hooks + @eslint/js + typescript-eslint
+- [x] Configurar eslint.config.js com flat config (rules-of-hooks: error, exhaustive-deps: warn)
+- [x] Adicionar scripts `pnpm lint` e `pnpm lint:hooks` ao package.json
+- [x] Validar: 0 erros, 102 warnings (variáveis não usadas + deps de hooks)
