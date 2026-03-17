@@ -1525,3 +1525,10 @@
 - [x] Causa raiz: useState chamado condicionalmente após early returns (viola regras dos React Hooks)
 - [x] Corrigido: movido useState(reopenedValidation) para antes dos early returns
 - [x] 525 testes passando, zero erros de TypeScript
+
+## Auditoria: useState/useEffect condicionais em todos os componentes
+- [x] Buscar todos os arquivos .tsx com useState/useEffect após early returns (82 arquivos auditados)
+- [x] Corrigido: Responses.tsx (ActivityTimeline) - useState após early return
+- [x] Corrigido: SlugResolver.tsx - useQuery/useMemo após early return de INTERNAL_PATHS
+- [x] Verificado: AppLayout.tsx e ResponsesPanel.tsx são falsos positivos (returns dentro de callbacks)
+- [x] 525 testes passando, zero erros de TypeScript

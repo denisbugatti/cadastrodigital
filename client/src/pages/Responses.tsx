@@ -146,6 +146,9 @@ function ActivityTimeline({ responseId }: { responseId: number }) {
     { staleTime: 30_000 }
   );
 
+  // Hook must be called before any early returns (Rules of Hooks)
+  const [showAll, setShowAll] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
@@ -177,9 +180,6 @@ function ActivityTimeline({ responseId }: { responseId: number }) {
     cadence_email_sent: { icon: Send, color: "text-amber-500" },
     cadence_stopped: { icon: Pause, color: "text-muted-foreground" },
   };
-
-  // Show max 10 items initially, expand to show all
-  const [showAll, setShowAll] = useState(false);
   const visibleItems = showAll ? timeline : timeline.slice(0, 8);
 
   return (

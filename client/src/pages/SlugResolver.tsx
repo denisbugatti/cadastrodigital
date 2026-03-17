@@ -28,20 +28,18 @@ export default function SlugResolver() {
   const searchParams = new URLSearchParams(searchString);
   const continueResponseId = searchParams.get("continue");
 
-  // Skip known internal routes
-  if (INTERNAL_PATHS.has(slug)) {
-    return <NotFound />;
-  }
+  // Check if this is a known internal route (evaluated after hooks)
+  const isInternalPath = INTERNAL_PATHS.has(slug);
 
   const { data: dbForm, isLoading, error } = trpc.forms.getBySlug.useQuery(
     { slug },
-    { enabled: !!slug, retry: 1 }
+    { enabled: !!slug && !isInternalPath, retry: 1 }
   );
 
   // Load partial response if ?continue= is provided
   const { data: partialResponse } = trpc.responses.getForContinue.useQuery(
     { id: Number(continueResponseId) },
-    { enabled: !!continueResponseId && !isNaN(Number(continueResponseId)), retry: 1 }
+    { enabled: !!continueResponseId && !isNaN(Number(continueResponseId)) && !isInternalPath, retry: 1 }
   );
 
   const form = useMemo<FormData | null>(() => {
@@ -115,6 +113,11 @@ export default function SlugResolver() {
       _dbFormId: dbForm.id,
     };
   }, [dbForm]);
+
+  // Skip known internal routes (after all hooks to respect Rules of Hooks)
+  if (isInternalPath) {
+    return <NotFound />;
+  }
 
   if (isLoading) {
     return (
