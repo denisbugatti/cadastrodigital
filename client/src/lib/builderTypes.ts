@@ -229,6 +229,36 @@ export interface WebhookSettings {
       recipients: string;
       subject: string;
     };
+    googleSheets?: {
+      enabled: boolean;
+      spreadsheetUrl: string;
+      sheetName: string;
+    };
+    crmManus?: {
+      enabled: boolean;
+      webhookUrl: string;
+      funnelName: string;
+      stageName: string;
+    };
+  };
+  // Métricas e conversões (tracking pixels)
+  tracking?: {
+    gtm?: {
+      enabled: boolean;
+      containerId: string; // GTM-XXXXXXX
+    };
+    googleAnalytics?: {
+      enabled: boolean;
+      measurementId: string; // G-XXXXXXXXXX
+    };
+    facebookPixel?: {
+      enabled: boolean;
+      pixelId: string;
+    };
+    tiktokPixel?: {
+      enabled: boolean;
+      pixelId: string; // TikTok Events Manager ID
+    };
   };
 }
 
@@ -541,6 +571,14 @@ export const defaultWebhookSettings: WebhookSettings = {
     rdStation: { enabled: false, apiToken: "", conversionIdentifier: "" },
     whatsapp: { enabled: false, phoneNumber: "", message: "Nova resposta recebida no formulário!" },
     email: { enabled: false, recipients: "", subject: "Nova resposta no formulário" },
+    googleSheets: { enabled: false, spreadsheetUrl: "", sheetName: "Respostas" },
+    crmManus: { enabled: false, webhookUrl: "", funnelName: "", stageName: "" },
+  },
+  tracking: {
+    gtm: { enabled: false, containerId: "" },
+    googleAnalytics: { enabled: false, measurementId: "" },
+    facebookPixel: { enabled: false, pixelId: "" },
+    tiktokPixel: { enabled: false, pixelId: "" },
   },
 };
 

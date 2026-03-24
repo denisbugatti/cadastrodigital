@@ -131,6 +131,13 @@ export interface FormData {
     webglEffect?: "gradient-flow" | "particles" | "aurora" | "waves" | "mesh-gradient";
     webglIntensity?: number;
   };
+  /** Tracking/metrics configuration from webhook settings */
+  tracking?: {
+    gtm?: { enabled: boolean; containerId: string };
+    googleAnalytics?: { enabled: boolean; measurementId: string };
+    facebookPixel?: { enabled: boolean; pixelId: string };
+    tiktokPixel?: { enabled: boolean; pixelId: string };
+  };
   /** Database form ID for response submission (internal use) */
   _dbFormId?: number;
 }

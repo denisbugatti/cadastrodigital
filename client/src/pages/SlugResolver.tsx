@@ -110,6 +110,16 @@ export default function SlugResolver() {
         roundness: design.roundness ?? "medium",
         customCSS: design.customCSS,
       },
+      tracking: (() => {
+        const wh = (dbForm.webhook ?? {}) as any;
+        const t = wh.tracking ?? {};
+        return {
+          gtm: { enabled: !!t.gtm?.enabled, containerId: t.gtm?.containerId ?? '' },
+          googleAnalytics: { enabled: !!t.googleAnalytics?.enabled, measurementId: t.googleAnalytics?.measurementId ?? '' },
+          facebookPixel: { enabled: !!t.facebookPixel?.enabled, pixelId: t.facebookPixel?.pixelId ?? '' },
+          tiktokPixel: { enabled: !!t.tiktokPixel?.enabled, pixelId: t.tiktokPixel?.pixelId ?? '' },
+        };
+      })(),
       _dbFormId: dbForm.id,
     };
   }, [dbForm]);

@@ -20,6 +20,7 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { QuestionRenderer } from "./QuestionRenderer";
 import { WebGLBackground } from "./WebGLBackground";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { TrackingScripts, fireTrackingConversion } from "./TrackingScripts";
 
 interface FormContainerProps {
   form: FormData;
@@ -250,6 +251,7 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
           }, {
             onSuccess: () => {
               // For continued responses, protocol code was already generated
+              fireTrackingConversion(form.tracking, form.title);
             },
           });
         } else {
@@ -265,6 +267,7 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
               if (data?.protocolCode) {
                 setProtocolCode(data.protocolCode);
               }
+              fireTrackingConversion(form.tracking, form.title);
             },
           });
         }
@@ -385,6 +388,9 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
         height: "100%",
       }}
     >
+      {/* Tracking/Analytics Scripts */}
+      <TrackingScripts tracking={form.tracking} />
+
       {/* Background: image or WebGL */}
       {(d?.backgroundType === "image" || (!d?.backgroundType && d?.backgroundImage)) && d?.backgroundImage && (
         <div

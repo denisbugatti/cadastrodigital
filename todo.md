@@ -1567,3 +1567,20 @@
 - [x] Removidas variáveis de destructuring não usadas (isCorretor, lastSavedAt, moveQuestion, etc.)
 - [x] Reduzido de 102 para 17 warnings (83% de redução)
 - [x] 16 restantes são exhaustive-deps intencionais + 1 no-non-null
+
+## Sistema de Integrações para envio de respostas
+- [x] Schema: expandido WebhookSettings com Google Sheets, CRM Manus e Tracking (JSON no campo webhook)
+- [x] Backend: integrationDispatcher.ts com dispatch para webhook, Google Sheets, CRM, email e RD Station
+- [x] Backend: dispatch integrado no endpoint responses.submit (fire-and-forget)
+- [x] Frontend: WebhookPanel atualizado com todas as integrações e seção de Métricas/Conversões
+- [x] Integração Webhook genérico (URL, secret, headers customizados)
+- [x] Integração Google Sheets (spreadsheetId, sheetName, serviceAccountEmail)
+- [x] Integração CRM Manus (webhookUrl, apiKey, pipelineId)
+- [x] Métricas: Google Tag Manager (container ID, script injetado no formulário)
+- [x] Métricas: Google Analytics GA4 (measurement ID, gtag.js + evento form_submission)
+- [x] Métricas: Facebook Pixel (pixel ID, fbevents.js + evento Lead)
+- [x] Métricas: TikTok Pixel (pixel ID, analytics.js + evento SubmitForm)
+- [x] UI estilo toggle on/off com campo de configuração e badges (Empresa/Pro/Novo)
+- [x] TrackingScripts component: injeta scripts no head + cleanup on unmount
+- [x] fireTrackingConversion: dispara eventos de conversão ao submeter formulário
+- [x] 545 testes passando (20 novos testes de integrações)

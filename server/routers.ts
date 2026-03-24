@@ -22,6 +22,7 @@ import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEma
 import { generateInviteToken } from "./authService";
 import { getOrCreateOwnerUser } from "./ownerUser";
 import { logAudit, AUDIT_ACTIONS } from "./auditLog";
+import { dispatchIntegrations } from "./integrationDispatcher";
 
 /**
  * ownerFallbackProcedure:
@@ -1116,6 +1117,45 @@ export const appRouter = router({
             description: `Email de protocolo ${result.protocolCode} enviado para ${input.respondentEmail}`,
             metadata: { protocolCode: result.protocolCode, email: input.respondentEmail },
           }).catch(() => {});
+        }
+
+        // Dispatch integrations (webhook, Google Sheets, CRM, etc.)
+        try {
+          const integForm = await db.getFormById(input.formId);
+          const integWebhook = integForm?.webhook as any;
+          if (integWebhook) {
+            const integFormTitle = integForm?.title ?? "Formulário";
+            const integIsComplete = input.isComplete !== false;
+            const integQuestions: any[] = integForm?.questions ?? [];
+            dispatchIntegrations(integWebhook, {
+              formId: input.formId,
+              formTitle: integFormTitle,
+              responseId: result.id,
+              protocolCode: result.protocolCode ?? null,
+              respondentName: input.respondentName ?? null,
+              respondentEmail: input.respondentEmail ?? null,
+              answers: input.answers,
+              questions: integQuestions,
+              isComplete: integIsComplete,
+              submittedAt: new Date().toISOString(),
+            }).then((integResults) => {
+              const failed = integResults.filter((r) => !r.success);
+              if (failed.length > 0) {
+                console.warn("[Integrations] Some integrations failed:", failed.map((f) => `${f.integration}: ${f.error}`).join(", "));
+              }
+              // Log integration dispatch
+              db.logActivity({
+                responseId: result.id,
+                formId: input.formId,
+                activityType: "response_created",
+                description: `Integrações disparadas: ${integResults.map((r) => `${r.integration}(${r.success ? "ok" : "erro"})`).join(", ")}`,
+              }).catch(() => {});
+            }).catch((err) => {
+              console.warn("[Integrations] Dispatch failed:", (err as Error)?.message?.substring(0, 200));
+            });
+          }
+        } catch (err) {
+          console.warn("[Integrations] Setup failed:", (err as Error)?.message?.substring(0, 200));
         }
 
         return result;
