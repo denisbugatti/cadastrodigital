@@ -8,12 +8,10 @@ import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ClipboardList, Download, Search, Calendar,
-  ChevronDown, ChevronLeft, ChevronRight, Filter,
-  Eye, X, FileSpreadsheet, ArrowUpDown, FileText,
+  ChevronDown, ChevronLeft, ChevronRight, Filter, X, FileSpreadsheet, ArrowUpDown, FileText,
   CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
-  Lock, Loader2, Check, AlertTriangle, MessageSquare,
-  ExternalLink, Image as ImageIcon, File as FileIcon,
-  MoreHorizontal, Clock, User, Phone, Users,
+  Lock, Loader2, Check, AlertTriangle,
+  ExternalLink, Image as ImageIcon, File as FileIcon, Clock, Phone, Users,
   MailCheck, Pause, Send, MailPlus, Mail, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -267,7 +265,7 @@ function ValidationDrawer({
                           <div className="space-y-2 sm:space-y-3">
                             {allFiles.map((file: any, fIdx: number) => {
                               const isImage = file.mimeType?.startsWith("image/");
-                              const isPdf = file.mimeType === "application/pdf";
+                              const _isPdf = file.mimeType === "application/pdf";
                               const hasUrl = !!file.url;
 
                               return (
@@ -834,6 +832,190 @@ function EmailHistoryInline({ responseId }: { responseId: number }) {
   );
 }
 
+/* ─── PDF Attachment Selection Dialog ─── */
+function PdfAttachmentDialog({
+  responseId,
+  onClose,
+  onGenerate,
+}: {
+  responseId: number;
+  onClose: () => void;
+  onGenerate: (excludeUrls: string[]) => void;
+}) {
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const attachmentsQuery = trpc.responses.listAttachments.useQuery(
+    { responseId },
+    { staleTime: 30_000 }
+  );
+
+  const attachments = attachmentsQuery.data ?? [];
+  const hasAttachments = attachments.length > 0;
+  const isLoading = attachmentsQuery.isLoading;
+
+  const toggleAttachment = (url: string) => {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (excluded.size === 0) {
+      setExcluded(new Set(attachments.map((a) => a.url)));
+    } else {
+      setExcluded(new Set());
+    }
+  };
+
+  const includedCount = attachments.length - excluded.size;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-display font-bold text-foreground">Gerar PDF</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Selecione os anexos para incluir no PDF
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+          >
+            <X size={16} className="text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-3">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-brand" />
+              <span className="ml-2 text-sm text-muted-foreground">Carregando anexos...</span>
+            </div>
+          ) : !hasAttachments ? (
+            <div className="text-center py-6">
+              <FileText size={28} className="mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhum anexo encontrado</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">O PDF será gerado apenas com o protocolo e ficha</p>
+            </div>
+          ) : (
+            <>
+              {/* Select all toggle */}
+              <button
+                onClick={toggleAll}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors text-xs font-medium text-muted-foreground mb-2 cursor-pointer"
+              >
+                <div
+                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                    excluded.size === 0
+                      ? "bg-brand border-brand text-white"
+                      : excluded.size === attachments.length
+                        ? "border-border"
+                        : "bg-brand/30 border-brand text-white"
+                  }`}
+                >
+                  {excluded.size === 0 && <Check size={10} />}
+                  {excluded.size > 0 && excluded.size < attachments.length && (
+                    <div className="w-1.5 h-1.5 bg-white rounded-sm" />
+                  )}
+                </div>
+                {excluded.size === 0 ? "Desmarcar todos" : "Selecionar todos"}
+                <span className="ml-auto text-muted-foreground/60">
+                  {includedCount}/{attachments.length}
+                </span>
+              </button>
+
+              {/* Attachment list */}
+              <div className="space-y-1">
+                {attachments.map((att, i) => {
+                  const isIncluded = !excluded.has(att.url);
+                  const isImage = att.mimeType.startsWith("image/");
+                  const isPdf = att.mimeType === "application/pdf";
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => toggleAttachment(att.url)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
+                        isIncluded
+                          ? "bg-brand/5 border border-brand/20"
+                          : "bg-secondary/30 border border-transparent opacity-60"
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                          isIncluded ? "bg-brand border-brand text-white" : "border-border"
+                        }`}
+                      >
+                        {isIncluded && <Check size={10} />}
+                      </div>
+                      {isImage ? (
+                        <ImageIcon size={16} className="text-blue-500 shrink-0" />
+                      ) : isPdf ? (
+                        <FileText size={16} className="text-red-500 shrink-0" />
+                      ) : (
+                        <FileIcon size={16} className="text-muted-foreground shrink-0" />
+                      )}
+                      <div className="min-w-0 text-left">
+                        <p className="text-xs font-medium text-foreground truncate">
+                          {att.filename}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {att.source}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-border/50 flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg text-xs font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onGenerate(Array.from(excluded))}
+            className="flex-1 py-2 rounded-lg text-xs font-medium text-white bg-brand hover:bg-brand/90 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Download size={13} />
+            Gerar PDF
+            {hasAttachments && (
+              <span className="text-[10px] opacity-70">
+                ({includedCount} {includedCount === 1 ? "anexo" : "anexos"})
+              </span>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ─── Response Card (Mobile) ─── */
 function ResponseCard({
   response,
@@ -1016,6 +1198,8 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const [sortField, setSortField] = useState<string>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [generatingId, setGeneratingId] = useState<number | null>(null);
+  const [pdfDialogResponseId, setPdfDialogResponseId] = useState<number | null>(null);
+  const [excludedAttachmentUrls, setExcludedAttachmentUrls] = useState<Set<string>>(new Set());
   const itemsPerPage = 10;
 
   const actualQuestions = useMemo(
@@ -1191,12 +1375,25 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     }
   };
 
-  // Generate PDF
+  // Open attachment selection dialog before generating PDF
   const handleGenerateFicha = useCallback(
-    async (responseId: number) => {
+    (responseId: number) => {
+      setPdfDialogResponseId(responseId);
+      setExcludedAttachmentUrls(new Set());
+    },
+    []
+  );
+
+  // Actually generate PDF with selected attachments
+  const doGeneratePdf = useCallback(
+    async (responseId: number, excludeUrls: string[]) => {
+      setPdfDialogResponseId(null);
       setGeneratingId(responseId);
       try {
-        const result = await utils.responses.generateFicha.fetch({ responseId });
+        const result = await utils.responses.generateFicha.fetch({
+          responseId,
+          excludeAttachmentUrls: excludeUrls.length > 0 ? excludeUrls : undefined,
+        });
         const byteCharacters = atob(result.base64);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -1928,6 +2125,17 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
             questions={questions}
             onClose={() => setValidatingResponseId(null)}
             formId={formId!}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ─── PDF Attachment Selection Dialog ─── */}
+      <AnimatePresence>
+        {pdfDialogResponseId !== null && (
+          <PdfAttachmentDialog
+            responseId={pdfDialogResponseId}
+            onClose={() => setPdfDialogResponseId(null)}
+            onGenerate={(excludeUrls) => doGeneratePdf(pdfDialogResponseId, excludeUrls)}
           />
         )}
       </AnimatePresence>

@@ -12,7 +12,7 @@ import {
   Shield, Users, Download, ArrowLeft, SlidersHorizontal,
   Loader2, UserPlus, Mail, Phone, CheckCircle2, XCircle,
   Clock, FileDown, Filter, Palette, Sun, Moon, Monitor,
-  Globe, Upload, Image as ImageIcon, X, Save, ExternalLink
+  Globe, Upload, Image as ImageIcon, X, Save
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -843,7 +843,6 @@ function ExportTab() {
     </Card>
   );
 }
-
 
 // ─── Social / OG Tags Tab ───
 function SocialTab() {

@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
   Minus, AlignLeft, MessageSquare, Hash, DollarSign, Link,
@@ -16,7 +16,7 @@ import {
 import type { BuilderQuestion, FormDesignSettings } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
 
-const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+const _iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
   "building-2": Building2, "id-card": IdCard, "map-pin": MapPin,
   minus: Minus, "align-left": AlignLeft, "message-square": MessageSquare,

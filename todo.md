@@ -1538,3 +1538,20 @@
 - [x] Configurar eslint.config.js com flat config (rules-of-hooks: error, exhaustive-deps: warn)
 - [x] Adicionar scripts `pnpm lint` e `pnpm lint:hooks` ao package.json
 - [x] Validar: 0 erros, 102 warnings (variáveis não usadas + deps de hooks)
+
+## Date picker: seletor de ano rápido no formulário
+- [x] Substituir input type="date" nativo por date picker customizado com seletor de ano/mês
+- [x] Ao clicar no header "Março 2026" abre seletor de mês e ano com scroll rápido
+- [x] Otimizado para mobile com botões grandes e touch-friendly
+
+## PDF: seleção de anexos ao gerar
+- [x] Backend: adicionado parâmetro excludeAttachmentUrls nos endpoints generateFicha e shareFicha
+- [x] Backend: novo endpoint listAttachments para listar anexos de uma resposta
+- [x] Frontend: PdfAttachmentDialog com checkboxes para selecionar/deselecionar anexos
+- [x] Frontend: toggle "selecionar todos" e contagem de anexos incluídos
+
+## ESLint: limpar warnings
+- [x] Removidos 67 imports não usados em 21 arquivos (script automatizado)
+- [x] Reduzido de 102 para 49 warnings (52% de redução)
+- [x] 32 restantes são variáveis locais/parâmetros (revisão manual futura)
+- [x] 16 exhaustive-deps são intencionais na maioria dos casos

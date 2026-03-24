@@ -10,7 +10,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
-  ArrowLeft, Bell, BellOff, Loader2, FileText,
+  ArrowLeft, Bell, Loader2, FileText,
   CheckCircle2, XCircle, Smartphone, Monitor,
 } from "lucide-react";
 import { toast } from "sonner";

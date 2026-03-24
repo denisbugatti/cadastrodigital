@@ -7,16 +7,16 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { useTheme } from "@/contexts/ThemeContext";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  FileText, Loader2, Mail, Clock, CheckCircle2, XCircle,
+  Loader2, Mail, Clock, CheckCircle2, XCircle,
   Hash, Search, X, ShieldCheck, ShieldAlert, Eye, Phone,
   Calendar, ChevronRight, ChevronLeft, Timer, Lock, LogOut,
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
-  FolderInput, FolderMinus, Check, Palette, CalendarDays, SortAsc, SortDesc, BarChart3,
+  FolderInput, FolderMinus, Check, CalendarDays, SortAsc, SortDesc, BarChart3,
   Copy, Link2, Settings,
 } from "lucide-react";
 import { toast } from "sonner";

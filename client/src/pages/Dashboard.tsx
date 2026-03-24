@@ -84,7 +84,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
-import { exportFormAsJSON, importFormFromJSON } from "@/lib/formStorage";
+import { importFormFromJSON } from "@/lib/formStorage";
 import { createOneInnovationForm } from "@/lib/oneInnovationForm";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import MobileBottomNav from "@/components/MobileBottomNav";

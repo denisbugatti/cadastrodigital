@@ -10,8 +10,8 @@ import { trpc } from "@/lib/trpc";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { Button } from "@/components/ui/button";
 import {
-  Shield, Loader2, LogOut, CheckCircle2, XCircle, Clock, AlertTriangle,
-  FileText, ChevronRight, PlayCircle, Eye, RefreshCw
+  Loader2, LogOut, CheckCircle2, XCircle, Clock, AlertTriangle,
+  FileText, PlayCircle, Eye, RefreshCw
 } from "lucide-react";
 
 type StatusKey = "pending" | "in_review" | "approved" | "rejected";

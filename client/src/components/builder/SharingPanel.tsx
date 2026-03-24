@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Copy, Check, ExternalLink, Facebook, Twitter, Linkedin,
   Code, Monitor, Maximize, MousePointer, Layers,

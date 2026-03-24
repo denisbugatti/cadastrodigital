@@ -329,7 +329,7 @@ let questionCounter = 0;
 
 export function createDefaultQuestion(type: BuilderQuestionType): BuilderQuestion {
   questionCounter++;
-  const typeInfo = questionTypes.find((t) => t.type === type)!;
+  const _typeInfo = questionTypes.find((t) => t.type === type)!;
   const id = `q_${Date.now()}_${questionCounter}`;
 
   const base: BuilderQuestion = {

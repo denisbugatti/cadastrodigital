@@ -1253,7 +1253,7 @@ export const appRouter = router({
       }),
 
     generateFicha: staffAnyProcedure
-      .input(z.object({ responseId: z.number() }))
+      .input(z.object({ responseId: z.number(), excludeAttachmentUrls: z.array(z.string()).optional() }))
       .query(async ({ ctx, input }) => {
         const response = await db.getResponseById(input.responseId);
         if (!response) {
@@ -1328,9 +1328,14 @@ export const appRouter = router({
           }
         }
 
+        // Filter out excluded attachments
+        const filteredAttachments = input.excludeAttachmentUrls?.length
+          ? attachments.filter(a => !input.excludeAttachmentUrls!.includes(a.url))
+          : attachments;
+
         // Merge with attachments if any
-        if (attachments.length > 0) {
-          pdfBytes = await mergeWithAttachments(pdfBytes, attachments);
+        if (filteredAttachments.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, filteredAttachments);
         }
 
         // Convert to base64 for transport
@@ -1341,8 +1346,65 @@ export const appRouter = router({
         return { base64, filename, tipo };
       }),
 
-    shareFicha: staffAnyProcedure
+    listAttachments: staffAnyProcedure
       .input(z.object({ responseId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        const form = await db.getFormById(response.formId);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        const questions: any[] = form.questions ?? [];
+        const answers = (response.answers ?? {}) as Record<string, any>;
+        const attachments: Array<{ url: string; filename: string; mimeType: string; source: string }> = [];
+
+        // Collect from file-upload answers
+        for (const q of questions) {
+          if (q.type === "file-upload" && answers[q.id]) {
+            let val = answers[q.id];
+            if (typeof val === "string" && val.trim().startsWith("{")) {
+              try { val = JSON.parse(val); } catch { /* not JSON */ }
+            }
+            if (typeof val === "object" && val !== null && val.url) {
+              attachments.push({
+                url: val.url,
+                filename: val.filename || val.name || q.title,
+                mimeType: val.mimeType || val.type || "application/octet-stream",
+                source: q.title,
+              });
+            } else if (typeof val === "string" && val.startsWith("http")) {
+              attachments.push({
+                url: val,
+                filename: q.title,
+                mimeType: "image/jpeg",
+                source: q.title,
+              });
+            }
+          }
+        }
+
+        // Collect from files table
+        const dbFiles = await db.getFilesByResponse(input.responseId);
+        for (const f of dbFiles) {
+          if (f.url && !attachments.some(a => a.url === f.url)) {
+            attachments.push({
+              url: f.url,
+              filename: f.filename || "arquivo",
+              mimeType: f.mimeType || "application/octet-stream",
+              source: "Arquivo enviado",
+            });
+          }
+        }
+
+        return attachments;
+      }),
+
+    shareFicha: staffAnyProcedure
+      .input(z.object({ responseId: z.number(), excludeAttachmentUrls: z.array(z.string()).optional() }))
       .mutation(async ({ ctx, input }) => {
         const response = await db.getResponseById(input.responseId);
         if (!response) {
@@ -1409,8 +1471,13 @@ export const appRouter = router({
           }
         }
 
-        if (attachments.length > 0) {
-          pdfBytes = await mergeWithAttachments(pdfBytes, attachments);
+        // Filter out excluded attachments
+        const filteredAttachments = input.excludeAttachmentUrls?.length
+          ? attachments.filter(a => !input.excludeAttachmentUrls!.includes(a.url))
+          : attachments;
+
+        if (filteredAttachments.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, filteredAttachments);
         }
 
         // Upload to S3 for sharing

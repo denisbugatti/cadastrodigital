@@ -9,9 +9,9 @@ import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useLocation } from "wouter";
 import { motion, useInView } from "framer-motion";
 import {
-  Shield, Lock, FileCheck, Users, Clock, CheckCircle,
-  ArrowRight, ChevronDown, ChevronUp, Phone, Mail,
-  Zap, Eye, FileText, Star, X,
+  Shield, Lock, FileCheck, Users, CheckCircle,
+  ArrowRight, ChevronDown, ChevronUp,
+  Zap, Eye, FileText, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,7 +120,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ─── Glow Card (CSS-only hover glow) ─── */
-const GlowCard = memo(({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+const _GlowCard = memo(({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMove = useCallback((e: React.MouseEvent) => {
@@ -680,8 +680,6 @@ export default function Landing() {
           </Reveal>
         </div>
       </section>
-
-
 
       {/* ─── FOOTER ─── */}
       <footer className="py-10 border-t border-white/[0.04]">

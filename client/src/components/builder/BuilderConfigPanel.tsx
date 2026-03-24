@@ -8,12 +8,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings, Type, AlignLeft, ToggleLeft, Plus, Trash2, X,
-  GitBranch, ArrowRight, Sparkles, ImagePlus, Smile, Link2, Trophy,
+  GitBranch, ArrowRight, Sparkles, ImagePlus, Smile, Trophy,
   MousePointerClick, ExternalLink, RotateCcw,
-  User, Mail, Phone, Fingerprint, Building2, IdCard, MapPin,
-  Minus, MessageSquare, Hash, DollarSign, Link,
-  CircleDot, ChevronDown, Image, CheckSquare,
-  Star, Gauge, ArrowUpDown, Grid3X3,
+  User, Mail, Phone, Fingerprint, Building2, MapPin, MessageSquare, Hash, DollarSign, Link, Image,
+  Star, Gauge,
   Calendar, Upload, Hand, Heart, ShieldCheck,
 } from "lucide-react";
 import type { BuilderQuestion, BuilderChoice, ConditionOperator, ConditionalRule, ScoreRule } from "@/lib/builderTypes";

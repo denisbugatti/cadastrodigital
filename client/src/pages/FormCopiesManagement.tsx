@@ -13,7 +13,7 @@ import { Link, useLocation } from "wouter";
 import {
   Loader2, RefreshCw, Copy, Users, CheckCircle2,
   AlertTriangle, ExternalLink, FileText, BarChart3, Search,
-  Eye, ChevronDown, ChevronUp, Plus, Lock, Pencil, Trash2,
+  Eye, ChevronDown, ChevronUp, Plus, Lock, Pencil,
   LayoutTemplate,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

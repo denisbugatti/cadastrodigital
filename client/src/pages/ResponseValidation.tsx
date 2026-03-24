@@ -5,7 +5,7 @@
  * Cadence starts automatically after validation (no manual button).
  */
 
-import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,8 @@ import {
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
-  Download, Loader2, AlertTriangle, MessageSquare,
-  Shield, User, Mail, Phone, Calendar, ShieldCheck,
-  Lock, Image as ImageIcon, ExternalLink, Eye, FileDown, Share2,
+  Download, Loader2, AlertTriangle, MessageSquare, Mail, Phone, Calendar, ShieldCheck,
+  Lock, Image as ImageIcon, ExternalLink, Eye, Share2,
   X, ZoomIn, ZoomOut, RotateCw, Maximize2, Send, RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

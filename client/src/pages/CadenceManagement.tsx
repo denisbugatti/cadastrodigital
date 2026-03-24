@@ -34,7 +34,7 @@ import {
   Timer,
   XCircle,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 
@@ -42,7 +42,7 @@ type StatusFilter = "all" | "active" | "paused" | "stopped";
 type TypeFilter = "all" | "abandono" | "reprovacao";
 
 export default function CadenceManagement() {
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [formFilter, setFormFilter] = useState<string>("all");

@@ -19,7 +19,6 @@ import {
   LogOut,
   Copy,
 } from "lucide-react";
-import { toast } from "sonner";
 
 /* ─── Main Nav Items (shown in bottom bar) ─── */
 const MAIN_NAV = [

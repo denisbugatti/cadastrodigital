@@ -4,7 +4,7 @@
  */
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, ArrowDown, Check, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowDown, Check } from "lucide-react";
 
 interface NavigationControlsProps {
   onNext: () => void;

@@ -14,7 +14,7 @@ import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
   FileText, Save, Cloud, Download, Upload, History,
   RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle, Hash,
-  List, Settings2, PanelLeftClose, Pencil,
+  List, Settings2, Pencil,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useBuilder } from "@/hooks/useBuilder";

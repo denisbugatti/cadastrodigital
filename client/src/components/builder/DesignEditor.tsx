@@ -7,7 +7,7 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  Palette, Type, Image, Globe, Upload, X, Loader2, Monitor, Sparkles, ImageIcon,
+  Palette, Type, Image, Globe, Upload, X, Loader2, Sparkles, ImageIcon,
 } from "lucide-react";
 import type { FormDesignSettings, BackgroundType } from "@/lib/builderTypes";
 import { WEBGL_EFFECTS, WebGLBackground } from "@/components/form/WebGLBackground";

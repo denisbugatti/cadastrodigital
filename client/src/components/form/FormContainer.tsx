@@ -105,8 +105,8 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
   const d = form.design;
   const bgColor = d?.backgroundColor || "#FFFFFF";
   const questionColor = d?.questionColor || "#1E293B";
-  const buttonColor = d?.buttonColor || "#3B82F6";
-  const buttonTextColor = d?.buttonTextColor || "#FFFFFF";
+  const _buttonColor = d?.buttonColor || "#3B82F6";
+  const _buttonTextColor = d?.buttonTextColor || "#FFFFFF";
   const fontFamily = d?.fontFamily || "Plus Jakarta Sans, sans-serif";
   const logoUrl = d?.logoUrl;
 
@@ -330,7 +330,7 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
 
   const isSpecialScreen = engine.isWelcome || engine.isThankYou;
   const showNav = !engine.isWelcome && !engine.isThankYou;
-  const showBackButton = showNav && !engine.isFirst;
+  const _showBackButton = showNav && !engine.isFirst;
   const progress = engine.progress;
 
   // ─── Loading Screen with Logo + Progress Bar ───
@@ -607,7 +607,6 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
           </motion.div>
         </AnimatePresence>
       </div>
-
 
     </div>
   );

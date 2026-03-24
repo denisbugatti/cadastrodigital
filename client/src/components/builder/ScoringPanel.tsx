@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Hash, ChevronDown, ChevronRight } from "lucide-react";
+import { Hash, ChevronDown, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
