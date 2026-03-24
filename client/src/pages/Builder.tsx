@@ -68,7 +68,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     removeQuestion,
     duplicateQuestion,
     reorderQuestions,
-    moveQuestion,
+
     updateQuestion,
     updateFormMeta,
     updateDesign,
@@ -79,7 +79,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     removeChoice,
     getConditionalTargets,
     isSaved,
-    lastSavedAt,
+
     saveNow,
     saveVersion,
     getHistory,

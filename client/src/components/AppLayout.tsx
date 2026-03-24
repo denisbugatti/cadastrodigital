@@ -103,7 +103,7 @@ const SIDEBAR_EXPANDED_WIDTH = 240;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, loading, isStaff, isCorretor, logout } = useCustomAuth();
+  const { user, loading, isStaff, logout } = useCustomAuth();
   const { totalUnread } = useUnreadResponses();
 
   // Filter nav items based on role — corretores only see non-admin items

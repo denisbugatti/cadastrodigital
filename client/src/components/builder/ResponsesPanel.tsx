@@ -10,9 +10,9 @@ import {
   ClipboardList, Download, Search, Calendar,
   ChevronDown, ChevronLeft, ChevronRight, Filter, X, FileSpreadsheet, ArrowUpDown, FileText,
   CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
-  Lock, Loader2, Check, AlertTriangle,
+  Lock, Loader2, Check, AlertTriangle, Eye,
   ExternalLink, Image as ImageIcon, File as FileIcon, Clock, Phone, Users,
-  MailCheck, Pause, Send, MailPlus, Mail, RotateCcw,
+  MailCheck, Pause, Send, MailPlus, Mail, RotateCcw, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -225,7 +225,7 @@ function ValidationDrawer({
 
         {/* ── Fields list ── */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-4">
-          {fieldsWithAnswers.map((q, i) => {
+          {fieldsWithAnswers.map((q, _i) => {
             const answer = answers[q.id];
             const validation = validationMap[q.id];
             const isFile = isFileField(q);
@@ -1192,14 +1192,15 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const [showCorretorPicker, setShowCorretorPicker] = useState(false);
   const [cadenceFilter, setCadenceFilter] = useState<"all" | "active" | "none">("all");
   const [showCadencePicker, setShowCadencePicker] = useState(false);
-  const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
+  const [_selectedResponseId, _setSelectedResponseId] = useState<number | null>(null);
   const [validatingResponseId, setValidatingResponseId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [pdfDialogResponseId, setPdfDialogResponseId] = useState<number | null>(null);
-  const [excludedAttachmentUrls, setExcludedAttachmentUrls] = useState<Set<string>>(new Set());
+  const [_excludedAttachmentUrls, setExcludedAttachmentUrls] = useState<Set<string>>(new Set());
+  const [pdfPreview, setPdfPreview] = useState<{ blobUrl: string; filename: string; responseId: number } | null>(null);
   const itemsPerPage = 10;
 
   const actualQuestions = useMemo(
@@ -1384,7 +1385,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     []
   );
 
-  // Actually generate PDF with selected attachments
+  // Actually generate PDF with selected attachments -> opens preview
   const doGeneratePdf = useCallback(
     async (responseId: number, excludeUrls: string[]) => {
       setPdfDialogResponseId(null);
@@ -1401,13 +1402,9 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = result.filename || "ficha.pdf";
-        link.click();
-        URL.revokeObjectURL(url);
-        toast.success("PDF gerado com sucesso!");
+        const blobUrl = URL.createObjectURL(blob);
+        const filename = result.filename || "ficha.pdf";
+        setPdfPreview({ blobUrl, filename, responseId });
       } catch (err: any) {
         toast.error(err.message || "Erro ao gerar PDF");
       } finally {
@@ -1416,6 +1413,41 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     },
     [utils]
   );
+
+  // Close PDF preview and revoke blob URL
+  const closePdfPreview = useCallback(() => {
+    if (pdfPreview) {
+      URL.revokeObjectURL(pdfPreview.blobUrl);
+    }
+    setPdfPreview(null);
+  }, [pdfPreview]);
+
+  // Download PDF from preview
+  const downloadPdfFromPreview = useCallback(() => {
+    if (!pdfPreview) return;
+    const link = document.createElement("a");
+    link.href = pdfPreview.blobUrl;
+    link.download = pdfPreview.filename;
+    link.click();
+    toast.success("PDF baixado com sucesso!");
+  }, [pdfPreview]);
+
+  // Share PDF via WhatsApp - uses a mutation so we need a separate hook
+  const shareFichaMutation = trpc.responses.shareFicha.useMutation({
+    onSuccess: (result) => {
+      const text = encodeURIComponent(`Ficha cadastral: ${result.url}`);
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Erro ao compartilhar PDF");
+    },
+  });
+
+  const sharePdfViaWhatsApp = useCallback(async () => {
+    if (!pdfPreview) return;
+    toast.info("Gerando link de compartilhamento...");
+    shareFichaMutation.mutate({ responseId: pdfPreview.responseId });
+  }, [pdfPreview, shareFichaMutation]);
 
   // Export CSV
   const exportCSV = useCallback(() => {
@@ -2137,6 +2169,85 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
             onClose={() => setPdfDialogResponseId(null)}
             onGenerate={(excludeUrls) => doGeneratePdf(pdfDialogResponseId, excludeUrls)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ─── PDF Preview Modal ─── */}
+      <AnimatePresence>
+        {pdfPreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex flex-col"
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closePdfPreview} />
+
+            {/* Header */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              className="relative z-10 flex items-center justify-between px-4 py-3 bg-card/95 backdrop-blur border-b border-border/50"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-1.5 rounded-lg bg-brand/10">
+                  <Eye size={16} className="text-brand" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-display font-bold text-foreground truncate">
+                    Preview do PDF
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {pdfPreview.filename}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={sharePdfViaWhatsApp}
+                  disabled={shareFichaMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {shareFichaMutation.isPending ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Share2 size={13} />
+                  )}
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </button>
+                <button
+                  onClick={downloadPdfFromPreview}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand hover:bg-brand/90 text-white transition-colors cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+                <button
+                  onClick={closePdfPreview}
+                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+                >
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
+            </motion.div>
+
+            {/* PDF Viewer */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ delay: 0.05 }}
+              className="relative flex-1 m-2 sm:m-4 rounded-xl overflow-hidden bg-white shadow-2xl"
+            >
+              <iframe
+                src={`${pdfPreview.blobUrl}#toolbar=0&navpanes=0`}
+                className="w-full h-full border-0"
+                title="Preview do PDF"
+              />
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

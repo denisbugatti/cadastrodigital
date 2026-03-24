@@ -680,7 +680,7 @@ function ResponseCard({
                           {questions
                             .filter((q: any) => q.type !== "welcome" && q.type !== "thank-you")
                             .slice(0, 3)
-                            .map((q: any, qIndex: number) => {
+                            .map((q: any, _qIndex: number) => {
                               const answer = answers[q.id];
                               if (answer === undefined || answer === null || answer === "") return null;
 
@@ -889,7 +889,7 @@ export default function Responses() {
 
   // Corretor queries
   const { data: allCorretores } = trpc.corretores.list.useQuery();
-  const { data: formCorretores, isLoading: formCorretoresLoading } = trpc.corretores.byForm.useQuery(
+  const { data: formCorretores, isLoading: _formCorretoresLoading } = trpc.corretores.byForm.useQuery(
     { formId },
     { enabled: !!formId }
   );

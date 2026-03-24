@@ -206,7 +206,7 @@ function CreateFolderDialog({
 
 // ─── Folder Context Menu ───
 function FolderContextMenu({
-  folder,
+  folder: _folder,
   onEdit,
   onDelete,
   onClose,
@@ -563,7 +563,7 @@ function Pagination({
 
 // ─── Main Component ───
 export default function CorretorResponses() {
-  const [, navigate] = useLocation();
+  const [, _navigate] = useLocation();
   const utils = trpc.useUtils();
 
   // Force dark theme for corretor pages

@@ -26,7 +26,7 @@ export interface ThankYouScreenProps {
   totalScore?: number | null;
 }
 
-export function ThankYouScreen({ question, design, protocolCode, totalScore }: ThankYouScreenProps) {
+export function ThankYouScreen({ question, design, protocolCode, totalScore: _totalScore }: ThankYouScreenProps) {
   const bgColor = design?.backgroundColor || "#FFFFFF";
   const buttonColor = design?.buttonColor || "#3B82F6";
   const fontFamily = design?.fontFamily || "Plus Jakarta Sans, sans-serif";

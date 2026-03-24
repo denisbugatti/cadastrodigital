@@ -260,7 +260,7 @@ function NotificationBell() {
 }
 
 export default function Dashboard() {
-  const { logout, user, isCorretor, canEditForms } = useCustomAuth();
+  const { logout, user, canEditForms } = useCustomAuth();
   const { totalUnread } = useUnreadResponses();
   const dashboardIsAdmin = user?.type === "staff" ? ["master", "diretor", "gerente"].includes((user as any).role) : false;
 
@@ -399,7 +399,7 @@ export default function Dashboard() {
           status: "draft",
         });
         toast.success("Formulário importado!", { description: `"${imported.title}" foi adicionado.` });
-      } catch (err) {
+      } catch (_err) {
         toast.error("Erro ao importar", { description: "Falha ao salvar no banco de dados." });
       }
     } else {
@@ -440,7 +440,7 @@ export default function Dashboard() {
         URL.revokeObjectURL(url);
         toast.success("Formulário exportado!", { description: `"${form.title}" foi baixado como JSON.` });
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao exportar", { description: "Falha ao buscar dados do formulário." });
     }
   }, [utils]);
@@ -462,7 +462,7 @@ export default function Dashboard() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success("Respostas exportadas!", { description: `${result.totalResponses} respostas baixadas como CSV.` });
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao exportar respostas", { description: "Falha ao gerar o arquivo CSV." });
     }
   }, [utils]);
@@ -537,7 +537,7 @@ export default function Dashboard() {
       toast.success("Formulário excluído", {
         description: `"${form.title}" foi removido com sucesso.`,
       });
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao excluir formulário");
     }
   };
@@ -565,7 +565,7 @@ export default function Dashboard() {
         description: `"${duplicateTitle.trim()}" foi criado como rascunho.`,
       });
       setDuplicateTarget(null);
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao duplicar formulário");
     }
   };
@@ -578,7 +578,7 @@ export default function Dashboard() {
       });
       const folderName = folderId ? folders.find((f) => f.id === folderId)?.name : "Sem pasta";
       toast.success("Formulário movido", { description: `Movido para "${folderName}"` });
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao mover formulário");
     }
   };
@@ -593,7 +593,7 @@ export default function Dashboard() {
       setNewFolderName("");
       setCreatingFolder(false);
       toast.success("Pasta criada!", { description: `"${newFolderName.trim()}" foi criada.` });
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao criar pasta");
     }
   };
@@ -608,7 +608,7 @@ export default function Dashboard() {
       setEditingFolderId(null);
       setEditingFolderName("");
       toast.success("Pasta renomeada!");
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao renomear pasta");
     }
   };
@@ -619,7 +619,7 @@ export default function Dashboard() {
       if (selectedFolderId === folder.id) setSelectedFolderId(null);
       setDeleteFolderTarget(null);
       toast.success("Pasta excluída", { description: `Os formulários foram movidos para "Sem pasta".` });
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao excluir pasta");
     }
   };
@@ -628,7 +628,7 @@ export default function Dashboard() {
     try {
       await updateFormMutation.mutateAsync({ id: formId, title: newTitle });
       toast.success("Formulário renomeado!", { description: `Novo nome: "${newTitle}"` });
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao renomear formulário");
     }
   };
@@ -662,7 +662,7 @@ export default function Dashboard() {
       });
       setShowTemplates(false);
       navigate(`/editor/${result.id}`);
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao clonar template", {
         description: "Tente novamente.",
       });

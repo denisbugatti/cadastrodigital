@@ -7,7 +7,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import AppLayout from "./components/AppLayout";
 import AuthGate from "./components/AuthGate";
 import AdminRoute from "./components/AdminRoute";
-import FormOwnerRoute from "./components/FormOwnerRoute";
 import OwnerRoute from "./components/OwnerRoute";
 import Landing from "./pages/Landing";
 import Editor from "./pages/Editor";
@@ -61,7 +60,7 @@ function Router() {
 
       {/* Responses/Analytics for a specific form */}
       <Route path={"/responses/:formId"}>
-        {(params: any) => (
+        {(_params: any) => (
           <AdminRoute>
             <AppLayout><Responses /></AppLayout>
           </AdminRoute>

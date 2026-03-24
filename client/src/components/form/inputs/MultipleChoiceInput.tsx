@@ -38,7 +38,7 @@ export function MultipleChoiceInput({
   validationError,
   design,
 }: MultipleChoiceInputProps) {
-  const [justSelected, setJustSelected] = useState<string | null>(null);
+  const [_justSelected, setJustSelected] = useState<string | null>(null);
 
   // Determine if background is light or dark
   const isLightBg = useMemo(() => {

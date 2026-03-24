@@ -717,7 +717,7 @@ function ExportTab() {
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: csvData, isLoading: loadingCsv, refetch, isFetching } = trpc.responses.exportCsv.useQuery(
+  const { data: csvData, isLoading: _loadingCsv, refetch, isFetching } = trpc.responses.exportCsv.useQuery(
     { formId: selectedFormId!, validationStatus: statusFilter as any },
     { enabled: false }
   );

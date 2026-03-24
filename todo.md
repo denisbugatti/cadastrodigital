@@ -1555,3 +1555,15 @@
 - [x] Reduzido de 102 para 49 warnings (52% de redução)
 - [x] 32 restantes são variáveis locais/parâmetros (revisão manual futura)
 - [x] 16 exhaustive-deps são intencionais na maioria dos casos
+
+## Preview de PDF antes do download
+- [x] Criar modal fullscreen de preview que exibe o PDF gerado em iframe
+- [x] Botão "Download" e "Compartilhar via WhatsApp" no preview
+- [x] Integrado com fluxo de seleção de anexos (PdfAttachmentDialog → Preview → Download/Share)
+
+## ESLint: limpar 32 warnings restantes
+- [x] Removidos imports não usados (FormOwnerRoute, ImageIcon, etc.)
+- [x] Prefixados parâmetros de função não usados com _ (catch err → _err, etc.)
+- [x] Removidas variáveis de destructuring não usadas (isCorretor, lastSavedAt, moveQuestion, etc.)
+- [x] Reduzido de 102 para 17 warnings (83% de redução)
+- [x] 16 restantes são exhaustive-deps intencionais + 1 no-non-null

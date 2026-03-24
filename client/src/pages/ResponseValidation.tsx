@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
   Download, Loader2, AlertTriangle, MessageSquare, Mail, Phone, Calendar, ShieldCheck,
-  Lock, Image as ImageIcon, ExternalLink, Eye, Share2,
+  Lock, ExternalLink, Eye, Share2,
   X, ZoomIn, ZoomOut, RotateCw, Maximize2, Send, RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -297,7 +297,7 @@ function LightboxOverlay({
 }
 
 export default function ResponseValidation() {
-  const [, navigate] = useLocation();
+  const [, _navigate] = useLocation();
   const params = useParams<{ responseId: string }>();
   const responseId = parseInt(params.responseId || "0");
 

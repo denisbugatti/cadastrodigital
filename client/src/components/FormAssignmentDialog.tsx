@@ -139,7 +139,7 @@ export function FormAssignmentDialog({ open, onOpenChange, formId, formTitle }: 
         description: `${selectedIds.size} membro(s) vinculado(s) a "${formTitle}"`,
       });
       onOpenChange(false);
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro ao salvar vínculos");
     } finally {
       setSaving(false);
