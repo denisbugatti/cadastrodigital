@@ -2967,7 +2967,11 @@ export const appRouter = router({
         if (!ENV.googleClientId) {
           throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Google OAuth não configurado. Adicione GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET." });
         }
-        const state = Buffer.from(JSON.stringify({ staffUserId: ctx.staffUser!.id, ts: Date.now() })).toString("base64");
+        // Resolve the staff user ID: prefer customSession.staffUserId, fallback to user.id (Manus OAuth owner)
+        const staffUserId = ctx.customSession?.type === "staff"
+          ? ctx.customSession.staffUserId
+          : ctx.user?.id ?? 0;
+        const state = Buffer.from(JSON.stringify({ staffUserId, ts: Date.now() })).toString("base64");
         const url = googleOAuth.getGoogleAuthUrl(input.redirectUri, state);
         return { url };
       }),
@@ -2984,10 +2988,13 @@ export const appRouter = router({
         if (!ENV.googleClientId) {
           throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Google OAuth não configurado." });
         }
+        const staffUserId = ctx.customSession?.type === "staff"
+          ? ctx.customSession.staffUserId
+          : ctx.user?.id ?? 0;
         const result = await googleOAuth.exchangeCodeForTokens(
           input.code,
           input.redirectUri,
-          ctx.staffUser!.id
+          staffUserId
         );
         return result;
       }),
@@ -2997,7 +3004,10 @@ export const appRouter = router({
      */
     getGoogleAccount: staffAdminProcedure
       .query(async ({ ctx }) => {
-        return googleOAuth.getConnectedAccount(ctx.staffUser!.id);
+        const staffUserId = ctx.customSession?.type === "staff"
+          ? ctx.customSession.staffUserId
+          : ctx.user?.id ?? 0;
+        return googleOAuth.getConnectedAccount(staffUserId);
       }),
 
     /**
@@ -3005,7 +3015,10 @@ export const appRouter = router({
      */
     disconnectGoogle: staffAdminProcedure
       .mutation(async ({ ctx }) => {
-        await googleOAuth.disconnectGoogleAccount(ctx.staffUser!.id);
+        const staffUserId = ctx.customSession?.type === "staff"
+          ? ctx.customSession.staffUserId
+          : ctx.user?.id ?? 0;
+        await googleOAuth.disconnectGoogleAccount(staffUserId);
         return { success: true };
       }),
 
@@ -3014,7 +3027,10 @@ export const appRouter = router({
      */
     listSpreadsheets: staffAdminProcedure
       .query(async ({ ctx }) => {
-        const spreadsheets = await googleOAuth.listSpreadsheets(ctx.staffUser!.id);
+        const staffUserId = ctx.customSession?.type === "staff"
+          ? ctx.customSession.staffUserId
+          : ctx.user?.id ?? 0;
+        const spreadsheets = await googleOAuth.listSpreadsheets(staffUserId);
         return { spreadsheets };
       }),
 
@@ -3024,7 +3040,10 @@ export const appRouter = router({
     createSpreadsheet: staffAdminProcedure
       .input(z.object({ title: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
-        return googleOAuth.createSpreadsheet(ctx.staffUser!.id, input.title);
+        const staffUserId = ctx.customSession?.type === "staff"
+          ? ctx.customSession.staffUserId
+          : ctx.user?.id ?? 0;
+        return googleOAuth.createSpreadsheet(staffUserId, input.title);
       }),
   }),
 });

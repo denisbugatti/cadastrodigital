@@ -1641,3 +1641,6 @@
 - [x] UI: opção de criar nova planilha diretamente no painel
 - [x] UI: mostrar conta conectada e botão de desconectar
 - [x] Atualizar dispatcher para usar OAuth token em vez de Service Account JSON
+
+## Bug: Cannot read properties of undefined (reading 'id') no /editor
+- [x] Investigar e corrigir erro "Cannot read properties of undefined (reading 'id')" na página /editor/:formId — ctx.staffUser não existe no contexto; corrigido para usar ctx.customSession.staffUserId com fallback para ctx.user.id
