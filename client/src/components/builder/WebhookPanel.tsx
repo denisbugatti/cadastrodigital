@@ -9,7 +9,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Webhook, Plus, Trash2, Send, CheckCircle, AlertCircle, Copy, Check,
-  Mail, MessageCircle, BarChart3, ChevronDown, ChevronRight,
+  Mail, BarChart3, ChevronDown, ChevronRight,
   Table2, Building2, Tag, Activity, Eye, Upload, Shield, RefreshCw, Loader2, FileKey, X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ interface WebhookPanelProps {
   onUpdate: (updates: Partial<WebhookSettings>) => void;
 }
 
-type IntegrationSection = "webhook" | "rdstation" | "whatsapp" | "email" | "googlesheets" | "crmmanus" | "gtm" | "ga" | "fbpixel" | "tiktok";
+type IntegrationSection = "webhook" | "rdstation" | "email" | "googlesheets" | "crmmanus" | "gtm" | "ga" | "fbpixel" | "tiktok";
 
 export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps) {
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -31,7 +31,6 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
 
   const integrations = webhook.integrations ?? {
     rdStation: { enabled: false, apiToken: "", conversionIdentifier: "" },
-    whatsapp: { enabled: false, phoneNumber: "", message: "Nova resposta recebida no formulário!" },
     email: { enabled: false, recipients: "", subject: "Nova resposta no formulário" },
     googleSheets: { enabled: false, spreadsheetUrl: "", sheetName: "Respostas" },
     crmManus: { enabled: false, webhookUrl: "", funnelName: "", stageName: "" },
@@ -128,7 +127,6 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
   const activeIntegrationsCount = [
     webhook.enabled,
     integrations.rdStation?.enabled,
-    integrations.whatsapp?.enabled,
     integrations.email?.enabled,
     integrations.googleSheets?.enabled,
     integrations.crmManus?.enabled,
@@ -428,57 +426,6 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
               <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-green-50 text-green-700 border border-green-200">
                 <CheckCircle size={16} />
                 <span>Os campos nome e email serão mapeados automaticamente para o RD Station.</span>
-              </div>
-            </div>
-          )}
-        </IntegrationCard>
-
-        {/* ─── WhatsApp Section ─── */}
-        <IntegrationCard
-          title="WhatsApp"
-          description="Receba respostas via WhatsApp"
-          icon={<MessageCircle size={20} className="text-[#25D366]" />}
-          iconBg="bg-green-50"
-          enabled={integrations.whatsapp?.enabled ?? false}
-          onToggle={() => updateIntegration("whatsapp", { enabled: !integrations.whatsapp?.enabled })}
-          expanded={expandedSection === "whatsapp"}
-          onToggleExpand={() => toggleSection("whatsapp")}
-        >
-          {!integrations.whatsapp?.enabled ? (
-            <p className="text-sm text-muted-foreground bg-secondary rounded-xl p-4 border border-border">
-              Ative para receber um resumo das respostas diretamente no seu WhatsApp quando alguém preencher o formulário.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-body font-semibold text-foreground mb-2 block">Número do WhatsApp</label>
-                <input
-                  type="text"
-                  value={integrations.whatsapp?.phoneNumber ?? ""}
-                  onChange={(e) => updateIntegration("whatsapp", { phoneNumber: e.target.value })}
-                  placeholder="+55 11 99999-9999"
-                  className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#25D366]/20 focus:border-[#25D366]/40 transition-all"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Número com código do país (ex: +5511999999999)
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-body font-semibold text-foreground mb-2 block">Mensagem personalizada</label>
-                <textarea
-                  value={integrations.whatsapp?.message ?? ""}
-                  onChange={(e) => updateIntegration("whatsapp", { message: e.target.value })}
-                  placeholder="Nova resposta recebida no formulário!"
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#25D366]/20 focus:border-[#25D366]/40 transition-all resize-none"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Esta mensagem será enviada junto com o resumo das respostas
-                </p>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-green-50 text-green-700 border border-green-200">
-                <MessageCircle size={16} />
-                <span>As respostas serão enviadas como mensagem formatada via API do WhatsApp.</span>
               </div>
             </div>
           )}

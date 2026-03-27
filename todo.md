@@ -1623,3 +1623,9 @@
 - [x] Corrigir salvamento: mesclar objeto webhook preservando todos os campos existentes
 - [x] Garantir que toggle enabled, URL, tokens e demais campos persistam no banco
 - [x] Testar cada integração (Webhook, Google Sheets, RD Station, E-mail, WhatsApp) end-to-end
+
+## Integrações por Formulário (dentro do formulário)
+- [x] Mover configurações de integrações para dentro da página/painel de cada formulário
+- [x] Remover integração WhatsApp do painel de integrações
+- [x] Adicionar controle de permissões por integração na aba de permissões do formulário
+- [x] Aba de Integrações nas Configurações mantida como visão global de logs

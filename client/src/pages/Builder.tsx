@@ -14,7 +14,7 @@ import {
   ArrowLeft, Play, Palette, Share2, BarChart3,
   FileText, Save, Cloud, Download, Upload, History,
   RotateCcw, Trash2, X, Clock, MoreVertical, Loader2, CheckCircle, Hash,
-  List, Settings2, Pencil,
+  List, Settings2, Pencil, Webhook,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useBuilder } from "@/hooks/useBuilder";
@@ -30,6 +30,7 @@ import { IntegrationLogsPanel } from "@/components/builder/IntegrationLogsPanel"
 import { ScoringPanel } from "@/components/builder/ScoringPanel";
 import { importFormFromJSON, type FormVersion } from "@/lib/formStorage";
 import { trpc } from "@/lib/trpc";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 import { toast } from "sonner";
 import {
@@ -49,7 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type BuilderTab = "content" | "design" | "compartilhar" | "respostas";
+type BuilderTab = "content" | "design" | "compartilhar" | "integracoes" | "respostas";
 
 interface BuilderProps {
   initialForm?: import("@/lib/builderTypes").BuilderForm;
@@ -91,6 +92,9 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     unpublishForm,
     dbFormId: currentDbFormId,
   } = useBuilder(initialForm, { dbFormId });
+
+  const { hasPermission, isCorretor } = useCustomAuth();
+  const canManageIntegrations = !isCorretor || hasPermission("manage_integrations");
 
   const [activeTab, setActiveTab] = useState<BuilderTab>("content");
   const [showPreview, setShowPreview] = useState(false);
@@ -244,6 +248,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     { id: "content", label: "Conteúdo", icon: FileText },
     { id: "design", label: "Design", icon: Palette },
     { id: "compartilhar", label: "Compartilhar", icon: Share2 },
+    ...(canManageIntegrations ? [{ id: "integracoes" as BuilderTab, label: "Integrações", icon: Webhook }] : []),
     { id: "respostas", label: "Respostas", icon: BarChart3 },
   ];
 
@@ -592,26 +597,6 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                   design={form.design}
                   onUpdateDesign={updateDesign}
                 />
-                <div className="border-t border-border">
-                  <WebhookPanel
-                    webhook={form.webhook}
-                    formTitle={form.title}
-                    onUpdate={updateWebhook}
-                  />
-                </div>
-                {currentDbFormId && (
-                  <div className="border-t border-border p-4">
-                    <details className="group">
-                      <summary className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-foreground hover:text-brand transition-colors">
-                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                        Log de Integrações
-                      </summary>
-                      <div className="mt-3">
-                        <IntegrationLogsPanel formId={currentDbFormId} />
-                      </div>
-                    </details>
-                  </div>
-                )}
               </div>
 
               <div className="hidden md:flex flex-1 items-center justify-center p-4 md:p-8 bg-secondary/30">
@@ -676,6 +661,43 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Exemplo de como ficará ao acessar o link
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* INTEGRAÇÕES TAB */}
+          {activeTab === "integracoes" && (
+            <motion.div
+              key="integracoes"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex-1 flex flex-col md:flex-row h-full"
+            >
+              <div className="w-full md:w-[480px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background max-h-[50vh] md:max-h-none">
+                <WebhookPanel
+                  webhook={form.webhook}
+                  formTitle={form.title}
+                  onUpdate={updateWebhook}
+                />
+                {currentDbFormId && (
+                  <div className="border-t border-border">
+                    <IntegrationLogsPanel formId={currentDbFormId} />
+                  </div>
+                )}
+              </div>
+              <div className="hidden md:flex flex-1 items-center justify-center p-8 bg-secondary/30">
+                <div className="text-center max-w-sm">
+                  <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mx-auto mb-4">
+                    <Webhook size={28} className="text-brand" />
+                  </div>
+                  <h3 className="text-lg font-display font-bold text-foreground mb-2">Conecte seu formulário</h3>
+                  <p className="text-sm text-muted-foreground font-body leading-relaxed">
+                    Configure webhooks e integrações para enviar as respostas automaticamente para outros sistemas.
+                    Compativel com n8n, Make, Zapier, Google Sheets, RD Station e muito mais.
                   </p>
                 </div>
               </div>

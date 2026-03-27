@@ -32,6 +32,7 @@ const PERMISSION_DEFS: Record<string, { label: string; description: string }> = 
   manage_team: { label: "Gerenciar equipe", description: "Adicionar e remover membros" },
   export_data: { label: "Exportar dados", description: "Exportar respostas em CSV" },
   share_forms: { label: "Compartilhar formulários", description: "Gerar links de compartilhamento" },
+  manage_integrations: { label: "Gerenciar integrações", description: "Configurar webhooks, Google Sheets, RD Station e e-mail" },
 };
 
 const ROLES_CONFIG = [
