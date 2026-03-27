@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -48,6 +49,7 @@ const STATUS_OPTIONS = [
 
 export default function Settings() {
   const { loading } = useAuth();
+  const { isCorretor } = useCustomAuth();
 
   if (loading) {
     return (
@@ -82,7 +84,7 @@ export default function Settings() {
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Tabs defaultValue="aparencia" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-secondary border border-border rounded-xl p-1 h-auto">
+          <TabsList className={`grid w-full bg-secondary border border-border rounded-xl p-1 h-auto ${isCorretor ? 'grid-cols-5' : 'grid-cols-6'}`}>
             <TabsTrigger
               value="aparencia"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
@@ -118,13 +120,15 @@ export default function Settings() {
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Exportação</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="integracoes"
-              className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
-            >
-              <Webhook className="h-4 w-4" />
-              <span className="hidden sm:inline">Integrações</span>
-            </TabsTrigger>
+            {!isCorretor && (
+              <TabsTrigger
+                value="integracoes"
+                className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
+              >
+                <Webhook className="h-4 w-4" />
+                <span className="hidden sm:inline">Integrações</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="aparencia" className="mt-6">
@@ -146,9 +150,11 @@ export default function Settings() {
           <TabsContent value="exportacao" className="mt-6">
             <ExportTab />
           </TabsContent>
-          <TabsContent value="integracoes" className="mt-6">
-            <SettingsIntegrationsTab />
-          </TabsContent>
+          {!isCorretor && (
+            <TabsContent value="integracoes" className="mt-6">
+              <SettingsIntegrationsTab />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

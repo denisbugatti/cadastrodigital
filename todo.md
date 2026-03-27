@@ -1608,3 +1608,6 @@
 - [x] Retry manual de falhas diretamente do painel de configurações
 - [x] Acesso restrito a gestores (role check via staffAdminProcedure)
 - [x] Adicionar aba "Integrações" no TabsList do Settings.tsx (grid-cols-6)
+
+## Ocultar Aba Integrações para Corretores
+- [x] Ocultar visualmente a aba "Integrações" nas Configurações para usuários com role corretor
