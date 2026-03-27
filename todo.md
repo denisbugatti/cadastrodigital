@@ -1584,3 +1584,18 @@
 - [x] TrackingScripts component: injeta scripts no head + cleanup on unmount
 - [x] fireTrackingConversion: dispara eventos de conversão ao submeter formulário
 - [x] 545 testes passando (20 novos testes de integrações)
+
+## Google Sheets: Autenticação via Service Account
+- [x] Instalar googleapis/google-auth-library no projeto
+- [x] Configurar autenticação via Service Account (JSON key upload)
+- [x] Criar fluxo de upload de JSON key no WebhookPanel
+- [x] Implementar envio real de dados para Google Sheets via API
+- [x] Testar integração completa
+
+## Logs de Integrações com Retry Automático
+- [x] Criar tabela integration_logs no banco de dados (formId, type, status, payload, error, retries, timestamps)
+- [x] Implementar logging no dispatcher (registrar sucesso/falha de cada dispatch)
+- [x] Implementar retry automático para falhas temporárias (max 3 tentativas, backoff exponencial)
+- [x] Criar UI de logs no frontend (aba no builder com filtros por tipo/status/data)
+- [x] Endpoint para listar logs e retry manual
+- [x] Testes para logging e retry

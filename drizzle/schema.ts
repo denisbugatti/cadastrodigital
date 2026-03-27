@@ -589,3 +589,41 @@ export const staffNotificationPreferences = mysqlTable("staff_notification_prefe
 });
 export type StaffNotificationPreference = typeof staffNotificationPreferences.$inferSelect;
 export type InsertStaffNotificationPreference = typeof staffNotificationPreferences.$inferInsert;
+
+
+/**
+ * Integration logs — tracks every integration dispatch attempt.
+ * Used for visibility into integration success/failure and automatic retry.
+ */
+export const integrationLogs = mysqlTable("integration_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Which form triggered this integration */
+  formId: int("formId").notNull(),
+  /** Which response triggered this integration */
+  responseId: int("responseId").notNull(),
+  /** Integration type: webhook, googleSheets, crmManus, rdStation, email */
+  integrationType: varchar("integrationType", { length: 50 }).notNull(),
+  /** Status: pending, success, failure, retrying */
+  status: mysqlEnum("status", ["pending", "success", "failure", "retrying"]).default("pending").notNull(),
+  /** HTTP status code if applicable */
+  httpStatus: int("httpStatus"),
+  /** Error message if failed */
+  errorMessage: text("errorMessage"),
+  /** Request payload (truncated for storage) */
+  requestPayload: json("requestPayload").$type<Record<string, any>>(),
+  /** Response body (truncated for storage) */
+  responseBody: text("responseBody"),
+  /** Number of retry attempts */
+  retryCount: int("retryCount").default(0).notNull(),
+  /** Maximum retries allowed */
+  maxRetries: int("maxRetries").default(3).notNull(),
+  /** When the next retry should happen (null = no retry scheduled) */
+  nextRetryAt: timestamp("nextRetryAt"),
+  /** Duration of the request in milliseconds */
+  durationMs: int("durationMs"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type IntegrationLog = typeof integrationLogs.$inferSelect;
+export type InsertIntegrationLog = typeof integrationLogs.$inferInsert;

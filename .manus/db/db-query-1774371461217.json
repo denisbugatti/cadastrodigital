@@ -1,0 +1,13 @@
+{
+  "query": "SHOW TABLES LIKE 'integration_logs';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SHOW TABLES LIKE 'integration_logs';",
+  "rows": [
+    {
+      "Tables_in_bDyKxbJirDkukZmvFFZQ8p (integration_logs)": "integration_logs"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_bDyKxbJirDkukZmvFFZQ8p (integration_logs)\nintegration_logs\n",
+  "stderr": "",
+  "execution_time_ms": 423
+}

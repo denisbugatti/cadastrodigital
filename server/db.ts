@@ -1,4 +1,4 @@
-import { eq, desc, sql, like, or, and, isNull, isNotNull, lte, gte, inArray, count, avg } from "drizzle-orm";
+import { eq, desc, asc, sql, like, or, and, isNull, isNotNull, lte, gte, inArray, count, avg } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -21,6 +21,7 @@ import {
   staffUsers,
   staffNotifications, InsertStaffNotification,
   staffNotificationPreferences, InsertStaffNotificationPreference,
+  integrationLogs, InsertIntegrationLog,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2792,5 +2793,136 @@ export async function getNotificationPreferencesForStaff(
     }
 
     return prefsMap;
+  });
+}
+
+
+/* ─── Integration Logs ─── */
+
+/**
+ * Create an integration log entry.
+ */
+export async function createIntegrationLog(data: {
+  formId: number;
+  responseId: number;
+  integrationType: string;
+  status: "pending" | "success" | "failure" | "retrying";
+  httpStatus?: number;
+  errorMessage?: string;
+  requestPayload?: Record<string, any>;
+  responseBody?: string;
+  retryCount?: number;
+  maxRetries?: number;
+  nextRetryAt?: Date;
+  durationMs?: number;
+}) {
+  return withDbRetry(async (db) => {
+    const result = await db.insert(integrationLogs).values({
+      formId: data.formId,
+      responseId: data.responseId,
+      integrationType: data.integrationType,
+      status: data.status,
+      httpStatus: data.httpStatus ?? null,
+      errorMessage: data.errorMessage ?? null,
+      requestPayload: data.requestPayload ?? null,
+      responseBody: data.responseBody?.substring(0, 5000) ?? null,
+      retryCount: data.retryCount ?? 0,
+      maxRetries: data.maxRetries ?? 3,
+      nextRetryAt: data.nextRetryAt ?? null,
+      durationMs: data.durationMs ?? null,
+    });
+    return { id: result[0].insertId };
+  });
+}
+
+/**
+ * Update an integration log entry (e.g., after retry).
+ */
+export async function updateIntegrationLog(id: number, data: {
+  status?: "pending" | "success" | "failure" | "retrying";
+  httpStatus?: number;
+  errorMessage?: string;
+  responseBody?: string;
+  retryCount?: number;
+  nextRetryAt?: Date | null;
+  durationMs?: number;
+}) {
+  return withDbRetry(async (db) => {
+    await db.update(integrationLogs)
+      .set({
+        ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(data.httpStatus !== undefined ? { httpStatus: data.httpStatus } : {}),
+        ...(data.errorMessage !== undefined ? { errorMessage: data.errorMessage } : {}),
+        ...(data.responseBody !== undefined ? { responseBody: data.responseBody?.substring(0, 5000) } : {}),
+        ...(data.retryCount !== undefined ? { retryCount: data.retryCount } : {}),
+        ...(data.nextRetryAt !== undefined ? { nextRetryAt: data.nextRetryAt } : {}),
+        ...(data.durationMs !== undefined ? { durationMs: data.durationMs } : {}),
+      })
+      .where(eq(integrationLogs.id, id));
+  });
+}
+
+/**
+ * Get integration logs for a form, ordered by most recent first.
+ */
+export async function getIntegrationLogsByForm(formId: number, limit = 50, offset = 0) {
+  return withDbRetry(async (db) => {
+    return db.select()
+      .from(integrationLogs)
+      .where(eq(integrationLogs.formId, formId))
+      .orderBy(desc(integrationLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+  });
+}
+
+/**
+ * Get integration logs for a specific response.
+ */
+export async function getIntegrationLogsByResponse(responseId: number) {
+  return withDbRetry(async (db) => {
+    return db.select()
+      .from(integrationLogs)
+      .where(eq(integrationLogs.responseId, responseId))
+      .orderBy(desc(integrationLogs.createdAt));
+  });
+}
+
+/**
+ * Get pending retry logs (status = 'retrying' and nextRetryAt <= now).
+ */
+export async function getPendingRetryLogs(limit = 20) {
+  return withDbRetry(async (db) => {
+    return db.select()
+      .from(integrationLogs)
+      .where(
+        and(
+          eq(integrationLogs.status, "retrying"),
+          lte(integrationLogs.nextRetryAt, new Date()),
+        )
+      )
+      .orderBy(asc(integrationLogs.nextRetryAt))
+      .limit(limit);
+  });
+}
+
+/**
+ * Count integration logs by status for a form.
+ */
+export async function countIntegrationLogsByForm(formId: number) {
+  return withDbRetry(async (db) => {
+    const rows = await db.select({
+      status: integrationLogs.status,
+      count: sql<number>`COUNT(*)`,
+    })
+      .from(integrationLogs)
+      .where(eq(integrationLogs.formId, formId))
+      .groupBy(integrationLogs.status);
+
+    const counts: Record<string, number> = { pending: 0, success: 0, failure: 0, retrying: 0 };
+    for (const row of rows) {
+      counts[row.status] = Number(row.count);
+    }
+    return counts;
   });
 }

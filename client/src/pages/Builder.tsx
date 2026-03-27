@@ -26,6 +26,7 @@ import { SharingPanel } from "@/components/builder/SharingPanel";
 import { ResponsesPanel } from "@/components/builder/ResponsesPanel";
 import { BuilderLivePreview } from "@/components/builder/BuilderLivePreview";
 import { WebhookPanel } from "@/components/builder/WebhookPanel";
+import { IntegrationLogsPanel } from "@/components/builder/IntegrationLogsPanel";
 import { ScoringPanel } from "@/components/builder/ScoringPanel";
 import { importFormFromJSON, type FormVersion } from "@/lib/formStorage";
 import { trpc } from "@/lib/trpc";
@@ -598,6 +599,19 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                     onUpdate={updateWebhook}
                   />
                 </div>
+                {currentDbFormId && (
+                  <div className="border-t border-border p-4">
+                    <details className="group">
+                      <summary className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-foreground hover:text-brand transition-colors">
+                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        Log de Integrações
+                      </summary>
+                      <div className="mt-3">
+                        <IntegrationLogsPanel formId={currentDbFormId} />
+                      </div>
+                    </details>
+                  </div>
+                )}
               </div>
 
               <div className="hidden md:flex flex-1 items-center justify-center p-4 md:p-8 bg-secondary/30">

@@ -233,6 +233,10 @@ export interface WebhookSettings {
       enabled: boolean;
       spreadsheetUrl: string;
       sheetName: string;
+      serviceAccountJson?: string; // JSON string of the Google service account key
+      serviceAccountEmail?: string; // Extracted from the JSON key for display
+      connectionStatus?: "untested" | "connected" | "error"; // Last test result
+      connectionError?: string; // Error message from last test
     };
     crmManus?: {
       enabled: boolean;
@@ -571,7 +575,7 @@ export const defaultWebhookSettings: WebhookSettings = {
     rdStation: { enabled: false, apiToken: "", conversionIdentifier: "" },
     whatsapp: { enabled: false, phoneNumber: "", message: "Nova resposta recebida no formulário!" },
     email: { enabled: false, recipients: "", subject: "Nova resposta no formulário" },
-    googleSheets: { enabled: false, spreadsheetUrl: "", sheetName: "Respostas" },
+    googleSheets: { enabled: false, spreadsheetUrl: "", sheetName: "Respostas", serviceAccountJson: "", serviceAccountEmail: "", connectionStatus: "untested" as const, connectionError: "" },
     crmManus: { enabled: false, webhookUrl: "", funnelName: "", stageName: "" },
   },
   tracking: {

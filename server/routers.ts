@@ -2856,6 +2856,76 @@ export const appRouter = router({
       };
     }),
   }),
+
+  // ─── Integration Management ───
+  integrations: router({
+    /**
+     * Test Google Sheets connection with service account credentials.
+     */
+    testGoogleSheets: staffAdminProcedure
+      .input(z.object({
+        spreadsheetUrl: z.string().min(1),
+        sheetName: z.string().default("Respostas"),
+        serviceAccountJson: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const { testGoogleSheetsConnection } = await import("./googleSheetsService");
+        return testGoogleSheetsConnection({
+          spreadsheetUrl: input.spreadsheetUrl,
+          sheetName: input.sheetName,
+          serviceAccountJson: input.serviceAccountJson,
+        });
+      }),
+
+    /**
+     * Get integration logs for a form.
+     */
+    getLogs: staffAdminProcedure
+      .input(z.object({
+        formId: z.number(),
+        limit: z.number().min(1).max(200).default(50),
+        offset: z.number().min(0).default(0),
+      }))
+      .query(async ({ input }) => {
+        const [logs, counts] = await Promise.all([
+          db.getIntegrationLogsByForm(input.formId, input.limit, input.offset),
+          db.countIntegrationLogsByForm(input.formId),
+        ]);
+        return { logs, counts };
+      }),
+
+    /**
+     * Get integration logs for a specific response.
+     */
+    getLogsByResponse: staffAdminProcedure
+      .input(z.object({ responseId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getIntegrationLogsByResponse(input.responseId);
+      }),
+
+    /**
+     * Manually retry a failed integration.
+     */
+    retryLog: staffAdminProcedure
+      .input(z.object({ logId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { retryIntegration } = await import("./integrationDispatcher");
+        return retryIntegration(input.logId);
+      }),
+
+    /**
+     * Get summary stats for integration logs across all forms.
+     */
+    getStats: staffAdminProcedure
+      .query(async () => {
+        // Get counts of logs by status in last 24h
+        const { getPendingRetryLogs } = await import("./db");
+        const pendingRetries = await getPendingRetryLogs(5);
+        return {
+          pendingRetries: pendingRetries.length,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -5,14 +5,15 @@
  * Tracking: GTM, Google Analytics, Facebook Pixel, TikTok Pixel
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Webhook, Plus, Trash2, Send, CheckCircle, AlertCircle, Copy, Check,
   Mail, MessageCircle, BarChart3, ChevronDown, ChevronRight,
-  Table2, Building2, Tag, Activity, Eye,
+  Table2, Building2, Tag, Activity, Eye, Upload, Shield, RefreshCw, Loader2, FileKey, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import type { WebhookSettings } from "@/lib/builderTypes";
 
 interface WebhookPanelProps {
@@ -310,55 +311,12 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
         </IntegrationCard>
 
         {/* ─── Google Sheets Section ─── */}
-        <IntegrationCard
-          title="Google Sheets"
-          description="Envie respostas para uma planilha"
-          icon={<Table2 size={20} className="text-[#0F9D58]" />}
-          iconBg="bg-green-50"
-          enabled={integrations.googleSheets?.enabled ?? false}
-          onToggle={() => updateIntegration("googleSheets", { enabled: !integrations.googleSheets?.enabled })}
-          expanded={expandedSection === "googlesheets"}
-          onToggleExpand={() => toggleSection("googlesheets")}
-        >
-          {!integrations.googleSheets?.enabled ? (
-            <p className="text-sm text-muted-foreground bg-secondary rounded-xl p-4 border border-border">
-              Ative para enviar automaticamente cada resposta como uma nova linha na sua planilha do Google Sheets.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-body font-semibold text-foreground mb-2 block">URL da Planilha</label>
-                <input
-                  type="text"
-                  value={integrations.googleSheets?.spreadsheetUrl ?? ""}
-                  onChange={(e) => updateIntegration("googleSheets", { spreadsheetUrl: e.target.value })}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#0F9D58]/20 focus:border-[#0F9D58]/40 transition-all font-mono"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Cole a URL completa da planilha do Google Sheets. A planilha deve estar compartilhada como "Qualquer pessoa com o link pode editar".
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-body font-semibold text-foreground mb-2 block">Nome da aba</label>
-                <input
-                  type="text"
-                  value={integrations.googleSheets?.sheetName ?? "Respostas"}
-                  onChange={(e) => updateIntegration("googleSheets", { sheetName: e.target.value })}
-                  placeholder="Respostas"
-                  className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#0F9D58]/20 focus:border-[#0F9D58]/40 transition-all"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Nome da aba na planilha onde as respostas serão adicionadas (padrão: "Respostas")
-                </p>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-green-50 text-green-700 border border-green-200">
-                <Table2 size={16} />
-                <span>Cada resposta será adicionada como uma nova linha com: Data, Protocolo, Nome, Email e todas as respostas.</span>
-              </div>
-            </div>
-          )}
-        </IntegrationCard>
+        <GoogleSheetsSection
+          integrations={integrations}
+          updateIntegration={updateIntegration}
+          expandedSection={expandedSection}
+          toggleSection={toggleSection}
+        />
 
         {/* ─── CRM Manus Section ─── */}
         <IntegrationCard
@@ -755,6 +713,268 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─── Google Sheets Section Component ─── */
+
+function GoogleSheetsSection({
+  integrations,
+  updateIntegration,
+  expandedSection,
+  toggleSection,
+}: {
+  integrations: NonNullable<WebhookSettings["integrations"]>;
+  updateIntegration: (key: string, value: any) => void;
+  expandedSection: IntegrationSection | null;
+  toggleSection: (section: IntegrationSection) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [uploadingKey, setUploadingKey] = useState(false);
+
+  const testMutation = trpc.integrations.testGoogleSheets.useMutation();
+
+  const gs = integrations.googleSheets ?? {
+    enabled: false,
+    spreadsheetUrl: "",
+    sheetName: "Respostas",
+    serviceAccountJson: "",
+    serviceAccountEmail: "",
+    connectionStatus: "untested" as const,
+    connectionError: "",
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".json")) {
+      toast.error("Selecione um arquivo JSON de conta de servi\u00e7o do Google.");
+      return;
+    }
+
+    setUploadingKey(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const json = JSON.parse(ev.target?.result as string);
+        if (!json.client_email || !json.private_key || json.type !== "service_account") {
+          toast.error("Arquivo inv\u00e1lido. Certifique-se de que \u00e9 uma chave de conta de servi\u00e7o do Google (Service Account).");
+          setUploadingKey(false);
+          return;
+        }
+
+        updateIntegration("googleSheets", {
+          serviceAccountJson: ev.target?.result as string,
+          serviceAccountEmail: json.client_email,
+          connectionStatus: "untested",
+          connectionError: "",
+        });
+
+        toast.success(`Chave carregada: ${json.client_email}`);
+      } catch {
+        toast.error("Erro ao ler o arquivo JSON. Verifique se o arquivo est\u00e1 correto.");
+      }
+      setUploadingKey(false);
+    };
+    reader.onerror = () => {
+      toast.error("Erro ao ler o arquivo.");
+      setUploadingKey(false);
+    };
+    reader.readAsText(file);
+
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleTestConnection = async () => {
+    if (!gs.spreadsheetUrl || !gs.serviceAccountJson) {
+      toast.error("Configure a URL da planilha e a chave de conta de servi\u00e7o primeiro.");
+      return;
+    }
+
+    setTestingConnection(true);
+    try {
+      const result = await testMutation.mutateAsync({
+        spreadsheetUrl: gs.spreadsheetUrl,
+        sheetName: gs.sheetName || "Respostas",
+        serviceAccountJson: gs.serviceAccountJson,
+      });
+
+      if (result.success) {
+        updateIntegration("googleSheets", {
+          connectionStatus: "connected",
+          connectionError: "",
+          serviceAccountEmail: result.serviceAccountEmail || gs.serviceAccountEmail,
+        });
+        toast.success(`Conex\u00e3o OK! Planilha: ${result.sheetTitle}`);
+      } else {
+        updateIntegration("googleSheets", {
+          connectionStatus: "error",
+          connectionError: result.error || "Erro desconhecido",
+        });
+        toast.error(result.error || "Falha ao conectar");
+      }
+    } catch (err: any) {
+      updateIntegration("googleSheets", {
+        connectionStatus: "error",
+        connectionError: err?.message || "Erro de conex\u00e3o",
+      });
+      toast.error("Erro ao testar conex\u00e3o");
+    }
+    setTestingConnection(false);
+  };
+
+  const handleRemoveKey = () => {
+    updateIntegration("googleSheets", {
+      serviceAccountJson: "",
+      serviceAccountEmail: "",
+      connectionStatus: "untested",
+      connectionError: "",
+    });
+    toast.info("Chave de conta de servi\u00e7o removida.");
+  };
+
+  return (
+    <IntegrationCard
+      title="Google Sheets"
+      description="Envie respostas para uma planilha"
+      icon={<Table2 size={20} className="text-[#0F9D58]" />}
+      iconBg="bg-green-50"
+      enabled={gs.enabled}
+      onToggle={() => updateIntegration("googleSheets", { enabled: !gs.enabled })}
+      expanded={expandedSection === "googlesheets"}
+      onToggleExpand={() => toggleSection("googlesheets")}
+    >
+      {!gs.enabled ? (
+        <p className="text-sm text-muted-foreground bg-secondary rounded-xl p-4 border border-border">
+          Ative para enviar automaticamente cada resposta como uma nova linha na sua planilha do Google Sheets.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {/* URL da Planilha */}
+          <div>
+            <label className="text-sm font-body font-semibold text-foreground mb-2 block">URL da Planilha</label>
+            <input
+              type="text"
+              value={gs.spreadsheetUrl ?? ""}
+              onChange={(e) => updateIntegration("googleSheets", { spreadsheetUrl: e.target.value, connectionStatus: "untested" })}
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#0F9D58]/20 focus:border-[#0F9D58]/40 transition-all font-mono"
+            />
+          </div>
+
+          {/* Nome da Aba */}
+          <div>
+            <label className="text-sm font-body font-semibold text-foreground mb-2 block">Nome da aba</label>
+            <input
+              type="text"
+              value={gs.sheetName ?? "Respostas"}
+              onChange={(e) => updateIntegration("googleSheets", { sheetName: e.target.value })}
+              placeholder="Respostas"
+              className="w-full px-4 py-3 rounded-xl text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#0F9D58]/20 focus:border-[#0F9D58]/40 transition-all"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Nome da aba na planilha (padr\u00e3o: \"Respostas\")
+            </p>
+          </div>
+
+          {/* Service Account Key Upload */}
+          <div>
+            <label className="text-sm font-body font-semibold text-foreground mb-2 block">
+              <div className="flex items-center gap-2">
+                <FileKey size={14} />
+                Conta de Servi\u00e7o (Service Account)
+              </div>
+            </label>
+
+            {gs.serviceAccountEmail ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-green-50 border border-green-200">
+                  <Shield size={16} className="text-green-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-green-700 font-medium text-xs truncate">{gs.serviceAccountEmail}</p>
+                    <p className="text-green-600/70 text-[11px]">Chave configurada</p>
+                  </div>
+                  <button
+                    onClick={handleRemoveKey}
+                    className="p-1 rounded-lg hover:bg-green-100 text-green-600 transition-colors shrink-0"
+                    title="Remover chave"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingKey}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium bg-secondary border-2 border-dashed border-border hover:border-[#0F9D58]/40 hover:bg-green-50/50 text-muted-foreground hover:text-[#0F9D58] transition-all"
+                >
+                  {uploadingKey ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Upload size={16} />
+                  )}
+                  {uploadingKey ? "Carregando..." : "Enviar arquivo JSON da Service Account"}
+                </button>
+                <p className="text-xs text-muted-foreground">
+                  Fa\u00e7a o download da chave JSON no <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer" className="text-[#0F9D58] underline">Google Cloud Console</a>.
+                  Depois, compartilhe a planilha com o email da conta de servi\u00e7o.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Connection Status & Test Button */}
+          {gs.serviceAccountJson && gs.spreadsheetUrl && (
+            <div className="space-y-2">
+              <button
+                onClick={handleTestConnection}
+                disabled={testingConnection}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#0F9D58] text-white hover:bg-[#0B8A4B] disabled:opacity-50 transition-all"
+              >
+                {testingConnection ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={16} />
+                )}
+                {testingConnection ? "Testando conex\u00e3o..." : "Testar conex\u00e3o"}
+              </button>
+
+              {gs.connectionStatus === "connected" && (
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm bg-green-50 text-green-700 border border-green-200">
+                  <CheckCircle size={16} />
+                  <span>Conex\u00e3o verificada com sucesso</span>
+                </div>
+              )}
+
+              {gs.connectionStatus === "error" && gs.connectionError && (
+                <div className="flex items-start gap-2 px-4 py-2.5 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <span>{gs.connectionError}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Info */}
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm bg-green-50 text-green-700 border border-green-200">
+            <Table2 size={16} className="shrink-0" />
+            <span>Cada resposta ser\u00e1 adicionada como uma nova linha com: Data, Protocolo, Nome, Email e todas as respostas.</span>
+          </div>
+        </div>
+      )}
+    </IntegrationCard>
   );
 }
 
