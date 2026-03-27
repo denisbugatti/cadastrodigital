@@ -1073,8 +1073,8 @@ function ResponseCard({
       className="bg-card border border-border rounded-xl overflow-hidden hover:border-brand/20 transition-all"
     >
       {/* Card header */}
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="px-4 py-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
             <Clock size={14} className="text-muted-foreground" />
           </div>
@@ -1098,7 +1098,7 @@ function ResponseCard({
             </p>
           </div>
         </div>
-        {getStatusBadge(response.validationStatus)}
+        <div className="shrink-0">{getStatusBadge(response.validationStatus)}</div>
       </div>
 
       {/* Preview fields */}
@@ -1677,10 +1677,10 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
           ))}
         </div>
 
-        {/* Filters — stacked on mobile */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        {/* Filters — horizontal scroll on mobile */}
+        <div className="flex flex-row gap-2 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1 sm:pb-0 scrollbar-none sm:flex-wrap">
           {/* Search */}
-          <div className="flex-1 relative">
+          <div className="flex-1 min-w-[160px] relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -1696,7 +1696,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
           {/* Corretor/Reviewer filter */}
           {filterPeople.length > 0 && (
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => {
                   setShowCorretorPicker(!showCorretorPicker);
@@ -1806,7 +1806,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
           )}
 
           {/* Date filter */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               onClick={() => {
                 setShowDatePicker(!showDatePicker);
@@ -1868,7 +1868,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
           </div>
 
           {/* Cadence filter */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               onClick={() => {
                 setShowCadencePicker(!showCadencePicker);

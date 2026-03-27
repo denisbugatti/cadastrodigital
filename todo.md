@@ -1647,3 +1647,8 @@
 
 ## ResponsesPanel: Menu Gaveta
 - [x] Transformar o elemento de filtros/detalhes na linha 1719 do ResponsesPanel em menu gaveta (Sheet/Drawer) lateral
+
+## Melhorias Mobile no Builder
+- [x] WebhookPanel mobile: corrigir espaço vazio, cards compactos, layout responsivo
+- [x] SharePanel mobile: corrigir espaço em branco abaixo do preview, layout responsivo
+- [x] ResponsesPanel mobile: filtros em linha horizontal (scroll), cards sem corte, status visível

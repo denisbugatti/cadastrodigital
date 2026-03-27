@@ -141,7 +141,7 @@ export function WebhookPanel({ webhook, formTitle, onUpdate }: WebhookPanelProps
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-card">
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 space-y-3">
         {/* Header */}
         <div className="mb-2">
           <h3 className="text-lg font-display font-bold text-foreground">
@@ -1007,34 +1007,34 @@ function IntegrationCard({
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between px-3 py-3 sm:px-4 sm:py-4">
         <button
           onClick={onToggleExpand}
-          className="flex items-center gap-3 flex-1 text-left"
+          className="flex items-center gap-2.5 flex-1 text-left min-w-0"
         >
-          <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
+          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
             {icon}
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <h4 className="text-sm font-display font-bold text-foreground">{title}</h4>
               {badge && (
                 <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${badgeColor || "bg-gray-100 text-gray-600"}`}>{badge}</span>
               )}
               {badgeExtra && (
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${badgeExtraColor || "bg-green-100 text-green-600"}`}>{badgeExtra}</span>
+                <span className={`hidden sm:inline px-1.5 py-0.5 rounded-md text-[10px] font-bold ${badgeExtraColor || "bg-green-100 text-green-600"}`}>{badgeExtra}</span>
               )}
               {enabled && (
                 <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-green-100 text-green-700">ATIVO</span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-muted-foreground truncate">{description}</p>
           </div>
-          {expanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          {expanded ? <ChevronDown size={15} className="text-muted-foreground shrink-0" /> : <ChevronRight size={15} className="text-muted-foreground shrink-0" />}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          className={`relative w-11 h-6 rounded-full transition-all ml-3 shrink-0 ${
+          className={`relative w-11 h-6 rounded-full transition-all ml-2 shrink-0 ${
             enabled ? "bg-brand" : "bg-border"
           }`}
         >
@@ -1054,7 +1054,7 @@ function IntegrationCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4">
+            <div className="px-3 pb-3 sm:px-4 sm:pb-4">
               {children}
             </div>
           </motion.div>

@@ -511,7 +511,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background max-h-[50vh] md:max-h-none">
+              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background h-full md:h-auto">
                 <DesignPanel design={form.design} onUpdate={updateDesign} />
               </div>
 
@@ -588,7 +588,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background max-h-[50vh] md:max-h-none">
+              <div className="w-full md:w-[420px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background h-full md:h-auto">
                 <SharingPanel
                   sharing={form.sharing}
                   formTitle={form.title}
@@ -677,7 +677,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col md:flex-row h-full"
             >
-              <div className="w-full md:w-[480px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background max-h-[50vh] md:max-h-none">
+              <div className="w-full md:w-[480px] border-b md:border-b-0 md:border-r border-border shrink-0 overflow-y-auto bg-background h-full md:h-auto">
                 <WebhookPanel
                   webhook={form.webhook}
                   formTitle={form.title}
@@ -712,7 +712,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex-1 h-full bg-background"
+              className="flex-1 h-full bg-background overflow-hidden"
             >
               <ResponsesPanel formTitle={form.title} responseCount={0} questions={form.questions} formId={currentDbFormId} />
             </motion.div>
