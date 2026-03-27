@@ -1,0 +1,9 @@
+{
+  "query": "SELECT id, title, JSON_EXTRACT(webhook, '$.integrations.googleSheets') as google_sheets_config FROM forms WHERE JSON_EXTRACT(webhook, '$.integrations.googleSheets') IS NOT NULL LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, JSON_EXTRACT(webhook, '$.integrations.googleSheets') as google_sheets_config FROM forms WHERE JSON_EXTRACT(webhook, '$.integrations.googleSheets') IS NOT NULL LIMIT 3;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 373
+}

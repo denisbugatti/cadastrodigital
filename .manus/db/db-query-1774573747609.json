@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, title, JSON_KEYS(webhook) as webhook_keys, JSON_KEYS(JSON_EXTRACT(webhook, '$.integrations')) as integration_keys FROM forms WHERE webhook IS NOT NULL LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, title, JSON_KEYS(webhook) as webhook_keys, JSON_KEYS(JSON_EXTRACT(webhook, '$.integrations')) as integration_keys FROM forms WHERE webhook IS NOT NULL LIMIT 5;",
+  "rows": [
+    {
+      "id": "90002",
+      "title": "One Innovation",
+      "webhook_keys": "[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"tracking\", \"url\"]",
+      "integration_keys": "[\"email\", \"rdStation\", \"whatsapp\"]"
+    },
+    {
+      "id": "150001",
+      "title": "Vitoria",
+      "webhook_keys": "[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]",
+      "integration_keys": "[\"email\", \"rdStation\", \"whatsapp\"]"
+    },
+    {
+      "id": "180001",
+      "title": "Pedro Hladi",
+      "webhook_keys": "[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]",
+      "integration_keys": "[\"email\", \"rdStation\", \"whatsapp\"]"
+    },
+    {
+      "id": "180003",
+      "title": "Rogerio",
+      "webhook_keys": "[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]",
+      "integration_keys": "[\"email\", \"rdStation\", \"whatsapp\"]"
+    },
+    {
+      "id": "210001",
+      "title": "Gregorio",
+      "webhook_keys": "[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]",
+      "integration_keys": "[\"email\", \"rdStation\", \"whatsapp\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\twebhook_keys\tintegration_keys\n90002\tOne Innovation\t[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"tracking\", \"url\"]\t[\"email\", \"rdStation\", \"whatsapp\"]\n150001\tVitoria\t[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]\t[\"email\", \"rdStation\", \"whatsapp\"]\n180001\tPedro Hladi\t[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]\t[\"email\", \"rdStation\", \"whatsapp\"]\n180003\tRogerio\t[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]\t[\"email\", \"rdStation\", \"whatsapp\"]\n210001\tGregorio\t[\"enabled\", \"headers\", \"integrations\", \"method\", \"sendOnComplete\", \"sendOnPartial\", \"url\"]\t[\"email\", \"rdStation\", \"whatsapp\"]\n",
+  "stderr": "",
+  "execution_time_ms": 426
+}

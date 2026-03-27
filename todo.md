@@ -1617,3 +1617,9 @@
 - [x] Listar todos os formulários com cards mostrando quais integrações estão ativas/inativas
 - [x] Permitir configurar cada integração diretamente no painel (expandir card ou modal)
 - [x] Mostrar status de conexão (conectado/desconectado) para cada integração
+
+## Aba Integrações Funcional (Configurações)
+- [x] Corrigir leitura dos dados salvos do webhook para popular os campos corretamente
+- [x] Corrigir salvamento: mesclar objeto webhook preservando todos os campos existentes
+- [x] Garantir que toggle enabled, URL, tokens e demais campos persistam no banco
+- [x] Testar cada integração (Webhook, Google Sheets, RD Station, E-mail, WhatsApp) end-to-end
