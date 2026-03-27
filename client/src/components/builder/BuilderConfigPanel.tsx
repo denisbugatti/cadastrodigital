@@ -921,7 +921,7 @@ function ConditionalLogicEditor({
                 <select
                   value={sr.goToQuestionId}
                   onChange={(e) => updateScoreRule(sr.id, { goToQuestionId: e.target.value })}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body text-foreground bg-input border border-border focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all appearance-none"
+                  className="flex-1 px-2 py-1.5 rounded-lg text-xs font-body text-foreground bg-input border border-border focus:outline-none focus:ring-1 focus:ring-amber-300/40 focus:border-amber-400/40 transition-all appearance-none"
                 >
                   <option value="next">Próxima pergunta (padrão)</option>
                   <option value="end">Ir para agradecimento</option>
