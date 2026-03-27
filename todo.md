@@ -1611,3 +1611,9 @@
 
 ## Ocultar Aba Integrações para Corretores
 - [x] Ocultar visualmente a aba "Integrações" nas Configurações para usuários com role corretor
+
+## Reestruturar Aba Integrações nas Configurações
+- [x] Transformar a aba em painel de configuração/conexão de integrações por formulário
+- [x] Listar todos os formulários com cards mostrando quais integrações estão ativas/inativas
+- [x] Permitir configurar cada integração diretamente no painel (expandir card ou modal)
+- [x] Mostrar status de conexão (conectado/desconectado) para cada integração
