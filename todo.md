@@ -1629,3 +1629,15 @@
 - [x] Remover integração WhatsApp do painel de integrações
 - [x] Adicionar controle de permissões por integração na aba de permissões do formulário
 - [x] Aba de Integrações nas Configurações mantida como visão global de logs
+
+## Google Sheets com OAuth Google
+- [x] Implementar rota backend para iniciar fluxo OAuth Google (redirect URL)
+- [x] Implementar callback OAuth Google para trocar code por access_token + refresh_token
+- [x] Salvar tokens Google por staff user no banco de dados
+- [x] Rota para listar planilhas do Google Drive do usuário autenticado
+- [x] Rota para criar nova planilha no Google Drive
+- [x] UI: botão "Entrar com Google" no painel Google Sheets
+- [x] UI: seletor de planilha existente (dropdown)
+- [x] UI: opção de criar nova planilha diretamente no painel
+- [x] UI: mostrar conta conectada e botão de desconectar
+- [x] Atualizar dispatcher para usar OAuth token em vez de Service Account JSON

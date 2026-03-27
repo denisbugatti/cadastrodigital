@@ -23,6 +23,7 @@ import { generateInviteToken } from "./authService";
 import { getOrCreateOwnerUser } from "./ownerUser";
 import { logAudit, AUDIT_ACTIONS } from "./auditLog";
 import { dispatchIntegrations } from "./integrationDispatcher";
+import * as googleOAuth from "./googleOAuthService";
 
 /**
  * ownerFallbackProcedure:
@@ -2954,6 +2955,76 @@ export const appRouter = router({
     getGlobalStats: staffAdminProcedure
       .query(async () => {
         return db.getGlobalIntegrationStats();
+      }),
+
+    /**
+     * Get the Google OAuth authorization URL.
+     * The frontend opens this URL in a popup window.
+     */
+    getGoogleAuthUrl: staffAdminProcedure
+      .input(z.object({ redirectUri: z.string().url() }))
+      .query(async ({ ctx, input }) => {
+        if (!ENV.googleClientId) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Google OAuth não configurado. Adicione GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET." });
+        }
+        const state = Buffer.from(JSON.stringify({ staffUserId: ctx.staffUser!.id, ts: Date.now() })).toString("base64");
+        const url = googleOAuth.getGoogleAuthUrl(input.redirectUri, state);
+        return { url };
+      }),
+
+    /**
+     * Exchange Google OAuth code for tokens after the popup callback.
+     */
+    connectGoogle: staffAdminProcedure
+      .input(z.object({
+        code: z.string(),
+        redirectUri: z.string().url(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ENV.googleClientId) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Google OAuth não configurado." });
+        }
+        const result = await googleOAuth.exchangeCodeForTokens(
+          input.code,
+          input.redirectUri,
+          ctx.staffUser!.id
+        );
+        return result;
+      }),
+
+    /**
+     * Get the connected Google account for the current staff user.
+     */
+    getGoogleAccount: staffAdminProcedure
+      .query(async ({ ctx }) => {
+        return googleOAuth.getConnectedAccount(ctx.staffUser!.id);
+      }),
+
+    /**
+     * Disconnect Google account.
+     */
+    disconnectGoogle: staffAdminProcedure
+      .mutation(async ({ ctx }) => {
+        await googleOAuth.disconnectGoogleAccount(ctx.staffUser!.id);
+        return { success: true };
+      }),
+
+    /**
+     * List spreadsheets from the connected Google Drive account.
+     */
+    listSpreadsheets: staffAdminProcedure
+      .query(async ({ ctx }) => {
+        const spreadsheets = await googleOAuth.listSpreadsheets(ctx.staffUser!.id);
+        return { spreadsheets };
+      }),
+
+    /**
+     * Create a new spreadsheet in Google Drive.
+     */
+    createSpreadsheet: staffAdminProcedure
+      .input(z.object({ title: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        return googleOAuth.createSpreadsheet(ctx.staffUser!.id, input.title);
       }),
   }),
 });

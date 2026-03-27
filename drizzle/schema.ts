@@ -627,3 +627,30 @@ export const integrationLogs = mysqlTable("integration_logs", {
 
 export type IntegrationLog = typeof integrationLogs.$inferSelect;
 export type InsertIntegrationLog = typeof integrationLogs.$inferInsert;
+
+/**
+ * Google OAuth tokens — stores Google OAuth2 tokens per staff user.
+ * Used for Google Sheets integration without requiring a Service Account.
+ */
+export const googleOAuthTokens = mysqlTable("google_oauth_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Staff user who authorized */
+  staffUserId: int("staffUserId").notNull().unique(),
+  /** Google account email */
+  googleEmail: varchar("googleEmail", { length: 320 }).notNull(),
+  /** Google account display name */
+  googleName: varchar("googleName", { length: 500 }),
+  /** Access token (short-lived) */
+  accessToken: text("accessToken").notNull(),
+  /** Refresh token (long-lived, used to renew access token) */
+  refreshToken: text("refreshToken"),
+  /** When the access token expires */
+  expiresAt: timestamp("expiresAt"),
+  /** Scopes granted */
+  scope: text("scope"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GoogleOAuthToken = typeof googleOAuthTokens.$inferSelect;
+export type InsertGoogleOAuthToken = typeof googleOAuthTokens.$inferInsert;

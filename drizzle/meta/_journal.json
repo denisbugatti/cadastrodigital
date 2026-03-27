@@ -197,6 +197,13 @@
       "when": 1774371442780,
       "tag": "0027_lucky_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "5",
+      "when": 1774575570748,
+      "tag": "0028_strong_black_widow",
+      "breakpoints": true
     }
   ]
 }

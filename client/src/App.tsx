@@ -26,6 +26,7 @@ import CorretorDashboard from "./pages/CorretorDashboard";
 import CorretorSettings from "./pages/CorretorSettings";
 import FormCopiesManagement from "./pages/FormCopiesManagement";
 import AuditLog from "./pages/AuditLog";
+import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 
 function Router() {
   return (
@@ -117,6 +118,9 @@ function Router() {
 
       {/* Response validation (accessible by all staff) */}
       <Route path={"/validar/:responseId"} component={ResponseValidation} />
+
+      {/* Google OAuth callback — opened in popup window */}
+      <Route path={"/google-oauth-callback"} component={GoogleOAuthCallback} />
 
       <Route path={"/404"} component={NotFound} />
       {/* Catch-all: try to resolve as a form slug (e.g., /vitoria) */}
