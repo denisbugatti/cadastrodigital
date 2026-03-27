@@ -131,7 +131,7 @@ export function BuilderConfigPanel({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
         <AnimatePresence mode="wait">
           {/* ─── GENERAL TAB ─── */}
           {activeTab === "general" && (
@@ -140,10 +140,13 @@ export function BuilderConfigPanel({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              className="space-y-6"
+              className="space-y-4"
             >
+              {/* ── Seção: Conteúdo ── */}
+              <SectionHeader label={isSpecialScreen || isStatement ? "Conteúdo" : "Texto"} />
+
               {/* Title */}
-              <FieldGroup label="Título da pergunta" icon={<Type size={14} />}>
+              <FieldGroup label="Título" icon={<Type size={14} />}>
                 <input
                   type="text"
                   value={question.title ?? ""}
@@ -154,13 +157,13 @@ export function BuilderConfigPanel({
               </FieldGroup>
 
               {/* Subtitle */}
-              <FieldGroup label="Subtítulo (opcional)" icon={<AlignLeft size={14} />}>
+              <FieldGroup label="Subtítulo" icon={<AlignLeft size={14} />}>
                 <input
                   type="text"
                   value={question.subtitle ?? ""}
                   onChange={(e) => onUpdate(question.id, { subtitle: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm font-body text-foreground bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all"
-                  placeholder="Texto auxiliar..."
+                  placeholder="Texto auxiliar (opcional)..."
                 />
               </FieldGroup>
 
@@ -177,21 +180,27 @@ export function BuilderConfigPanel({
                 </FieldGroup>
               )}
 
-              {/* Required toggle */}
+              {/* ── Seção: Comportamento ── */}
               {!isSpecial && (
-                <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
-                  <Label className="text-sm font-body text-foreground flex items-center gap-2">
-                    <ToggleLeft size={16} className="text-muted-foreground" />
-                    Obrigatório
-                  </Label>
-                  <Switch
-                    checked={question.required}
-                    onCheckedChange={(checked) => onUpdate(question.id, { required: checked })}
-                  />
-                </div>
+                <>
+                  <SectionHeader label="Comportamento" />
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
+                    <Label className="text-sm font-body text-foreground flex items-center gap-2">
+                      <ToggleLeft size={16} className="text-muted-foreground" />
+                      Obrigatório
+                    </Label>
+                    <Switch
+                      checked={question.required}
+                      onCheckedChange={(checked) => onUpdate(question.id, { required: checked })}
+                    />
+                  </div>
+                </>
               )}
 
-              {/* ─── Statement specific ─── */}
+              {/* ── Seção: Configurações da tela (Statement) ── */}
+              {isStatement && (
+                <SectionHeader label="Botão" />
+              )}
               {isStatement && (
                 <>
                   {/* Button text */}
@@ -219,7 +228,10 @@ export function BuilderConfigPanel({
                 </>
               )}
 
-              {/* ─── Welcome / Thank-you specific ─── */}
+              {/* ── Seção: Configurações da tela (Welcome/Thank-you) ── */}
+              {isSpecialScreen && (
+                <SectionHeader label="Botão e ação" />
+              )}
               {isSpecialScreen && (
                 <>
                   {/* Button text */}
@@ -263,10 +275,13 @@ export function BuilderConfigPanel({
                 </>
               )}
 
+              {/* ── Seção: Opções ── */}
+              {hasChoices && (
+                <SectionHeader label="Opções" />
+              )}
               {/* Choices editor */}
               {hasChoices && (
-                <FieldGroup label="Opções" icon={<Plus size={14} />}>
-                  <div className="space-y-2">
+                <div className="space-y-2">
                     {question.choices.map((choice, idx) => (
                       <div key={choice.id} className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -312,10 +327,13 @@ export function BuilderConfigPanel({
                       <Plus size={14} />
                       Adicionar opção
                     </button>
-                  </div>
-                </FieldGroup>
+                </div>
               )}
 
+              {/* ── Seção: Pontuação ── */}
+              {!isSpecial && (
+                <SectionHeader label="Pontuação" />
+              )}
               {/* Scoring toggle for ALL question types */}
               {!isSpecial && (
                 <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-amber-50 border border-amber-200">
@@ -354,6 +372,10 @@ export function BuilderConfigPanel({
                 </FieldGroup>
               )}
 
+              {/* ── Seção: Configurações do tipo ── */}
+              {(question.type === "rating" || question.type === "satisfaction" || question.type === "ranking" || question.type === "legal") && (
+                <SectionHeader label="Configurações" />
+              )}
               {/* Rating config */}
               {(question.type === "rating" || question.type === "satisfaction") && (
                 <FieldGroup label="Escala máxima" icon={<Type size={14} />}>
@@ -1034,6 +1056,19 @@ function ConditionalLogicEditor({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Helper: Section Header ───
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <span className="text-[10px] font-body font-semibold text-muted-foreground/60 uppercase tracking-widest">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-border" />
     </div>
   );
 }

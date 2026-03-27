@@ -12,8 +12,9 @@ import {
   Shield, Users, Download, ArrowLeft, SlidersHorizontal,
   Loader2, UserPlus, Mail, Phone, CheckCircle2, XCircle,
   Clock, FileDown, Filter, Palette, Sun, Moon, Monitor,
-  Globe, Upload, Image as ImageIcon, X, Save
+  Globe, Upload, Image as ImageIcon, X, Save, Webhook
 } from "lucide-react";
+import { SettingsIntegrationsTab } from "@/components/settings/SettingsIntegrationsTab";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { useState, useMemo, useRef, useCallback } from "react";
@@ -81,7 +82,7 @@ export default function Settings() {
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Tabs defaultValue="aparencia" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-secondary border border-border rounded-xl p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-6 bg-secondary border border-border rounded-xl p-1 h-auto">
             <TabsTrigger
               value="aparencia"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
@@ -117,6 +118,13 @@ export default function Settings() {
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Exportação</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="integracoes"
+              className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
+            >
+              <Webhook className="h-4 w-4" />
+              <span className="hidden sm:inline">Integrações</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="aparencia" className="mt-6">
@@ -137,6 +145,9 @@ export default function Settings() {
 
           <TabsContent value="exportacao" className="mt-6">
             <ExportTab />
+          </TabsContent>
+          <TabsContent value="integracoes" className="mt-6">
+            <SettingsIntegrationsTab />
           </TabsContent>
         </Tabs>
       </main>

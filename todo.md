@@ -1599,3 +1599,12 @@
 - [x] Criar UI de logs no frontend (aba no builder com filtros por tipo/status/data)
 - [x] Endpoint para listar logs e retry manual
 - [x] Testes para logging e retry
+
+## Aba de Integrações nas Configurações
+- [x] Criar componente SettingsIntegrationsTab com visão global de integrações por formulário
+- [x] Listar todos os formulários com suas integrações ativas (webhook, Google Sheets, CRM, etc.)
+- [x] Mostrar status de saúde de cada integração (último log, taxa de sucesso)
+- [x] Logs consolidados de todas as integrações com filtros (formulário, tipo, status, período)
+- [x] Retry manual de falhas diretamente do painel de configurações
+- [x] Acesso restrito a gestores (role check via staffAdminProcedure)
+- [x] Adicionar aba "Integrações" no TabsList do Settings.tsx (grid-cols-6)

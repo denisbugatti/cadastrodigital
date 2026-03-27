@@ -2926,3 +2926,91 @@ export async function countIntegrationLogsByForm(formId: number) {
     return counts;
   });
 }
+
+/**
+ * Get global integration logs across all forms (for Settings > Integrações).
+ * Supports filtering by status, integrationType, formId and date range.
+ */
+export async function getGlobalIntegrationLogs(opts: {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  integrationType?: string;
+  formId?: number;
+  since?: Date;
+}) {
+  const { limit = 100, offset = 0, status, integrationType, formId, since } = opts;
+  return withDbRetry(async (db) => {
+    const conditions = [];
+    if (status) conditions.push(sql`${integrationLogs.status} = ${status}`);
+    if (integrationType) conditions.push(eq(integrationLogs.integrationType, integrationType));
+    if (formId) conditions.push(eq(integrationLogs.formId, formId));
+    if (since) conditions.push(sql`${integrationLogs.createdAt} >= ${since}`);
+
+    const rows = await db.select({
+      id: integrationLogs.id,
+      formId: integrationLogs.formId,
+      responseId: integrationLogs.responseId,
+      integrationType: integrationLogs.integrationType,
+      status: integrationLogs.status,
+      httpStatus: integrationLogs.httpStatus,
+      errorMessage: integrationLogs.errorMessage,
+      retryCount: integrationLogs.retryCount,
+      durationMs: integrationLogs.durationMs,
+      createdAt: integrationLogs.createdAt,
+      nextRetryAt: integrationLogs.nextRetryAt,
+      formTitle: forms.title,
+    })
+      .from(integrationLogs)
+      .leftJoin(forms, eq(integrationLogs.formId, forms.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(integrationLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+    return rows;
+  });
+}
+
+/**
+ * Get global integration stats (counts by status) for the Settings page.
+ */
+export async function getGlobalIntegrationStats() {
+  return withDbRetry(async (db) => {
+    // Use raw SQL to avoid Drizzle enum column type issues with groupBy
+    type StatusRow = { status: string; count: number };
+    type TypeRow = { integrationType: string; count: number; successCount: number; failureCount: number };
+
+    const [statusRows, typeRows] = await Promise.all([
+      db.execute(
+        sql`SELECT status, COUNT(*) as count FROM integration_logs
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY status`
+      ),
+      db.execute(
+        sql`SELECT integration_type as integrationType, COUNT(*) as count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successCount,
+            SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) as failureCount
+            FROM integration_logs
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY integration_type`
+      ),
+    ]);
+
+    const byStatus: Record<string, number> = { pending: 0, success: 0, failure: 0, retrying: 0 };
+    const statusData = Array.isArray(statusRows) ? statusRows : (statusRows as any)[0] ?? [];
+    for (const row of statusData) {
+      byStatus[(row as StatusRow).status] = Number((row as StatusRow).count);
+    }
+
+    const typeData = Array.isArray(typeRows) ? typeRows : (typeRows as any)[0] ?? [];
+    return {
+      byStatus,
+      byType: typeData.map((r: TypeRow) => ({
+        type: r.integrationType,
+        total: Number(r.count),
+        success: Number(r.successCount),
+        failure: Number(r.failureCount),
+      })),
+    };
+  });
+}

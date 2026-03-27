@@ -2918,12 +2918,42 @@ export const appRouter = router({
      */
     getStats: staffAdminProcedure
       .query(async () => {
-        // Get counts of logs by status in last 24h
         const { getPendingRetryLogs } = await import("./db");
         const pendingRetries = await getPendingRetryLogs(5);
         return {
           pendingRetries: pendingRetries.length,
         };
+      }),
+
+    /**
+     * Get global integration logs across all forms (for Settings > Integrações).
+     */
+    getGlobalLogs: staffAdminProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(200).default(100),
+        offset: z.number().min(0).default(0),
+        status: z.string().optional(),
+        integrationType: z.string().optional(),
+        formId: z.number().optional(),
+        since: z.date().optional(),
+      }))
+      .query(async ({ input }) => {
+        return db.getGlobalIntegrationLogs({
+          limit: input.limit,
+          offset: input.offset,
+          status: input.status,
+          integrationType: input.integrationType,
+          formId: input.formId,
+          since: input.since,
+        });
+      }),
+
+    /**
+     * Get global integration stats (last 7 days) for the Settings page.
+     */
+    getGlobalStats: staffAdminProcedure
+      .query(async () => {
+        return db.getGlobalIntegrationStats();
       }),
   }),
 });
