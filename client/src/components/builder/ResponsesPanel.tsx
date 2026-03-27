@@ -17,6 +17,12 @@ import {
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import type { BuilderQuestion } from "@/lib/builderTypes";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface ResponsesPanelProps {
   formTitle: string;
@@ -1714,43 +1720,61 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                 <ChevronDown size={12} />
               </button>
 
-              <AnimatePresence>
-                {showCorretorPicker && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="absolute top-full right-0 mt-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1 min-w-[200px] max-h-[280px] overflow-y-auto custom-scrollbar"
-                  >
+              {/* Gaveta lateral para seleção de responsável */}
+              <Sheet open={showCorretorPicker} onOpenChange={setShowCorretorPicker}>
+                <SheetContent side="right" className="w-[300px] sm:w-[360px] p-0 flex flex-col">
+                  <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
+                    <SheetTitle className="text-base font-semibold flex items-center gap-2">
+                      <Users size={16} className="text-brand" />
+                      Filtrar por responsável
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto py-2">
+                    {/* Opção: Todos */}
                     <button
                       onClick={() => {
                         setCorretorFilter("all");
                         setShowCorretorPicker(false);
                         setCurrentPage(1);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
+                      className={`w-full text-left px-5 py-3 text-sm font-body transition-colors flex items-center gap-3 ${
                         corretorFilter === "all"
                           ? "bg-brand-lighter text-brand font-medium"
                           : "text-foreground hover:bg-secondary"
                       }`}
                     >
-                      Todos os responsáveis
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <Users size={14} className="text-muted-foreground" />
+                      </div>
+                      <span>Todos os responsáveis</span>
+                      {corretorFilter === "all" && <Check size={14} className="ml-auto text-brand" />}
                     </button>
+
+                    {/* Opção: Sem responsável */}
                     <button
                       onClick={() => {
                         setCorretorFilter("unassigned");
                         setShowCorretorPicker(false);
                         setCurrentPage(1);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
+                      className={`w-full text-left px-5 py-3 text-sm font-body transition-colors flex items-center gap-3 ${
                         corretorFilter === "unassigned"
                           ? "bg-brand-lighter text-brand font-medium"
                           : "text-foreground hover:bg-secondary"
                       }`}
                     >
-                      Sem responsável
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <X size={14} className="text-muted-foreground" />
+                      </div>
+                      <span>Sem responsável</span>
+                      {corretorFilter === "unassigned" && <Check size={14} className="ml-auto text-brand" />}
                     </button>
-                    <div className="border-t border-border my-1" />
+
+                    {filterPeople.length > 0 && (
+                      <div className="mx-5 my-2 border-t border-border" />
+                    )}
+
+                    {/* Lista de corretores */}
                     {filterPeople.map((person) => (
                       <button
                         key={person.id}
@@ -1759,22 +1783,25 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
                           setShowCorretorPicker(false);
                           setCurrentPage(1);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm font-body transition-colors flex items-center gap-2 ${
+                        className={`w-full text-left px-5 py-3 text-sm font-body transition-colors flex items-center gap-3 ${
                           corretorFilter === person.id
                             ? "bg-brand-lighter text-brand font-medium"
                             : "text-foreground hover:bg-secondary"
                         }`}
                       >
-                        <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-xs font-semibold text-brand shrink-0">
                           {person.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="truncate">{person.name}</span>
-                        <span className="text-[10px] text-muted-foreground ml-auto capitalize shrink-0">{person.type}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate font-medium">{person.name}</span>
+                          <span className="text-[11px] text-muted-foreground capitalize">{person.type}</span>
+                        </div>
+                        {corretorFilter === person.id && <Check size={14} className="ml-auto text-brand shrink-0" />}
                       </button>
                     ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           )}
 

@@ -1644,3 +1644,6 @@
 
 ## Bug: Cannot read properties of undefined (reading 'id') no /editor
 - [x] Investigar e corrigir erro "Cannot read properties of undefined (reading 'id')" na página /editor/:formId — ctx.staffUser não existe no contexto; corrigido para usar ctx.customSession.staffUserId com fallback para ctx.user.id
+
+## ResponsesPanel: Menu Gaveta
+- [x] Transformar o elemento de filtros/detalhes na linha 1719 do ResponsesPanel em menu gaveta (Sheet/Drawer) lateral
