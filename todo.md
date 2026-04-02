@@ -1652,3 +1652,11 @@
 - [x] WebhookPanel mobile: corrigir espaço vazio, cards compactos, layout responsivo
 - [x] SharePanel mobile: corrigir espaço em branco abaixo do preview, layout responsivo
 - [x] ResponsesPanel mobile: filtros em linha horizontal (scroll), cards sem corte, status visível
+
+## Notificações a cada nova resposta (completa ou parcial)
+- [x] Backend: notificar owner (Manus notification + push) a cada resposta completa
+- [x] Backend: notificar owner (Manus notification + push) a cada resposta parcial
+- [x] Backend: notificar responsável atribuído via push notification a cada resposta completa
+- [x] Backend: notificar responsável atribuído via push notification a cada resposta parcial
+- [x] Incluir dados úteis na notificação (nome do formulário, protocolo, campos preenchidos)
+- [x] Testes unitários para o sistema de notificações (8 testes passando)

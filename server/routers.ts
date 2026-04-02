@@ -998,7 +998,36 @@ export const appRouter = router({
           const isComplete = input.isComplete !== false;
           const statusLabel = isComplete ? "completa" : "parcial (em andamento)";
 
-          // Owner notifications removed — only corretores receive new response notifications
+          // ─── Owner notifications (Manus + Push) ───
+          // Always notify the owner for every response (complete or partial)
+          const ownerNotifTitle = isComplete
+            ? `📋 Nova resposta completa: ${formTitle}`
+            : `📝 Resposta parcial: ${formTitle}`;
+          const ownerNotifContent = [
+            `Formulário: ${formTitle}`,
+            `Respondente: ${respondent}`,
+            `Status: ${statusLabel}`,
+            result.protocolCode ? `Protocolo: #${result.protocolCode}` : null,
+            `Data: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+          ].filter(Boolean).join("\n");
+
+          // Manus notification (shows in Manus app)
+          notifyOwner({
+            title: ownerNotifTitle,
+            content: ownerNotifContent,
+          }).catch((err) => {
+            console.warn("[OwnerNotif] Manus notification failed:", (err as Error)?.message?.substring(0, 100));
+          });
+
+          // Push notification to owner's browser
+          notifyOwnerNewResponse(formTitle, respondent, {
+            isComplete,
+            protocolCode: result.protocolCode ?? undefined,
+            formId: input.formId,
+            responseId: result.id,
+          }).catch((err) => {
+            console.warn("[OwnerPush] Push notification failed:", (err as Error)?.message?.substring(0, 100));
+          });
 
           // Send protocol code email to respondent (only for complete responses)
           if (isComplete && input.respondentEmail && result.protocolCode) {
@@ -1240,6 +1269,32 @@ export const appRouter = router({
 
               // Stop any active abandono cadences for this response
               await db.stopCadencesForResponse(id, "form_completed");
+
+              // ─── Owner notifications (Manus + Push) when partial → complete ───
+              const ownerCompletedTitle = `📋 Cadastro completado: ${formTitle}`;
+              const ownerCompletedContent = [
+                `Formulário: ${formTitle}`,
+                `Respondente: ${respondent}`,
+                `Status: Resposta parcial completada`,
+                response.protocolCode ? `Protocolo: #${response.protocolCode}` : null,
+                `Data: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+              ].filter(Boolean).join("\n");
+
+              notifyOwner({
+                title: ownerCompletedTitle,
+                content: ownerCompletedContent,
+              }).catch((err) => {
+                console.warn("[OwnerNotif] Manus notification (completion) failed:", (err as Error)?.message?.substring(0, 100));
+              });
+
+              notifyOwnerNewResponse(formTitle, respondent, {
+                isComplete: true,
+                protocolCode: response.protocolCode ?? undefined,
+                formId: response.formId,
+                responseId: id,
+              }).catch((err) => {
+                console.warn("[OwnerPush] Push notification (completion) failed:", (err as Error)?.message?.substring(0, 100));
+              });
 
               // Notify assigned corretores (in-app + push)
               const assignments = await db.getFormAssignments(response.formId);

@@ -248,7 +248,16 @@ export async function notifyCorretorStatusChange(params: {
   }
 }
 
-export async function notifyOwnerNewResponse(formTitle: string, respondentName?: string) {
+export async function notifyOwnerNewResponse(
+  formTitle: string,
+  respondentName?: string,
+  extras?: {
+    isComplete?: boolean;
+    protocolCode?: string;
+    formId?: number;
+    responseId?: number;
+  }
+) {
   try {
     // Get the owner user
     const ownerUser = await getUserByOpenId(ENV.ownerOpenId);
@@ -257,21 +266,35 @@ export async function notifyOwnerNewResponse(formTitle: string, respondentName?:
       return;
     }
 
-    const body = respondentName
-      ? `${respondentName} enviou uma resposta no formulário "${formTitle}"`
-      : `Nova resposta recebida no formulário "${formTitle}"`;
+    const isComplete = extras?.isComplete !== false;
+    const statusLabel = isComplete ? "completa" : "parcial";
+    const title = isComplete
+      ? "📋 Nova resposta completa!"
+      : "📝 Resposta parcial recebida";
+
+    const bodyParts = [
+      respondentName
+        ? `${respondentName} enviou uma resposta ${statusLabel}`
+        : `Nova resposta ${statusLabel} recebida`,
+      `Formulário: ${formTitle}`,
+    ];
+    if (extras?.protocolCode) bodyParts.push(`Protocolo: #${extras.protocolCode}`);
 
     await sendPushToUser(ownerUser.id, {
-      title: "📋 Nova resposta recebida!",
-      body,
+      title,
+      body: bodyParts.join(" \u2022 "),
       icon: "/icons/icon-192x192.png",
       badge: "/icons/icon-72x72.png",
       url: "/dashboard",
-      tag: "new-response",
+      tag: `new-response-${extras?.formId || "unknown"}-${Date.now()}`,
       data: {
         type: "new_response",
         formTitle,
         respondentName,
+        isComplete,
+        protocolCode: extras?.protocolCode,
+        formId: extras?.formId,
+        responseId: extras?.responseId,
         timestamp: Date.now(),
       },
     });

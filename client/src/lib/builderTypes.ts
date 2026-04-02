@@ -232,6 +232,7 @@ export interface WebhookSettings {
     googleSheets?: {
       enabled: boolean;
       spreadsheetUrl: string;
+      spreadsheetId?: string;
       sheetName: string;
       serviceAccountJson?: string; // JSON string of the Google service account key
       serviceAccountEmail?: string; // Extracted from the JSON key for display
