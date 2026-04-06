@@ -11,7 +11,6 @@ import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
 import { t } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
-import { notifyOwner } from "./_core/notification";
 import { notifyOwnerNewResponse, notifyCorretorPush, notifyCorretorStatusChange } from "./pushNotification";
 import { sendProtocolEmail } from "./emailService";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
@@ -998,28 +997,8 @@ export const appRouter = router({
           const isComplete = input.isComplete !== false;
           const statusLabel = isComplete ? "completa" : "parcial (em andamento)";
 
-          // ─── Owner notifications (Manus + Push) ───
-          // Always notify the owner for every response (complete or partial)
-          const ownerNotifTitle = isComplete
-            ? `📋 Nova resposta completa: ${formTitle}`
-            : `📝 Resposta parcial: ${formTitle}`;
-          const ownerNotifContent = [
-            `Formulário: ${formTitle}`,
-            `Respondente: ${respondent}`,
-            `Status: ${statusLabel}`,
-            result.protocolCode ? `Protocolo: #${result.protocolCode}` : null,
-            `Data: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
-          ].filter(Boolean).join("\n");
-
-          // Manus notification (shows in Manus app)
-          notifyOwner({
-            title: ownerNotifTitle,
-            content: ownerNotifContent,
-          }).catch((err) => {
-            console.warn("[OwnerNotif] Manus notification failed:", (err as Error)?.message?.substring(0, 100));
-          });
-
-          // Push notification to owner's browser
+          // ─── Owner notifications (webapp push only) ───
+          // Notify the owner via webapp push for every response (complete or partial)
           notifyOwnerNewResponse(formTitle, respondent, {
             isComplete,
             protocolCode: result.protocolCode ?? undefined,
@@ -1298,23 +1277,7 @@ export const appRouter = router({
               // Stop any active abandono cadences for this response
               await db.stopCadencesForResponse(id, "form_completed");
 
-              // ─── Owner notifications (Manus + Push) when partial → complete ───
-              const ownerCompletedTitle = `📋 Cadastro completado: ${formTitle}`;
-              const ownerCompletedContent = [
-                `Formulário: ${formTitle}`,
-                `Respondente: ${respondent}`,
-                `Status: Resposta parcial completada`,
-                response.protocolCode ? `Protocolo: #${response.protocolCode}` : null,
-                `Data: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
-              ].filter(Boolean).join("\n");
-
-              notifyOwner({
-                title: ownerCompletedTitle,
-                content: ownerCompletedContent,
-              }).catch((err) => {
-                console.warn("[OwnerNotif] Manus notification (completion) failed:", (err as Error)?.message?.substring(0, 100));
-              });
-
+              // ─── Owner notifications (webapp push only) when partial → complete ───
               notifyOwnerNewResponse(formTitle, respondent, {
                 isComplete: true,
                 protocolCode: response.protocolCode ?? undefined,

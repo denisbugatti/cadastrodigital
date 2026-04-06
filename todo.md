@@ -1665,3 +1665,8 @@
 - [x] Notificar corretor atribuído (in-app + push) a cada resposta parcial e completa
 - [x] Notificar gerente do corretor (in-app + push) a cada resposta parcial e completa
 - [x] Testes unitários para notificações de gerente (7 testes passando)
+
+## Correções de dados e notificações
+- [x] Investigar formulários duplicados por corretor (não havia duplicação — era a UI de vinculação)
+- [x] Remover notificação Manus (notifyOwner) do owner — manter apenas webapp (in-app + push)
+- [x] Atribuir Denis Bugatti (id=1) como gerente (managerId) de todos os 17 corretores
