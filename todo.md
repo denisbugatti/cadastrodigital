@@ -1660,3 +1660,8 @@
 - [x] Backend: notificar responsável atribuído via push notification a cada resposta parcial
 - [x] Incluir dados úteis na notificação (nome do formulário, protocolo, campos preenchidos)
 - [x] Testes unitários para o sistema de notificações (8 testes passando)
+
+## Notificações para corretor E gerente a cada nova resposta
+- [x] Notificar corretor atribuído (in-app + push) a cada resposta parcial e completa
+- [x] Notificar gerente do corretor (in-app + push) a cada resposta parcial e completa
+- [x] Testes unitários para notificações de gerente (7 testes passando)

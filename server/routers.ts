@@ -1075,18 +1075,45 @@ export const appRouter = router({
 
           // ─── Notify ALL assigned staff via form_assignments (respecting preferences) ───
           const assignments = await db.getFormAssignments(input.formId);
-          if (assignments.length > 0) {
-            const staffIds = assignments.map((a: any) => a.staffUserId);
+          const staffIds = assignments.map((a: any) => a.staffUserId);
+
+          // ─── Also notify managers (gerentes) of assigned corretores ───
+          const managerIds = new Set<number>();
+          for (const sid of staffIds) {
+            try {
+              const staffUser = await staffDb.getStaffUserById(sid);
+              if (staffUser?.managerId) {
+                // Don't add if already in staffIds (avoid duplicate)
+                if (!staffIds.includes(staffUser.managerId)) {
+                  managerIds.add(staffUser.managerId);
+                }
+              }
+            } catch (_) { /* ignore lookup errors */ }
+          }
+          // Also check legacy assignedCorretorId for manager
+          if (form?.assignedCorretorId && !staffIds.includes(form.assignedCorretorId)) {
+            try {
+              const corretorUser = await staffDb.getStaffUserById(form.assignedCorretorId);
+              if (corretorUser?.managerId && !staffIds.includes(corretorUser.managerId)) {
+                managerIds.add(corretorUser.managerId);
+              }
+            } catch (_) { /* ignore */ }
+          }
+
+          // Combine all staff to notify: assigned staff + their managers
+          const allStaffToNotify = [...staffIds, ...Array.from(managerIds)];
+
+          if (allStaffToNotify.length > 0) {
             const notifTitle = `📋 Nova resposta ${isComplete ? "" : "parcial "}em ${formTitle}`;
             const notifBody = respondent !== "Anônimo"
               ? `${respondent} enviou uma resposta ${statusLabel} no formulário "${formTitle}"`
               : `Nova resposta ${statusLabel} recebida no formulário "${formTitle}"`;
 
             // Check preferences for each staff user
-            const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, "new_response");
+            const prefsMap = await db.getNotificationPreferencesForStaff(allStaffToNotify, "new_response");
 
             // In-app notifications — only for staff who have in-app enabled
-            const inAppStaffIds = staffIds.filter((id: number) => prefsMap.get(id)?.inApp !== false);
+            const inAppStaffIds = allStaffToNotify.filter((id: number) => prefsMap.get(id)?.inApp !== false);
             if (inAppStaffIds.length > 0) {
               db.createStaffNotificationsBatch(
                 inAppStaffIds.map((staffUserId: number) => ({
@@ -1094,7 +1121,7 @@ export const appRouter = router({
                   type: "new_response",
                   title: notifTitle,
                   body: notifBody,
-                  link: "/corretor/respostas",
+                  link: managerIds.has(staffUserId) ? "/gerente/respostas" : "/corretor/respostas",
                   metadata: {
                     formId: input.formId,
                     formTitle,
@@ -1102,13 +1129,14 @@ export const appRouter = router({
                     protocolCode: result.protocolCode ?? null,
                     isComplete,
                     responseId: result.id,
+                    isManagerNotification: managerIds.has(staffUserId),
                   },
                 }))
               ).catch((err) => console.warn("[InAppNotif] Batch create failed:", (err as any)?.message?.substring(0, 100)));
             }
 
             // Push notifications — only for staff who have push enabled
-            for (const staffUserId of staffIds) {
+            for (const staffUserId of allStaffToNotify) {
               if (prefsMap.get(staffUserId)?.push === false) continue;
               // Skip if already notified via legacy assignedCorretorId
               if (form?.assignedCorretorId === staffUserId) continue;
@@ -1296,21 +1324,34 @@ export const appRouter = router({
                 console.warn("[OwnerPush] Push notification (completion) failed:", (err as Error)?.message?.substring(0, 100));
               });
 
-              // Notify assigned corretores (in-app + push)
+              // Notify assigned corretores + their managers (in-app + push)
               const assignments = await db.getFormAssignments(response.formId);
               const staffIds = assignments.map((a: any) => a.staffUserId);
               if (form?.assignedCorretorId && !staffIds.includes(form.assignedCorretorId)) {
                 staffIds.push(form.assignedCorretorId);
               }
-              if (staffIds.length > 0) {
-                const notifTitle = `\ud83d\udccb Cadastro completado: ${formTitle}`;
-                const notifBody = `${respondent} completou o cadastro no formul\u00e1rio "${formTitle}".`;
+
+              // Also notify managers (gerentes) of assigned corretores
+              const completionManagerIds = new Set<number>();
+              for (const sid of staffIds) {
+                try {
+                  const su = await staffDb.getStaffUserById(sid);
+                  if (su?.managerId && !staffIds.includes(su.managerId)) {
+                    completionManagerIds.add(su.managerId);
+                  }
+                } catch (_) { /* ignore */ }
+              }
+              const allCompletionStaff = [...staffIds, ...Array.from(completionManagerIds)];
+
+              if (allCompletionStaff.length > 0) {
+                const notifTitle = `📋 Cadastro completado: ${formTitle}`;
+                const notifBody = `${respondent} completou o cadastro no formulário "${formTitle}".`;
 
                 // Check preferences for each staff user
-                const prefsMap = await db.getNotificationPreferencesForStaff(staffIds, "new_response");
+                const prefsMap = await db.getNotificationPreferencesForStaff(allCompletionStaff, "new_response");
 
-                // In-app notifications \u2014 only for staff who have in-app enabled
-                const inAppStaffIds = staffIds.filter((sid: number) => prefsMap.get(sid)?.inApp !== false);
+                // In-app notifications — only for staff who have in-app enabled
+                const inAppStaffIds = allCompletionStaff.filter((sid: number) => prefsMap.get(sid)?.inApp !== false);
                 if (inAppStaffIds.length > 0) {
                   db.createStaffNotificationsBatch(
                     inAppStaffIds.map((staffUserId: number) => ({
@@ -1318,14 +1359,14 @@ export const appRouter = router({
                       type: "new_response" as const,
                       title: notifTitle,
                       body: notifBody,
-                      link: "/corretor/respostas",
-                      metadata: { formId: response.formId, formTitle, respondentName: respondent, responseId: id, isComplete: true },
+                      link: completionManagerIds.has(staffUserId) ? "/gerente/respostas" : "/corretor/respostas",
+                      metadata: { formId: response.formId, formTitle, respondentName: respondent, responseId: id, isComplete: true, isManagerNotification: completionManagerIds.has(staffUserId) },
                     }))
                   ).catch((err) => console.warn("[InAppNotif] Completion batch failed:", (err as any)?.message?.substring(0, 100)));
                 }
 
-                // Push notifications \u2014 only for staff who have push enabled
-                for (const staffUserId of staffIds) {
+                // Push notifications — only for staff who have push enabled
+                for (const staffUserId of allCompletionStaff) {
                   if (prefsMap.get(staffUserId)?.push === false) continue;
                   notifyCorretorPush({ staffUserId, formTitle, respondentName: respondent, formId: response.formId })
                     .catch((err) => console.warn(`[CorretorPush] Completion push failed for staff ${staffUserId}:`, (err as Error)?.message?.substring(0, 100)));
