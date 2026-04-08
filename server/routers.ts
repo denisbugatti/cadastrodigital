@@ -1384,6 +1384,17 @@ export const appRouter = router({
 
         const { generateFullPdf, mergeWithAttachments } = await import("./pdfGenerator");
 
+        // Fetch corretor name from form assignment
+        let corretorName = "";
+        let corretorCpf = "";
+        if (form.assignedCorretorId) {
+          const corretor = await db.getStaffUserById(form.assignedCorretorId);
+          if (corretor) {
+            corretorName = corretor.name || "";
+            corretorCpf = corretor.cpfCnpj || "";
+          }
+        }
+
         // Generate the full PDF (Protocolo de Entrada + Ficha PF/PJ)
         let pdfBytes = await generateFullPdf({
           tipo,
@@ -1392,6 +1403,8 @@ export const appRouter = router({
           respondentName: response.respondentName ?? undefined,
           respondentEmail: response.respondentEmail ?? undefined,
           createdAt: response.createdAt ?? undefined,
+          corretorName,
+          corretorCpf,
         });
 
         // Collect file attachments from answers
@@ -1534,6 +1547,17 @@ export const appRouter = router({
 
         const { generateFullPdf, mergeWithAttachments } = await import("./pdfGenerator");
 
+        // Fetch corretor name from form assignment
+        let corretorName = "";
+        let corretorCpf = "";
+        if (form.assignedCorretorId) {
+          const corretor = await db.getStaffUserById(form.assignedCorretorId);
+          if (corretor) {
+            corretorName = corretor.name || "";
+            corretorCpf = corretor.cpfCnpj || "";
+          }
+        }
+
         let pdfBytes = await generateFullPdf({
           tipo,
           answers,
@@ -1541,6 +1565,8 @@ export const appRouter = router({
           respondentName: response.respondentName ?? undefined,
           respondentEmail: response.respondentEmail ?? undefined,
           createdAt: response.createdAt ?? undefined,
+          corretorName,
+          corretorCpf,
         });
 
         const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
@@ -3112,6 +3138,18 @@ export const appRouter = router({
   // ─── SMS Phone Verification (Twilio Verify) ───
   smsVerify: router({
     /**
+     * Get SMS usage stats for the current month.
+     * Admin-only endpoint for cost monitoring.
+     */
+    getStats: staffAdminProcedure.query(async () => {
+      const [monthly, daily] = await Promise.all([
+        db.getSmsCountThisMonth(),
+        db.getSmsDailyStats(30),
+      ]);
+      return { monthly, daily };
+    }),
+
+    /**
      * Send a verification code via SMS to the given phone number.
      * Public endpoint — called from the form by respondents.
      */
@@ -3135,13 +3173,20 @@ export const appRouter = router({
         const result = await sendVerificationCode(input.phone);
         if (!result.success) {
           if (result.rateLimited) {
+            // Log rate limited attempt
+            db.logSms({ phone: input.phone, formId: input.formId, status: "rate_limited" }).catch(() => {});
             throw new TRPCError({
               code: "TOO_MANY_REQUESTS",
               message: result.error || "Limite de envios atingido",
             });
           }
+          // Log failed attempt
+          db.logSms({ phone: input.phone, formId: input.formId, status: "failed" }).catch(() => {});
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Falha ao enviar código SMS" });
         }
+
+        // Log successful send
+        db.logSms({ phone: input.phone, formId: input.formId, verificationSid: result.sid, status: "sent" }).catch(() => {});
 
         return {
           success: true,
@@ -3168,6 +3213,9 @@ export const appRouter = router({
         if (!result.valid) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Código inválido ou expirado" });
         }
+
+        // Log successful verification
+        db.logSms({ phone: input.phone, formId: input.formId, status: "verified" }).catch(() => {});
 
         return { success: true, valid: true, message: "Número verificado com sucesso" };
       }),

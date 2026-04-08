@@ -22,6 +22,7 @@ import {
   staffNotifications, InsertStaffNotification,
   staffNotificationPreferences, InsertStaffNotificationPreference,
   integrationLogs, InsertIntegrationLog,
+  smsLogs, InsertSmsLog,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -3012,5 +3013,66 @@ export async function getGlobalIntegrationStats() {
         failure: Number(r.failureCount),
       })),
     };
+  });
+}
+
+
+/* ─── SMS Logs ─── */
+
+export function logSms(data: { phone: string; formId?: number; verificationSid?: string; status: string }) {
+  return withDb(async (db) => {
+    await db.insert(smsLogs).values({
+      phone: data.phone,
+      formId: data.formId ?? null,
+      verificationSid: data.verificationSid ?? null,
+      status: data.status,
+    });
+  });
+}
+
+export function getSmsCountThisMonth() {
+  return withDb(async (db) => {
+    const rows = await db.execute(
+      sql`SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+            SUM(CASE WHEN status = 'verified' THEN 1 ELSE 0 END) as verified,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN status = 'rate_limited' THEN 1 ELSE 0 END) as rateLimited
+          FROM sms_logs
+          WHERE createdAt >= DATE_FORMAT(NOW(), '%Y-%m-01')`
+    );
+    const data = Array.isArray(rows) ? rows : (rows as any)[0] ?? [];
+    const row = data[0] ?? { total: 0, sent: 0, verified: 0, failed: 0, rateLimited: 0 };
+    return {
+      total: Number(row.total ?? 0),
+      sent: Number(row.sent ?? 0),
+      verified: Number(row.verified ?? 0),
+      failed: Number(row.failed ?? 0),
+      rateLimited: Number(row.rateLimited ?? 0),
+    };
+  });
+}
+
+export function getSmsDailyStats(days: number = 30) {
+  return withDb(async (db) => {
+    const rows = await db.execute(
+      sql`SELECT 
+            DATE(createdAt) as date,
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+            SUM(CASE WHEN status = 'verified' THEN 1 ELSE 0 END) as verified
+          FROM sms_logs
+          WHERE createdAt >= DATE_SUB(NOW(), INTERVAL ${days} DAY)
+          GROUP BY DATE(createdAt)
+          ORDER BY date ASC`
+    );
+    const data = Array.isArray(rows) ? rows : (rows as any)[0] ?? [];
+    return data.map((r: any) => ({
+      date: r.date,
+      total: Number(r.total ?? 0),
+      sent: Number(r.sent ?? 0),
+      verified: Number(r.verified ?? 0),
+    }));
   });
 }

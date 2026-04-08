@@ -656,3 +656,22 @@ export const googleOAuthTokens = mysqlTable("google_oauth_tokens", {
 
 export type GoogleOAuthToken = typeof googleOAuthTokens.$inferSelect;
 export type InsertGoogleOAuthToken = typeof googleOAuthTokens.$inferInsert;
+
+/**
+ * SMS verification logs — tracks every SMS sent via Twilio Verify.
+ * Used for cost monitoring and rate limiting analytics.
+ */
+export const smsLogs = mysqlTable("sms_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Phone number the SMS was sent to (E.164 format) */
+  phone: varchar("phone", { length: 20 }).notNull(),
+  /** Form that triggered the SMS */
+  formId: int("formId"),
+  /** Twilio verification SID */
+  verificationSid: varchar("verificationSid", { length: 64 }),
+  /** Status: sent, verified, failed, rate_limited */
+  status: varchar("status", { length: 20 }).notNull().default("sent"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SmsLog = typeof smsLogs.$inferSelect;
+export type InsertSmsLog = typeof smsLogs.$inferInsert;

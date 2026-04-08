@@ -45,6 +45,8 @@ interface GeneratePdfInput {
   respondentName?: string;
   respondentEmail?: string;
   createdAt?: Date;
+  corretorName?: string;
+  corretorCpf?: string;
 }
 
 // ─── Helpers ───
@@ -274,26 +276,25 @@ function fillProtocoloFields(
   setField("Nome_Coordenador", "");
   setField("CPF_Coordenador", "");
 
-  // Responsáveis — these are typically filled by the corretor/system
-  // Leave blank for now
-  setField("Nome_Diretor", "");
-  setField("CPF_Diretor", "");
-  setField("Nome_Superintendente", "");
-  setField("CPF_Superintendente", "");
-  setField("Nome_Gerente", "");
-  setField("CPF_Gerente", "");
-  setField("Nome_Corretor", "");
-  setField("CPF_Corretor", "");
+  // Responsáveis pelo processo — dados fixos da One Innovation
+  setField("Nome_Diretor", "BERTOLOTTI");
+  setField("CPF_Diretor", "126.382.178-24");
+  setField("Nome_Superintendente", "COUTINHO");
+  setField("CPF_Superintendente", "30.937.703/0001-01");
+  setField("Nome_Gerente", "Denis");
+  setField("CPF_Gerente", "48.246.674/0001-05");
+  setField("Nome_Corretor", input.corretorName || "");
+  setField("CPF_Corretor", input.corretorCpf || "");
 
-  // Fifty fields — leave blank
-  setField("Nome_Diretor2", "");
-  setField("CPF_Diretor2", "");
-  setField("Nome_Superintendente2", "");
-  setField("CPF_Superintendente2", "");
-  setField("Nome_Gerente2", "");
-  setField("CPF_Gerente2", "");
-  setField("Nome_Corretor2", "");
-  setField("CPF_Corretor2", "");
+  // Duplicate fields (second set)
+  setField("Nome_Diretor2", "BERTOLOTTI");
+  setField("CPF_Diretor2", "126.382.178-24");
+  setField("Nome_Superintendente2", "COUTINHO");
+  setField("CPF_Superintendente2", "30.937.703/0001-01");
+  setField("Nome_Gerente2", "Denis");
+  setField("CPF_Gerente2", "48.246.674/0001-05");
+  setField("Nome_Corretor2", input.corretorName || "");
+  setField("CPF_Corretor2", input.corretorCpf || "");
 }
 
 // ═══════════════════════════════════════════════════════════════

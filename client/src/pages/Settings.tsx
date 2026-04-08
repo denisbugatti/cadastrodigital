@@ -13,7 +13,8 @@ import {
   Shield, Users, Download, ArrowLeft, SlidersHorizontal,
   Loader2, UserPlus, Mail, Phone, CheckCircle2, XCircle,
   Clock, FileDown, Filter, Palette, Sun, Moon, Monitor,
-  Globe, Upload, Image as ImageIcon, X, Save, Webhook
+  Globe, Upload, Image as ImageIcon, X, Save, Webhook,
+  MessageSquare, TrendingUp, AlertTriangle
 } from "lucide-react";
 import { SettingsIntegrationsTab } from "@/components/settings/SettingsIntegrationsTab";
 import { Link } from "wouter";
@@ -85,7 +86,7 @@ export default function Settings() {
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Tabs defaultValue="aparencia" className="w-full">
-          <TabsList className={`grid w-full bg-secondary border border-border rounded-xl p-1 h-auto ${isCorretor ? 'grid-cols-5' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full bg-secondary border border-border rounded-xl p-1 h-auto ${isCorretor ? 'grid-cols-5' : 'grid-cols-7'}`}>
             <TabsTrigger
               value="aparencia"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
@@ -130,6 +131,15 @@ export default function Settings() {
                 <span className="hidden sm:inline">Integrações</span>
               </TabsTrigger>
             )}
+            {!isCorretor && (
+              <TabsTrigger
+                value="sms"
+                className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">SMS</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="aparencia" className="mt-6">
@@ -154,6 +164,11 @@ export default function Settings() {
           {!isCorretor && (
             <TabsContent value="integracoes" className="mt-6">
               <SettingsIntegrationsTab />
+            </TabsContent>
+          )}
+          {!isCorretor && (
+            <TabsContent value="sms" className="mt-6">
+              <SmsStatsTab />
             </TabsContent>
           )}
         </Tabs>
@@ -1139,6 +1154,151 @@ function SocialTab() {
               )}
               Salvar
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+// ─── SMS Stats Tab ───
+function SmsStatsTab() {
+  const { data, isLoading } = trpc.smsVerify.getStats.useQuery();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  const monthly = data?.monthly ?? { total: 0, sent: 0, verified: 0, failed: 0, rateLimited: 0 };
+  const estimatedCost = (monthly.sent * 0.05).toFixed(2); // ~R$0.05 per SMS (Twilio estimate)
+
+  return (
+    <div className="space-y-6">
+      {/* Monthly Overview */}
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-brand" />
+            </div>
+            <div>
+              <CardTitle className="text-foreground font-display text-lg">Uso de SMS — Mês Atual</CardTitle>
+              <CardDescription className="font-body text-sm">
+                Acompanhe o consumo de SMS para verificação de telefone via Twilio
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Total Enviados */}
+            <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <MessageSquare className="h-4 w-4 text-blue-500" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-foreground">{monthly.sent}</p>
+              <p className="text-xs text-muted-foreground font-body mt-1">SMS enviados</p>
+            </div>
+
+            {/* Verificados */}
+            <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-foreground">{monthly.verified}</p>
+              <p className="text-xs text-muted-foreground font-body mt-1">Verificados</p>
+            </div>
+
+            {/* Falhas */}
+            <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-foreground">{monthly.failed}</p>
+              <p className="text-xs text-muted-foreground font-body mt-1">Falhas</p>
+            </div>
+
+            {/* Custo Estimado */}
+            <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-amber-500" />
+                </div>
+              </div>
+              <p className="text-2xl font-display font-bold text-foreground">US$ {estimatedCost}</p>
+              <p className="text-xs text-muted-foreground font-body mt-1">Custo estimado</p>
+            </div>
+          </div>
+
+          {/* Rate Limited Warning */}
+          {monthly.rateLimited > 0 && (
+            <div className="mt-4 flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-body">
+                <strong>{monthly.rateLimited}</strong> tentativa{monthly.rateLimited > 1 ? "s" : ""} bloqueada{monthly.rateLimited > 1 ? "s" : ""} por rate limiting este mês.
+              </p>
+            </div>
+          )}
+
+          {/* Conversion Rate */}
+          {monthly.sent > 0 && (
+            <div className="mt-4 bg-secondary/30 rounded-xl p-4 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-body text-muted-foreground">Taxa de verificação</p>
+                <p className="text-sm font-display font-bold text-foreground">
+                  {((monthly.verified / monthly.sent) * 100).toFixed(1)}%
+                </p>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div
+                  className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((monthly.verified / monthly.sent) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground font-body mt-2">
+                {monthly.verified} de {monthly.sent} SMS enviados foram verificados com sucesso
+              </p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {monthly.total === 0 && (
+            <div className="mt-4 text-center py-8">
+              <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground font-body text-sm">
+                Nenhum SMS enviado este mês. Ative a verificação por SMS nas configurações de um formulário.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Info Card */}
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Phone className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-foreground mb-1">Como funciona a verificação por SMS</h3>
+              <p className="text-sm text-muted-foreground font-body leading-relaxed">
+                Quando ativada nas configurações de um formulário (aba Compartilhar → Segurança), 
+                o respondente recebe um código de 6 dígitos por SMS ao preencher o campo de telefone. 
+                O número só é aceito após a confirmação do código. Limite de 5 envios por número a cada 10 minutos.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

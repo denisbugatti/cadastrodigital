@@ -1686,3 +1686,15 @@
 - [x] Implementar rate limiting: máximo 5 envios por número a cada 10 minutos
 - [x] Retornar mensagem clara ao usuário quando limite for atingido
 - [x] Testes unitários para rate limiting (7 testes de rate limiting, 624 total)
+
+## Dashboard de custos SMS
+- [x] Criar tabela sms_logs no banco para registrar cada envio de SMS
+- [x] Registrar cada envio no banco (phone, formId, timestamp, status)
+- [x] Endpoint tRPC para consultar contagem mensal de SMS
+- [x] UI na tela de Configurações com contador de SMS enviados no mês (aba SMS)
+
+## Dados dos responsáveis no PDF (Protocolo de Entrada)
+- [x] Dados fixos: Diretoria BERTOLOTTI (126.382.178-24), Superintendência COUTINHO (30.937.703/0001-01), Gerente Denis (48.246.674/0001-05)
+- [x] Nome e CPF/CNPJ do corretor atribuído preenchidos dinamicamente
+- [x] Campos duplicados (set 2) também preenchidos
+- [x] 624 testes passando
