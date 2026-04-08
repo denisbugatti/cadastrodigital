@@ -365,6 +365,8 @@ export function createOneInnovationForm(): BuilderForm {
       backgroundImage: "",
       webglEffect: "gradient-flow",
       webglIntensity: 50,
+      geometricTheme: "indigo-rose",
+      geometricIntensity: 50,
       logoUrl: ONE_LOGO_URL,
       ogTitle: "Cadastro Online | One Innovation",
       ogDescription: "Seu cadastro levará 5 minutos para ser concluído.",

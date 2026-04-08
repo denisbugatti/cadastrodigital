@@ -7,10 +7,11 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  Palette, Type, Image, Globe, Upload, X, Loader2, Sparkles, ImageIcon,
+  Palette, Type, Image, Globe, Upload, X, Loader2, Sparkles, ImageIcon, Hexagon,
 } from "lucide-react";
 import type { FormDesignSettings, BackgroundType } from "@/lib/builderTypes";
 import { WEBGL_EFFECTS, WebGLBackground } from "@/components/form/WebGLBackground";
+import { GeometricBackground, GEOMETRIC_THEMES, type GeometricTheme } from "@/components/ui/geometric-background";
 import { trpc } from "@/lib/trpc";
 
 interface DesignEditorProps {
@@ -465,10 +466,11 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               <h4 className="text-sm font-body font-semibold text-foreground mb-3">
                 Tipo de fundo
               </h4>
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                 {([
                   { id: "solid" as BackgroundType, label: "Cor sólida", icon: Palette },
                   { id: "image" as BackgroundType, label: "Imagem", icon: ImageIcon },
+                  { id: "geometric" as BackgroundType, label: "Geométrico", icon: Hexagon },
                   { id: "webgl" as BackgroundType, label: "WebGL", icon: Sparkles },
                 ]).map((bg) => {
                   const Icon = bg.icon;
@@ -509,6 +511,89 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                   previewClassName="w-full h-28 object-cover rounded-lg"
                   previewContainerClassName="mt-3 rounded-xl overflow-hidden border border-border flex flex-col items-center"
                 />
+              )}
+
+              {/* Geometric background */}
+              {design.backgroundType === "geometric" && (
+                <div className="space-y-4">
+                  {/* Theme selector */}
+                  <div>
+                    <label className="text-sm font-body font-medium text-foreground mb-2 block">
+                      Tema
+                    </label>
+                    <div className="space-y-2">
+                      {GEOMETRIC_THEMES.map((t) => {
+                        const isActive = (design.geometricTheme || "indigo-rose") === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => onUpdate({ geometricTheme: t.id })}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              isActive
+                                ? "border-brand bg-brand/5"
+                                : "border-border hover:border-brand/30"
+                            }`}
+                          >
+                            {/* Mini preview */}
+                            <div className="w-12 h-12 rounded-lg overflow-hidden relative shrink-0 border border-border/50 bg-[#030303]">
+                              <GeometricBackground
+                                theme={t.id}
+                                intensity={design.geometricIntensity ?? 50}
+                              />
+                            </div>
+                            <div className="text-left">
+                              <p className={`text-sm font-medium ${
+                                isActive ? "text-brand" : "text-foreground"
+                              }`}>
+                                {t.label}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {t.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Intensity slider */}
+                  <div>
+                    <label className="text-sm font-body font-medium text-foreground mb-2 block">
+                      Intensidade: {design.geometricIntensity ?? 50}%
+                    </label>
+                    <input
+                      type="range"
+                      min={10}
+                      max={100}
+                      value={design.geometricIntensity ?? 50}
+                      onChange={(e) => onUpdate({ geometricIntensity: Number(e.target.value) })}
+                      className="w-full accent-brand"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Sutil</span>
+                      <span>Intenso</span>
+                    </div>
+                  </div>
+
+                  {/* Live preview */}
+                  <div>
+                    <label className="text-sm font-body font-medium text-foreground mb-2 block">
+                      Pré-visualização
+                    </label>
+                    <div className="w-full h-40 rounded-xl overflow-hidden relative border border-border bg-[#030303]">
+                      <GeometricBackground
+                        theme={(design.geometricTheme || "indigo-rose") as GeometricTheme}
+                        intensity={design.geometricIntensity ?? 50}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-white text-sm font-semibold drop-shadow-lg">
+                          Preview do efeito
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* WebGL background */}

@@ -1706,3 +1706,13 @@
 - [x] Adicionar smsVerification às interfaces Question e BuilderQuestion
 - [x] Incluir smsVerification na conversão do SlugResolver
 - [x] 624 testes passando
+
+## Substituir fundos WebGL por formas geométricas animadas (Framer Motion)
+- [x] Instalar framer-motion
+- [x] Criar componente ElegantShape com formas geométricas animadas
+- [x] Criar componente GeometricBackground com 6 temas de cores (Índigo & Rosa, Oceano Azul, Esmeralda & Ouro, Pôr do Sol Roxo, Meia-noite Ciano, Âmbar Quente)
+- [x] Adicionar "geometric" como BackgroundType no builderTypes e formTypes
+- [x] Integrar GeometricBackground no DesignEditor com seletor de tema e slider de intensidade
+- [x] Integrar GeometricBackground no FormContainer para renderização no formulário público
+- [x] Adicionar campos geometricTheme e geometricIntensity ao FormDesignSettings
+- [x] 624 testes passando

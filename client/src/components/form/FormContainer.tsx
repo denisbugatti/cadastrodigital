@@ -19,6 +19,7 @@ import { trpc } from "@/lib/trpc";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { QuestionRenderer } from "./QuestionRenderer";
 import { WebGLBackground } from "./WebGLBackground";
+import { GeometricBackground } from "@/components/ui/geometric-background";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { TrackingScripts, fireTrackingConversion } from "./TrackingScripts";
 
@@ -408,6 +409,14 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
             effect={d.webglEffect || "gradient-flow"}
             intensity={d.webglIntensity ?? 50}
             baseColor={bgColor}
+          />
+        </div>
+      )}
+      {d?.backgroundType === "geometric" && (
+        <div className="absolute inset-0 pointer-events-none">
+          <GeometricBackground
+            theme={d.geometricTheme || "indigo-rose"}
+            intensity={d.geometricIntensity ?? 50}
           />
         </div>
       )}

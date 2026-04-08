@@ -129,9 +129,11 @@ export interface FormData {
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;
-    backgroundType?: "solid" | "image" | "webgl";
+    backgroundType?: "solid" | "image" | "webgl" | "geometric";
     webglEffect?: "gradient-flow" | "particles" | "aurora" | "waves" | "mesh-gradient";
     webglIntensity?: number;
+    geometricTheme?: string;
+    geometricIntensity?: number;
   };
   /** Tracking/metrics configuration from webhook settings */
   tracking?: {

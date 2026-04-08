@@ -180,7 +180,7 @@ export interface BuilderChoice {
 
 // ─── Design Settings ───
 
-export type BackgroundType = "solid" | "image" | "webgl";
+export type BackgroundType = "solid" | "image" | "webgl" | "geometric";
 export type WebGLEffect = "gradient-flow" | "particles" | "aurora" | "waves" | "mesh-gradient";
 
 export interface FormDesignSettings {
@@ -195,6 +195,8 @@ export interface FormDesignSettings {
   backgroundImage: string;
   webglEffect: WebGLEffect;
   webglIntensity: number; // 0-100
+  geometricTheme: string; // GeometricTheme
+  geometricIntensity: number; // 0-100
   // Media
   logoUrl: string;
   // Open Graph (social sharing)
@@ -565,6 +567,8 @@ export const defaultDesignSettings: FormDesignSettings = {
   backgroundImage: "",
   webglEffect: "gradient-flow",
   webglIntensity: 50,
+  geometricTheme: "indigo-rose",
+  geometricIntensity: 50,
   logoUrl: "",
   ogTitle: "",
   ogDescription: "",
