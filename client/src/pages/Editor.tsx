@@ -125,6 +125,7 @@ function dbFormToBuilderForm(dbForm: any): BuilderForm {
       ogDescription: dbDesign.ogDescription ?? defaultDesignSettings.ogDescription,
       ogImage: dbDesign.ogImage ?? defaultDesignSettings.ogImage,
       fontFamily: dbDesign.fontFamily ?? defaultDesignSettings.fontFamily,
+      inputStyle: dbDesign.inputStyle ?? defaultDesignSettings.inputStyle,
     },
     webhook: {
       ...defaultWebhookSettings,

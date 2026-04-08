@@ -10,7 +10,7 @@ import {
   Palette, Type, Image, Globe, Upload, X, Loader2, Sparkles, Waves, Zap,
   Droplets, Flame, CloudRain, CircleDot, Sun, Cpu, Star, Sunrise, Wind,
 } from "lucide-react";
-import type { FormDesignSettings, BackgroundType } from "@/lib/builderTypes";
+import type { FormDesignSettings, BackgroundType, InputStyle } from "@/lib/builderTypes";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { BackgroundShaders } from "@/components/ui/background-shaders";
@@ -263,6 +263,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
     { id: "colors", label: "Cores", icon: Palette },
     { id: "typography", label: "Tipografia", icon: Type },
     { id: "media", label: "Mídia", icon: Image },
+    { id: "effects", label: "Efeitos", icon: Sparkles },
     { id: "social", label: "Social", icon: Globe },
   ];
 
@@ -531,6 +532,82 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
           </motion.div>
         )}
 
+        {activeSection === "effects" && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Input Style Selection */}
+            <div>
+              <h4 className="text-sm font-body font-semibold text-foreground mb-2">
+                Estilo dos campos de resposta
+              </h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                Escolha o efeito visual aplicado aos campos de entrada e cards de opção do formulário.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { id: "default" as InputStyle, label: "Padrão", desc: "Estilo limpo e minimalista", preview: "border-b-2 border-gray-400" },
+                  { id: "glassmorphism" as InputStyle, label: "Glassmorfismo", desc: "Vidro translúcido com blur", preview: "bg-white/10 backdrop-blur-md border border-white/20 rounded-xl" },
+                  { id: "glass-liquid" as InputStyle, label: "Glass Liquid", desc: "Vidro líquido com reflexão", preview: "bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-lg border border-white/25 rounded-2xl shadow-lg" },
+                  { id: "neon-glow" as InputStyle, label: "Neon Glow", desc: "Brilho neon vibrante", preview: "border-2 border-blue-400 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.5)]" },
+                  { id: "frost" as InputStyle, label: "Frost", desc: "Efeito gelo fosco", preview: "bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl" },
+                  { id: "neumorphism" as InputStyle, label: "Neumorfismo", desc: "Relevo suave 3D", preview: "bg-gray-800 rounded-xl shadow-[5px_5px_10px_rgba(0,0,0,0.3),-5px_-5px_10px_rgba(255,255,255,0.05)]" },
+                  { id: "minimal-line" as InputStyle, label: "Linha Minimal", desc: "Apenas linha inferior sutil", preview: "border-b border-white/30" },
+                  { id: "gradient-border" as InputStyle, label: "Borda Gradiente", desc: "Borda com gradiente animado", preview: "rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[1px]" },
+                ]).map((style) => {
+                  const isActive = (design.inputStyle || "default") === style.id;
+                  return (
+                    <button
+                      key={style.id}
+                      onClick={() => onUpdate({ inputStyle: style.id })}
+                      className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 text-left p-0 ${
+                        isActive
+                          ? "border-brand ring-2 ring-brand/30 scale-[1.02]"
+                          : "border-border hover:border-muted-foreground/40"
+                      }`}
+                    >
+                      {/* Preview area */}
+                      <div className="h-16 bg-[#0a0a1a] flex items-center justify-center px-3">
+                        <div className={`w-full h-8 ${style.preview}`}>
+                          {style.id === "gradient-border" && (
+                            <div className="w-full h-full bg-[#0a0a1a] rounded-[10px]" />
+                          )}
+                        </div>
+                      </div>
+                      {/* Label */}
+                      <div className="p-2.5">
+                        <p className="text-xs font-body font-semibold text-foreground leading-tight">{style.label}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{style.desc}</p>
+                      </div>
+                      {isActive && (
+                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand flex items-center justify-center">
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Live preview */}
+            <div>
+              <h4 className="text-sm font-body font-semibold text-foreground mb-3">
+                Pré-visualização
+              </h4>
+              <div className="rounded-xl overflow-hidden border border-border">
+                <div className="bg-[#0a0a1a] p-6 space-y-4">
+                  <InputStylePreview style={design.inputStyle || "default"} />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {activeSection === "social" && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -654,4 +731,96 @@ function BackgroundPreview({ backgroundType }: { backgroundType: BackgroundType 
     default:
       return null;
   }
+}
+
+
+/** Preview component for input styles in the Effects tab */
+function InputStylePreview({ style }: { style: string }) {
+  const getInputClasses = () => {
+    switch (style) {
+      case "glassmorphism":
+        return "bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3";
+      case "glass-liquid":
+        return "bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-lg border border-white/25 rounded-2xl px-4 py-3 shadow-lg";
+      case "neon-glow":
+        return "bg-transparent border-2 border-blue-400 rounded-xl px-4 py-3 shadow-[0_0_15px_rgba(59,130,246,0.4)]";
+      case "frost":
+        return "bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl px-4 py-3";
+      case "neumorphism":
+        return "bg-[#1a1a2e] rounded-xl px-4 py-3 shadow-[5px_5px_10px_rgba(0,0,0,0.3),-5px_-5px_10px_rgba(255,255,255,0.05)]";
+      case "minimal-line":
+        return "bg-transparent border-0 border-b border-white/30 rounded-none px-0 py-3";
+      case "gradient-border":
+        return "";
+      default:
+        return "bg-transparent border-0 border-b-2 border-white/40 rounded-none px-0 py-3";
+    }
+  };
+
+  const getChoiceClasses = () => {
+    switch (style) {
+      case "glassmorphism":
+        return "bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3";
+      case "glass-liquid":
+        return "bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-lg border border-white/25 rounded-2xl px-4 py-3 shadow-lg";
+      case "neon-glow":
+        return "bg-transparent border-2 border-blue-400/60 rounded-xl px-4 py-3 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]";
+      case "frost":
+        return "bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl px-4 py-3";
+      case "neumorphism":
+        return "bg-[#1a1a2e] rounded-xl px-4 py-3 shadow-[3px_3px_6px_rgba(0,0,0,0.3),-3px_-3px_6px_rgba(255,255,255,0.04)]";
+      case "minimal-line":
+        return "bg-transparent border border-white/20 rounded-lg px-4 py-3";
+      case "gradient-border":
+        return "rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[1px]";
+      default:
+        return "bg-transparent border border-white/40 rounded-lg px-4 py-3";
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Text input preview */}
+      <div>
+        <p className="text-white/60 text-xs mb-2">Campo de texto</p>
+        {style === "gradient-border" ? (
+          <div className="rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[1px]">
+            <div className="bg-[#0a0a1a] rounded-[10px] px-4 py-3">
+              <span className="text-white/50 text-sm">Digite sua resposta...</span>
+            </div>
+          </div>
+        ) : (
+          <div className={getInputClasses()}>
+            <span className="text-white/50 text-sm">Digite sua resposta...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Choice cards preview */}
+      <div>
+        <p className="text-white/60 text-xs mb-2">Op\u00e7\u00f5es de escolha</p>
+        <div className="space-y-2">
+          {["Op\u00e7\u00e3o A", "Op\u00e7\u00e3o B"].map((opt, i) => (
+            <div key={i}>
+              {style === "gradient-border" ? (
+                <div className="rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[1px]">
+                  <div className="bg-[#0a0a1a] rounded-[10px] px-4 py-2.5 flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-md border border-white/30 flex items-center justify-center text-xs text-white/60 font-medium">{String.fromCharCode(65 + i)}</span>
+                    <span className="text-white/80 text-sm">{opt}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className={getChoiceClasses()}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-md border border-white/30 flex items-center justify-center text-xs text-white/60 font-medium">{String.fromCharCode(65 + i)}</span>
+                    <span className="text-white/80 text-sm">{opt}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

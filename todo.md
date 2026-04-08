@@ -1757,3 +1757,12 @@
 - [x] Atualizar DesignEditor com 13 opções totais
 - [x] Atualizar FormContainer, BuilderLivePreview, WelcomeScreen, ThankYouScreen
 - [x] 641 testes passando
+
+## Feature: Aba "Efeitos" no DesignEditor — estilos para campos de resposta
+- [x] Adicionar campo inputStyle ao FormDesignSettings (builderTypes, formTypes) — 8 estilos
+- [x] Criar aba "Efeitos" no DesignEditor com opções: Padrão, Glassmorfismo, Glass Liquid, Neon Glow, Frost, Neumorfismo, Linha Minimal, Borda Gradiente
+- [x] Implementar hook getInputStyleClasses para gerar CSS classes por estilo
+- [x] Aplicar inputStyle no QuestionRenderer com wrapper condicional
+- [x] Atualizar builderToForm, Editor, FormView, SlugResolver para passar inputStyle
+- [x] Preview ao vivo no DesignEditor (InputStylePreview component)
+- [x] 654 testes passando (13 novos para inputStyle)

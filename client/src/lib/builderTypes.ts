@@ -182,6 +182,8 @@ export interface BuilderChoice {
 
 export type BackgroundType = "paths" | "aurora" | "shaders" | "gradient" | "beams" | "etheral" | "falling" | "dots" | "spotlight" | "plasma" | "stars" | "aurora-beams" | "flow-field";
 
+export type InputStyle = "default" | "glassmorphism" | "glass-liquid" | "neon-glow" | "frost" | "neumorphism" | "minimal-line" | "gradient-border";
+
 export interface FormDesignSettings {
   // Colors
   buttonColor: string;
@@ -199,6 +201,8 @@ export interface FormDesignSettings {
   ogImage: string;
   // Font
   fontFamily: string;
+  // Input Style
+  inputStyle: InputStyle;
 }
 
 // ─── Webhook Settings ───
@@ -558,6 +562,7 @@ export const defaultDesignSettings: FormDesignSettings = {
   answerColor: "#3B82F6",
   backgroundColor: "#FFFFFF",
   backgroundType: "paths",
+  inputStyle: "default" as InputStyle,
   logoUrl: "",
   ogTitle: "",
   ogDescription: "",

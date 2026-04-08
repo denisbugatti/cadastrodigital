@@ -27,6 +27,8 @@ import { MatrixInput } from "./inputs/MatrixInput";
 import { PhoneInput } from "./inputs/PhoneInput";
 import { DatePickerInput } from "./inputs/DatePickerInput";
 import { WelcomeScreen } from "./screens/WelcomeScreen";
+import { getInputStyleClasses } from "@/hooks/useInputStyle";
+import type { InputStyleType } from "@/hooks/useInputStyle";
 import { ThankYouScreen } from "./screens/ThankYouScreen";
 import { StatementScreen } from "./screens/StatementScreen";
 
@@ -49,6 +51,8 @@ interface QuestionRendererProps {
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;
+    backgroundType?: string;
+    inputStyle?: string;
   };
   /** SMS verification settings */
   smsVerification?: boolean;
@@ -348,6 +352,18 @@ export function QuestionRenderer({
     }
   };
 
+  const inputStyleType = (design?.inputStyle || "default") as InputStyleType;
+  const isLightBg = (() => {
+    const bg = design?.backgroundColor || "#FFFFFF";
+    const c = bg.replace("#", "");
+    if (c.length < 6) return true;
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+  })();
+  const inputStyle = getInputStyleClasses(inputStyleType, isLightBg);
+
   return (
     <div>
       <QuestionHeader
@@ -355,7 +371,22 @@ export function QuestionRenderer({
         title={question.title}
         subtitle={question.type !== "legal" ? question.subtitle : undefined}
       />
-      {renderInput()}
+      {inputStyle.needsGradientWrapper ? (
+        <div className={inputStyle.gradientWrapperClasses}>
+          <div className={inputStyle.gradientInnerClasses + " py-1"}>
+            {renderInput()}
+          </div>
+        </div>
+      ) : inputStyleType !== "default" ? (
+        <div
+          className={inputStyle.inputClasses}
+          style={inputStyle.inputStyles}
+        >
+          {renderInput()}
+        </div>
+      ) : (
+        renderInput()
+      )}
     </div>
   );
 }

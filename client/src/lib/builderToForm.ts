@@ -138,6 +138,7 @@ export function builderToFormData(builderForm: BuilderForm): FormData {
       fontFamily: builderForm.design.fontFamily,
       logoUrl: builderForm.design.logoUrl || undefined,
       backgroundType: builderForm.design.backgroundType || "paths",
+      inputStyle: builderForm.design.inputStyle || "default",
     },
   };
 }
