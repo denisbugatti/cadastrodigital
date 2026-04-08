@@ -55,7 +55,9 @@ function FloatingPaths({ position }: { position: number }) {
  * creating depth. Opacity is balanced for visibility while keeping text readable.
  * A radial gradient overlay darkens the center for maximum text contrast.
  */
-export const BackgroundPaths = memo(({ className = "" }: { className?: string }) => {
+export const BackgroundPaths = memo(({ className = "", colors = [] }: { className?: string; colors?: string[] }) => {
+  const color1 = colors[0] || "rgba(112, 190, 250, 0.55)";
+  const color2 = colors[1] || "rgba(112, 190, 250, 0.75)";
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
 
@@ -84,7 +86,7 @@ export const BackgroundPaths = memo(({ className = "" }: { className?: string })
       <div
         className="absolute inset-0 will-change-transform"
         style={{
-          color: "rgba(112, 190, 250, 0.55)",
+          color: color1,
           transform: `translate3d(0, ${layer1Y}px, 0)`,
         }}
       >
@@ -94,7 +96,7 @@ export const BackgroundPaths = memo(({ className = "" }: { className?: string })
       <div
         className="absolute inset-0 will-change-transform"
         style={{
-          color: "rgba(112, 190, 250, 0.75)",
+          color: color2,
           transform: `translate3d(0, ${layer2Y}px, 0)`,
         }}
       >

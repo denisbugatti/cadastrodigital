@@ -139,6 +139,7 @@ export function builderToFormData(builderForm: BuilderForm): FormData {
       logoUrl: builderForm.design.logoUrl || undefined,
       backgroundType: builderForm.design.backgroundType || "paths",
       inputStyle: builderForm.design.inputStyle || "default",
+      backgroundColors: builderForm.design.backgroundColors || [],
     },
   };
 }

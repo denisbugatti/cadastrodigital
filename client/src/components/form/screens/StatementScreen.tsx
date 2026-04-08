@@ -8,6 +8,8 @@
 import { motion } from "framer-motion";
 import type { Question } from "@/lib/formTypes";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { getButtonStyleClasses } from "@/hooks/useInputStyle";
+import type { InputStyleType } from "@/hooks/useInputStyle";
 
 interface StatementScreenProps {
   question: Question;
@@ -21,6 +23,7 @@ interface StatementScreenProps {
     fontFamily?: string;
     logoUrl?: string;
     backgroundImage?: string;
+    inputStyle?: string;
   };
 }
 
@@ -29,6 +32,9 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
   const buttonTextColor = design?.buttonTextColor || "#FFFFFF";
   const questionColor = design?.questionColor || "#1E293B";
   const fontFamily = design?.fontFamily || "Plus Jakarta Sans, sans-serif";
+
+  const inputStyleType = (design?.inputStyle || "default") as InputStyleType;
+  const btnStyle = getButtonStyleClasses(inputStyleType, buttonColor, buttonTextColor);
 
   return (
     <div className="flex flex-col items-center text-center max-w-2xl mx-auto px-5 sm:px-8">
@@ -105,7 +111,7 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
         </motion.p>
       )}
 
-      {/* Continue Button */}
+      {/* Continue Button — styled to match inputStyle */}
       {question.showButton !== false && question.buttonText && (
         <motion.div
           className="mt-9"
@@ -113,22 +119,45 @@ export function StatementScreen({ question, onNext, design }: StatementScreenPro
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <motion.button
-            onClick={onNext}
-            className="group px-8 py-3.5 rounded-xl font-medium shadow-lg flex items-center gap-3 transition-all"
-            style={{
-              backgroundColor: buttonColor,
-              color: buttonTextColor,
-              fontFamily,
-              fontSize: "16px",
-              fontWeight: 500,
-            }}
-            whileHover={{ scale: 1.04, boxShadow: `0 10px 35px ${buttonColor}40` }}
-            whileTap={{ scale: 0.96 }}
-          >
-            {question.buttonText}
-            <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
-          </motion.button>
+          {btnStyle.needsGradientWrapper ? (
+            <div className={btnStyle.gradientWrapperClasses + " inline-flex"}>
+              <motion.button
+                onClick={onNext}
+                className={btnStyle.gradientInnerClasses + " group flex items-center gap-3 transition-all px-8 py-3.5"}
+                style={{ fontFamily, fontSize: "16px", fontWeight: 500 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                {question.buttonText}
+                <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
+              </motion.button>
+            </div>
+          ) : (
+            <motion.button
+              onClick={onNext}
+              className={`group flex items-center gap-3 transition-all ${
+                inputStyleType !== "default"
+                  ? btnStyle.buttonClasses
+                  : "px-8 py-3.5 rounded-xl font-medium shadow-lg"
+              }`}
+              style={{
+                ...(inputStyleType !== "default"
+                  ? btnStyle.buttonStyles
+                  : { backgroundColor: buttonColor, color: buttonTextColor }),
+                fontFamily,
+                fontSize: "16px",
+                fontWeight: 500,
+              }}
+              whileHover={{
+                scale: 1.04,
+                boxShadow: inputStyleType === "default" ? `0 10px 35px ${buttonColor}40` : undefined,
+              }}
+              whileTap={{ scale: 0.96 }}
+            >
+              {question.buttonText}
+              <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
+            </motion.button>
+          )}
         </motion.div>
       )}
 

@@ -62,22 +62,31 @@ function StarLayer({
   );
 }
 
-type StarsBackgroundProps = React.ComponentProps<"div"> & {
+// Extend the type separately to avoid intersection in destructuring (Babel compat)
+type StarsBackgroundBaseProps = React.ComponentProps<"div"> & {
   factor?: number;
   speed?: number;
   transition?: SpringOptions;
   starColor?: string;
 };
 
-export const StarsBackground = memo(({
-  children,
-  className,
-  factor = 0.05,
-  speed = 50,
-  transition = { stiffness: 50, damping: 20 },
-  starColor = "#fff",
-  ...props
-}: StarsBackgroundProps) => {
+type StarsBackgroundProps = StarsBackgroundBaseProps & {
+  colors?: string[];
+};
+
+export const StarsBackground = memo(function StarsBackground(props: StarsBackgroundProps) {
+  const {
+    children,
+    className,
+    factor = 0.05,
+    speed = 50,
+    transition = { stiffness: 50, damping: 20 },
+    starColor = "#fff",
+    colors = [],
+    ...rest
+  } = props;
+
+  const activeStarColor = colors[0] || starColor;
   const offsetX = useMotionValue(1);
   const offsetY = useMotionValue(1);
   const springX = useSpring(offsetX, transition);
@@ -100,12 +109,12 @@ export const StarsBackground = memo(({
         className
       )}
       onMouseMove={handleMouseMove}
-      {...props}
+      {...rest}
     >
       <motion.div style={{ x: springX, y: springY }}>
-        <StarLayer count={1000} size={1} transition={{ repeat: Infinity, duration: speed, ease: "linear" as const }} starColor={starColor} />
-        <StarLayer count={400} size={2} transition={{ repeat: Infinity, duration: speed * 2, ease: "linear" as const }} starColor={starColor} />
-        <StarLayer count={200} size={3} transition={{ repeat: Infinity, duration: speed * 3, ease: "linear" as const }} starColor={starColor} />
+        <StarLayer count={1000} size={1} transition={{ repeat: Infinity, duration: speed, ease: "linear" as const }} starColor={activeStarColor} />
+        <StarLayer count={400} size={2} transition={{ repeat: Infinity, duration: speed * 2, ease: "linear" as const }} starColor={activeStarColor} />
+        <StarLayer count={200} size={3} transition={{ repeat: Infinity, duration: speed * 3, ease: "linear" as const }} starColor={activeStarColor} />
       </motion.div>
       {children}
     </div>

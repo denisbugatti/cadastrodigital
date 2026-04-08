@@ -4,9 +4,18 @@ import { Warp } from "@paper-design/shaders-react";
 
 interface BackgroundShadersProps {
   className?: string;
+  colors?: string[];
 }
 
-export function BackgroundShaders({ className = "" }: BackgroundShadersProps) {
+const DEFAULT_SHADER_COLORS = [
+  "hsl(203, 100%, 62%)",
+  "hsl(255, 100%, 72%)",
+  "hsl(158, 99%, 59%)",
+  "hsl(264, 100%, 61%)",
+];
+
+export function BackgroundShaders({ className = "", colors = [] }: BackgroundShadersProps) {
+  const activeColors = colors.length >= 2 ? colors : DEFAULT_SHADER_COLORS;
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`}>
       <Warp
@@ -21,12 +30,7 @@ export function BackgroundShaders({ className = "" }: BackgroundShadersProps) {
         scale={1}
         rotation={0}
         speed={1}
-        colors={[
-          "hsl(203, 100%, 62%)",
-          "hsl(255, 100%, 72%)",
-          "hsl(158, 99%, 59%)",
-          "hsl(264, 100%, 61%)",
-        ]}
+        colors={activeColors}
       />
     </div>
   );

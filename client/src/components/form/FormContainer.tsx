@@ -33,6 +33,8 @@ import { AuroraBeams } from "@/components/ui/aurora-beams";
 import { FlowField } from "@/components/ui/flow-field";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { TrackingScripts, fireTrackingConversion } from "./TrackingScripts";
+import { getButtonStyleClasses } from "@/hooks/useInputStyle";
+import type { InputStyleType } from "@/hooks/useInputStyle";
 
 interface FormContainerProps {
   form: FormData;
@@ -118,8 +120,10 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
   const d = form.design;
   const bgColor = d?.backgroundColor || "#FFFFFF";
   const questionColor = d?.questionColor || "#1E293B";
-  const _buttonColor = d?.buttonColor || "#3B82F6";
-  const _buttonTextColor = d?.buttonTextColor || "#FFFFFF";
+  const buttonColor = d?.buttonColor || "#3B82F6";
+  const buttonTextColor = d?.buttonTextColor || "#FFFFFF";
+  const inputStyleType = (d?.inputStyle || "default") as InputStyleType;
+  const btnStyle = getButtonStyleClasses(inputStyleType, buttonColor, buttonTextColor);
   const fontFamily = d?.fontFamily || "Plus Jakarta Sans, sans-serif";
   const logoUrl = d?.logoUrl;
 
@@ -404,27 +408,34 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       <TrackingScripts tracking={form.tracking} />
 
       {/* Animated backgrounds */}
-      <div className="absolute inset-0 pointer-events-none">
-        {(d?.backgroundType === "paths" || !d?.backgroundType) && (
-          <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
-            <BackgroundPaths />
+      {(() => {
+        const bgColors = d?.backgroundColors || [];
+        const c = (i: number, fallback: string) => bgColors[i] || fallback;
+        const bgType = d?.backgroundType || "paths";
+        return (
+          <div className="absolute inset-0 pointer-events-none">
+            {(bgType === "paths") && (
+              <div className="absolute inset-0" style={{ color: c(0, "rgba(112, 190, 250, 0.55)") }}>
+                <BackgroundPaths />
+              </div>
+            )}
+            {bgType === "aurora" && (
+              <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
+            )}
+            {bgType === "shaders" && <BackgroundShaders colors={bgColors.length > 0 ? bgColors : undefined} />}
+            {bgType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
+            {bgType === "beams" && <BeamsBackground />}
+            {bgType === "etheral" && <EtheralShadow color={c(0, "rgba(100, 100, 200, 1)")} />}
+            {bgType === "falling" && <FallingPattern color={c(0, "#6366f1")} />}
+            {bgType === "dots" && <GradientDots backgroundColor={c(0, "#030303")} />}
+            {bgType === "spotlight" && <SpotlightBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
+            {bgType === "plasma" && <ShaderPlasma />}
+            {bgType === "stars" && <StarsBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
+            {bgType === "aurora-beams" && <AuroraBeams color={c(0, "#00ffcc")} />}
+            {bgType === "flow-field" && <FlowField color={c(0, "#6366f1")} />}
           </div>
-        )}
-        {d?.backgroundType === "aurora" && (
-          <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
-        )}
-        {d?.backgroundType === "shaders" && <BackgroundShaders />}
-        {d?.backgroundType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
-        {d?.backgroundType === "beams" && <BeamsBackground />}
-        {d?.backgroundType === "etheral" && <EtheralShadow color="rgba(100, 100, 200, 1)" />}
-        {d?.backgroundType === "falling" && <FallingPattern color="#6366f1" />}
-        {d?.backgroundType === "dots" && <GradientDots />}
-        {d?.backgroundType === "spotlight" && <SpotlightBackground />}
-        {d?.backgroundType === "plasma" && <ShaderPlasma />}
-        {d?.backgroundType === "stars" && <StarsBackground />}
-        {d?.backgroundType === "aurora-beams" && <AuroraBeams />}
-        {d?.backgroundType === "flow-field" && <FlowField />}
-      </div>
+        );
+      })()}
 
       {/* ─── Fixed Logo (top-left) ─── */}
       {logoUrl && !isSpecialScreen && (
@@ -502,20 +513,31 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
           >
             <ChevronUp size={22} />
           </motion.button>
-
-          {/* Down arrow = go next (next question) */}
-          <motion.button
-            onClick={handleNext}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200"
-            style={{
-              backgroundColor: arrowBg,
-              color: arrowColor,
-            }}
-            whileHover={{ backgroundColor: arrowHoverBg, scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <ChevronDown size={22} />
-          </motion.button>
+          {/* Down arrow = go next (next question) — styled to match inputStyle */}
+          {btnStyle.needsGradientWrapper ? (
+            <motion.div
+              className={btnStyle.gradientWrapperClasses + " rounded-full p-[1.5px] cursor-pointer"}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleNext}
+            >
+              <div className={btnStyle.gradientInnerClasses + " w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"}>
+                <ChevronDown size={22} className="text-white" />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.button
+              onClick={handleNext}
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                inputStyleType !== "default" ? btnStyle.buttonClasses.replace(/px-\d+(\.\d+)?/g, "").replace(/py-\d+(\.\d+)?/g, "").replace(/rounded-xl/g, "rounded-full").replace(/rounded-2xl/g, "rounded-full") : ""
+              }`}
+              style={inputStyleType !== "default" ? btnStyle.buttonStyles : { backgroundColor: arrowBg, color: arrowColor }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <ChevronDown size={22} />
+            </motion.button>
+          )}
         </motion.div>
       )}
 

@@ -193,6 +193,7 @@ export interface FormDesignSettings {
   backgroundColor: string;
   // Background
   backgroundType: BackgroundType;
+  backgroundColors: string[]; // Custom colors for the selected background type
   // Media
   logoUrl: string;
   // Open Graph (social sharing)
@@ -562,6 +563,7 @@ export const defaultDesignSettings: FormDesignSettings = {
   answerColor: "#3B82F6",
   backgroundColor: "#FFFFFF",
   backgroundType: "paths",
+  backgroundColors: [], // empty = use component defaults
   inputStyle: "default" as InputStyle,
   logoUrl: "",
   ogTitle: "",

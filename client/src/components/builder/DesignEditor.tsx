@@ -514,13 +514,23 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                 })}
               </div>
 
+              {/* Color customization for selected background */}
+              <BackgroundColorPicker
+                backgroundType={design.backgroundType || "paths"}
+                colors={design.backgroundColors || []}
+                onChange={(colors) => onUpdate({ backgroundColors: colors })}
+              />
+
               {/* Live preview for selected background */}
               <div>
                 <label className="text-sm font-body font-medium text-foreground mb-2 block">
                   Pré-visualização
                 </label>
                 <div className="w-full h-40 rounded-xl overflow-hidden relative border border-border bg-[#030303]">
-                  <BackgroundPreview backgroundType={design.backgroundType || "paths"} />
+                  <BackgroundPreviewWithColors
+                    backgroundType={design.backgroundType || "paths"}
+                    colors={design.backgroundColors || []}
+                  />
                   <div className="absolute inset-0 flex items-center justify-center z-10">
                     <p className="text-white text-sm font-semibold drop-shadow-lg">
                       Preview do efeito
@@ -823,4 +833,125 @@ function InputStylePreview({ style }: { style: string }) {
       </div>
     </div>
   );
+}
+
+/** Color configuration per background type */
+const BACKGROUND_COLOR_CONFIG: Record<BackgroundType, { label: string; count: number; defaults: string[]; hints: string[] }> = {
+  paths: { label: "Cor das linhas", count: 1, defaults: ["#7BBEFA"], hints: ["Cor das linhas SVG"] },
+  aurora: { label: "Cores da aurora", count: 3, defaults: ["#3B82F6", "#8B5CF6", "#06B6D4"], hints: ["Cor 1", "Cor 2", "Cor 3"] },
+  shaders: { label: "Cores do shader", count: 4, defaults: ["hsl(203, 100%, 62%)", "hsl(255, 100%, 72%)", "hsl(158, 99%, 59%)", "hsl(264, 100%, 61%)"], hints: ["Cor 1", "Cor 2", "Cor 3", "Cor 4"] },
+  gradient: { label: "Cores do gradiente", count: 3, defaults: ["#6C00A2", "#1171FF", "#DD4AFF"], hints: ["Fundo início", "Bolha 1", "Bolha 2"] },
+  beams: { label: "Matiz dos feixes", count: 1, defaults: ["#3B82F6"], hints: ["Cor base dos feixes"] },
+  etheral: { label: "Cor da sombra", count: 1, defaults: ["rgba(128, 128, 128, 1)"], hints: ["Cor da sombra etérea"] },
+  falling: { label: "Cor da chuva", count: 1, defaults: ["#6366f1"], hints: ["Cor dos elementos"] },
+  dots: { label: "Cor de fundo", count: 1, defaults: ["#030303"], hints: ["Cor de fundo dos pontos"] },
+  spotlight: { label: "Cores dos holofotes", count: 3, defaults: ["#3B82F6", "#8B5CF6", "#EC4899"], hints: ["Holofote 1", "Holofote 2", "Holofote 3"] },
+  plasma: { label: "Cor do plasma", count: 1, defaults: ["#6633CC"], hints: ["Cor das linhas de plasma"] },
+  stars: { label: "Cor das estrelas", count: 1, defaults: ["#ffffff"], hints: ["Cor das estrelas"] },
+  "aurora-beams": { label: "Cor dos feixes", count: 1, defaults: ["#00ffcc"], hints: ["Cor dos feixes de luz"] },
+  "flow-field": { label: "Cor das partículas", count: 1, defaults: ["#6366f1"], hints: ["Cor do campo de partículas"] },
+};
+
+/** Color picker section for the active background type */
+function BackgroundColorPicker({
+  backgroundType,
+  colors,
+  onChange,
+}: {
+  backgroundType: BackgroundType;
+  colors: string[];
+  onChange: (colors: string[]) => void;
+}) {
+  const config = BACKGROUND_COLOR_CONFIG[backgroundType];
+  if (!config) return null;
+
+  const activeColors = config.defaults.map((def, i) => colors[i] || def);
+
+  const handleColorChange = (index: number, value: string) => {
+    const updated = [...activeColors];
+    updated[index] = value;
+    onChange(updated);
+  };
+
+  const handleReset = () => onChange([]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-body font-medium text-foreground">
+          {config.label}
+        </label>
+        {colors.length > 0 && (
+          <button
+            onClick={handleReset}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Restaurar padrão
+          </button>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {activeColors.map((color, i) => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-border cursor-pointer shadow-sm hover:shadow-md transition-shadow">
+              <input
+                type="color"
+                value={color.startsWith("hsl") || color.startsWith("rgba") ? "#6366f1" : color}
+                onChange={(e) => handleColorChange(i, e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div
+                className="w-full h-full"
+                style={{ backgroundColor: color }}
+              />
+            </div>
+            <span className="text-[10px] text-muted-foreground text-center leading-tight max-w-[40px]">
+              {config.hints[i]}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Preview component with custom colors applied */
+function BackgroundPreviewWithColors({ backgroundType, colors }: { backgroundType: BackgroundType; colors: string[] }) {
+  const config = BACKGROUND_COLOR_CONFIG[backgroundType];
+  const activeColors = config ? config.defaults.map((def, i) => colors[i] || def) : [];
+
+  switch (backgroundType) {
+    case "paths":
+      return (
+        <div className="absolute inset-0" style={{ color: activeColors[0] || "rgba(112, 190, 250, 0.55)" }}>
+          <BackgroundPaths />
+        </div>
+      );
+    case "aurora":
+      return <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />;
+    case "shaders":
+      return <BackgroundShaders colors={activeColors} />;
+    case "gradient":
+      return <BackgroundGradientAnimation interactive={false} />;
+    case "beams":
+      return <BeamsBackground />;
+    case "etheral":
+      return <EtheralShadow color={activeColors[0] || "rgba(100, 100, 200, 1)"} />;
+    case "falling":
+      return <FallingPattern color={activeColors[0] || "#6366f1"} />;
+    case "dots":
+      return <GradientDots duration={20} backgroundColor={activeColors[0] || "#030303"} />;
+    case "spotlight":
+      return <SpotlightBackground />;
+    case "plasma":
+      return <ShaderPlasma />;
+    case "stars":
+      return <StarsBackground colors={activeColors} />;
+    case "aurora-beams":
+      return <AuroraBeams />;
+    case "flow-field":
+      return <FlowField color={activeColors[0] || "#6366f1"} />;
+    default:
+      return null;
+  }
 }

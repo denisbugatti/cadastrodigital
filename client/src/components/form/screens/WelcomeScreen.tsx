@@ -9,6 +9,8 @@
 import { motion } from "framer-motion";
 import type { Question } from "@/lib/formTypes";
 import { ArrowRight } from "lucide-react";
+import { getButtonStyleClasses } from "@/hooks/useInputStyle";
+import type { InputStyleType } from "@/hooks/useInputStyle";
 
 interface DesignProps {
   backgroundColor?: string;
@@ -20,6 +22,7 @@ interface DesignProps {
   logoUrl?: string;
   backgroundImage?: string;
   backgroundType?: string;
+  inputStyle?: string;
 }
 
 export interface WelcomeScreenProps {
@@ -42,6 +45,10 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
   const subtitleColor = isLightBg ? "rgba(30,41,59,0.65)" : "rgba(255,255,255,0.7)";
   const btnTextColor = design?.buttonTextColor || (isLightColor(buttonColor) ? "#1E293B" : "#FFFFFF");
   const hintColor = isLightBg ? "rgba(30,41,59,0.4)" : "rgba(255,255,255,0.45)";
+
+  // Button style based on inputStyle
+  const inputStyleType = (design?.inputStyle || "default") as InputStyleType;
+  const btnStyle = getButtonStyleClasses(inputStyleType, buttonColor, btnTextColor);
 
   return (
     <div
@@ -130,7 +137,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
           </motion.p>
         )}
 
-        {/* CTA Button + Enter hint (Respondi-style) — 16px button text */}
+        {/* CTA Button + Enter hint (Respondi-style) — styled to match inputStyle */}
         {showButton && (
           <motion.div
             className="mt-5 sm:mt-7 flex items-center justify-center gap-3"
@@ -138,22 +145,45 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <motion.button
-              onClick={onStart}
-              className="px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-medium shadow-lg flex items-center gap-2 sm:gap-2.5 transition-all text-sm sm:text-base"
-              style={{
-                backgroundColor: buttonColor,
-                color: btnTextColor,
-                fontFamily,
-                fontSize: "16px",
-                fontWeight: 400,
-              }}
-              whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }}
-              whileTap={{ scale: 0.96 }}
-            >
-              {buttonText}
-              <ArrowRight size={16} />
-            </motion.button>
+            {btnStyle.needsGradientWrapper ? (
+              <div className={btnStyle.gradientWrapperClasses + " inline-flex"}>
+                <motion.button
+                  onClick={onStart}
+                  className={btnStyle.gradientInnerClasses + " flex items-center gap-2 sm:gap-2.5 transition-all text-sm sm:text-base px-5 sm:px-7 py-2.5 sm:py-3"}
+                  style={{ fontFamily, fontSize: "16px", fontWeight: 400 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                >
+                  {buttonText}
+                  <ArrowRight size={16} />
+                </motion.button>
+              </div>
+            ) : (
+              <motion.button
+                onClick={onStart}
+                className={`flex items-center gap-2 sm:gap-2.5 transition-all text-sm sm:text-base ${
+                  inputStyleType !== "default"
+                    ? btnStyle.buttonClasses
+                    : "px-5 sm:px-7 py-2.5 sm:py-3 rounded-lg font-medium shadow-lg"
+                }`}
+                style={{
+                  ...(inputStyleType !== "default"
+                    ? btnStyle.buttonStyles
+                    : { backgroundColor: buttonColor, color: btnTextColor }),
+                  fontFamily,
+                  fontSize: "16px",
+                  fontWeight: 400,
+                }}
+                whileHover={{
+                  scale: 1.04,
+                  boxShadow: inputStyleType === "default" ? "0 8px 30px rgba(0,0,0,0.15)" : undefined,
+                }}
+                whileTap={{ scale: 0.96 }}
+              >
+                {buttonText}
+                <ArrowRight size={16} />
+              </motion.button>
+            )}
 
             {/* Enter hint (like Respondi: "carrega em Enter ↵") */}
             <motion.span

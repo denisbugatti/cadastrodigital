@@ -35,6 +35,120 @@ interface InputStyleResult {
   removeDefaultBorder: boolean;
 }
 
+interface ButtonStyleResult {
+  /** Classes for the button element */
+  buttonClasses: string;
+  /** Inline styles for the button */
+  buttonStyles: React.CSSProperties;
+  /** Whether the button needs a gradient wrapper */
+  needsGradientWrapper: boolean;
+  /** Classes for the gradient wrapper */
+  gradientWrapperClasses: string;
+  /** Classes for the inner content of gradient wrapper */
+  gradientInnerClasses: string;
+}
+
+/**
+ * Returns CSS classes and styles for the "OK / Próxima" button,
+ * matching the selected input style for visual consistency.
+ */
+export function getButtonStyleClasses(
+  style: InputStyleType | undefined,
+  buttonColor: string = "#3B82F6",
+  buttonTextColor: string = "#FFFFFF"
+): ButtonStyleResult {
+  const s = style || "default";
+
+  switch (s) {
+    case "glassmorphism":
+      return {
+        buttonClasses:
+          "bg-white/15 backdrop-blur-md border border-white/25 rounded-xl px-5 py-2.5 font-semibold text-white hover:bg-white/25 transition-all",
+        buttonStyles: {},
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+
+    case "glass-liquid":
+      return {
+        buttonClasses:
+          "bg-gradient-to-br from-white/20 to-white/8 backdrop-blur-lg border border-white/30 rounded-2xl px-5 py-2.5 font-semibold text-white shadow-lg hover:from-white/30 hover:to-white/15 transition-all",
+        buttonStyles: {},
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+
+    case "neon-glow":
+      return {
+        buttonClasses:
+          "bg-transparent border-2 border-blue-400 rounded-xl px-5 py-2.5 font-semibold text-blue-300 hover:text-white hover:bg-blue-400/20 transition-all",
+        buttonStyles: {
+          boxShadow: "0 0 15px rgba(59,130,246,0.4), inset 0 0 15px rgba(59,130,246,0.1)",
+        },
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+
+    case "frost":
+      return {
+        buttonClasses:
+          "bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl px-5 py-2.5 font-semibold text-white hover:bg-white/20 transition-all",
+        buttonStyles: {},
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+
+    case "neumorphism":
+      return {
+        buttonClasses:
+          "bg-[#1a1a2e] rounded-xl px-5 py-2.5 font-semibold text-white hover:brightness-110 transition-all",
+        buttonStyles: {
+          boxShadow: "5px 5px 10px rgba(0,0,0,0.3), -5px -5px 10px rgba(255,255,255,0.05)",
+        },
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+
+    case "minimal-line":
+      return {
+        buttonClasses:
+          "bg-transparent border-0 border-b-2 border-white/40 rounded-none px-5 py-2.5 font-semibold text-white hover:border-white transition-all",
+        buttonStyles: {},
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+
+    case "gradient-border":
+      return {
+        buttonClasses: "px-5 py-2.5 font-semibold text-white",
+        buttonStyles: {},
+        needsGradientWrapper: true,
+        gradientWrapperClasses:
+          "rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[1px] inline-flex",
+        gradientInnerClasses: "bg-[#0a0a1a] rounded-[10px] hover:bg-[#0a0a1a]/80 transition-all",
+      };
+
+    default:
+      return {
+        buttonClasses:
+          "rounded-xl px-5 py-2.5 font-semibold transition-all hover:opacity-90",
+        buttonStyles: {
+          backgroundColor: buttonColor,
+          color: buttonTextColor,
+        },
+        needsGradientWrapper: false,
+        gradientWrapperClasses: "",
+        gradientInnerClasses: "",
+      };
+  }
+}
+
 export function getInputStyleClasses(
   style: InputStyleType | undefined,
   isLightBg: boolean = false

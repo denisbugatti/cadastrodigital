@@ -28,6 +28,8 @@ import { ShaderPlasma } from "@/components/ui/shader-plasma";
 import { StarsBackground } from "@/components/ui/stars-background";
 import { AuroraBeams } from "@/components/ui/aurora-beams";
 import { FlowField } from "@/components/ui/flow-field";
+import { getButtonStyleClasses } from "@/hooks/useInputStyle";
+import type { InputStyleType } from "@/hooks/useInputStyle";
 
 const _iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
@@ -77,6 +79,8 @@ export function BuilderLivePreview({
   const isThankYou = question.type === "thank-you";
   const isStatement = question.type === "statement";
   const isSpecial = isWelcome || isThankYou;
+  const inputStyleType = (design.inputStyle || "default") as InputStyleType;
+  const btnStyle = getButtonStyleClasses(inputStyleType, design.buttonColor || "#3B82F6", design.buttonTextColor || "#FFFFFF");
 
   return (
     <div className="h-full flex flex-col bg-secondary/30">
@@ -98,27 +102,34 @@ export function BuilderLivePreview({
             }}
           >
             {/* Animated backgrounds */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-              {(design.backgroundType === "paths" || !design.backgroundType) && (
-                <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
-                  <BackgroundPaths />
+            {(() => {
+              const bgColors = design.backgroundColors || [];
+              const c = (i: number, fallback: string) => bgColors[i] || fallback;
+              const bgType = design.backgroundType || "paths";
+              return (
+                <div className="absolute inset-0 pointer-events-none z-0">
+                  {bgType === "paths" && (
+                    <div className="absolute inset-0" style={{ color: c(0, "rgba(112, 190, 250, 0.55)") }}>
+                      <BackgroundPaths />
+                    </div>
+                  )}
+                  {bgType === "aurora" && (
+                    <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
+                  )}
+                  {bgType === "shaders" && <BackgroundShaders colors={bgColors.length > 0 ? bgColors : undefined} />}
+                  {bgType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
+                  {bgType === "beams" && <BeamsBackground />}
+                  {bgType === "etheral" && <EtheralShadow color={c(0, "rgba(100, 100, 200, 1)")} />}
+                  {bgType === "falling" && <FallingPattern color={c(0, "#6366f1")} />}
+                  {bgType === "dots" && <GradientDots backgroundColor={c(0, "#030303")} />}
+                  {bgType === "spotlight" && <SpotlightBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
+                  {bgType === "plasma" && <ShaderPlasma />}
+                  {bgType === "stars" && <StarsBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
+                  {bgType === "aurora-beams" && <AuroraBeams color={c(0, "#00ffcc")} />}
+                  {bgType === "flow-field" && <FlowField color={c(0, "#6366f1")} />}
                 </div>
-              )}
-              {design.backgroundType === "aurora" && (
-                <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
-              )}
-              {design.backgroundType === "shaders" && <BackgroundShaders />}
-              {design.backgroundType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
-              {design.backgroundType === "beams" && <BeamsBackground />}
-              {design.backgroundType === "etheral" && <EtheralShadow color="rgba(100, 100, 200, 1)" />}
-              {design.backgroundType === "falling" && <FallingPattern color="#6366f1" />}
-              {design.backgroundType === "dots" && <GradientDots />}
-              {design.backgroundType === "spotlight" && <SpotlightBackground />}
-              {design.backgroundType === "plasma" && <ShaderPlasma />}
-              {design.backgroundType === "stars" && <StarsBackground />}
-              {design.backgroundType === "aurora-beams" && <AuroraBeams />}
-              {design.backgroundType === "flow-field" && <FlowField />}
-            </div>
+              );
+            })()}
             {/* Image if set */}
             {question.imageUrl && (
               <div className="h-40 overflow-hidden">
@@ -186,18 +197,33 @@ export function BuilderLivePreview({
                 <InputPreview question={question} design={design} />
               </div>
 
-              {/* Button for welcome/thank-you/statement */}
+              {/* Button for welcome/thank-you/statement — styled to match inputStyle */}
               {(isSpecial || isStatement) && question.showButton && (
-                <button
-                  className="mt-6 px-8 py-3 rounded-lg text-sm font-semibold text-white transition-all inline-flex items-center gap-2"
-                  style={{
-                    backgroundColor: design.buttonColor,
-                    fontFamily: design.fontFamily,
-                  }}
-                >
-                  {question.buttonText || "Continuar"}
-                  <ArrowRight size={14} />
-                </button>
+                <div className="mt-6">
+                  {btnStyle.needsGradientWrapper ? (
+                    <div className={btnStyle.gradientWrapperClasses + " inline-flex"}>
+                      <button
+                        className={btnStyle.gradientInnerClasses + " text-sm font-semibold transition-all inline-flex items-center gap-2 px-8 py-3"}
+                        style={{ fontFamily: design.fontFamily }}
+                      >
+                        {question.buttonText || "Continuar"}
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className={`text-sm font-semibold transition-all inline-flex items-center gap-2 ${btnStyle.buttonClasses}`}
+                      style={{
+                        ...btnStyle.buttonStyles,
+                        fontFamily: design.fontFamily,
+                        ...(inputStyleType === "default" ? { backgroundColor: design.buttonColor, color: design.buttonTextColor || "#FFFFFF" } : {}),
+                      }}
+                    >
+                      {question.buttonText || "Continuar"}
+                      <ArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

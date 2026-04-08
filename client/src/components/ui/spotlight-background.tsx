@@ -14,15 +14,25 @@ interface SpotlightItem {
   color: string;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex.startsWith("#") || hex.length !== 7) return hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export const SpotlightBackground = memo(({
   className,
   spotlightCount = 5,
+  colors: customColors = [],
 }: {
   className?: string;
   spotlightCount?: number;
+  colors?: string[];
 }) => {
   const spotlights: SpotlightItem[] = useMemo(() => {
-    const colors = [
+    const defaultColors = [
       "rgba(59, 130, 246, 0.3)",
       "rgba(147, 51, 234, 0.3)",
       "rgba(236, 72, 153, 0.3)",
@@ -31,6 +41,9 @@ export const SpotlightBackground = memo(({
       "rgba(6, 182, 212, 0.3)",
       "rgba(249, 115, 22, 0.3)",
     ];
+    const colors = customColors.length >= 1
+      ? customColors.map((c) => hexToRgba(c, 0.3))
+      : defaultColors;
     return Array.from({ length: spotlightCount }, (_, i) => ({
       id: i,
       x: `${10 + Math.random() * 80}%`,
@@ -40,7 +53,7 @@ export const SpotlightBackground = memo(({
       delay: Math.random() * 5,
       color: colors[i % colors.length],
     }));
-  }, [spotlightCount]);
+  }, [spotlightCount, customColors]);
 
   return (
     <div className={cn("absolute inset-0 overflow-hidden bg-neutral-950", className)}>

@@ -1773,3 +1773,13 @@
 - [x] Aumentar fonte dos inputs TextInput e LongTextInput: text-lg sm:text-xl
 - [x] Melhorar tamanho e padding dos cards MultipleChoiceInput: py-3.5 sm:py-4, rounded-xl, text-base sm:text-lg
 - [x] 654 testes passando
+
+## Feature: Seletor de cores por tipo de fundo + botão "Próxima" com efeito
+- [x] Adicionar campo backgroundColors (array de strings) ao FormDesignSettings
+- [x] Atualizar cada componente de fundo para aceitar prop colors[] (BackgroundPaths, AuroraBeams, FlowField, SpotlightBackground, etc.)
+- [x] Adicionar color pickers no DesignEditor para cada tipo de fundo (BackgroundColorPicker)
+- [x] Aplicar efeito glassmorfismo/neon no botão de navegação (seta "Próxima") baseado no inputStyle
+- [x] Aplicar efeito no botão da WelcomeScreen baseado no inputStyle
+- [x] Aplicar efeito no botão da StatementScreen baseado no inputStyle
+- [x] BuilderLivePreview preview do botão também usa inputStyle
+- [x] Atualizar builderToForm, FormView, SlugResolver para passar backgroundColors
