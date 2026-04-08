@@ -21,6 +21,16 @@ import { QuestionRenderer } from "./QuestionRenderer";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { BackgroundShaders } from "@/components/ui/background-shaders";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+import { BeamsBackground } from "@/components/ui/beams-background";
+import { EtheralShadow } from "@/components/ui/etheral-shadow";
+import { FallingPattern } from "@/components/ui/falling-pattern";
+import { GradientDots } from "@/components/ui/gradient-dots";
+import { SpotlightBackground } from "@/components/ui/spotlight-background";
+import { ShaderPlasma } from "@/components/ui/shader-plasma";
+import { StarsBackground } from "@/components/ui/stars-background";
+import { AuroraBeams } from "@/components/ui/aurora-beams";
+import { FlowField } from "@/components/ui/flow-field";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { TrackingScripts, fireTrackingConversion } from "./TrackingScripts";
 
@@ -394,21 +404,27 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       <TrackingScripts tracking={form.tracking} />
 
       {/* Animated backgrounds */}
-      {(d?.backgroundType === "paths" || !d?.backgroundType) && (
-        <div className="absolute inset-0 pointer-events-none" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
-          <BackgroundPaths />
-        </div>
-      )}
-      {d?.backgroundType === "aurora" && (
-        <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none">
+        {(d?.backgroundType === "paths" || !d?.backgroundType) && (
+          <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
+            <BackgroundPaths />
+          </div>
+        )}
+        {d?.backgroundType === "aurora" && (
           <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
-        </div>
-      )}
-      {d?.backgroundType === "shaders" && (
-        <div className="absolute inset-0 pointer-events-none">
-          <BackgroundShaders />
-        </div>
-      )}
+        )}
+        {d?.backgroundType === "shaders" && <BackgroundShaders />}
+        {d?.backgroundType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
+        {d?.backgroundType === "beams" && <BeamsBackground />}
+        {d?.backgroundType === "etheral" && <EtheralShadow color="rgba(100, 100, 200, 1)" />}
+        {d?.backgroundType === "falling" && <FallingPattern color="#6366f1" />}
+        {d?.backgroundType === "dots" && <GradientDots />}
+        {d?.backgroundType === "spotlight" && <SpotlightBackground />}
+        {d?.backgroundType === "plasma" && <ShaderPlasma />}
+        {d?.backgroundType === "stars" && <StarsBackground />}
+        {d?.backgroundType === "aurora-beams" && <AuroraBeams />}
+        {d?.backgroundType === "flow-field" && <FlowField />}
+      </div>
 
       {/* ─── Fixed Logo (top-left) ─── */}
       {logoUrl && !isSpecialScreen && (

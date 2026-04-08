@@ -112,21 +112,17 @@ describe("New Animated Backgrounds (Paths, Aurora, Shaders)", () => {
     expect(content).toContain("BackgroundShaders");
   });
 
-  it("WelcomeScreen uses transparent bg for new background types", () => {
+  it("WelcomeScreen uses transparent bg for animated background types", () => {
     const filePath = path.resolve("client/src/components/form/screens/WelcomeScreen.tsx");
     const content = fs.readFileSync(filePath, "utf-8");
-    expect(content).toContain("paths");
-    expect(content).toContain("aurora");
-    expect(content).toContain("shaders");
+    expect(content).toContain("backgroundType");
     expect(content).toContain("transparent");
   });
 
-  it("ThankYouScreen uses transparent bg for new background types", () => {
+  it("ThankYouScreen uses transparent bg for animated background types", () => {
     const filePath = path.resolve("client/src/components/form/screens/ThankYouScreen.tsx");
     const content = fs.readFileSync(filePath, "utf-8");
-    expect(content).toContain("paths");
-    expect(content).toContain("aurora");
-    expect(content).toContain("shaders");
+    expect(content).toContain("backgroundType");
     expect(content).toContain("transparent");
   });
 

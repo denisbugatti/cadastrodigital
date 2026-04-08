@@ -465,3 +465,81 @@
 .animate-aurora {
   animation: aurora 60s linear infinite;
 }
+
+/* ─── Aurora Beams Background Animation ─── */
+.aurora-beams-scene {
+  perspective: 400px;
+  transform-style: preserve-3d;
+}
+
+.aurora-beams-floor {
+  position: absolute;
+  bottom: 0;
+  left: -10%;
+  right: -10%;
+  height: 40%;
+  background: radial-gradient(ellipse at center bottom, rgba(99, 102, 241, 0.3), transparent 70%);
+  transform: rotateX(60deg);
+  transform-origin: bottom center;
+}
+
+.aurora-beams-column {
+  position: absolute;
+  bottom: 0;
+  left: 40%;
+  right: 40%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(99, 102, 241, 0.15), transparent 80%);
+  filter: blur(30px);
+}
+
+.aurora-beams-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.aurora-beam {
+  position: absolute;
+  bottom: 0;
+  height: 0;
+  background: linear-gradient(to top, rgba(99, 102, 241, 0.6), rgba(147, 51, 234, 0.3), transparent);
+  border-radius: 50% 50% 0 0;
+  animation: auroraBeamRise 4s ease-out infinite, auroraBeamFade 4s ease-out infinite, auroraBeamDrop 3s ease-in infinite;
+  animation-fill-mode: forwards;
+  opacity: 0;
+}
+
+@keyframes auroraBeamRise {
+  0% { height: 0; }
+  50% { height: 80%; }
+  100% { height: 100%; }
+}
+
+@keyframes auroraBeamFade {
+  0% { opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+
+@keyframes auroraBeamDrop {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-20px); }
+}
+
+/* ─── Falling Pattern Background ─── */
+@keyframes fallingDrop {
+  0% { transform: translateY(-100vh); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* ─── Etheral Shadow Background ─── */
+@keyframes etherealFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 30px) scale(0.95); }
+  75% { transform: translate(20px, 20px) scale(1.02); }
+}

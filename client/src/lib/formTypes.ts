@@ -128,7 +128,7 @@ export interface FormData {
     buttonTextColor?: string;
     fontFamily?: string;
     logoUrl?: string;
-    backgroundType?: "paths" | "aurora" | "shaders";
+    backgroundType?: "paths" | "aurora" | "shaders" | "gradient" | "beams" | "etheral" | "falling" | "dots" | "spotlight" | "plasma" | "stars" | "aurora-beams" | "flow-field";
   };
   /** Tracking/metrics configuration from webhook settings */
   tracking?: {

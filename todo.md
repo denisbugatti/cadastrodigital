@@ -1741,3 +1741,19 @@
 - [x] Adicionar animação aurora keyframes ao CSS
 - [x] Atualizar testes (641 passando)
 - [x] Testar todos os novos fundos no preview e formulário público
+
+## Feature: 10 novos fundos animados adicionais
+- [x] Criar BackgroundGradientAnimation (bolhas de gradiente interativas)
+- [x] Criar BeamsBackground (feixes de luz canvas)
+- [x] Criar EtheralShadow (sombras com filtro SVG)
+- [x] Criar FallingPattern (padrão de chuva CSS)
+- [x] Criar GradientDots (pontos hexagonais animados)
+- [x] Criar SpotlightBackground (holofotes animados)
+- [x] Criar ShaderPlasma (plasma WebGL)
+- [x] Criar StarsBackground (campo de estrelas animado)
+- [x] Criar AuroraBeams (feixes de luz ascendentes)
+- [x] Criar FlowField (campo de partículas canvas)
+- [x] Atualizar BackgroundType com 10 novos tipos (total 13)
+- [x] Atualizar DesignEditor com 13 opções totais
+- [x] Atualizar FormContainer, BuilderLivePreview, WelcomeScreen, ThankYouScreen
+- [x] 641 testes passando

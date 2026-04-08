@@ -18,6 +18,16 @@ import { questionTypes } from "@/lib/builderTypes";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { BackgroundShaders } from "@/components/ui/background-shaders";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+import { BeamsBackground } from "@/components/ui/beams-background";
+import { EtheralShadow } from "@/components/ui/etheral-shadow";
+import { FallingPattern } from "@/components/ui/falling-pattern";
+import { GradientDots } from "@/components/ui/gradient-dots";
+import { SpotlightBackground } from "@/components/ui/spotlight-background";
+import { ShaderPlasma } from "@/components/ui/shader-plasma";
+import { StarsBackground } from "@/components/ui/stars-background";
+import { AuroraBeams } from "@/components/ui/aurora-beams";
+import { FlowField } from "@/components/ui/flow-field";
 
 const _iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
@@ -88,21 +98,27 @@ export function BuilderLivePreview({
             }}
           >
             {/* Animated backgrounds */}
-            {(design.backgroundType === "paths" || !design.backgroundType) && (
-              <div className="absolute inset-0 pointer-events-none z-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
-                <BackgroundPaths />
-              </div>
-            )}
-            {design.backgroundType === "aurora" && (
-              <div className="absolute inset-0 pointer-events-none z-0">
+            <div className="absolute inset-0 pointer-events-none z-0">
+              {(design.backgroundType === "paths" || !design.backgroundType) && (
+                <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
+                  <BackgroundPaths />
+                </div>
+              )}
+              {design.backgroundType === "aurora" && (
                 <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
-              </div>
-            )}
-            {design.backgroundType === "shaders" && (
-              <div className="absolute inset-0 pointer-events-none z-0">
-                <BackgroundShaders />
-              </div>
-            )}
+              )}
+              {design.backgroundType === "shaders" && <BackgroundShaders />}
+              {design.backgroundType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
+              {design.backgroundType === "beams" && <BeamsBackground />}
+              {design.backgroundType === "etheral" && <EtheralShadow color="rgba(100, 100, 200, 1)" />}
+              {design.backgroundType === "falling" && <FallingPattern color="#6366f1" />}
+              {design.backgroundType === "dots" && <GradientDots />}
+              {design.backgroundType === "spotlight" && <SpotlightBackground />}
+              {design.backgroundType === "plasma" && <ShaderPlasma />}
+              {design.backgroundType === "stars" && <StarsBackground />}
+              {design.backgroundType === "aurora-beams" && <AuroraBeams />}
+              {design.backgroundType === "flow-field" && <FlowField />}
+            </div>
             {/* Image if set */}
             {question.imageUrl && (
               <div className="h-40 overflow-hidden">

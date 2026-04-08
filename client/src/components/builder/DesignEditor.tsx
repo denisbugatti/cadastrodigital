@@ -8,11 +8,22 @@ import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Palette, Type, Image, Globe, Upload, X, Loader2, Sparkles, Waves, Zap,
+  Droplets, Flame, CloudRain, CircleDot, Sun, Cpu, Star, Sunrise, Wind,
 } from "lucide-react";
 import type { FormDesignSettings, BackgroundType } from "@/lib/builderTypes";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { BackgroundShaders } from "@/components/ui/background-shaders";
+import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
+import { BeamsBackground } from "@/components/ui/beams-background";
+import { EtheralShadow } from "@/components/ui/etheral-shadow";
+import { FallingPattern } from "@/components/ui/falling-pattern";
+import { GradientDots } from "@/components/ui/gradient-dots";
+import { SpotlightBackground } from "@/components/ui/spotlight-background";
+import { ShaderPlasma } from "@/components/ui/shader-plasma";
+import { StarsBackground } from "@/components/ui/stars-background";
+import { AuroraBeams } from "@/components/ui/aurora-beams";
+import { FlowField } from "@/components/ui/flow-field";
 import { trpc } from "@/lib/trpc";
 
 interface DesignEditorProps {
@@ -467,11 +478,21 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               <h4 className="text-sm font-body font-semibold text-foreground mb-3">
                 Tipo de fundo
               </h4>
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-3 gap-2 mb-4 max-h-[320px] overflow-y-auto pr-1">
                 {([
-                  { id: "paths" as BackgroundType, label: "Paths", icon: Waves, description: "Linhas animadas" },
-                  { id: "aurora" as BackgroundType, label: "Aurora", icon: Sparkles, description: "Aurora boreal" },
-                  { id: "shaders" as BackgroundType, label: "Shaders", icon: Zap, description: "Efeito WebGL" },
+                  { id: "paths" as BackgroundType, label: "Paths", icon: Waves },
+                  { id: "aurora" as BackgroundType, label: "Aurora", icon: Sparkles },
+                  { id: "shaders" as BackgroundType, label: "Shaders", icon: Zap },
+                  { id: "gradient" as BackgroundType, label: "Gradiente", icon: Droplets },
+                  { id: "beams" as BackgroundType, label: "Feixes", icon: Flame },
+                  { id: "etheral" as BackgroundType, label: "Etéreo", icon: Wind },
+                  { id: "falling" as BackgroundType, label: "Chuva", icon: CloudRain },
+                  { id: "dots" as BackgroundType, label: "Pontos", icon: CircleDot },
+                  { id: "spotlight" as BackgroundType, label: "Holofote", icon: Sun },
+                  { id: "plasma" as BackgroundType, label: "Plasma", icon: Cpu },
+                  { id: "stars" as BackgroundType, label: "Estrelas", icon: Star },
+                  { id: "aurora-beams" as BackgroundType, label: "Feixes Luz", icon: Sunrise },
+                  { id: "flow-field" as BackgroundType, label: "Partículas", icon: Wind },
                 ]).map((bg) => {
                   const Icon = bg.icon;
                   const isActive = (design.backgroundType || "paths") === bg.id;
@@ -498,17 +519,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
                   Pré-visualização
                 </label>
                 <div className="w-full h-40 rounded-xl overflow-hidden relative border border-border bg-[#030303]">
-                  {(design.backgroundType || "paths") === "paths" && (
-                    <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
-                      <BackgroundPaths />
-                    </div>
-                  )}
-                  {design.backgroundType === "aurora" && (
-                    <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
-                  )}
-                  {design.backgroundType === "shaders" && (
-                    <BackgroundShaders />
-                  )}
+                  <BackgroundPreview backgroundType={design.backgroundType || "paths"} />
                   <div className="absolute inset-0 flex items-center justify-center z-10">
                     <p className="text-white text-sm font-semibold drop-shadow-lg">
                       Preview do efeito
@@ -605,4 +616,42 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
       </div>
     </div>
   );
+}
+
+/** Reusable preview for all 13 background types */
+function BackgroundPreview({ backgroundType }: { backgroundType: BackgroundType }) {
+  switch (backgroundType) {
+    case "paths":
+      return (
+        <div className="absolute inset-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
+          <BackgroundPaths />
+        </div>
+      );
+    case "aurora":
+      return <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />;
+    case "shaders":
+      return <BackgroundShaders />;
+    case "gradient":
+      return <BackgroundGradientAnimation interactive={false} />;
+    case "beams":
+      return <BeamsBackground />;
+    case "etheral":
+      return <EtheralShadow color="rgba(100, 100, 200, 1)" />;
+    case "falling":
+      return <FallingPattern color="#6366f1" />;
+    case "dots":
+      return <GradientDots duration={20} />;
+    case "spotlight":
+      return <SpotlightBackground />;
+    case "plasma":
+      return <ShaderPlasma />;
+    case "stars":
+      return <StarsBackground />;
+    case "aurora-beams":
+      return <AuroraBeams />;
+    case "flow-field":
+      return <FlowField />;
+    default:
+      return null;
+  }
 }

@@ -180,7 +180,7 @@ export interface BuilderChoice {
 
 // ─── Design Settings ───
 
-export type BackgroundType = "paths" | "aurora" | "shaders";
+export type BackgroundType = "paths" | "aurora" | "shaders" | "gradient" | "beams" | "etheral" | "falling" | "dots" | "spotlight" | "plasma" | "stars" | "aurora-beams" | "flow-field";
 
 export interface FormDesignSettings {
   // Colors
