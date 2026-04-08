@@ -1766,3 +1766,10 @@
 - [x] Atualizar builderToForm, Editor, FormView, SlugResolver para passar inputStyle
 - [x] Preview ao vivo no DesignEditor (InputStylePreview component)
 - [x] 654 testes passando (13 novos para inputStyle)
+
+## Fix: Melhorar proporção, margens e espaçamentos do container de perguntas
+- [x] Aumentar tamanho da fonte do título da pergunta (QuestionHeader): text-xl sm:text-2xl md:text-3xl lg:text-4xl
+- [x] Melhorar padding e max-width do container de perguntas no FormContainer: max-w-[720px], px-6 sm:px-12
+- [x] Aumentar fonte dos inputs TextInput e LongTextInput: text-lg sm:text-xl
+- [x] Melhorar tamanho e padding dos cards MultipleChoiceInput: py-3.5 sm:py-4, rounded-xl, text-base sm:text-lg
+- [x] 654 testes passando

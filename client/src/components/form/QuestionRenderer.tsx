@@ -365,7 +365,7 @@ export function QuestionRenderer({
   const inputStyle = getInputStyleClasses(inputStyleType, isLightBg);
 
   return (
-    <div>
+    <div className="w-full">
       <QuestionHeader
         number={questionNumber}
         title={question.title}
@@ -373,7 +373,7 @@ export function QuestionRenderer({
       />
       {inputStyle.needsGradientWrapper ? (
         <div className={inputStyle.gradientWrapperClasses}>
-          <div className={inputStyle.gradientInnerClasses + " py-1"}>
+          <div className={inputStyle.gradientInnerClasses + " py-2"}>
             {renderInput()}
           </div>
         </div>

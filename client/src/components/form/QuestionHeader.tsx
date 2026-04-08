@@ -21,10 +21,10 @@ export function QuestionHeader({
   showNumber = true,
 }: QuestionHeaderProps) {
   return (
-    <div className="mb-5 sm:mb-8">
+    <div className="mb-6 sm:mb-10">
       {/* Title with inline number → — responsive sizing */}
       <motion.h2
-        className="font-display leading-snug tracking-tight text-lg sm:text-xl md:text-2xl"
+        className="font-display leading-snug tracking-tight text-xl sm:text-2xl md:text-3xl lg:text-4xl"
         style={{
           fontWeight: 400,
         }}
@@ -33,7 +33,7 @@ export function QuestionHeader({
         transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         {showNumber && number !== undefined && (
-          <span className="inline-flex items-baseline gap-1 sm:gap-1.5 mr-1.5 sm:mr-2">
+          <span className="inline-flex items-baseline gap-1 sm:gap-2 mr-2 sm:mr-3">
             <span className="font-bold opacity-80">{number}</span>
             <span className="opacity-60">→</span>
           </span>
@@ -44,7 +44,7 @@ export function QuestionHeader({
       {/* Subtitle — responsive sizing */}
       {subtitle && (
         <motion.p
-          className="mt-2 sm:mt-3 leading-relaxed opacity-55 text-sm sm:text-base"
+          className="mt-3 sm:mt-4 leading-relaxed opacity-55 text-base sm:text-lg"
           style={{
             fontWeight: 400,
           }}

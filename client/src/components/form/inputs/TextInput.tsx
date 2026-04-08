@@ -69,7 +69,7 @@ export function TextInput({
           }}
           onBlur={() => { if (value) setTouched(true); }}
           placeholder={placeholder || "Digite sua resposta aqui..."}
-          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-4 font-medium focus:outline-none transition-colors duration-300 pr-10 text-base sm:text-lg"
+          className="w-full bg-transparent border-0 border-b-2 py-3 sm:py-5 font-medium focus:outline-none transition-colors duration-300 pr-10 text-lg sm:text-xl"
           style={{
             color: "inherit",
             borderColor,

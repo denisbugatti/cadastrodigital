@@ -565,8 +565,8 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
                 ref={scrollRef}
                 className="w-full h-full overflow-y-auto"
                 style={{
-                  paddingTop: "3rem",
-                  paddingBottom: "5rem",
+                  paddingTop: "4rem",
+                  paddingBottom: "6rem",
                   display: "flex",
                   flexDirection: "column",
                 }}
@@ -574,7 +574,7 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
                 <div className="flex-1" />
                 <motion.div
                   key={`shake-${shakeKey}`}
-                  className="max-w-[640px] mx-auto px-4 sm:px-8 pr-14 sm:pr-20 w-full"
+                  className="max-w-[720px] mx-auto px-6 sm:px-12 pr-16 sm:pr-24 w-full"
                   animate={
                     shakeKey > 0
                       ? {
