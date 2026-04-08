@@ -119,7 +119,7 @@ function dbFormToBuilderForm(dbForm: any): BuilderForm {
       questionColor: dbDesign.questionColor ?? defaultDesignSettings.questionColor,
       answerColor: dbDesign.answerColor ?? defaultDesignSettings.answerColor,
       backgroundColor: dbDesign.backgroundColor ?? defaultDesignSettings.backgroundColor,
-      backgroundImage: dbDesign.backgroundImage ?? defaultDesignSettings.backgroundImage,
+      backgroundType: dbDesign.backgroundType ?? defaultDesignSettings.backgroundType,
       logoUrl: dbDesign.logoUrl ?? defaultDesignSettings.logoUrl,
       ogTitle: dbDesign.ogTitle ?? defaultDesignSettings.ogTitle,
       ogDescription: dbDesign.ogDescription ?? defaultDesignSettings.ogDescription,

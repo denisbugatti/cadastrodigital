@@ -1,7 +1,7 @@
 /**
- * Tests for new features:
+ * Tests for features:
  * 1. Form rename in Builder
- * 2. WebGL background option in design settings
+ * 2. Animated background options (paths, aurora, shaders)
  * 3. Responses page redesign (stats, filters, validation badges)
  */
 import { describe, it, expect } from "vitest";
@@ -16,40 +16,33 @@ describe("Form Rename", () => {
   });
 });
 
-// ─── 2. WebGL Background Design Settings ───
-describe("WebGL Background Design Settings", () => {
-  it("builderTypes supports backgroundType field with solid/image/webgl values", async () => {
+// ─── 2. Animated Background Design Settings ───
+describe("Animated Background Design Settings", () => {
+  it("builderTypes supports backgroundType field with paths/aurora/shaders values", async () => {
     const builderTypes = await import("../client/src/lib/builderTypes");
     const defaults = builderTypes.defaultDesignSettings;
     
     // backgroundType should exist with default value
     expect(defaults).toHaveProperty("backgroundType");
-    expect(["solid", "image", "webgl"]).toContain(defaults.backgroundType);
+    expect(["paths", "aurora", "shaders"]).toContain(defaults.backgroundType);
   });
 
-  it("builderTypes supports webglEffect field", async () => {
-    const builderTypes = await import("../client/src/lib/builderTypes");
-    const defaults = builderTypes.defaultDesignSettings;
-    
-    expect(defaults).toHaveProperty("webglEffect");
-    const validEffects = ["gradient-flow", "particles", "aurora", "waves", "mesh-gradient"];
-    expect(validEffects).toContain(defaults.webglEffect);
-  });
-
-  it("builderTypes supports webglIntensity field with numeric default", async () => {
-    const builderTypes = await import("../client/src/lib/builderTypes");
-    const defaults = builderTypes.defaultDesignSettings;
-    
-    expect(defaults).toHaveProperty("webglIntensity");
-    expect(typeof defaults.webglIntensity).toBe("number");
-    expect(defaults.webglIntensity).toBeGreaterThanOrEqual(0);
-    expect(defaults.webglIntensity).toBeLessThanOrEqual(100);
-  });
-
-  it("WebGLBackground component file exists", async () => {
+  it("BackgroundPaths component file exists", async () => {
     const fs = await import("fs");
-    const path = "./client/src/components/form/WebGLBackground.tsx";
-    expect(fs.existsSync(path)).toBe(true);
+    const filePath = "./client/src/components/ui/background-paths.tsx";
+    expect(fs.existsSync(filePath)).toBe(true);
+  });
+
+  it("AuroraBackground component file exists", async () => {
+    const fs = await import("fs");
+    const filePath = "./client/src/components/ui/aurora-background.tsx";
+    expect(fs.existsSync(filePath)).toBe(true);
+  });
+
+  it("BackgroundShaders component file exists", async () => {
+    const fs = await import("fs");
+    const filePath = "./client/src/components/ui/background-shaders.tsx";
+    expect(fs.existsSync(filePath)).toBe(true);
   });
 
   it("DesignEditor component file exists", async () => {
@@ -58,17 +51,21 @@ describe("WebGL Background Design Settings", () => {
     expect(fs.existsSync(path)).toBe(true);
   });
 
-  it("DesignEditor contains backgroundType selector", async () => {
+  it("DesignEditor contains backgroundType selector with new types", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync("./client/src/components/builder/DesignEditor.tsx", "utf-8");
     expect(content).toContain("backgroundType");
-    expect(content).toContain("webgl");
+    expect(content).toContain("paths");
+    expect(content).toContain("aurora");
+    expect(content).toContain("shaders");
   });
 
-  it("FormContainer supports WebGL background rendering", async () => {
+  it("FormContainer supports new animated background rendering", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync("./client/src/components/form/FormContainer.tsx", "utf-8");
-    expect(content).toContain("WebGLBackground");
+    expect(content).toContain("BackgroundPaths");
+    expect(content).toContain("AuroraBackground");
+    expect(content).toContain("BackgroundShaders");
     expect(content).toContain("backgroundType");
   });
 });

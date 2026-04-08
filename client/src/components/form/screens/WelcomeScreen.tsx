@@ -46,7 +46,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
   return (
     <div
       className="w-full h-full flex items-center justify-center relative overflow-hidden"
-      style={{ backgroundColor: (design?.backgroundType === 'geometric' || design?.backgroundType === 'webgl') ? 'transparent' : bgColor, fontFamily }}
+      style={{ backgroundColor: (design?.backgroundType === 'paths' || design?.backgroundType === 'aurora' || design?.backgroundType === 'shaders') ? 'transparent' : bgColor, fontFamily }}
     >
       {/* Background image overlay if set */}
       {design?.backgroundImage && (

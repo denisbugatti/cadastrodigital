@@ -180,8 +180,7 @@ export interface BuilderChoice {
 
 // ─── Design Settings ───
 
-export type BackgroundType = "solid" | "image" | "webgl" | "geometric";
-export type WebGLEffect = "gradient-flow" | "particles" | "aurora" | "waves" | "mesh-gradient";
+export type BackgroundType = "paths" | "aurora" | "shaders";
 
 export interface FormDesignSettings {
   // Colors
@@ -192,11 +191,6 @@ export interface FormDesignSettings {
   backgroundColor: string;
   // Background
   backgroundType: BackgroundType;
-  backgroundImage: string;
-  webglEffect: WebGLEffect;
-  webglIntensity: number; // 0-100
-  geometricTheme: string; // GeometricTheme
-  geometricIntensity: number; // 0-100
   // Media
   logoUrl: string;
   // Open Graph (social sharing)
@@ -563,12 +557,7 @@ export const defaultDesignSettings: FormDesignSettings = {
   questionColor: "#1E293B",
   answerColor: "#3B82F6",
   backgroundColor: "#FFFFFF",
-  backgroundType: "solid",
-  backgroundImage: "",
-  webglEffect: "gradient-flow",
-  webglIntensity: 50,
-  geometricTheme: "indigo-rose",
-  geometricIntensity: 50,
+  backgroundType: "paths",
   logoUrl: "",
   ogTitle: "",
   ogDescription: "",

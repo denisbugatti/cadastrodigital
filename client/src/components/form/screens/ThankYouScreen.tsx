@@ -81,7 +81,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore: _to
   return (
     <div
       className="w-full h-full flex items-center justify-center relative overflow-hidden"
-      style={{ backgroundColor: (design?.backgroundType === 'geometric' || design?.backgroundType === 'webgl') ? 'transparent' : bgColor, fontFamily }}
+      style={{ backgroundColor: (design?.backgroundType === 'paths' || design?.backgroundType === 'aurora' || design?.backgroundType === 'shaders') ? 'transparent' : bgColor, fontFamily }}
     >
       {/* Logo top-left */}
       {logoUrl && (

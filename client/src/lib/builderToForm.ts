@@ -137,12 +137,7 @@ export function builderToFormData(builderForm: BuilderForm): FormData {
       buttonTextColor: builderForm.design.buttonTextColor,
       fontFamily: builderForm.design.fontFamily,
       logoUrl: builderForm.design.logoUrl || undefined,
-      backgroundImage: builderForm.design.backgroundImage || undefined,
-      backgroundType: builderForm.design.backgroundType || "solid",
-      webglEffect: builderForm.design.webglEffect,
-      webglIntensity: builderForm.design.webglIntensity,
-      geometricTheme: builderForm.design.geometricTheme,
-      geometricIntensity: builderForm.design.geometricIntensity,
+      backgroundType: builderForm.design.backgroundType || "paths",
     },
   };
 }

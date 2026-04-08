@@ -1728,3 +1728,16 @@
 - [x] Corrigido: WelcomeScreen e ThankYouScreen usam bg transparent quando backgroundType é geometric/webgl
 - [x] Corrigido: BuilderLivePreview agora renderiza GeometricBackground no card de preview central com z-index adequado
 - [x] 635 testes passando
+
+## Feature: Substituir fundos antigos por 3 novos fundos animados (Paths, Aurora, Shaders)
+- [x] Remover opções antigas de fundo (solid, image, webgl, geometric)
+- [x] Instalar dependências (@paper-design/shaders-react)
+- [x] Criar componente BackgroundPaths (linhas SVG animadas com Framer Motion)
+- [x] Criar componente AuroraBackground (efeito aurora boreal CSS)
+- [x] Criar componente BackgroundShaders (shaders WebGL com @paper-design/shaders-react)
+- [x] Atualizar BackgroundType para apenas paths, aurora, shaders
+- [x] Reescrever seção de fundo do DesignEditor com apenas 3 novas opções
+- [x] Atualizar FormContainer, BuilderLivePreview, WelcomeScreen, ThankYouScreen, builderToForm
+- [x] Adicionar animação aurora keyframes ao CSS
+- [x] Atualizar testes (641 passando)
+- [x] Testar todos os novos fundos no preview e formulário público

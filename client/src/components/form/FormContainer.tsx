@@ -18,8 +18,9 @@ import { useFormEngine } from "@/hooks/useFormEngine";
 import { trpc } from "@/lib/trpc";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { QuestionRenderer } from "./QuestionRenderer";
-import { WebGLBackground } from "./WebGLBackground";
-import { GeometricBackground } from "@/components/ui/geometric-background";
+import { BackgroundPaths } from "@/components/ui/background-paths";
+import { AuroraBackground } from "@/components/ui/aurora-background";
+import { BackgroundShaders } from "@/components/ui/background-shaders";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { TrackingScripts, fireTrackingConversion } from "./TrackingScripts";
 
@@ -392,32 +393,20 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       {/* Tracking/Analytics Scripts */}
       <TrackingScripts tracking={form.tracking} />
 
-      {/* Background: image or WebGL */}
-      {(d?.backgroundType === "image" || (!d?.backgroundType && d?.backgroundImage)) && d?.backgroundImage && (
-        <div
-          className="absolute inset-0 pointer-events-none opacity-10"
-          style={{
-            backgroundImage: `url(${d.backgroundImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-      )}
-      {d?.backgroundType === "webgl" && (
-        <div className="absolute inset-0 pointer-events-none">
-          <WebGLBackground
-            effect={d.webglEffect || "gradient-flow"}
-            intensity={d.webglIntensity ?? 50}
-            baseColor={bgColor}
-          />
+      {/* Animated backgrounds */}
+      {(d?.backgroundType === "paths" || !d?.backgroundType) && (
+        <div className="absolute inset-0 pointer-events-none" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
+          <BackgroundPaths />
         </div>
       )}
-      {d?.backgroundType === "geometric" && (
+      {d?.backgroundType === "aurora" && (
         <div className="absolute inset-0 pointer-events-none">
-          <GeometricBackground
-            theme={d.geometricTheme || "indigo-rose"}
-            intensity={d.geometricIntensity ?? 50}
-          />
+          <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
+        </div>
+      )}
+      {d?.backgroundType === "shaders" && (
+        <div className="absolute inset-0 pointer-events-none">
+          <BackgroundShaders />
         </div>
       )}
 

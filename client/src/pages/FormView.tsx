@@ -88,7 +88,7 @@ function dbFormToFormData(dbForm: any): FormData {
       buttonTextColor: design.buttonTextColor,
       fontFamily: design.fontFamily,
       logoUrl: design.logoUrl,
-      backgroundImage: design.backgroundImage,
+      backgroundType: design.backgroundType || "paths",
     },
     // Pass the database form ID for response submission
     _dbFormId: dbForm.id,

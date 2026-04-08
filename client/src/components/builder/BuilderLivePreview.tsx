@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import type { BuilderQuestion, FormDesignSettings } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
-import { GeometricBackground } from "@/components/ui/geometric-background";
+import { BackgroundPaths } from "@/components/ui/background-paths";
+import { AuroraBackground } from "@/components/ui/aurora-background";
+import { BackgroundShaders } from "@/components/ui/background-shaders";
 
 const _iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
@@ -85,13 +87,20 @@ export function BuilderLivePreview({
               minHeight: "400px",
             }}
           >
-            {/* Geometric background */}
-            {design.backgroundType === "geometric" && (
+            {/* Animated backgrounds */}
+            {(design.backgroundType === "paths" || !design.backgroundType) && (
+              <div className="absolute inset-0 pointer-events-none z-0" style={{ color: "rgba(112, 190, 250, 0.55)" }}>
+                <BackgroundPaths />
+              </div>
+            )}
+            {design.backgroundType === "aurora" && (
               <div className="absolute inset-0 pointer-events-none z-0">
-                <GeometricBackground
-                  theme={design.geometricTheme || "indigo-rose"}
-                  intensity={design.geometricIntensity ?? 50}
-                />
+                <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
+              </div>
+            )}
+            {design.backgroundType === "shaders" && (
+              <div className="absolute inset-0 pointer-events-none z-0">
+                <BackgroundShaders />
               </div>
             )}
             {/* Image if set */}

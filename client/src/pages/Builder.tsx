@@ -525,16 +525,6 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                     aspectRatio: "9/16",
                   }}
                 >
-                  {form.design.backgroundImage && (
-                    <div
-                      className="absolute inset-0 opacity-20 pointer-events-none"
-                      style={{
-                        backgroundImage: `url(${form.design.backgroundImage})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
-                    />
-                  )}
                   <div className="h-full flex flex-col items-center justify-center p-6 text-center relative z-10">
                     {form.design.logoUrl && (
                       <img
@@ -612,16 +602,6 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                       aspectRatio: "9/16",
                     }}
                   >
-                    {form.design.backgroundImage && (
-                      <div
-                        className="absolute inset-0 opacity-20 pointer-events-none"
-                        style={{
-                          backgroundImage: `url(${form.design.backgroundImage})`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                        }}
-                      />
-                    )}
                     <div className="h-full flex flex-col items-center justify-center p-6 text-center relative z-10">
                       {form.design.logoUrl && (
                         <img

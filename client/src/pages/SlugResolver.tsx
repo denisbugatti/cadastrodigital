@@ -105,7 +105,7 @@ export default function SlugResolver() {
         answerColor: design.answerColor ?? "#3B82F6",
         buttonColor: design.buttonColor ?? "#3B82F6",
         buttonTextColor: design.buttonTextColor ?? "#FFFFFF",
-        backgroundImage: design.backgroundImage,
+        backgroundType: design.backgroundType || "paths",
         logoUrl: design.logoUrl,
         logoPosition: design.logoPosition ?? "left",
         roundness: design.roundness ?? "medium",
