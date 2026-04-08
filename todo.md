@@ -1716,3 +1716,8 @@
 - [x] Integrar GeometricBackground no FormContainer para renderização no formulário público
 - [x] Adicionar campos geometricTheme e geometricIntensity ao FormDesignSettings
 - [x] 624 testes passando
+
+## Bug: Fundo geométrico não aparece no preview do editor
+- [x] Investigar por que o preview central do editor mostra apenas fundo preto (#030303) sem as formas animadas
+- [x] Causa raiz: builderToFormData não passava backgroundType, geometricTheme e geometricIntensity para o FormContainer
+- [x] Corrigido: adicionados campos backgroundType, webglEffect, webglIntensity, geometricTheme, geometricIntensity na conversão
