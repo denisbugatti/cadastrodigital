@@ -1681,3 +1681,8 @@
 - [x] Coluna settings na tabela forms + migração aplicada
 - [x] Sync de settings para formulários filhos (templates)
 - [x] Testes unitários (14 testes passando, 618 total)
+
+## Rate limiting SMS
+- [x] Implementar rate limiting: máximo 5 envios por número a cada 10 minutos
+- [x] Retornar mensagem clara ao usuário quando limite for atingido
+- [x] Testes unitários para rate limiting (7 testes de rate limiting, 624 total)

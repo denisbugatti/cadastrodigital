@@ -3134,10 +3134,20 @@ export const appRouter = router({
 
         const result = await sendVerificationCode(input.phone);
         if (!result.success) {
+          if (result.rateLimited) {
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: result.error || "Limite de envios atingido",
+            });
+          }
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Falha ao enviar código SMS" });
         }
 
-        return { success: true, message: "Código enviado com sucesso" };
+        return {
+          success: true,
+          message: "Código enviado com sucesso",
+          remaining: result.remaining ?? 0,
+        };
       }),
 
     /**
