@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { BuilderQuestion, FormDesignSettings } from "@/lib/builderTypes";
 import { questionTypes } from "@/lib/builderTypes";
+import { GeometricBackground } from "@/components/ui/geometric-background";
 
 const _iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   user: User, mail: Mail, phone: Phone, fingerprint: Fingerprint,
@@ -78,12 +79,21 @@ export function BuilderLivePreview({
         >
           {/* Preview card */}
           <div
-            className="rounded-2xl overflow-hidden shadow-xl border border-border"
+            className="rounded-2xl overflow-hidden shadow-xl border border-border relative"
             style={{
               background: design.backgroundColor,
               minHeight: "400px",
             }}
           >
+            {/* Geometric background */}
+            {design.backgroundType === "geometric" && (
+              <div className="absolute inset-0 pointer-events-none z-0">
+                <GeometricBackground
+                  theme={design.geometricTheme || "indigo-rose"}
+                  intensity={design.geometricIntensity ?? 50}
+                />
+              </div>
+            )}
             {/* Image if set */}
             {question.imageUrl && (
               <div className="h-40 overflow-hidden">
@@ -108,7 +118,7 @@ export function BuilderLivePreview({
               </div>
             )}
 
-            <div className={`p-4 sm:p-6 md:p-8 ${isSpecial ? "text-center flex flex-col items-center justify-center min-h-[300px]" : ""}`}>
+            <div className={`p-4 sm:p-6 md:p-8 relative z-10 ${isSpecial ? "text-center flex flex-col items-center justify-center min-h-[300px]" : ""}`}>
               {/* Question number */}
               {!isSpecial && !isStatement && (
                 <div className="flex items-center gap-2 mb-4">

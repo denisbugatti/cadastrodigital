@@ -19,6 +19,7 @@ interface DesignProps {
   fontFamily?: string;
   logoUrl?: string;
   backgroundImage?: string;
+  backgroundType?: string;
 }
 
 export interface WelcomeScreenProps {
@@ -45,7 +46,7 @@ export function WelcomeScreen({ question, onStart, design }: WelcomeScreenProps)
   return (
     <div
       className="w-full h-full flex items-center justify-center relative overflow-hidden"
-      style={{ backgroundColor: bgColor, fontFamily }}
+      style={{ backgroundColor: (design?.backgroundType === 'geometric' || design?.backgroundType === 'webgl') ? 'transparent' : bgColor, fontFamily }}
     >
       {/* Background image overlay if set */}
       {design?.backgroundImage && (

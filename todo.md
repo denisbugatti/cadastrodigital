@@ -1721,3 +1721,10 @@
 - [x] Investigar por que o preview central do editor mostra apenas fundo preto (#030303) sem as formas animadas
 - [x] Causa raiz: builderToFormData não passava backgroundType, geometricTheme e geometricIntensity para o FormContainer
 - [x] Corrigido: adicionados campos backgroundType, webglEffect, webglIntensity, geometricTheme, geometricIntensity na conversão
+
+## Bug: Formas geométricas animadas não aparecem no preview (só fundo preto)
+- [x] Investigar por que as formas animadas do GeometricBackground não renderizam no preview
+- [x] Causa raiz: WelcomeScreen e ThankYouScreen tinham backgroundColor opaco cobrindo o GeometricBackground
+- [x] Corrigido: WelcomeScreen e ThankYouScreen usam bg transparent quando backgroundType é geometric/webgl
+- [x] Corrigido: BuilderLivePreview agora renderiza GeometricBackground no card de preview central com z-index adequado
+- [x] 635 testes passando

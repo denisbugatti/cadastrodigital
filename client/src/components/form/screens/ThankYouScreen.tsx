@@ -17,6 +17,7 @@ interface DesignProps {
   fontFamily?: string;
   logoUrl?: string;
   backgroundImage?: string;
+  backgroundType?: string;
 }
 
 export interface ThankYouScreenProps {
@@ -80,7 +81,7 @@ export function ThankYouScreen({ question, design, protocolCode, totalScore: _to
   return (
     <div
       className="w-full h-full flex items-center justify-center relative overflow-hidden"
-      style={{ backgroundColor: bgColor, fontFamily }}
+      style={{ backgroundColor: (design?.backgroundType === 'geometric' || design?.backgroundType === 'webgl') ? 'transparent' : bgColor, fontFamily }}
     >
       {/* Logo top-left */}
       {logoUrl && (
