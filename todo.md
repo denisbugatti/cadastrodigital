@@ -1670,3 +1670,14 @@
 - [x] Investigar formulários duplicados por corretor (não havia duplicação — era a UI de vinculação)
 - [x] Remover notificação Manus (notifyOwner) do owner — manter apenas webapp (in-app + push)
 - [x] Atribuir Denis Bugatti (id=1) como gerente (managerId) de todos os 17 corretores
+
+## Validação de telefone por SMS (Twilio Verify)
+- [x] Configurar credenciais Twilio (Account SID, Auth Token, Verify Service SID)
+- [x] Instalar SDK do Twilio
+- [x] Backend: endpoint para enviar código OTP via SMS
+- [x] Backend: endpoint para verificar código OTP
+- [x] Frontend: UI de verificação SMS no campo de telefone do formulário
+- [x] Configuração no Builder: toggle "Validar telefone por SMS" (aba Compartilhar > Segurança)
+- [x] Coluna settings na tabela forms + migração aplicada
+- [x] Sync de settings para formulários filhos (templates)
+- [x] Testes unitários (14 testes passando, 618 total)

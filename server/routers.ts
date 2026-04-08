@@ -23,6 +23,7 @@ import { getOrCreateOwnerUser } from "./ownerUser";
 import { logAudit, AUDIT_ACTIONS } from "./auditLog";
 import { dispatchIntegrations } from "./integrationDispatcher";
 import * as googleOAuth from "./googleOAuthService";
+import { sendVerificationCode, checkVerificationCode } from "./smsVerification";
 
 /**
  * ownerFallbackProcedure:
@@ -758,6 +759,7 @@ export const appRouter = router({
         design: z.any().optional(),
         webhook: z.any().optional(),
         sharing: z.any().optional(),
+        settings: z.any().optional(),
         workspaceId: z.string().nullable().optional(),
         status: z.enum(["draft", "published", "closed"]).optional(),
         color: z.string().optional(),
@@ -805,6 +807,7 @@ export const appRouter = router({
         if (data.webhook !== undefined) syncableFields.webhook = data.webhook;
         if (data.color !== undefined) syncableFields.color = data.color;
         if (data.status !== undefined) syncableFields.status = data.status;
+        if (data.settings !== undefined) syncableFields.settings = data.settings;
 
         let syncedCount = 0;
         if (Object.keys(syncableFields).length > 0) {
@@ -3104,9 +3107,62 @@ export const appRouter = router({
           : ctx.user?.id ?? 0;
         return googleOAuth.createSpreadsheet(staffUserId, input.title);
       }),
+   }),
+
+  // ─── SMS Phone Verification (Twilio Verify) ───
+  smsVerify: router({
+    /**
+     * Send a verification code via SMS to the given phone number.
+     * Public endpoint — called from the form by respondents.
+     */
+    sendCode: publicProcedure
+      .input(z.object({
+        phone: z.string().min(8, "Número de telefone inválido"),
+        formId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        // Verify the form has SMS verification enabled
+        const form = await db.getFormById(input.formId);
+        if (!form) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formulário não encontrado" });
+        }
+
+        const settings = form.settings ? (typeof form.settings === "string" ? JSON.parse(form.settings) : form.settings) : {};
+        if (!settings.smsVerification) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Verificação por SMS não está habilitada neste formulário" });
+        }
+
+        const result = await sendVerificationCode(input.phone);
+        if (!result.success) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Falha ao enviar código SMS" });
+        }
+
+        return { success: true, message: "Código enviado com sucesso" };
+      }),
+
+    /**
+     * Check a verification code submitted by the respondent.
+     */
+    checkCode: publicProcedure
+      .input(z.object({
+        phone: z.string().min(8, "Número de telefone inválido"),
+        code: z.string().length(6, "Código deve ter 6 dígitos"),
+        formId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await checkVerificationCode(input.phone, input.code);
+        if (!result.success) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Falha ao verificar código" });
+        }
+
+        if (!result.valid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Código inválido ou expirado" });
+        }
+
+        return { success: true, valid: true, message: "Número verificado com sucesso" };
+      }),
   }),
 });
-
 export type AppRouter = typeof appRouter;
 
 

@@ -120,6 +120,12 @@ export default function SlugResolver() {
           tiktokPixel: { enabled: !!t.tiktokPixel?.enabled, pixelId: t.tiktokPixel?.pixelId ?? '' },
         };
       })(),
+      settings: (() => {
+        const s = dbForm.settings ? (typeof dbForm.settings === 'string' ? JSON.parse(dbForm.settings as string) : dbForm.settings) : {};
+        return {
+          smsVerification: !!s.smsVerification,
+        };
+      })(),
       _dbFormId: dbForm.id,
     };
   }, [dbForm]);

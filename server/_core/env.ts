@@ -11,4 +11,7 @@ export const ENV = {
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
+  twilioVerifyServiceSid: process.env.TWILIO_VERIFY_SERVICE_SID ?? "",
 };

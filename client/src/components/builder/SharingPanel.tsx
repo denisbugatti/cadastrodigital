@@ -11,10 +11,13 @@ import {
   Copy, Check, ExternalLink, Facebook, Twitter, Linkedin,
   Code, Monitor, Maximize, MousePointer, Layers,
   CheckCircle2, XCircle, Loader2, Globe, ImageIcon, Upload, X,
+  ShieldCheck, Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import type { SharingSettings, EmbedMode, FormDesignSettings } from "@/lib/builderTypes";
+import type { SharingSettings, EmbedMode, FormDesignSettings, FormSettings } from "@/lib/builderTypes";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface SharingPanelProps {
   sharing: SharingSettings;
@@ -23,6 +26,8 @@ interface SharingPanelProps {
   onUpdate: (updates: Partial<SharingSettings>) => void;
   design: FormDesignSettings;
   onUpdateDesign: (updates: Partial<FormDesignSettings>) => void;
+  settings?: FormSettings;
+  onUpdateSettings?: (updates: Partial<FormSettings>) => void;
 }
 
 const embedModes: { id: EmbedMode; label: string; icon: typeof Monitor; description: string }[] = [
@@ -32,7 +37,7 @@ const embedModes: { id: EmbedMode; label: string; icon: typeof Monitor; descript
   { id: "button-popup", label: "Botão para janela", icon: Layers, description: "Botão que abre popup" },
 ];
 
-export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onUpdateDesign }: SharingPanelProps) {
+export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onUpdateDesign, settings, onUpdateSettings }: SharingPanelProps) {
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showCode, setShowCode] = useState(false);
@@ -657,6 +662,40 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
               </div>
             </motion.div>
           )}
+        </motion.div>
+
+        {/* ── Segurança ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="border border-border rounded-2xl p-5 bg-card"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <ShieldCheck size={18} className="text-brand" />
+            <h3 className="text-sm font-semibold text-foreground">Segurança</h3>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Smartphone size={16} className="text-emerald-500" />
+              </div>
+              <div>
+                <Label htmlFor="sms-verification" className="text-sm font-medium text-foreground cursor-pointer">
+                  Validação por SMS
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Envia código de verificação para confirmar o telefone
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="sms-verification"
+              checked={settings?.smsVerification ?? false}
+              onCheckedChange={(checked) => onUpdateSettings?.({ smsVerification: checked })}
+            />
+          </div>
         </motion.div>
       </div>
     </div>

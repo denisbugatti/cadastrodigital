@@ -138,6 +138,10 @@ export interface FormData {
     facebookPixel?: { enabled: boolean; pixelId: string };
     tiktokPixel?: { enabled: boolean; pixelId: string };
   };
+  /** Form settings (from database) */
+  settings?: {
+    smsVerification?: boolean;
+  };
   /** Database form ID for response submission (internal use) */
   _dbFormId?: number;
 }

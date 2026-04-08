@@ -50,6 +50,9 @@ interface QuestionRendererProps {
     logoUrl?: string;
     backgroundImage?: string;
   };
+  /** SMS verification settings */
+  smsVerification?: boolean;
+  formId?: number;
 }
 
 export function QuestionRenderer({
@@ -63,6 +66,8 @@ export function QuestionRenderer({
   protocolCode,
   totalScore,
   design,
+  smsVerification,
+  formId,
 }: QuestionRendererProps) {
   // Special screens (no header)
   if (question.type === "welcome") {
@@ -108,6 +113,8 @@ export function QuestionRenderer({
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
             error={validationError}
+            smsVerification={smsVerification}
+            formId={formId}
           />
         );
 

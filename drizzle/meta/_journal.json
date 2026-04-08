@@ -204,6 +204,13 @@
       "when": 1774575570748,
       "tag": "0028_strong_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "5",
+      "when": 1775608757770,
+      "tag": "0029_cool_nightshade",
+      "breakpoints": true
     }
   ]
 }

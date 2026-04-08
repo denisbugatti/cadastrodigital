@@ -18,6 +18,7 @@ import {
   createEmptyForm,
 } from "@/lib/builderTypes";
 import { saveForm, saveFormWithVersion, loadForm, getVersionHistory, restoreVersion, deleteVersion, exportFormAsJSON, type FormVersion } from "@/lib/formStorage";
+import type { FormSettings } from "@/lib/builderTypes";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 
@@ -75,6 +76,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
         design: formData.design,
         webhook: formData.webhook,
         sharing: formData.sharing,
+        settings: formData.settings,
         workspaceId: formData.workspaceId,
       }, {
         onSuccess: (result) => {
@@ -416,6 +418,18 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
     []
   );
 
+  // Update form settings (smsVerification, etc.)
+  const updateSettings = useCallback(
+    (updates: Partial<FormSettings>) => {
+      setForm((prev) => ({
+        ...prev,
+        settings: { ...(prev.settings || {}), ...updates },
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    []
+  );
+
   // Choice management
   const addChoice = useCallback(
     (questionId: string) => {
@@ -529,6 +543,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
     updateDesign,
     updateWebhook,
     updateSharing,
+    updateSettings,
     addChoice,
     updateChoice,
     removeChoice,

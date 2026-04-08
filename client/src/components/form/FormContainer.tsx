@@ -541,6 +541,8 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
                   protocolCode={protocolCode}
                   totalScore={totalScore}
                   design={form.design}
+                  smsVerification={form.settings?.smsVerification}
+                  formId={form._dbFormId}
                 />
               </div>
             ) : (
@@ -580,6 +582,8 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
                       onAutoAdvance={handleAutoAdvance}
                       validationError={validationError}
                       design={form.design}
+                      smsVerification={form.settings?.smsVerification}
+                      formId={form._dbFormId}
                     />
                     {/* Validation error banner */}
                     <AnimatePresence>

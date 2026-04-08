@@ -176,6 +176,8 @@ export const forms = mysqlTable("forms", {
   parentFormId: int("parentFormId"),
   /** Whether this form is a template (protected from editing by gerentes) */
   isTemplate: boolean("isTemplate").default(false).notNull(),
+  /** Form-level settings (smsVerification, etc.) */
+  settings: json("settings").$type<Record<string, any>>(),
   /** Staff user who created this form (staff_users.id) — null means created by master/owner */
   createdByStaffId: int("createdByStaffId"),
   /** Last seen response count — used to calculate unread badge */

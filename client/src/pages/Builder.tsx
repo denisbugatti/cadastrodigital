@@ -76,6 +76,7 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
     updateDesign,
     updateWebhook,
     updateSharing,
+    updateSettings,
     addChoice,
     updateChoice,
     removeChoice,
@@ -596,6 +597,8 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                   onUpdate={updateSharing}
                   design={form.design}
                   onUpdateDesign={updateDesign}
+                  settings={form.settings}
+                  onUpdateSettings={updateSettings}
                 />
               </div>
 

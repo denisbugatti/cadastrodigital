@@ -143,6 +143,7 @@ function dbFormToBuilderForm(dbForm: any): BuilderForm {
       embedButtonText: dbSharing.embedButtonText ?? defaultSharingSettings.embedButtonText,
       embedButtonColor: dbSharing.embedButtonColor ?? defaultSharingSettings.embedButtonColor,
     },
+    settings: dbForm.settings ? (typeof dbForm.settings === 'string' ? JSON.parse(dbForm.settings) : dbForm.settings) : {},
     workspaceId: dbForm.workspaceId ?? null,
     createdAt: dbForm.createdAt ? new Date(dbForm.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: dbForm.updatedAt ? new Date(dbForm.updatedAt).toISOString() : new Date().toISOString(),

@@ -301,9 +301,14 @@ export interface BuilderForm {
   design: FormDesignSettings;
   webhook: WebhookSettings;
   sharing: SharingSettings;
+  settings?: FormSettings;
   workspaceId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FormSettings {
+  smsVerification?: boolean;
 }
 
 // ─── Category Data ───
