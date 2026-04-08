@@ -90,6 +90,7 @@ export default function SlugResolver() {
             scoreRules: (q.conditionalLogic.scoreRules ?? []).map((sr: any) => ({ ...sr })),
           }
         : { enabled: false, branches: [], rules: [], scoreRules: [] },
+      smsVerification: q.smsVerification ?? false,
     }));
     const design = (dbForm.design ?? {}) as any;
     return {

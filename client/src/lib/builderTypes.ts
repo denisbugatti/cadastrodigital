@@ -167,6 +167,8 @@ export interface BuilderQuestion {
     city: boolean;
     state: boolean;
   };
+  // SMS verification for phone questions
+  smsVerification?: boolean;
 }
 
 export interface BuilderChoice {

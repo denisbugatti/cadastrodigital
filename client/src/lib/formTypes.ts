@@ -107,6 +107,8 @@ export interface Question {
     }>;
     defaultGoTo?: string;
   };
+  // SMS verification for phone questions
+  smsVerification?: boolean;
 }
 
 export interface FormData {

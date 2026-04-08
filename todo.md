@@ -1698,3 +1698,11 @@
 - [x] Nome e CPF/CNPJ do corretor atribuído preenchidos dinamicamente
 - [x] Campos duplicados (set 2) também preenchidos
 - [x] 624 testes passando
+
+## Verificação SMS por pergunta de telefone
+- [x] Adicionar toggle "Verificar por SMS" no BuilderConfigPanel para perguntas tipo phone
+- [x] Salvar config smsVerification no objeto da pergunta (question.smsVerification)
+- [x] Adaptar PhoneInput para ler smsVerification da pergunta com fallback para form settings
+- [x] Adicionar smsVerification às interfaces Question e BuilderQuestion
+- [x] Incluir smsVerification na conversão do SlugResolver
+- [x] 624 testes passando

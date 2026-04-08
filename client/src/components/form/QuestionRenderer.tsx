@@ -113,7 +113,7 @@ export function QuestionRenderer({
             value={(value as string) || ""}
             onChange={(v) => onChange(v)}
             error={validationError}
-            smsVerification={smsVerification}
+            smsVerification={question.smsVerification ?? smsVerification}
             formId={formId}
           />
         );

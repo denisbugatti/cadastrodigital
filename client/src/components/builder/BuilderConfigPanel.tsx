@@ -194,6 +194,20 @@ export function BuilderConfigPanel({
                       onCheckedChange={(checked) => onUpdate(question.id, { required: checked })}
                     />
                   </div>
+
+                  {/* SMS Verification toggle for phone questions */}
+                  {question.type === "phone" && (
+                    <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
+                      <Label className="text-sm font-body text-foreground flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-muted-foreground" />
+                        Verificar por SMS
+                      </Label>
+                      <Switch
+                        checked={question.smsVerification ?? false}
+                        onCheckedChange={(checked) => onUpdate(question.id, { smsVerification: checked })}
+                      />
+                    </div>
+                  )}
                 </>
               )}
 
