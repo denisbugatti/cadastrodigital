@@ -1913,7 +1913,7 @@ export const appRouter = router({
 
   // ─── Push Notifications ───
   push: router({
-    subscribe: staffAnyProcedure
+    subscribe: ownerFallbackProcedure
       .input(z.object({
         endpoint: z.string(),
         p256dh: z.string(),
@@ -1951,7 +1951,7 @@ export const appRouter = router({
         return { success: true, updated: result.updated };
       }),
 
-    unsubscribe: staffAnyProcedure
+    unsubscribe: ownerFallbackProcedure
       .input(z.object({
         endpoint: z.string(),
       }))
@@ -1966,7 +1966,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    status: staffAnyProcedure
+    status: ownerFallbackProcedure
       .query(async ({ ctx }) => {
         const session = ctx.customSession as any;
         // Staff users: check staff_push_subscriptions

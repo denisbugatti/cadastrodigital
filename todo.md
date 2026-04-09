@@ -1783,3 +1783,9 @@
 - [x] Aplicar efeito no botão da StatementScreen baseado no inputStyle
 - [x] BuilderLivePreview preview do botão também usa inputStyle
 - [x] Atualizar builderToForm, FormView, SlugResolver para passar backgroundColors
+
+## Fix: Notificações push não chegando ao owner
+- [x] Identificar causa raiz: push.subscribe/unsubscribe/status usavam staffAnyProcedure que bloqueava o owner sem sessão staff
+- [x] Corrigir push.subscribe para usar ownerFallbackProcedure (aceita owner sem login Manus OAuth)
+- [x] Corrigir push.unsubscribe para usar ownerFallbackProcedure
+- [x] Corrigir push.status para usar ownerFallbackProcedure
