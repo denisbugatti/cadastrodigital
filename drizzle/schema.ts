@@ -182,6 +182,8 @@ export const forms = mysqlTable("forms", {
   createdByStaffId: int("createdByStaffId"),
   /** Last seen response count — used to calculate unread badge */
   lastSeenResponseCount: int("lastSeenResponseCount").default(0).notNull(),
+  /** Soft delete — null means active, timestamp means moved to trash */
+  deletedAt: timestamp("deletedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -219,6 +221,8 @@ export const formResponses = mysqlTable("form_responses", {
   lastActivityAt: timestamp("lastActivityAt").defaultNow(),
   /** When the abandonment notification was sent to the corretor */
   abandonmentNotifiedAt: timestamp("abandonmentNotifiedAt"),
+  /** Soft delete — null means active, timestamp means moved to trash */
+  deletedAt: timestamp("deletedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

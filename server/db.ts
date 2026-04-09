@@ -232,13 +232,13 @@ export async function createForm(data: InsertForm) {
 
 export async function getFormsByUser(userId: number) {
   return withDbRetry(async (db) => {
-    return db.select().from(forms).where(eq(forms.userId, userId)).orderBy(desc(forms.updatedAt));
+    return db.select().from(forms).where(and(eq(forms.userId, userId), isNull(forms.deletedAt))).orderBy(desc(forms.updatedAt));
   });
 }
 
 export async function getFormBySlug(slug: string) {
   return withDbRetry(async (db) => {
-    const result = await db.select().from(forms).where(eq(forms.slug, slug)).limit(1);
+    const result = await db.select().from(forms).where(and(eq(forms.slug, slug), isNull(forms.deletedAt))).limit(1);
     return result[0] ?? null;
   });
 }
@@ -256,12 +256,82 @@ export async function updateForm(id: number, data: Partial<InsertForm>) {
   });
 }
 
+/** Soft delete — moves form to trash (sets deletedAt). Also soft-deletes its responses. */
 export async function deleteForm(id: number) {
+  return withDbRetry(async (db) => {
+    const now = new Date();
+    await db.update(formResponses).set({ deletedAt: now }).where(eq(formResponses.formId, id));
+    await db.update(forms).set({ deletedAt: now }).where(eq(forms.id, id));
+  });
+}
+
+/** Permanently delete a form and all its related data (versions, responses, files). */
+export async function permanentDeleteForm(id: number) {
   return withDbRetry(async (db) => {
     await db.delete(formVersions).where(eq(formVersions.formId, id));
     await db.delete(formResponses).where(eq(formResponses.formId, id));
     await db.delete(files).where(eq(files.formId, id));
     await db.delete(forms).where(eq(forms.id, id));
+  });
+}
+
+/** Restore a soft-deleted form (and its responses). */
+export async function restoreForm(id: number) {
+  return withDbRetry(async (db) => {
+    await db.update(forms).set({ deletedAt: null }).where(eq(forms.id, id));
+    await db.update(formResponses).set({ deletedAt: null }).where(eq(formResponses.formId, id));
+  });
+}
+
+/** Soft delete a single response. */
+export async function softDeleteResponse(id: number) {
+  return withDbRetry(async (db) => {
+    await db.update(formResponses).set({ deletedAt: new Date() }).where(eq(formResponses.id, id));
+  });
+}
+
+/** Restore a soft-deleted response. */
+export async function restoreResponse(id: number) {
+  return withDbRetry(async (db) => {
+    await db.update(formResponses).set({ deletedAt: null }).where(eq(formResponses.id, id));
+  });
+}
+
+/** Permanently delete a single response and its files. */
+export async function permanentDeleteResponse(id: number) {
+  return withDbRetry(async (db) => {
+    await db.delete(files).where(eq(files.responseId, id));
+    await db.delete(formResponses).where(eq(formResponses.id, id));
+  });
+}
+
+/** Get all soft-deleted forms for the trash view. */
+export async function getTrashedForms(userId: number) {
+  return withDbRetry(async (db) => {
+    return db.select().from(forms).where(and(eq(forms.userId, userId), isNotNull(forms.deletedAt))).orderBy(desc(forms.deletedAt));
+  });
+}
+
+/** Get all soft-deleted responses for the trash view. */
+export async function getTrashedResponses(userId: number) {
+  return withDbRetry(async (db) => {
+    return db.select({
+      id: formResponses.id,
+      formId: formResponses.formId,
+      respondentName: formResponses.respondentName,
+      respondentEmail: formResponses.respondentEmail,
+      protocolCode: formResponses.protocolCode,
+      isComplete: formResponses.isComplete,
+      deletedAt: formResponses.deletedAt,
+      createdAt: formResponses.createdAt,
+      formTitle: forms.title,
+    }).from(formResponses)
+      .leftJoin(forms, eq(formResponses.formId, forms.id))
+      .where(and(
+        eq(forms.userId, userId),
+        isNotNull(formResponses.deletedAt),
+      ))
+      .orderBy(desc(formResponses.deletedAt));
   });
 }
 
@@ -364,7 +434,8 @@ export async function getMainPublishedForm(userId: number) {
           eq(forms.userId, userId),
           eq(forms.status, "published"),
           isNull(forms.assignedCorretorId),
-          isNull(forms.parentFormId)
+          isNull(forms.parentFormId),
+          isNull(forms.deletedAt)
         )
       )
       .orderBy(forms.createdAt)
@@ -457,19 +528,20 @@ export async function createResponse(data: InsertFormResponse) {
 
 export async function getResponsesByForm(formId: number) {
   return withDbRetry(async (db) => {
-    return db.select().from(formResponses).where(eq(formResponses.formId, formId)).orderBy(desc(formResponses.createdAt));
+    return db.select().from(formResponses).where(and(eq(formResponses.formId, formId), isNull(formResponses.deletedAt))).orderBy(desc(formResponses.createdAt));
   });
 }
 
 export async function getResponsesByFormWithSearch(formId: number, search?: string) {
   return withDbRetry(async (db) => {
+    const baseFilter = and(eq(formResponses.formId, formId), isNull(formResponses.deletedAt));
     if (!search || search.trim() === "") {
-      return db.select().from(formResponses).where(eq(formResponses.formId, formId)).orderBy(desc(formResponses.createdAt));
+      return db.select().from(formResponses).where(baseFilter).orderBy(desc(formResponses.createdAt));
     }
     const term = `%${search.trim()}%`;
     return db.select().from(formResponses).where(
       and(
-        eq(formResponses.formId, formId),
+        baseFilter,
         or(
           like(formResponses.protocolCode, term),
           like(formResponses.respondentName, term),
@@ -495,7 +567,7 @@ export async function getResponsesByCpfCnpj(cpfCnpj: string) {
       formSlug: forms.slug,
     }).from(formResponses)
       .leftJoin(forms, eq(formResponses.formId, forms.id))
-      .where(eq(formResponses.respondentCpfCnpj, cpfCnpj))
+      .where(and(eq(formResponses.respondentCpfCnpj, cpfCnpj), isNull(formResponses.deletedAt)))
       .orderBy(desc(formResponses.createdAt));
   });
 }
@@ -986,6 +1058,8 @@ export async function getIncompleteResponsesForFollowUp(minAgeHours: number = 24
         isNotNull(formResponses.respondentEmail),
         lte(formResponses.createdAt, cutoff),
         eq(forms.status, "published"),
+        isNull(formResponses.deletedAt),
+        isNull(forms.deletedAt),
       )
     )
     .limit(100);

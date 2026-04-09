@@ -26,6 +26,7 @@ import CorretorDashboard from "./pages/CorretorDashboard";
 import CorretorSettings from "./pages/CorretorSettings";
 import FormCopiesManagement from "./pages/FormCopiesManagement";
 import AuditLog from "./pages/AuditLog";
+import Trash from "./pages/Trash";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 
 function Router() {
@@ -101,6 +102,12 @@ function Router() {
         <OwnerRoute>
           <AppLayout><AuditLog /></AppLayout>
         </OwnerRoute>
+      </Route>
+      {/* Lixeira (soft-deleted items) */}
+      <Route path={"/lixeira"}>
+        <AdminRoute>
+          <Trash />
+        </AdminRoute>
       </Route>
 
       {/* ─── Corretor routes (accessible by all staff) ─── */}

@@ -3220,6 +3220,74 @@ export const appRouter = router({
         return { success: true, valid: true, message: "Número verificado com sucesso" };
       }),
   }),
+  // ─── Trash (Soft Delete Recovery) ───
+  trash: router({
+    list: ownerFallbackProcedure.query(async ({ ctx }) => {
+      const [trashedForms, trashedResponses] = await Promise.all([
+        db.getTrashedForms(ctx.user.id),
+        db.getTrashedResponses(ctx.user.id),
+      ]);
+      return { forms: trashedForms, responses: trashedResponses };
+    }),
+    restoreForm: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.id);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formul\u00e1rio n\u00e3o encontrado" });
+        }
+        await db.restoreForm(input.id);
+        return { success: true };
+      }),
+    restoreResponse: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.id);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta n\u00e3o encontrada" });
+        }
+        await db.restoreResponse(input.id);
+        return { success: true };
+      }),
+    permanentDeleteForm: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.id);
+        if (!form || form.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Formul\u00e1rio n\u00e3o encontrado" });
+        }
+        if (!form.deletedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Formul\u00e1rio precisa estar na lixeira para exclus\u00e3o definitiva" });
+        }
+        await db.permanentDeleteForm(input.id);
+        return { success: true };
+      }),
+    permanentDeleteResponse: ownerFallbackProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.id);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta n\u00e3o encontrada" });
+        }
+        if (!response.deletedAt) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Resposta precisa estar na lixeira para exclus\u00e3o definitiva" });
+        }
+        await db.permanentDeleteResponse(input.id);
+        return { success: true };
+      }),
+    emptyTrash: ownerFallbackProcedure
+      .mutation(async ({ ctx }) => {
+        const trashedForms = await db.getTrashedForms(ctx.user.id);
+        const trashedResponses = await db.getTrashedResponses(ctx.user.id);
+        for (const r of trashedResponses) {
+          await db.permanentDeleteResponse(r.id);
+        }
+        for (const f of trashedForms) {
+          await db.permanentDeleteForm(f.id);
+        }
+        return { success: true, deletedForms: trashedForms.length, deletedResponses: trashedResponses.length };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;
 

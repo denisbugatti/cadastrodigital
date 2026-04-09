@@ -1789,3 +1789,16 @@
 - [x] Corrigir push.subscribe para usar ownerFallbackProcedure (aceita owner sem login Manus OAuth)
 - [x] Corrigir push.unsubscribe para usar ownerFallbackProcedure
 - [x] Corrigir push.status para usar ownerFallbackProcedure
+
+## Feature: Soft Delete (Lixeira) para formulários e respostas
+- [x] Adicionar campos deletedAt (timestamp) nas tabelas forms e form_responses
+- [x] Migrar banco de dados (pnpm db:push)
+- [x] Atualizar todas as queries para filtrar itens com deletedAt IS NULL
+- [x] Alterar procedures de exclusão para soft delete (setar deletedAt em vez de DELETE)
+- [x] Criar procedures de restauração (trash.restoreForm, trash.restoreResponse)
+- [x] Criar procedure de exclusão definitiva (trash.permanentDeleteForm, trash.permanentDeleteResponse)
+- [x] Criar procedure para listar itens na lixeira (trash.list) + emptyTrash
+- [x] Implementar página Lixeira (/lixeira) com abas Formulários/Respostas
+- [x] Adicionar link da Lixeira no sidebar do Dashboard
+- [x] Atualizar diálogo de exclusão para mencionar "Mover para Lixeira"
+- [x] Testes unitários para soft delete e restauração (11 testes passando)

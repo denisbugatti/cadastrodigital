@@ -534,8 +534,8 @@ export default function Dashboard() {
     try {
       await deleteFormMutation.mutateAsync({ id: form.id });
       setDeleteTarget(null);
-      toast.success("Formulário excluído", {
-        description: `"${form.title}" foi removido com sucesso.`,
+      toast.success("Movido para a Lixeira", {
+        description: `"${form.title}" foi movido para a lixeira. Você pode restaurá-lo a qualquer momento.`,
       });
     } catch (_err) {
       toast.error("Erro ao excluir formulário");
@@ -965,6 +965,15 @@ export default function Dashboard() {
                   <span className="flex-1 text-left">Configurações</span>
                 </button>
               </Link>
+              <Link href="/lixeira">
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-body font-medium text-foreground hover:bg-secondary border border-transparent transition-all duration-150"
+                >
+                  <Trash2 size={16} className="text-muted-foreground" />
+                  <span className="flex-1 text-left">Lixeira</span>
+                </button>
+              </Link>
             </div>
 
             {/* Create folder */}
@@ -1294,7 +1303,7 @@ export default function Dashboard() {
                   Este formulário possui {deleteTarget.responseCount} resposta{deleteTarget.responseCount !== 1 ? "s" : ""}.
                 </span>
               )}
-              <span className="block mt-2 text-sm">Esta ação não pode ser desfeita.</span>
+              <span className="block mt-2 text-sm">O formulário será movido para a Lixeira e poderá ser restaurado.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-2">
@@ -1304,7 +1313,7 @@ export default function Dashboard() {
               className="bg-red-500 hover:bg-red-600 text-white font-body font-semibold rounded-xl px-5 shadow-sm"
             >
               <Trash2 size={15} className="mr-1.5" />
-              Excluir
+              Mover para Lixeira
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
