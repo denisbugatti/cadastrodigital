@@ -1841,3 +1841,8 @@
 - [x] Função broadcastPushToAllStaff em pushNotification.ts (getAllActiveStaffPushSubscriptions + loop)
 - [x] getAllActiveStaffPushSubscriptions em db.ts para buscar todas as subscriptions ativas
 - [x] 692 testes passando
+
+## Feature: Badge "Sem CPF/CNPJ" nos cards de corretores
+- [x] Exibir badge laranja "Sem CPF/CNPJ" nos cards de corretores sem documento cadastrado (clícavel abre modal de edição)
+- [x] Badge visível apenas para corretores sem cpfCnpj (role === 'corretor' && !cpfCnpj)
+- [x] Contador "X sem CPF/CNPJ" no cabeçalho da seção de membros (aparece apenas quando > 0)

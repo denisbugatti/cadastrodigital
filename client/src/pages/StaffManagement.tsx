@@ -730,10 +730,19 @@ function MembrosTab({
     <>
       {/* Staff List */}
       <div className="bg-card rounded-xl border border-border overflow-hidden mb-8">
-        <div className="px-6 py-4 border-b border-border">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">
             Membros da equipe ({staff.length})
           </h2>
+          {(() => {
+            const missingCount = staff.filter((m: any) => m.role === 'corretor' && !m.cpfCnpj).length;
+            return missingCount > 0 ? (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-500 font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+                {missingCount} sem CPF/CNPJ
+              </span>
+            ) : null;
+          })()}
         </div>
 
         {staffQuery.isLoading ? (
@@ -766,6 +775,15 @@ function MembrosTab({
                         {!member.active && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 font-medium">
                             Inativo
+                          </span>
+                        )}
+                        {member.role === 'corretor' && !member.cpfCnpj && (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 font-medium cursor-pointer hover:bg-orange-500/20 transition-colors"
+                            title="Clique em Editar para adicionar o CPF/CNPJ"
+                            onClick={() => setEditingUser({ ...member })}
+                          >
+                            Sem CPF/CNPJ
                           </span>
                         )}
                       </div>
