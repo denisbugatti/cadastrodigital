@@ -286,15 +286,44 @@ function fillProtocoloFields(
   setField("Nome_Corretor", input.corretorName || "");
   setField("CPF_Corretor", input.corretorCpf || "");
 
-  // Duplicate fields (second set)
-  setField("Nome_Diretor2", "BERTOLOTTI");
-  setField("CPF_Diretor2", "126.382.178-24");
-  setField("Nome_Superintendente2", "COUTINHO");
-  setField("CPF_Superintendente2", "30.937.703/0001-01");
-  setField("Nome_Gerente2", "Denis");
-  setField("CPF_Gerente2", "48.246.674/0001-05");
-  setField("Nome_Corretor2", input.corretorName || "");
-  setField("CPF_Corretor2", input.corretorCpf || "");
+  // Remove second table fields (FIFTY section) entirely
+  const fieldsToRemove = [
+    "Nome_Diretor2", "CPF_Diretor2",
+    "Nome_Superintendente2", "CPF_Superintendente2",
+    "Nome_Gerente2", "CPF_Gerente2",
+    "Nome_Corretor2", "CPF_Corretor2",
+  ];
+  for (const fieldName of fieldsToRemove) {
+    try {
+      const field = form.getTextField(fieldName);
+      form.removeField(field);
+    } catch {
+      // Field doesn't exist, skip
+    }
+  }
+}
+
+/**
+ * Cover the second "FIFTY" table on page 1 with a white rectangle.
+ * The table spans from Y ~210 ("EM CASO DE FIFTY" text) down to Y ~90.
+ * Page coordinates: A4 = 595.32 x 841.92, origin at bottom-left.
+ */
+function coverSecondTable(doc: PDFDocument) {
+  try {
+    const page = doc.getPage(0);
+    // Draw white rectangle over the second table area
+    // From the field analysis: second table fields span Y 98 to 210 approx
+    // We cover from x=30 to x=570 (full width with margins), y=70 to y=222
+    page.drawRectangle({
+      x: 30,
+      y: 70,
+      width: 540,
+      height: 152,
+      color: rgb(1, 1, 1), // white
+    });
+  } catch (err) {
+    console.warn("[PDF] Failed to cover second table:", err);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -338,6 +367,9 @@ async function generatePfPdf(input: GeneratePdfInput): Promise<Uint8Array> {
 
   // ── Fill Protocolo de Entrada (Page 1) ──
   fillProtocoloFields(form, input);
+
+  // Cover the second table ("EM CASO DE FIFTY") with a white rectangle on page 1
+  coverSecondTable(doc);
 
   // ── Fill Ficha PF (Page 2) ──
 
@@ -535,6 +567,9 @@ async function generatePjPdf(input: GeneratePdfInput): Promise<Uint8Array> {
 
   // ── Fill Protocolo de Entrada (Page 1) ──
   fillProtocoloFields(form, input);
+
+  // Cover the second table ("EM CASO DE FIFTY") with a white rectangle on page 1
+  coverSecondTable(doc);
 
   // ── Fill Ficha PJ (Page 2) ──
 

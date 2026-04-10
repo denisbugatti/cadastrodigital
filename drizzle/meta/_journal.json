@@ -225,6 +225,13 @@
       "when": 1775745113181,
       "tag": "0031_clammy_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1775841400325,
+      "tag": "0032_great_johnny_storm",
+      "breakpoints": true
     }
   ]
 }

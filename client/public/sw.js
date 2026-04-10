@@ -69,13 +69,35 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Cadastro Digital', options)
+    (async () => {
+      // Show the notification
+      await self.registration.showNotification(payload.title || 'Cadastro Digital', options);
+      // Update PWA badge with unread count if available
+      if (navigator.setAppBadge) {
+        try {
+          const badgeCount = payload.data?.badgeCount;
+          if (typeof badgeCount === 'number' && badgeCount > 0) {
+            await navigator.setAppBadge(badgeCount);
+          } else {
+            // Increment: just set a generic badge indicator
+            await navigator.setAppBadge();
+          }
+        } catch (e) {
+          // setAppBadge not supported or failed silently
+        }
+      }
+    })()
   );
 });
 
 // Notification click: open the app or focus existing window
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  // Clear PWA badge when user interacts with notification
+  if (navigator.clearAppBadge) {
+    navigator.clearAppBadge().catch(() => {});
+  }
 
   if (event.action === 'dismiss') return;
 

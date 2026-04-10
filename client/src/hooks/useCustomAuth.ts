@@ -14,6 +14,7 @@ export type StaffUser = {
   name: string;
   phone?: string | null;
   role: "master" | "diretor" | "gerente" | "corretor";
+  cpfCnpj?: string | null;
   avatarUrl?: string | null;
   permissions: Record<string, boolean>;
 };

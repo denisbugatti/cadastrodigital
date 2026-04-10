@@ -57,6 +57,7 @@ export const customAuthRouter = router({
         name: user.name,
         phone: user.phone,
         role: user.role,
+        cpfCnpj: user.cpfCnpj ?? null,
         avatarUrl: user.avatarUrl,
         permissions: permMap,
       };
@@ -338,6 +339,47 @@ export const customAuthRouter = router({
         expired: new Date() > invite.expiresAt,
         used: !!invite.usedAt,
       };
+    }),
+
+  /**
+   * Update own profile — staff user can update their CPF/CNPJ, name, phone
+   */
+  updateMyProfile: publicProcedure
+    .input(z.object({
+      cpfCnpj: z.string().optional(),
+      name: z.string().min(2).optional(),
+      phone: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const cookies = parseCookies(ctx.req.headers.cookie);
+      let token = cookies.get(COOKIE_NAME);
+      if (!token) {
+        const authHeader = ctx.req.headers.authorization;
+        if (authHeader?.startsWith("Bearer ")) {
+          token = authHeader.slice(7);
+        }
+      }
+      const session = await verifySessionToken(token);
+      if (!session || session.type !== "staff") {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado" });
+      }
+
+      const updateData: Record<string, any> = {};
+      if (input.cpfCnpj !== undefined) {
+        const clean = cleanCpfCnpj(input.cpfCnpj);
+        if (clean && !isValidCpfCnpj(clean)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "CPF ou CNPJ inválido" });
+        }
+        updateData.cpfCnpj = clean || null;
+      }
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.phone !== undefined) updateData.phone = input.phone;
+
+      if (Object.keys(updateData).length > 0) {
+        await staffDb.updateStaffUser(session.staffUserId, updateData);
+      }
+
+      return { success: true };
     }),
 
   /**

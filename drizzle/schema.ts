@@ -45,6 +45,8 @@ export const staffUsers = mysqlTable("staff_users", {
   teamId: int("teamId"),
   /** Manager ID — links corretor to their gerente (staff_users.id) */
   managerId: int("managerId"),
+  /** CPF or CNPJ of the staff user (for PDF generation) */
+  cpfCnpj: varchar("cpfCnpj", { length: 20 }),
   /** Avatar URL */
   avatarUrl: text("avatarUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

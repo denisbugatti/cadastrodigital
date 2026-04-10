@@ -1,10 +1,31 @@
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useCustomAuth } from "./useCustomAuth";
+
+/**
+ * Update the PWA app badge with the current unread count.
+ * Uses navigator.setAppBadge() / clearAppBadge() (Badging API).
+ * Silently fails on unsupported browsers.
+ */
+function updateAppBadge(count: number) {
+  try {
+    if ("setAppBadge" in navigator && "clearAppBadge" in navigator) {
+      if (count > 0) {
+        (navigator as any).setAppBadge(count);
+      } else {
+        (navigator as any).clearAppBadge();
+      }
+    }
+  } catch {
+    // Badging API not supported or failed — ignore
+  }
+}
 
 /**
  * Hook for real-time unread response count polling.
  * Polls every 20 seconds for admin/gerente, or corretor-specific endpoint.
  * Returns totalUnread count and per-form breakdown.
+ * Also syncs the PWA app badge with the unread count.
  */
 export function useUnreadResponses() {
   const { user, isCorretor, isAuthenticated } = useCustomAuth();
@@ -26,9 +47,24 @@ export function useUnreadResponses() {
   });
 
   const data = isCorretor ? corretorQuery.data : adminQuery.data;
+  const totalUnread = data?.totalUnread ?? 0;
+
+  // Sync PWA badge whenever unread count changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      updateAppBadge(totalUnread);
+    }
+  }, [totalUnread, isAuthenticated]);
+
+  // Clear badge on unmount (e.g., logout)
+  useEffect(() => {
+    return () => {
+      updateAppBadge(0);
+    };
+  }, []);
 
   return {
-    totalUnread: data?.totalUnread ?? 0,
+    totalUnread,
     forms: data?.forms ?? [],
     isLoading: isCorretor ? corretorQuery.isLoading : adminQuery.isLoading,
   };

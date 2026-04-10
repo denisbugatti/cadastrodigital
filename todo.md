@@ -1808,3 +1808,13 @@
 - [x] Corrigir routers.ts: trocar db.getStaffUserById por staffDb.getStaffUserById (2 ocorrências no generateFicha)
 - [x] Corrigir integrationDispatcher.ts: trocar withDbRetry (inexistente) por db.getDb() direto
 - [x] Build limpo sem warnings de "import will always be undefined"
+
+### Feature: Ajustes no PDF e CPF/CNPJ do corretor
+- [x] Remover segunda tabela de responsáveis ("EM CASO DE FIFTY") do PDF — campos removidos + retângulo branco cobrindo área visual
+- [x] Adicionar campo cpfCnpj ao perfil do staff user (schema + migration)
+- [x] Criar tela/modal para o staff atualizar seu CPF/CNPJ (CorretorSettings com validação CPF/CNPJ)
+- [x] Preencher automaticamente o CPF/CNPJ do corretor no PDF ao gerar ficha (via staffDb.getStaffUserById)
+## Feature: Badge de contagem no PWA
+- [x] Implementar navigator.setAppBadge() para exibir novas respostas não lidas (useUnreadResponses hook)
+- [x] Atualizar service worker para gerenciar badge ao receber push notification (sw.js push handler)
+- [x] Limpar badge ao abrir o app ou visualizar respostas (clearAppBadge no notificationclick + unmount)
