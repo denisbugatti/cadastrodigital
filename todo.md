@@ -1802,3 +1802,9 @@
 - [x] Adicionar link da Lixeira no sidebar do Dashboard
 - [x] Atualizar diálogo de exclusão para mencionar "Mover para Lixeira"
 - [x] Testes unitários para soft delete e restauração (11 testes passando)
+
+## Bug: Erro "(void 0) is not a function" ao gerar PDF
+- [x] Causa raiz: routers.ts usava db.getStaffUserById (inexistente) em vez de staffDb.getStaffUserById
+- [x] Corrigir routers.ts: trocar db.getStaffUserById por staffDb.getStaffUserById (2 ocorrências no generateFicha)
+- [x] Corrigir integrationDispatcher.ts: trocar withDbRetry (inexistente) por db.getDb() direto
+- [x] Build limpo sem warnings de "import will always be undefined"

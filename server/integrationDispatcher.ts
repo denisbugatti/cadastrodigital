@@ -224,9 +224,7 @@ export async function retryIntegration(logId: number): Promise<{ success: boolea
     const { eq } = await import("drizzle-orm");
 
     // Use direct DB query
-    const logEntries = await (db as any).withDbRetry
-      ? await queryLogById(logId)
-      : null;
+    const logEntries = await queryLogById(logId);
 
     if (!logEntries) {
       return { success: false, error: "Log não encontrado" };
@@ -329,10 +327,8 @@ async function queryLogById(logId: number) {
   try {
     const { integrationLogs } = await import("../drizzle/schema");
     const { eq } = await import("drizzle-orm");
-    // Use the withDbRetry pattern from db.ts
-    const results = await (db as any).withDbRetry?.(async (dbConn: any) => {
-      return dbConn.select().from(integrationLogs).where(eq(integrationLogs.id, logId)).limit(1);
-    });
+    const dbConn = db.getDb();
+    const results = await dbConn.select().from(integrationLogs).where(eq(integrationLogs.id, logId)).limit(1);
     return results?.[0] ?? null;
   } catch {
     return null;

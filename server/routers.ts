@@ -1388,7 +1388,7 @@ export const appRouter = router({
         let corretorName = "";
         let corretorCpf = "";
         if (form.assignedCorretorId) {
-          const corretor = await db.getStaffUserById(form.assignedCorretorId);
+          const corretor = await staffDb.getStaffUserById(form.assignedCorretorId);
           if (corretor) {
             corretorName = corretor.name || "";
             corretorCpf = corretor.cpfCnpj || "";
@@ -1551,7 +1551,7 @@ export const appRouter = router({
         let corretorName = "";
         let corretorCpf = "";
         if (form.assignedCorretorId) {
-          const corretor = await db.getStaffUserById(form.assignedCorretorId);
+          const corretor = await staffDb.getStaffUserById(form.assignedCorretorId);
           if (corretor) {
             corretorName = corretor.name || "";
             corretorCpf = corretor.cpfCnpj || "";
