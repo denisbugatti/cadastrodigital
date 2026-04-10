@@ -11,7 +11,7 @@ import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
 import { t } from "./_core/trpc";
 import { COOKIE_NAME } from "../shared/const";
-import { notifyOwnerNewResponse, notifyCorretorPush, notifyCorretorStatusChange } from "./pushNotification";
+import { notifyOwnerNewResponse, notifyCorretorPush, notifyCorretorStatusChange, broadcastPushToAllStaff } from "./pushNotification";
 import { sendProtocolEmail } from "./emailService";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { customAuthRouter } from "./authRouter";
@@ -72,6 +72,7 @@ export const appRouter = router({
         id: u.id, email: u.email, name: u.name, phone: u.phone,
         role: u.role, active: u.active, createdAt: u.createdAt,
         lastSignedIn: u.lastSignedIn, avatarUrl: u.avatarUrl,
+        cpfCnpj: u.cpfCnpj ?? null,
       }));
     }),
 
@@ -83,6 +84,7 @@ export const appRouter = router({
         phone: z.string().optional(),
         role: z.enum(["master", "diretor", "gerente", "corretor"]).optional(),
         active: z.boolean().optional(),
+        cpfCnpj: z.string().max(20).optional().nullable(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
@@ -324,6 +326,30 @@ export const appRouter = router({
           severity: 'info',
         });
         return { success: true };
+      }),
+
+    /**
+     * Broadcast a push notification to all staff users with active subscriptions.
+     * Used for system-wide announcements (e.g., "Please add your CPF/CNPJ").
+     */
+    broadcastPush: staffFormOwnerProcedure
+      .input(z.object({
+        title: z.string().min(1).max(100),
+        body: z.string().min(1).max(300),
+        url: z.string().optional(),
+        tag: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await broadcastPushToAllStaff({
+          title: input.title,
+          body: input.body,
+          icon: "/icons/icon-192x192.png",
+          badge: "/icons/icon-72x72.png",
+          url: input.url ?? "/corretor/configuracoes",
+          tag: input.tag ?? `broadcast-${Date.now()}`,
+          data: { type: "broadcast", timestamp: Date.now() },
+        });
+        return result;
       }),
   }),
 

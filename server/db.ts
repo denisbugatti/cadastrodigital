@@ -793,6 +793,13 @@ export async function deactivateStaffPushSubscription(id: number) {
   });
 }
 
+/** Get all active push subscriptions across all staff users (for broadcast notifications) */
+export async function getAllActiveStaffPushSubscriptions() {
+  return withDbRetry(async (db) => {
+    return db.select().from(staffPushSubscriptions).where(eq(staffPushSubscriptions.active, true));
+  });
+}
+
 /* ─── Corretores ─── */
 
 export async function createCorretor(data: InsertCorretor) {

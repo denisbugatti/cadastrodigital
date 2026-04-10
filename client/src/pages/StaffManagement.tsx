@@ -44,6 +44,7 @@ import {
   Star, Building2, Users, Loader2, CheckCircle2, XCircle,
   Crown, Briefcase, Pencil, Trash2, Clock, ArrowRightLeft,
   ChevronDown, ChevronRight, UserMinus, FileText, Link as LinkIcon,
+  Bell, Send,
 } from "lucide-react";
 
 const roleConfig: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
@@ -66,6 +67,9 @@ export default function StaffManagement() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState("📄 Cadastre seu CPF/CNPJ");
+  const [broadcastBody, setBroadcastBody] = useState("Acesse Configurações e adicione seu CPF ou CNPJ para que ele apareça nas fichas de cadastro geradas pelo sistema.");
 
   // Invite form — gerentes can only invite corretores
   const [inviteEmail, setInviteEmail] = useState("");
@@ -109,6 +113,16 @@ export default function StaffManagement() {
       utils.staff.corretoresWithManager.invalidate();
     },
     onError: (err) => toast.error(err.message),
+  });
+
+  const broadcastPushMutation = trpc.staff.broadcastPush.useMutation({
+    onSuccess: (result) => {
+      toast.success(
+        `Push enviado! ${result.usersReached} corretor(es) notificado(s), ${result.sent} dispositivo(s) alcançado(s).`
+      );
+      setBroadcastOpen(false);
+    },
+    onError: (err) => toast.error(`Erro ao enviar push: ${err.message}`),
   });
 
   // Invite edit/delete
@@ -195,13 +209,25 @@ export default function StaffManagement() {
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => setInviteOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Convidar
-          </Button>
+          <div className="flex items-center gap-2">
+            {isOwner && (
+              <Button
+                variant="outline"
+                onClick={() => setBroadcastOpen(true)}
+                className="hidden sm:flex items-center gap-2 border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+              >
+                <Bell className="w-4 h-4" />
+                Notificar corretores
+              </Button>
+            )}
+            <Button
+              onClick={() => setInviteOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Convidar
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -332,6 +358,76 @@ export default function StaffManagement() {
         </DialogContent>
       </Dialog>
 
+      {/* ─── Broadcast Push Dialog ─── */}
+      <Dialog open={broadcastOpen} onOpenChange={setBroadcastOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-amber-500" />
+              Notificar Corretores
+            </DialogTitle>
+            <DialogDescription>
+              Envia uma notificação push para todos os corretores com o app instalado e notificações ativas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Título da notificação</Label>
+              <Input
+                type="text"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                maxLength={100}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Mensagem</Label>
+              <textarea
+                value={broadcastBody}
+                onChange={(e) => setBroadcastBody(e.target.value)}
+                maxLength={300}
+                rows={3}
+                className="mt-1 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+              />
+              <p className="text-xs text-muted-foreground mt-1">{broadcastBody.length}/300 caracteres</p>
+            </div>
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                ⚠️ Apenas corretores com o app instalado e notificações ativas receberão o push. Corretores sem subscription ativa não serão alcançados.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBroadcastOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+                  toast.error("Preencha o título e a mensagem");
+                  return;
+                }
+                broadcastPushMutation.mutate({
+                  title: broadcastTitle,
+                  body: broadcastBody,
+                  url: "/corretor/configuracoes",
+                  tag: `cpf-reminder-${Date.now()}`,
+                });
+              }}
+              disabled={broadcastPushMutation.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {broadcastPushMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Enviando...</>
+              ) : (
+                <><Send className="w-4 h-4 mr-2" /> Enviar notificação</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ─── Edit User Dialog ─── */}
       {editingUser && (
         <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
@@ -373,6 +469,36 @@ export default function StaffManagement() {
                   maxLength={15}
                   className="mt-1"
                 />
+              </div>
+              <div>
+                <Label>CPF / CNPJ</Label>
+                <Input
+                  type="text"
+                  placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                  value={editingUser.cpfCnpj || ""}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, "");
+                    let formatted = raw;
+                    if (raw.length <= 11) {
+                      formatted = raw
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                    } else {
+                      formatted = raw
+                        .replace(/(\d{2})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d)/, "$1/$2")
+                        .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+                    }
+                    setEditingUser({ ...editingUser, cpfCnpj: formatted });
+                  }}
+                  maxLength={18}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Usado para assinar fichas de cadastro geradas pelo sistema
+                </p>
               </div>
               {/* Only owners can change roles */}
               {isOwner && (
@@ -420,6 +546,7 @@ export default function StaffManagement() {
                     phone: editingUser.phone,
                     role: editingUser.role,
                     active: editingUser.active,
+                    cpfCnpj: editingUser.cpfCnpj || null,
                   });
                 }}
                 disabled={updateMutation.isPending}

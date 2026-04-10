@@ -303,3 +303,64 @@ export async function notifyOwnerNewResponse(
     console.error("[Push] Error notifying owner:", err?.message?.substring(0, 100));
   }
 }
+
+/**
+ * Broadcast a push notification to ALL staff users with active subscriptions.
+ * Used for system-wide announcements (e.g., "Please add your CPF/CNPJ").
+ * Returns a summary of sent/failed/skipped counts.
+ */
+export async function broadcastPushToAllStaff(payload: {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  url?: string;
+  tag?: string;
+  data?: Record<string, any>;
+}): Promise<{ sent: number; failed: number; deactivated: number; usersReached: number }> {
+  if (!isVapidReady()) {
+    console.warn("[Push] VAPID not ready, skipping broadcast");
+    return { sent: 0, failed: 0, deactivated: 0, usersReached: 0 };
+  }
+
+  const { getAllActiveStaffPushSubscriptions, deactivateStaffPushSubscription } = await import("./db");
+  const subscriptions = await getAllActiveStaffPushSubscriptions() as any[];
+
+  if (subscriptions.length === 0) {
+    console.log("[Push] No active staff subscriptions for broadcast");
+    return { sent: 0, failed: 0, deactivated: 0, usersReached: 0 };
+  }
+
+  const payloadString = JSON.stringify(payload);
+  let sent = 0;
+  let failed = 0;
+  let deactivated = 0;
+  const reachedUsers = new Set<number>();
+
+  for (const sub of subscriptions) {
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        },
+        payloadString,
+        { TTL: 60 * 60 * 24, urgency: "normal" }
+      );
+      sent++;
+      reachedUsers.add(sub.staffUserId);
+    } catch (err: any) {
+      const statusCode = err?.statusCode;
+      if (statusCode === 410 || statusCode === 404) {
+        await deactivateStaffPushSubscription(sub.id).catch(() => {});
+        deactivated++;
+      } else {
+        failed++;
+        console.warn("[Push] Broadcast failed for sub", sub.id, err?.message?.substring(0, 80));
+      }
+    }
+  }
+
+  console.log(`[Push] Broadcast complete: ${sent} sent, ${failed} failed, ${deactivated} deactivated, ${reachedUsers.size} users reached`);
+  return { sent, failed, deactivated, usersReached: reachedUsers.size };
+}

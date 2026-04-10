@@ -1831,3 +1831,13 @@
 - [x] Builder.tsx: props de navegação conectadas (hasPrev/hasNext/onNavigatePrev/onNavigateNext)
 - [x] FormContainer: variável bgType renomeada para backgroundType (fix teste geometricBackground)
 - [x] Testes: 692 testes passando (builderRedesign.test.ts + geometricBackground.test.ts)
+
+## Feature: CPF/CNPJ no modal Editar Membro + Push para corretores
+- [x] Adicionar campo CPF/CNPJ no modal "Editar Membro" do painel admin (StaffManagement) com máscara automática CPF/CNPJ
+- [x] Procedure admin para atualizar cpfCnpj de qualquer staff user (staff.update + cpfCnpj no staff.list)
+- [x] Botão "Notificar corretores" no header do painel admin (amber, visível apenas para master/diretor)
+- [x] Dialog de broadcast com título/mensagem editáveis e aviso sobre subscriptions ativas
+- [x] Procedure staff.broadcastPush (staffFormOwnerProcedure) que chama broadcastPushToAllStaff
+- [x] Função broadcastPushToAllStaff em pushNotification.ts (getAllActiveStaffPushSubscriptions + loop)
+- [x] getAllActiveStaffPushSubscriptions em db.ts para buscar todas as subscriptions ativas
+- [x] 692 testes passando
