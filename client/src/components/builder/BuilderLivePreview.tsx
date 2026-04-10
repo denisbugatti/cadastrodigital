@@ -51,6 +51,11 @@ interface BuilderLivePreviewProps {
   totalQuestions: number;
   onUpdateTitle: (title: string) => void;
   onUpdateSubtitle: (subtitle: string) => void;
+  onNavigatePrev?: () => void;
+  onNavigateNext?: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+  allQuestions?: BuilderQuestion[];
 }
 
 export function BuilderLivePreview({
@@ -60,7 +65,13 @@ export function BuilderLivePreview({
   totalQuestions,
   onUpdateTitle,
   onUpdateSubtitle,
+  onNavigatePrev,
+  onNavigateNext,
+  hasPrev = false,
+  hasNext = false,
 }: BuilderLivePreviewProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
   if (!question) {
     return (
       <div className="h-full flex items-center justify-center bg-secondary/30">
@@ -84,6 +95,64 @@ export function BuilderLivePreview({
 
   return (
     <div className="h-full flex flex-col bg-secondary/30">
+      {/* Top toolbar: navigation + device toggle */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/50 backdrop-blur-sm">
+        {/* Navigation arrows */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onNavigatePrev}
+            disabled={!hasPrev}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            title="Pergunta anterior (↑)"
+          >
+            <ArrowRight size={15} className="rotate-180" />
+          </button>
+          <button
+            onClick={onNavigateNext}
+            disabled={!hasNext}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            title="Próxima pergunta (↓)"
+          >
+            <ArrowRight size={15} />
+          </button>
+          <span className="text-xs font-body text-muted-foreground/50 ml-1">
+            {!isSpecial && !isStatement ? `${questionNumber} / ${totalQuestions}` : typeInfo?.label || ""}
+          </span>
+        </div>
+
+        {/* Device toggle */}
+        <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
+          <button
+            onClick={() => setIsMobile(false)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-body font-medium transition-all ${
+              !isMobile
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+            </svg>
+            Desktop
+          </button>
+          <button
+            onClick={() => setIsMobile(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-body font-medium transition-all ${
+              isMobile
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="5" y="2" width="14" height="20" rx="2"/>
+              <path d="M12 18h.01"/>
+            </svg>
+            Mobile
+          </button>
+        </div>
+      </div>
+
       {/* Preview container */}
       <div className="flex-1 flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-auto">
         <motion.div
@@ -91,14 +160,23 @@ export function BuilderLivePreview({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-xl"
+          className={isMobile ? "w-[375px] max-w-full" : "w-full max-w-xl"}
         >
+          {/* Mobile frame wrapper */}
+          {isMobile && (
+            <div className="relative">
+              {/* Phone frame */}
+              <div className="absolute -inset-3 rounded-[2.5rem] border-[8px] border-foreground/10 bg-foreground/5 pointer-events-none z-20" />
+              {/* Notch */}
+              <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 w-20 h-4 bg-foreground/10 rounded-b-xl z-30" />
+            </div>
+          )}
           {/* Preview card */}
           <div
-            className="rounded-2xl overflow-hidden shadow-xl border border-border relative"
+            className={`overflow-hidden shadow-xl border border-border relative ${isMobile ? "rounded-[1.5rem]" : "rounded-2xl"}`}
             style={{
               background: design.backgroundColor,
-              minHeight: "400px",
+              minHeight: isMobile ? "600px" : "400px",
             }}
           >
             {/* Animated backgrounds */}
@@ -229,10 +307,18 @@ export function BuilderLivePreview({
           </div>
 
           {/* Footer hint */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground/50 font-body">
-              {typeInfo?.label} {!isSpecial && `· Pergunta ${questionNumber} de ${totalQuestions}`}
+          <div className="mt-4 text-center flex items-center justify-center gap-3">
+            <p className="text-xs text-muted-foreground/40 font-body">
+              {typeInfo?.label}
             </p>
+            {!isSpecial && !isStatement && (
+              <>
+                <span className="text-muted-foreground/20">·</span>
+                <p className="text-xs text-muted-foreground/40 font-body">
+                  Clique no título para editar
+                </p>
+              </>
+            )}
           </div>
         </motion.div>
       </div>

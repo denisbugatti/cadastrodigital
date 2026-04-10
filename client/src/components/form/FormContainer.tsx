@@ -411,28 +411,28 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       {(() => {
         const bgColors = d?.backgroundColors || [];
         const c = (i: number, fallback: string) => bgColors[i] || fallback;
-        const bgType = d?.backgroundType || "paths";
+        const backgroundType = d?.backgroundType || "paths";
         return (
           <div className="absolute inset-0 pointer-events-none">
-            {(bgType === "paths") && (
+            {(backgroundType === "paths") && (
               <div className="absolute inset-0" style={{ color: c(0, "rgba(112, 190, 250, 0.55)") }}>
                 <BackgroundPaths />
               </div>
             )}
-            {bgType === "aurora" && (
+            {backgroundType === "aurora" && (
               <AuroraBackground className="!h-full !min-h-0 dark" showRadialGradient={true} />
             )}
-            {bgType === "shaders" && <BackgroundShaders colors={bgColors.length > 0 ? bgColors : undefined} />}
-            {bgType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
-            {bgType === "beams" && <BeamsBackground />}
-            {bgType === "etheral" && <EtheralShadow color={c(0, "rgba(100, 100, 200, 1)")} />}
-            {bgType === "falling" && <FallingPattern color={c(0, "#6366f1")} />}
-            {bgType === "dots" && <GradientDots backgroundColor={c(0, "#030303")} />}
-            {bgType === "spotlight" && <SpotlightBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
-            {bgType === "plasma" && <ShaderPlasma />}
-            {bgType === "stars" && <StarsBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
-            {bgType === "aurora-beams" && <AuroraBeams color={c(0, "#00ffcc")} />}
-            {bgType === "flow-field" && <FlowField color={c(0, "#6366f1")} />}
+            {backgroundType === "shaders" && <BackgroundShaders colors={bgColors.length > 0 ? bgColors : undefined} />}
+            {backgroundType === "gradient" && <BackgroundGradientAnimation interactive={false} />}
+            {backgroundType === "beams" && <BeamsBackground />}
+            {backgroundType === "etheral" && <EtheralShadow color={c(0, "rgba(100, 100, 200, 1)")} />}
+            {backgroundType === "falling" && <FallingPattern color={c(0, "#6366f1")} />}
+            {backgroundType === "dots" && <GradientDots backgroundColor={c(0, "#030303")} />}
+            {backgroundType === "spotlight" && <SpotlightBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
+            {backgroundType === "plasma" && <ShaderPlasma />}
+            {backgroundType === "stars" && <StarsBackground colors={bgColors.length > 0 ? bgColors : undefined} />}
+            {backgroundType === "aurora-beams" && <AuroraBeams color={c(0, "#00ffcc")} />}
+            {backgroundType === "flow-field" && <FlowField color={c(0, "#6366f1")} />}
           </div>
         );
       })()}

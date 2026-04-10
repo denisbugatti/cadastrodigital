@@ -94,22 +94,58 @@ export function BuilderConfigPanel({
     tabs.push({ id: "logic", label: "Lógica", icon: GitBranch });
   }
 
+  // Color map for the header icon
+  const typeColorMap: Record<string, { bg: string; text: string }> = {
+    welcome: { bg: "bg-violet-100", text: "text-violet-600" },
+    "thank-you": { bg: "bg-pink-100", text: "text-pink-600" },
+    statement: { bg: "bg-indigo-100", text: "text-indigo-600" },
+    legal: { bg: "bg-slate-100", text: "text-slate-600" },
+    name: { bg: "bg-blue-100", text: "text-blue-600" },
+    email: { bg: "bg-cyan-100", text: "text-cyan-600" },
+    phone: { bg: "bg-green-100", text: "text-green-600" },
+    cpf: { bg: "bg-amber-100", text: "text-amber-600" },
+    cnpj: { bg: "bg-orange-100", text: "text-orange-600" },
+    "identity-doc": { bg: "bg-yellow-100", text: "text-yellow-600" },
+    "short-text": { bg: "bg-sky-100", text: "text-sky-600" },
+    "long-text": { bg: "bg-teal-100", text: "text-teal-600" },
+    number: { bg: "bg-purple-100", text: "text-purple-600" },
+    currency: { bg: "bg-emerald-100", text: "text-emerald-600" },
+    "multiple-choice": { bg: "bg-rose-100", text: "text-rose-600" },
+    checkbox: { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
+    dropdown: { bg: "bg-violet-100", text: "text-violet-600" },
+    "yes-no": { bg: "bg-lime-100", text: "text-lime-600" },
+    rating: { bg: "bg-amber-100", text: "text-amber-600" },
+    satisfaction: { bg: "bg-yellow-100", text: "text-yellow-600" },
+    nps: { bg: "bg-orange-100", text: "text-orange-600" },
+    date: { bg: "bg-blue-100", text: "text-blue-600" },
+    "file-upload": { bg: "bg-slate-100", text: "text-slate-600" },
+    address: { bg: "bg-red-100", text: "text-red-600" },
+    ranking: { bg: "bg-indigo-100", text: "text-indigo-600" },
+    matrix: { bg: "bg-purple-100", text: "text-purple-600" },
+    link: { bg: "bg-cyan-100", text: "text-cyan-600" },
+  };
+  const colors = typeColorMap[question.type] || { bg: "bg-secondary", text: "text-muted-foreground" };
+
   return (
     <div className="w-80 h-full border-l border-border flex flex-col bg-card">
-      {/* Header */}
-      <div className="p-5 border-b border-border">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles size={16} className="text-brand" />
-          <h3 className="font-display text-base font-bold text-foreground">
-            Configurações
-          </h3>
+      {/* Header — type icon + label */}
+      <div className="px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${colors.bg} ${colors.text}`}>
+            {isWelcome ? <Hand size={16} /> : isThankYou ? <Heart size={16} /> : <Sparkles size={16} />}
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-body text-sm font-semibold text-foreground truncate">
+              {typeInfo?.label || question.type}
+            </h3>
+            <p className="text-[11px] text-muted-foreground/50 font-body">
+              {isSpecialScreen ? "Tela especial" : isStatement ? "Declaração" : "Pergunta"}
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground font-body">
-          {typeInfo?.label || question.type}
-        </p>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-4 p-1 rounded-xl bg-secondary">
+        <div className="flex gap-1 mt-3 p-1 rounded-xl bg-secondary">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             return (

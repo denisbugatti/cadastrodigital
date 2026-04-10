@@ -52,6 +52,37 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; className?: s
   type: Minus, list: CircleDot, paperclip: Upload, layout: Hand,
 };
 
+// Color map for question type icons — gives each type a distinct identity
+const typeColorMap: Record<string, { bg: string; text: string }> = {
+  welcome: { bg: "bg-violet-100", text: "text-violet-600" },
+  "thank-you": { bg: "bg-pink-100", text: "text-pink-600" },
+  statement: { bg: "bg-indigo-100", text: "text-indigo-600" },
+  legal: { bg: "bg-slate-100", text: "text-slate-600" },
+  name: { bg: "bg-blue-100", text: "text-blue-600" },
+  email: { bg: "bg-cyan-100", text: "text-cyan-600" },
+  phone: { bg: "bg-green-100", text: "text-green-600" },
+  cpf: { bg: "bg-amber-100", text: "text-amber-600" },
+  cnpj: { bg: "bg-orange-100", text: "text-orange-600" },
+  "identity-doc": { bg: "bg-yellow-100", text: "text-yellow-600" },
+  "short-text": { bg: "bg-sky-100", text: "text-sky-600" },
+  "long-text": { bg: "bg-teal-100", text: "text-teal-600" },
+  number: { bg: "bg-purple-100", text: "text-purple-600" },
+  currency: { bg: "bg-emerald-100", text: "text-emerald-600" },
+  "multiple-choice": { bg: "bg-rose-100", text: "text-rose-600" },
+  checkbox: { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
+  dropdown: { bg: "bg-violet-100", text: "text-violet-600" },
+  "yes-no": { bg: "bg-lime-100", text: "text-lime-600" },
+  rating: { bg: "bg-amber-100", text: "text-amber-600" },
+  satisfaction: { bg: "bg-yellow-100", text: "text-yellow-600" },
+  nps: { bg: "bg-orange-100", text: "text-orange-600" },
+  date: { bg: "bg-blue-100", text: "text-blue-600" },
+  "file-upload": { bg: "bg-slate-100", text: "text-slate-600" },
+  address: { bg: "bg-red-100", text: "text-red-600" },
+  ranking: { bg: "bg-indigo-100", text: "text-indigo-600" },
+  matrix: { bg: "bg-purple-100", text: "text-purple-600" },
+  link: { bg: "bg-cyan-100", text: "text-cyan-600" },
+};
+
 const categoryIconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   user: User, type: Minus, list: CircleDot, star: Star,
   calendar: Calendar, paperclip: Upload, layout: Hand,
@@ -111,6 +142,7 @@ function SortableQuestionItem({
   const isWelcome = question.type === "welcome";
   const isThankYou = question.type === "thank-you";
   const isSpecial = isWelcome || question.type === "statement" || question.type === "legal";
+  const colors = typeColorMap[question.type] || { bg: "bg-secondary", text: "text-muted-foreground" };
 
   // Check if this question has active conditional logic
   const hasBranches = question.conditionalLogic?.enabled &&
@@ -157,33 +189,29 @@ function SortableQuestionItem({
         )}
         {!isDraggable && <div className="w-4 shrink-0" />}
 
-        {/* Icon */}
-        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
-          isSelected ? "bg-brand text-white" : "bg-secondary text-muted-foreground"
+        {/* Colored type icon */}
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+          isSelected
+            ? `${colors.bg} ${colors.text} ring-2 ring-brand/20`
+            : `${colors.bg} ${colors.text}`
         }`}>
-          {isWelcome ? <Hand size={12} /> : isThankYou ? <Heart size={12} /> : <Icon size={12} />}
+          {isWelcome ? <Hand size={13} /> : isThankYou ? <Heart size={13} /> : <Icon size={13} />}
         </div>
 
-        {/* Number */}
-        {!isSpecial && !isWelcome && !isThankYou && questionNumber !== null && (
-          <span className={`text-[10px] font-body font-bold shrink-0 min-w-[14px] text-center ${
-            isSelected ? "text-brand" : "text-muted-foreground/50"
+        {/* Title + type label */}
+        <div className="flex-1 min-w-0">
+          <span className={`text-[13px] font-body truncate block ${
+            isSelected ? "text-foreground font-medium" : "text-foreground/80"
           }`}>
-            {questionNumber}
+            {question.title || typeInfo?.label || "Sem título"}
           </span>
-        )}
-        {isThankYou && (
-          <span className={`text-[10px] font-body font-bold shrink-0 ${
-            isSelected ? "text-brand" : "text-muted-foreground/50"
-          }`}>A</span>
-        )}
-
-        {/* Title + branch badge */}
-        <span className={`text-[13px] font-body truncate flex-1 ${
-          isSelected ? "text-foreground font-medium" : "text-foreground/70"
-        }`}>
-          {question.title || typeInfo?.label || "Sem título"}
-        </span>
+          {/* Question number or type label */}
+          <span className="text-[10px] font-body text-muted-foreground/40 truncate block">
+            {!isSpecial && !isWelcome && !isThankYou && questionNumber !== null
+              ? `${questionNumber} · ${typeInfo?.label || ""}`
+              : typeInfo?.label || ""}
+          </span>
+        </div>
 
         {/* Branching indicator badge */}
         {hasConditional && (
@@ -384,15 +412,14 @@ export function BuilderSidebar({
 
   return (
     <div className="w-64 h-full flex flex-col border-r border-border bg-card relative">
-      {/* Add Content Button */}
-      <div className="p-3 border-b border-border">
-        <button
-          onClick={() => setShowTypePicker(!showTypePicker)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-white bg-brand brand-shadow hover:bg-brand-dark active:scale-[0.98] transition-all"
-        >
-          <Plus size={16} />
-          Adicionar conteúdo
-        </button>
+      {/* Sidebar Header */}
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <span className="text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider">
+          Perguntas
+        </span>
+        <span className="text-[10px] font-body text-muted-foreground/40">
+          {regularQuestions.filter(q => q.type !== "welcome" && q.type !== "statement" && q.type !== "legal").length + endings.length} perguntas
+        </span>
       </div>
 
       {/* Question List with DnD */}
@@ -423,16 +450,16 @@ export function BuilderSidebar({
         {/* Endings Section */}
         {endings.length > 0 && (
           <div className="border-t border-border mt-2">
-            <div className="px-4 py-2.5 flex items-center justify-between">
-              <span className="text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider">
-                Endings
+            <div className="px-4 py-2 flex items-center justify-between">
+              <span className="text-[10px] font-body font-semibold text-muted-foreground/50 uppercase tracking-wider">
+                Encerramentos
               </span>
               <button
                 onClick={() => onAddQuestion("thank-you")}
                 className="p-1 rounded-md text-muted-foreground hover:text-brand hover:bg-brand-lighter/50 transition-colors"
-                title="Adicionar ending"
+                title="Adicionar encerramento"
               >
-                <Plus size={14} />
+                <Plus size={13} />
               </button>
             </div>
             <div className="px-2 pb-2 space-y-0.5">
@@ -454,16 +481,27 @@ export function BuilderSidebar({
         )}
       </div>
 
+      {/* ─── Add Button (fixed at bottom) ─── */}
+      <div className="p-3 border-t border-border bg-card">
+        <button
+          onClick={() => setShowTypePicker(!showTypePicker)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-white bg-brand brand-shadow hover:bg-brand-dark active:scale-[0.98] transition-all"
+        >
+          <Plus size={16} />
+          Adicionar pergunta
+        </button>
+      </div>
+
       {/* ─── Type Picker Popover ─── */}
       <AnimatePresence>
         {showTypePicker && (
           <motion.div
             ref={pickerRef}
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-14 left-3 right-3 z-50 bg-card rounded-2xl border border-border shadow-2xl max-h-[70vh] flex flex-col overflow-hidden"
+            className="absolute bottom-16 left-3 right-3 z-50 bg-card rounded-2xl border border-border shadow-2xl max-h-[65vh] flex flex-col overflow-hidden"
           >
             <div className="p-3 border-b border-border flex items-center gap-2">
               <Search size={15} className="text-muted-foreground shrink-0" />
@@ -530,11 +568,16 @@ export function BuilderSidebar({
                                     setShowTypePicker(false);
                                     setSearchQuery("");
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-body text-foreground/70 hover:text-foreground hover:bg-brand-lighter/40 transition-all group"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-body text-foreground/70 hover:text-foreground hover:bg-secondary transition-all group"
                                 >
-                                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all group-hover:scale-110 bg-brand-lighter border border-brand/10">
-                                    <TypeIcon size={13} className="text-brand" />
-                                  </div>
+                                  {(() => {
+                                    const c = typeColorMap[typeInfo.type] || { bg: "bg-secondary", text: "text-muted-foreground" };
+                                    return (
+                                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all group-hover:scale-105 ${c.bg} ${c.text}`}>
+                                        <TypeIcon size={13} />
+                                      </div>
+                                    );
+                                  })()}
                                   <div className="text-left min-w-0">
                                     <div className="font-medium text-sm truncate">{typeInfo.label}</div>
                                     <div className="text-[11px] text-muted-foreground/60 truncate">{typeInfo.description}</div>

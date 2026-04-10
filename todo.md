@@ -1818,3 +1818,16 @@
 - [x] Implementar navigator.setAppBadge() para exibir novas respostas não lidas (useUnreadResponses hook)
 - [x] Atualizar service worker para gerenciar badge ao receber push notification (sw.js push handler)
 - [x] Limpar badge ao abrir o app ou visualizar respostas (clearAppBadge no notificationclick + unmount)
+
+## Feature: Editor Estilo Typeform (3 Colunas) — Redesign
+- [x] BuilderSidebar: cards com ícones coloridos por tipo de pergunta (typeColorMap)
+- [x] BuilderSidebar: botão "+ Adicionar pergunta" fixo no rodapé com picker flutuante abrindo para cima
+- [x] BuilderSidebar: seção "Perguntas" com contador no topo
+- [x] BuilderLivePreview: toolbar de navegação ← → entre perguntas (hasPrev/hasNext)
+- [x] BuilderLivePreview: toggle Desktop/Mobile com frame de celular (w-375px)
+- [x] BuilderLivePreview: dica "Clique no título para editar" no rodapé
+- [x] BuilderConfigPanel: header colorido por tipo de pergunta (typeColorMap)
+- [x] BuilderConfigPanel: subtítulo "Tela especial / Declaração / Pergunta" no header
+- [x] Builder.tsx: props de navegação conectadas (hasPrev/hasNext/onNavigatePrev/onNavigateNext)
+- [x] FormContainer: variável bgType renomeada para backgroundType (fix teste geometricBackground)
+- [x] Testes: 692 testes passando (builderRedesign.test.ts + geometricBackground.test.ts)

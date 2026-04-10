@@ -485,6 +485,26 @@ export default function Builder({ initialForm, dbFormId }: BuilderProps) {
                   onUpdateSubtitle={(subtitle: string) => {
                     if (selectedQuestion) updateQuestion(selectedQuestion.id, { subtitle });
                   }}
+                  hasPrev={(() => {
+                    if (!selectedQuestion) return false;
+                    const idx = form.questions.findIndex(q => q.id === selectedQuestion.id);
+                    return idx > 0;
+                  })()}
+                  hasNext={(() => {
+                    if (!selectedQuestion) return false;
+                    const idx = form.questions.findIndex(q => q.id === selectedQuestion.id);
+                    return idx < form.questions.length - 1;
+                  })()}
+                  onNavigatePrev={() => {
+                    if (!selectedQuestion) return;
+                    const idx = form.questions.findIndex(q => q.id === selectedQuestion.id);
+                    if (idx > 0) setSelectedQuestionId(form.questions[idx - 1].id);
+                  }}
+                  onNavigateNext={() => {
+                    if (!selectedQuestion) return;
+                    const idx = form.questions.findIndex(q => q.id === selectedQuestion.id);
+                    if (idx < form.questions.length - 1) setSelectedQuestionId(form.questions[idx + 1].id);
+                  }}
                 />
               </div>
 
