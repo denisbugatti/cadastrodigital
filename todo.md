@@ -1855,3 +1855,9 @@
 - [x] Seção "Comprovantes obrigatórios" na tela ResponseValidation com 2 cards de upload (ANAPRO + OK do Cliente)
 - [x] Botão Visualizar Ficha PDF bloqueado até ambos os comprovantes estarem anexados (Lock icon + aviso âmbar)
 - [x] 692 testes passando
+
+## Feature: Indicador de comprovantes na lista de respostas + Comprovantes no PDF
+- [x] Badge verde/âmbar nos cards do corretor (CorretorResponses) e do admin (Responses) com 4 estados: ambos anexados / ANAPRO pendente / OK do cliente pendente / ambos pendentes
+- [x] anaproFileUrl e clienteOkFileUrl já retornados pelo getResponsesByForm (db.select() sem filtro de colunas)
+- [x] Comprovantes ANAPRO e OK do Cliente como páginas extras no PDF gerado (após os anexos do formulário) — tanto em generateFicha quanto em shareFicha
+- [x] 692 testes passando

@@ -17,7 +17,7 @@ import {
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
   FolderInput, FolderMinus, Check, CalendarDays, SortAsc, SortDesc, BarChart3,
-  Copy, Link2, Settings,
+  Copy, Link2, Settings, Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -443,6 +443,37 @@ function CorretorResponseCard({
               {response.protocolCode}
             </span>
             <span className="text-[9px] text-muted-foreground/60 ml-auto">Protocolo</span>
+          </div>
+        )}
+
+        {/* Comprovantes Badge */}
+        {response.isComplete && (
+          <div className={`flex items-center gap-1.5 mb-2.5 px-2.5 py-1.5 rounded-lg border ${
+            response.anaproFileUrl && response.clienteOkFileUrl
+              ? "bg-green-500/5 border-green-500/20"
+              : "bg-amber-500/5 border-amber-500/20"
+          }`}>
+            <Paperclip size={11} className={`shrink-0 ${
+              response.anaproFileUrl && response.clienteOkFileUrl
+                ? "text-green-500"
+                : "text-amber-500"
+            }`} />
+            <span className={`text-[10px] font-medium ${
+              response.anaproFileUrl && response.clienteOkFileUrl
+                ? "text-green-600 dark:text-green-400"
+                : "text-amber-600 dark:text-amber-400"
+            }`}>
+              {response.anaproFileUrl && response.clienteOkFileUrl
+                ? "Comprovantes anexados"
+                : response.anaproFileUrl
+                ? "ANAPRO anexado — OK do cliente pendente"
+                : response.clienteOkFileUrl
+                ? "OK do cliente anexado — ANAPRO pendente"
+                : "Comprovantes pendentes"}
+            </span>
+            {response.anaproFileUrl && response.clienteOkFileUrl && (
+              <CheckCircle2 size={10} className="text-green-500 ml-auto shrink-0" />
+            )}
           </div>
         )}
 

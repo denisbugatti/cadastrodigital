@@ -1480,6 +1480,26 @@ export const appRouter = router({
           pdfBytes = await mergeWithAttachments(pdfBytes, filteredAttachments);
         }
 
+        // Append comprovantes (ANAPRO + OK do Cliente) as extra pages at the end
+        const comprovantes: Array<{ url: string; filename: string; mimeType: string }> = [];
+        if (response.anaproFileUrl) {
+          comprovantes.push({
+            url: response.anaproFileUrl,
+            filename: "Comprovante_ANAPRO",
+            mimeType: response.anaproFileUrl.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg",
+          });
+        }
+        if (response.clienteOkFileUrl) {
+          comprovantes.push({
+            url: response.clienteOkFileUrl,
+            filename: "OK_do_Cliente",
+            mimeType: response.clienteOkFileUrl.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg",
+          });
+        }
+        if (comprovantes.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, comprovantes);
+        }
+
         // Convert to base64 for transport
         const base64 = Buffer.from(pdfBytes).toString("base64");
         const respondent = response.respondentName || "cadastro";
@@ -1633,6 +1653,26 @@ export const appRouter = router({
 
         if (filteredAttachments.length > 0) {
           pdfBytes = await mergeWithAttachments(pdfBytes, filteredAttachments);
+        }
+
+        // Append comprovantes (ANAPRO + OK do Cliente) as extra pages at the end
+        const comprovantes: Array<{ url: string; filename: string; mimeType: string }> = [];
+        if (response.anaproFileUrl) {
+          comprovantes.push({
+            url: response.anaproFileUrl,
+            filename: "Comprovante_ANAPRO",
+            mimeType: response.anaproFileUrl.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg",
+          });
+        }
+        if (response.clienteOkFileUrl) {
+          comprovantes.push({
+            url: response.clienteOkFileUrl,
+            filename: "OK_do_Cliente",
+            mimeType: response.clienteOkFileUrl.match(/\.pdf$/i) ? "application/pdf" : "image/jpeg",
+          });
+        }
+        if (comprovantes.length > 0) {
+          pdfBytes = await mergeWithAttachments(pdfBytes, comprovantes);
         }
 
         // Upload to S3 for sharing

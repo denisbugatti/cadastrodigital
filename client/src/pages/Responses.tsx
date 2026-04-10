@@ -48,6 +48,7 @@ import {
   Send,
   UserCheck,
   MailPlus,
+  Paperclip,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -494,6 +495,37 @@ function ResponseCard({
               <Check size={14} className="text-green-500 shrink-0" />
             ) : (
               <Copy size={14} className="text-muted-foreground/40 shrink-0" />
+            )}
+          </div>
+        )}
+
+        {/* ─── Comprovantes Badge ─── */}
+        {response.isComplete && (
+          <div className={`flex items-center gap-1.5 mb-3 px-2.5 py-1.5 rounded-lg border ${
+            response.anaproFileUrl && response.clienteOkFileUrl
+              ? "bg-green-500/5 border-green-500/20"
+              : "bg-amber-500/5 border-amber-500/20"
+          }`}>
+            <Paperclip size={11} className={`shrink-0 ${
+              response.anaproFileUrl && response.clienteOkFileUrl
+                ? "text-green-500"
+                : "text-amber-500"
+            }`} />
+            <span className={`text-[10px] font-medium ${
+              response.anaproFileUrl && response.clienteOkFileUrl
+                ? "text-green-600 dark:text-green-400"
+                : "text-amber-600 dark:text-amber-400"
+            }`}>
+              {response.anaproFileUrl && response.clienteOkFileUrl
+                ? "Comprovantes anexados"
+                : response.anaproFileUrl
+                ? "ANAPRO anexado — OK do cliente pendente"
+                : response.clienteOkFileUrl
+                ? "OK do cliente anexado — ANAPRO pendente"
+                : "Comprovantes pendentes"}
+            </span>
+            {response.anaproFileUrl && response.clienteOkFileUrl && (
+              <CheckCircle2 size={10} className="text-green-500 ml-auto shrink-0" />
             )}
           </div>
         )}
