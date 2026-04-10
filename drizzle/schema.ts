@@ -225,10 +225,13 @@ export const formResponses = mysqlTable("form_responses", {
   abandonmentNotifiedAt: timestamp("abandonmentNotifiedAt"),
   /** Soft delete — null means active, timestamp means moved to trash */
   deletedAt: timestamp("deletedAt"),
+  /** Comprovante ANAPRO — URL do arquivo no S3 (obrigatório para gerar PDF) */
+  anaproFileUrl: text("anaproFileUrl"),
+  /** OK do Cliente — URL do arquivo no S3 (obrigatório para gerar PDF) */
+  clienteOkFileUrl: text("clienteOkFileUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type FormResponse = typeof formResponses.$inferSelect;
 export type InsertFormResponse = typeof formResponses.$inferInsert;
 

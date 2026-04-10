@@ -1846,3 +1846,12 @@
 - [x] Exibir badge laranja "Sem CPF/CNPJ" nos cards de corretores sem documento cadastrado (clícavel abre modal de edição)
 - [x] Badge visível apenas para corretores sem cpfCnpj (role === 'corretor' && !cpfCnpj)
 - [x] Contador "X sem CPF/CNPJ" no cabeçalho da seção de membros (aparece apenas quando > 0)
+
+## Feature: Comprovantes ANAPRO e OK do Cliente na validação
+- [x] Adicionar campos anaproFileUrl e clienteOkFileUrl na tabela form_responses
+- [x] Migration pnpm db:push aplicada com sucesso
+- [x] Procedure responses.uploadComprovante (upload base64 para S3 + salva URL no banco)
+- [x] Procedure responses.removeComprovante (limpa URL do banco)
+- [x] Seção "Comprovantes obrigatórios" na tela ResponseValidation com 2 cards de upload (ANAPRO + OK do Cliente)
+- [x] Botão Visualizar Ficha PDF bloqueado até ambos os comprovantes estarem anexados (Lock icon + aviso âmbar)
+- [x] 692 testes passando

@@ -232,6 +232,13 @@
       "when": 1775841400325,
       "tag": "0032_great_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1775846070741,
+      "tag": "0033_spicy_star_brand",
+      "breakpoints": true
     }
   ]
 }

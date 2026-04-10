@@ -34,6 +34,7 @@ import {
   Download, Loader2, AlertTriangle, MessageSquare, Mail, Phone, Calendar, ShieldCheck,
   Lock, ExternalLink, Eye, Share2,
   X, ZoomIn, ZoomOut, RotateCw, Maximize2, Send, RotateCcw,
+  Upload, Trash2, Building2, ThumbsUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -325,10 +326,66 @@ export default function ResponseValidation() {
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxRotation, setLightboxRotation] = useState(0);
   const [reopenedValidation, setReopenedValidation] = useState(false);
+  const [isUploadingAnapro, setIsUploadingAnapro] = useState(false);
+  const [isUploadingClienteOk, setIsUploadingClienteOk] = useState(false);
   const pdfCacheRef = useRef<Map<number, { url: string; filename: string }>>(new Map());
   const bottomBarRef = useRef<HTMLDivElement>(null);
+  const anaproInputRef = useRef<HTMLInputElement>(null);
+  const clienteOkInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
+
+  const uploadComprovanteMutation = trpc.responses.uploadComprovante.useMutation({
+    onSuccess: () => {
+      utils.responses.getById.invalidate({ id: responseId });
+    },
+  });
+
+  const removeComprovanteMutation = trpc.responses.removeComprovante.useMutation({
+    onSuccess: () => {
+      utils.responses.getById.invalidate({ id: responseId });
+    },
+  });
+
+  const handleUploadComprovante = async (tipo: "anapro" | "clienteOk", file: File) => {
+    const setLoading = tipo === "anapro" ? setIsUploadingAnapro : setIsUploadingClienteOk;
+    setLoading(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // strip data:...;base64,
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await uploadComprovanteMutation.mutateAsync({
+        responseId,
+        tipo,
+        fileBase64: base64,
+        mimeType: file.type || "image/jpeg",
+        filename: file.name,
+      });
+      // Invalidate PDF cache so next generation includes new comprovante state
+      pdfCacheRef.current.delete(responseId);
+      toast.success(tipo === "anapro" ? "Comprovante ANAPRO anexado!" : "OK do Cliente anexado!");
+    } catch (err: any) {
+      toast.error("Erro ao anexar comprovante", { description: err?.message || "Tente novamente" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveComprovante = async (tipo: "anapro" | "clienteOk") => {
+    try {
+      await removeComprovanteMutation.mutateAsync({ responseId, tipo });
+      pdfCacheRef.current.delete(responseId);
+      toast.success("Comprovante removido.");
+    } catch (err: any) {
+      toast.error("Erro ao remover comprovante", { description: err?.message || "Tente novamente" });
+    }
+  };
 
   // Handle PDF preview (with cache)
   const handlePreviewPdf = async () => {
@@ -711,21 +768,33 @@ export default function ResponseValidation() {
           </div>
 
           {/* PDF Download Button */}
-          <div className="mt-3 pt-3 border-t border-border/50">
+          <div className="mt-3 pt-3 border-t border-border/50 space-y-1.5">
             <Button
               variant="outline"
               size="sm"
-              className="w-full gap-2 text-xs font-semibold h-9 border-brand/30 text-brand hover:bg-brand/10 hover:text-brand transition-all"
-              disabled={isGeneratingPdf}
+              className={`w-full gap-2 text-xs font-semibold h-9 transition-all ${
+                !response?.anaproFileUrl || !response?.clienteOkFileUrl
+                  ? "border-border/40 text-muted-foreground opacity-60 cursor-not-allowed"
+                  : "border-brand/30 text-brand hover:bg-brand/10 hover:text-brand"
+              }`}
+              disabled={isGeneratingPdf || !response?.anaproFileUrl || !response?.clienteOkFileUrl}
               onClick={handlePreviewPdf}
+              title={!response?.anaproFileUrl || !response?.clienteOkFileUrl ? "Anexe os comprovantes ANAPRO e OK do Cliente antes de gerar o PDF" : undefined}
             >
               {isGeneratingPdf ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : !response?.anaproFileUrl || !response?.clienteOkFileUrl ? (
+                <Lock className="w-3.5 h-3.5" />
               ) : (
                 <Eye className="w-3.5 h-3.5" />
               )}
               {isGeneratingPdf ? "Gerando PDF..." : "Visualizar Ficha PDF"}
             </Button>
+            {(!response?.anaproFileUrl || !response?.clienteOkFileUrl) && (
+              <p className="text-[10px] text-center text-amber-500/80 font-body">
+                Anexe os comprovantes ANAPRO e OK do Cliente para liberar
+              </p>
+            )}
           </div>
 
           {/* Contact info grid */}
@@ -1014,6 +1083,156 @@ export default function ResponseValidation() {
             <p className="text-xs text-muted-foreground font-body">Este cadastro não possui respostas para validar.</p>
           </div>
         )}
+      </div>
+
+      {/* ─── Comprovantes Obrigatórios ─── */}
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-4 mb-6">
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-border/60 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+              <FileText className="w-3.5 h-3.5 text-amber-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground font-display">Comprovantes obrigatórios</p>
+              <p className="text-[10px] text-muted-foreground font-body">Necessários para gerar a Ficha PDF</p>
+            </div>
+            {response?.anaproFileUrl && response?.clienteOkFileUrl ? (
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Completo
+              </span>
+            ) : (
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 font-semibold flex items-center gap-1">
+                <Clock className="w-3 h-3" /> Pendente
+              </span>
+            )}
+          </div>
+
+          {/* Cards */}
+          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* ANAPRO */}
+            <div className={`rounded-lg border p-3 transition-colors ${
+              response?.anaproFileUrl
+                ? "border-green-500/30 bg-green-500/5"
+                : "border-border/60 bg-secondary/30"
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-blue-500/15 flex items-center justify-center shrink-0">
+                  <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">Resposta ANAPRO</p>
+                {response?.anaproFileUrl && (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500 ml-auto shrink-0" />
+                )}
+              </div>
+              {response?.anaproFileUrl ? (
+                <div className="space-y-2">
+                  <a
+                    href={response.anaproFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-[11px] text-brand hover:underline truncate"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate">Ver comprovante</span>
+                  </a>
+                  <button
+                    onClick={() => handleRemoveComprovante("anapro")}
+                    disabled={removeComprovanteMutation.isPending}
+                    className="flex items-center gap-1.5 text-[10px] text-red-500 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Remover
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => anaproInputRef.current?.click()}
+                  disabled={isUploadingAnapro}
+                  className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-dashed border-border/60 text-[11px] text-muted-foreground hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all"
+                >
+                  {isUploadingAnapro ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enviando...</>
+                  ) : (
+                    <><Upload className="w-3.5 h-3.5" /> Anexar arquivo</>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* OK do Cliente */}
+            <div className={`rounded-lg border p-3 transition-colors ${
+              response?.clienteOkFileUrl
+                ? "border-green-500/30 bg-green-500/5"
+                : "border-border/60 bg-secondary/30"
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-green-500/15 flex items-center justify-center shrink-0">
+                  <ThumbsUp className="w-3.5 h-3.5 text-green-500" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">OK do Cliente</p>
+                {response?.clienteOkFileUrl && (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500 ml-auto shrink-0" />
+                )}
+              </div>
+              {response?.clienteOkFileUrl ? (
+                <div className="space-y-2">
+                  <a
+                    href={response.clienteOkFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-[11px] text-brand hover:underline truncate"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate">Ver comprovante</span>
+                  </a>
+                  <button
+                    onClick={() => handleRemoveComprovante("clienteOk")}
+                    disabled={removeComprovanteMutation.isPending}
+                    className="flex items-center gap-1.5 text-[10px] text-red-500 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Remover
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => clienteOkInputRef.current?.click()}
+                  disabled={isUploadingClienteOk}
+                  className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border border-dashed border-border/60 text-[11px] text-muted-foreground hover:border-green-500/40 hover:text-green-500 hover:bg-green-500/5 transition-all"
+                >
+                  {isUploadingClienteOk ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enviando...</>
+                  ) : (
+                    <><Upload className="w-3.5 h-3.5" /> Anexar arquivo</>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Hidden file inputs */}
+        <input
+          ref={anaproInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleUploadComprovante("anapro", file);
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={clienteOkInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleUploadComprovante("clienteOk", file);
+            e.target.value = "";
+          }}
+        />
       </div>
 
       {/* ─── Fixed Bottom Bar: Aprovar Cadastro ─── */}

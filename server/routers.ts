@@ -1785,9 +1785,59 @@ export const appRouter = router({
 
         return {
           csv: "\uFEFF" + rows.join("\n"),
-          filename: `${form.title.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").trim()}_respostas.csv`,
+          filename: `${form.title.replace(/[^a-zA-Z0-9\u00C0-\u00FF\s-]/g, "").trim()}_respostas.csv`,
           totalResponses: responses.length,
         };
+      }),
+
+    // ─── Comprovantes obrigatórios (ANAPRO + OK do Cliente) ───
+    uploadComprovante: staffAnyProcedure
+      .input(z.object({
+        responseId: z.number(),
+        tipo: z.enum(["anapro", "clienteOk"]),
+        fileBase64: z.string(), // base64 encoded file
+        mimeType: z.string().default("image/jpeg"),
+        filename: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+
+        // Upload to S3
+        const ext = input.mimeType === "application/pdf" ? "pdf" : input.mimeType.split("/")[1] || "jpg";
+        const suffix = Math.random().toString(36).substring(2, 8);
+        const fileKey = `comprovantes/${input.tipo}_${input.responseId}_${suffix}.${ext}`;
+        const fileBuffer = Buffer.from(input.fileBase64, "base64");
+        const { url } = await storagePut(fileKey, fileBuffer, input.mimeType);
+
+        // Save URL to the response row
+        const updateData = input.tipo === "anapro"
+          ? { anaproFileUrl: url }
+          : { clienteOkFileUrl: url };
+        await db.updateResponse(input.responseId, updateData);
+
+        return { url };
+      }),
+
+    removeComprovante: staffAnyProcedure
+      .input(z.object({
+        responseId: z.number(),
+        tipo: z.enum(["anapro", "clienteOk"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+
+        const updateData = input.tipo === "anapro"
+          ? { anaproFileUrl: null }
+          : { clienteOkFileUrl: null };
+        await db.updateResponse(input.responseId, updateData);
+
+        return { success: true };
       }),
   }),
 
