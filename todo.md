@@ -1861,3 +1861,8 @@
 - [x] anaproFileUrl e clienteOkFileUrl já retornados pelo getResponsesByForm (db.select() sem filtro de colunas)
 - [x] Comprovantes ANAPRO e OK do Cliente como páginas extras no PDF gerado (após os anexos do formulário) — tanto em generateFicha quanto em shareFicha
 - [x] 692 testes passando
+
+## Feature: Limpar badge do ícone PWA ao abrir o app
+- [x] Chamar navigator.clearAppBadge() ao abrir o app (visibilitychange + focus + mount)
+- [x] Enviar mensagem CLEAR_BADGE ao service worker ao abrir o app (para iOS PWA)
+- [x] Service worker responde ao evento message CLEAR_BADGE chamando clearAppBadge()

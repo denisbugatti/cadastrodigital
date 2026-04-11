@@ -120,6 +120,15 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Message: handle messages from the main app (e.g., clear badge on app focus)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_BADGE') {
+    if (navigator.clearAppBadge) {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }
+});
+
 // Fetch: network-first for API calls, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;

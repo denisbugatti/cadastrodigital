@@ -56,9 +56,31 @@ export function useUnreadResponses() {
     }
   }, [totalUnread, isAuthenticated]);
 
-  // Clear badge on unmount (e.g., logout)
+  // Clear badge when the app becomes visible (user opens the app from background or icon tap)
   useEffect(() => {
+    const clearBadge = () => {
+      updateAppBadge(0);
+      // Also notify the service worker to clear the badge (needed for iOS PWA)
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: "CLEAR_BADGE" });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearBadge();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", clearBadge);
+
+    // Clear immediately on mount (covers the initial app open)
+    clearBadge();
+
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", clearBadge);
       updateAppBadge(0);
     };
   }, []);
