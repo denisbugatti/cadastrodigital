@@ -1873,3 +1873,9 @@
 - [x] Novo filtro "Incompletos" adicionado nos pills de filtro com contagem separada
 - [x] Botão do card mostra "Em Preenchimento — Ver Parcial" (âmbar) para respostas incompletas
 - [x] Badge "Parcial" já existia no card, agora com botão contextual correto
+
+## Feature: Visualização de respostas ao vivo
+- [ ] Polling automático na tela de validação para respostas incompletas (refetch a cada 5s)
+- [ ] Indicador visual "Ao Vivo" pulsante quando a resposta está sendo preenchida
+- [ ] Respostas novas aparecem com animação na lista de validação
+- [ ] Parar polling quando a resposta ficar completa
