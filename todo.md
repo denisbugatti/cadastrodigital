@@ -1866,3 +1866,10 @@
 - [x] Chamar navigator.clearAppBadge() ao abrir o app (visibilitychange + focus + mount)
 - [x] Enviar mensagem CLEAR_BADGE ao service worker ao abrir o app (para iOS PWA)
 - [x] Service worker responde ao evento message CLEAR_BADGE chamando clearAppBadge()
+
+## Feature: Respostas incompletas visíveis para o corretor
+- [x] Verificado: getResponsesByFormWithSearch já retorna todas as respostas (sem filtro por isComplete)
+- [x] Filtros corrigidos: "Incompletos" filtra por !isComplete, "Pendentes" filtra por isComplete + validationStatus pending
+- [x] Novo filtro "Incompletos" adicionado nos pills de filtro com contagem separada
+- [x] Botão do card mostra "Em Preenchimento — Ver Parcial" (âmbar) para respostas incompletas
+- [x] Badge "Parcial" já existia no card, agora com botão contextual correto

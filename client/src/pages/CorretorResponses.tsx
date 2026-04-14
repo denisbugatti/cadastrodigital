@@ -511,6 +511,8 @@ function CorretorResponseCard({
                 ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 hover:bg-green-500/15"
                 : isRejected
                 ? "bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-500/20"
+                : !response.isComplete
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/15"
                 : "bg-brand text-white hover:bg-brand/90 shadow-sm shadow-brand/20"
             }`}
           >
@@ -518,6 +520,8 @@ function CorretorResponseCard({
               <><ShieldCheck size={13} /> Aprovado — Ver Detalhes</>
             ) : isRejected ? (
               <><ShieldAlert size={13} /> Revisar Reprovação</>
+            ) : !response.isComplete ? (
+              <><Clock size={13} /> Em Preenchimento — Ver Parcial <ArrowRight size={13} /></>
             ) : (
               <><CheckCircle2 size={13} /> Validar Respostas <ArrowRight size={13} /></>
             )}
@@ -827,7 +831,8 @@ export default function CorretorResponses() {
     else if (statusFilter === "partial") result = result.filter((r: any) => !r.isComplete);
     else if (statusFilter === "approved") result = result.filter((r: any) => r.validationStatus === "approved");
     else if (statusFilter === "rejected") result = result.filter((r: any) => r.validationStatus === "rejected");
-    else if (statusFilter === "pending") result = result.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
+    else if (statusFilter === "incomplete") result = result.filter((r: any) => !r.isComplete);
+    else if (statusFilter === "pending") result = result.filter((r: any) => r.isComplete && (!r.validationStatus || r.validationStatus === "pending"));
 
     // Filter by date
     if (dateFrom || dateTo) {
@@ -876,7 +881,8 @@ export default function CorretorResponses() {
     }
     return {
       total: base.length,
-      pending: base.filter((r: any) => !r.validationStatus || r.validationStatus === "pending" || r.validationStatus === "in_review").length,
+      incomplete: base.filter((r: any) => !r.isComplete).length,
+      pending: base.filter((r: any) => r.isComplete && (!r.validationStatus || r.validationStatus === "pending" || r.validationStatus === "in_review")).length,
       approved: base.filter((r: any) => r.validationStatus === "approved").length,
       rejected: base.filter((r: any) => r.validationStatus === "rejected").length,
     };
@@ -1250,7 +1256,8 @@ export default function CorretorResponses() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
           {[
             { id: "all", label: "Todos", count: stats.total },
-            { id: "pending", label: "Incompletos", count: stats.pending },
+            { id: "incomplete", label: "Incompletos", count: stats.incomplete },
+            { id: "pending", label: "Pendentes", count: stats.pending },
             { id: "approved", label: "Aprovados", count: stats.approved },
             { id: "rejected", label: "Rejeitados", count: stats.rejected },
           ].map((filter) => (
