@@ -657,10 +657,10 @@ export default function CorretorResponses() {
     [assignedForms, selectedFormId]
   );
 
-  // Get responses for selected form
+  // Get responses for selected form — auto-refresh every 15s for live updates
   const { data: responses, isLoading: responsesLoading } = trpc.responses.listByForm.useQuery(
     { formId: selectedFormId!, search: searchParam },
-    { enabled: !!selectedFormId }
+    { enabled: !!selectedFormId, refetchInterval: 15000 }
   );
 
   // ─── Folders ───

@@ -467,11 +467,25 @@ export default function ResponseValidation() {
     };
   }, []);
 
-  // Get response data
+  // Get response data — poll every 5s if response is incomplete (live view)
+  const [isLivePolling, setIsLivePolling] = useState(false);
   const responseQuery = trpc.responses.getById.useQuery(
     { id: responseId },
-    { enabled: responseId > 0 }
+    {
+      enabled: responseId > 0,
+      refetchInterval: isLivePolling ? 5000 : false,
+    }
   );
+
+  // Enable/disable live polling based on isComplete
+  useEffect(() => {
+    const data = responseQuery.data as any;
+    if (data && !data.isComplete) {
+      setIsLivePolling(true);
+    } else {
+      setIsLivePolling(false);
+    }
+  }, [responseQuery.data]);
 
   // Get form data for question labels
   const formId = (responseQuery.data as any)?.formId;
@@ -684,14 +698,25 @@ export default function ResponseValidation() {
               <h1 className="text-sm sm:text-base font-bold text-foreground font-display truncate leading-tight">
                 Validar Cadastro
               </h1>
-              <p className="text-[10px] sm:text-xs text-muted-foreground font-body leading-tight mt-0.5">
+              <p className="text-[10px] sm:text-xs text-muted-foreground font-body leading-tight mt-0.5 flex items-center gap-1.5 flex-wrap">
+                {isLivePolling && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Ao Vivo
+                  </span>
+                )}
+                {!response.isComplete && !isLivePolling && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[9px] font-bold">
+                    Parcial
+                  </span>
+                )}
                 {form?.title && (
                   <span className="font-semibold text-brand/80">{form.title}</span>
                 )}
-                {form?.title && <span className="mx-1">·</span>}
+                {form?.title && <span className="mx-0.5">·</span>}
                 <span className="font-mono text-foreground/70 font-semibold">{response.protocolCode || `#${response.id}`}</span>
                 {response.respondentName && (
-                  <span className="ml-1.5">— {response.respondentName}</span>
+                  <span className="ml-1">— {response.respondentName}</span>
                 )}
               </p>
             </div>
@@ -818,6 +843,33 @@ export default function ResponseValidation() {
           </div>
         </div>
       </div>
+
+      {/* ─── Live Banner ─── */}
+      {isLivePolling && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-3">
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/5 border border-red-500/20"
+          >
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+                Preenchimento ao vivo
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                O cliente está preenchendo o formulário agora. As respostas atualizam automaticamente a cada 5 segundos.
+              </p>
+            </div>
+            <span className="text-[9px] text-muted-foreground/60 font-mono shrink-0">
+              {Object.keys(answers).length} / {questions.length} respondidas
+            </span>
+          </motion.div>
+        </div>
+      )}
 
       {/* ─── Answers List ─── */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-3 sm:mt-4 space-y-2.5 sm:space-y-3">

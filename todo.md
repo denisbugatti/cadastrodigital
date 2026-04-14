@@ -1875,7 +1875,8 @@
 - [x] Badge "Parcial" já existia no card, agora com botão contextual correto
 
 ## Feature: Visualização de respostas ao vivo
-- [ ] Polling automático na tela de validação para respostas incompletas (refetch a cada 5s)
-- [ ] Indicador visual "Ao Vivo" pulsante quando a resposta está sendo preenchida
-- [ ] Respostas novas aparecem com animação na lista de validação
-- [ ] Parar polling quando a resposta ficar completa
+- [x] Polling automático na tela de validação para respostas incompletas (refetchInterval 5s, desativa quando isComplete)
+- [x] Indicador visual "Ao Vivo" pulsante no header da validação (badge vermelho com animação pulse)
+- [x] Banner informativo "Preenchimento ao vivo" com contagem X / Y respondidas
+- [x] Parar polling quando a resposta ficar completa (useEffect monitora isComplete)
+- [x] Polling na lista de respostas do corretor (CorretorResponses) a cada 15s para novas respostas
