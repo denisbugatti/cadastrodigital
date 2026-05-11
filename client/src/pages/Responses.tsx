@@ -461,7 +461,7 @@ function ResponseCard({
                   </span>
                 ) : (
                   <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-0.5">
-                    <XCircle size={10} /> Parcial
+                    <Clock size={10} /> Em Preenchimento
                   </span>
                 )}
               </div>
@@ -569,8 +569,11 @@ function ResponseCard({
               size="sm"
               className="gap-1.5 text-xs h-9 px-3 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
             >
-              <CheckCircle2 size={14} />
-              Validar
+              {response.isComplete ? (
+                <><CheckCircle2 size={14} /> Validar</>
+              ) : (
+                <><Clock size={14} /> Ver Parcial</>
+              )}
             </Button>
           </Link>
 
@@ -861,7 +864,7 @@ export default function Responses() {
   const { data: form, isLoading: formLoading } = trpc.forms.getById.useQuery({ id: formId }, { enabled: !!formId });
   const { data: responses, isLoading: responsesLoading } = trpc.responses.listByForm.useQuery(
     { formId, search: searchParam },
-    { enabled: !!formId }
+    { enabled: !!formId, refetchInterval: 15000 }
   );
 
   const [generatingId, setGeneratingId] = useState<number | null>(null);
@@ -1042,15 +1045,16 @@ export default function Responses() {
 
   // ─── Computed Stats ───
   const stats = useMemo(() => {
-    if (!responses) return { total: 0, complete: 0, avgTime: 0, validated: 0, rejected: 0 };
+    if (!responses) return { total: 0, complete: 0, incomplete: 0, avgTime: 0, validated: 0, rejected: 0 };
     const complete = responses.filter((r: any) => r.isComplete).length;
+    const incomplete = responses.filter((r: any) => !r.isComplete).length;
     const validated = responses.filter((r: any) => r.validationStatus === "approved").length;
     const rejected = responses.filter((r: any) => r.validationStatus === "rejected").length;
     const timesArr = responses
       .filter((r: any) => r.timeSpentSeconds && r.timeSpentSeconds > 0)
       .map((r: any) => r.timeSpentSeconds as number);
     const avgTime = timesArr.length > 0 ? Math.round(timesArr.reduce((a: number, b: number) => a + b, 0) / timesArr.length) : 0;
-    return { total: responses.length, complete, avgTime, validated, rejected };
+    return { total: responses.length, complete, incomplete, avgTime, validated, rejected };
   }, [responses]);
 
   // ─── Advanced Filtered Responses ───
@@ -1253,7 +1257,7 @@ export default function Responses() {
       {/* ─── Content ─── */}
       <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
         {/* ─── Stats Overview ─── */}
-        <div className="flex lg:grid lg:grid-cols-5 gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none snap-x snap-mandatory">
+        <div className="flex lg:grid lg:grid-cols-6 gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none snap-x snap-mandatory">
           <StatCard icon={BarChart3} label="Total" value={stats.total} color="brand" />
           <StatCard
             icon={CheckCircle2}
@@ -1261,6 +1265,13 @@ export default function Responses() {
             value={stats.complete}
             sublabel={stats.total > 0 ? `${Math.round((stats.complete / stats.total) * 100)}%` : undefined}
             color="green"
+          />
+          <StatCard
+            icon={XCircle}
+            label="Incompletas"
+            value={stats.incomplete}
+            sublabel={stats.total > 0 ? `${Math.round((stats.incomplete / stats.total) * 100)}%` : undefined}
+            color="amber"
           />
           <StatCard
             icon={ShieldCheck}
@@ -1450,7 +1461,7 @@ export default function Responses() {
             {[
               { id: "all", label: "Todos", count: responses?.length ?? 0 },
               { id: "complete", label: "Completas", count: stats.complete },
-              { id: "partial", label: "Parciais", count: (responses?.length ?? 0) - stats.complete },
+              { id: "partial", label: "Incompletas", count: stats.incomplete },
               { id: "approved", label: "Aprovadas", count: stats.validated },
               { id: "rejected", label: "Rejeitadas", count: stats.rejected },
             ].map((filter) => (

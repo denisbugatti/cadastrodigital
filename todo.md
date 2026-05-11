@@ -1880,3 +1880,10 @@
 - [x] Banner informativo "Preenchimento ao vivo" com contagem X / Y respondidas
 - [x] Parar polling quando a resposta ficar completa (useEffect monitora isComplete)
 - [x] Polling na lista de respostas do corretor (CorretorResponses) a cada 15s para novas respostas
+
+## Feature: Filtro "Incompletos" e indicador "Ao Vivo" na tela de Respostas do admin
+- [x] Adicionar filtro "Incompletos" nos pills de filtro da tela Responses do admin (label "Incompletas" com contagem correta)
+- [x] Adicionar contagem de incompletos nos stats cards (novo card com ícone XCircle e cor âmbar)
+- [x] Badge "Em Preenchimento" nos cards de respostas incompletas (admin) com ícone Clock
+- [x] Botão contextual "Ver Parcial" para respostas incompletas (em vez de "Validar")
+- [x] Polling automático (refetchInterval 15s) na lista de respostas do admin
