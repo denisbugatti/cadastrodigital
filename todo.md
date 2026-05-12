@@ -1887,3 +1887,9 @@
 - [x] Badge "Em Preenchimento" nos cards de respostas incompletas (admin) com ícone Clock
 - [x] Botão contextual "Ver Parcial" para respostas incompletas (em vez de "Validar")
 - [x] Polling automático (refetchInterval 15s) na lista de respostas do admin
+
+## BUGFIX: Respostas incompletas não apareciam no filtro
+- [x] Identificar causa raiz: filtro de corretor (reviewedBy) excluía respostas incompletas que ainda não tinham corretor atribuído
+- [x] Corrigir filtro em Responses.tsx para incluir respostas incompletas sem reviewedBy quando filtrando por corretor
+- [x] Verificar que CorretorResponses não precisa da mesma correção (não tem filtro de corretor)
+- [x] Testes de filtro passando (9 testes)

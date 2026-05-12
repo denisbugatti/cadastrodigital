@@ -1086,7 +1086,8 @@ export default function Responses() {
 
     if (corretorFilter !== "all") {
       const corretorId = Number(corretorFilter);
-      result = result.filter((r: any) => r.reviewedBy === corretorId);
+      // Include responses assigned to this corretor OR unassigned incomplete responses
+      result = result.filter((r: any) => r.reviewedBy === corretorId || (r.reviewedBy === null && !r.isComplete));
     }
 
     return result;
