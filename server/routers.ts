@@ -1251,10 +1251,15 @@ export const appRouter = router({
         let responses = await db.getResponsesByFormWithSearch(input.formId, input.search);
 
         // Gerentes only see responses from their corretores
+        // Also include incomplete responses without a corretor assigned (reviewedBy = null)
+        // so the gerente can see and assign them
         if (session?.role === 'gerente') {
           const myCorretores = await staffDb.getCorretoresByManager(session.staffUserId);
           const corretorIds = new Set(myCorretores.map((c: any) => c.id));
-          responses = responses.filter((r: any) => r.reviewedBy && corretorIds.has(r.reviewedBy));
+          responses = responses.filter((r: any) =>
+            (r.reviewedBy && corretorIds.has(r.reviewedBy)) ||
+            (!r.reviewedBy && !r.isComplete)
+          );
         }
 
         return responses;

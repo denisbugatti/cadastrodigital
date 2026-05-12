@@ -1893,3 +1893,14 @@
 - [x] Corrigir filtro em Responses.tsx para incluir respostas incompletas sem reviewedBy quando filtrando por corretor
 - [x] Verificar que CorretorResponses não precisa da mesma correção (não tem filtro de corretor)
 - [x] Testes de filtro passando (9 testes)
+
+## BUGFIX: Filtro "Incompletos" vazio na tela do gerente (CorretorResponses)
+- [x] Investigar por que o stat card mostra 4 mas o filtro mostra 0
+- [x] Causa raiz: backend filtrava gerentes por reviewedBy, excluindo respostas incompletas sem corretor atribuído
+- [x] Corrigir routers.ts: gerente agora vê respostas dos seus corretores + incompletas sem corretor atribuído
+
+## Feature: Notificação de abandono de formulário (8 minutos)
+- [x] Backend: job periódico (a cada 2 min) detecta respostas incompletas sem atividade por 8+ minutos
+- [x] Backend: enviar email ao corretor responsável com as respostas parciais
+- [x] Backend: campo abandonmentNotifiedAt no schema para não reenviar notificação
+- [x] Backend: log de atividade registrado quando abandono é detectado
