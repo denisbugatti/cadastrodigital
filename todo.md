@@ -1904,3 +1904,16 @@
 - [x] Backend: enviar email ao corretor responsável com as respostas parciais
 - [x] Backend: campo abandonmentNotifiedAt no schema para não reenviar notificação
 - [x] Backend: log de atividade registrado quando abandono é detectado
+
+## BUGFIX: Respostas incompletas não aparecem na lista do admin (Responses.tsx)
+- [ ] Investigar por que "Total 10" mas lista mostra apenas 6 (as 4 pendentes/incompletas somem)
+- [ ] Verificar se há algum filtro padrão que exclui respostas incompletas
+- [ ] Corrigir para que todas as respostas apareçam por padrão no filtro "Todos"
+
+## Feature: Auto-save progressivo no formulário (respostas parciais)
+- [x] Analisar FormContainer para entender o fluxo atual de salvamento (só salvava no banco ao completar)
+- [x] Implementar auto-save no frontend: ao avançar cada pergunta, salvar no banco com isComplete=false (debounce 1.5s)
+- [x] Usar sessionStorage para manter o partialResponseId entre navegações (evita duplicatas)
+- [x] Ao enviar o formulário, reutilizar o partialResponseId existente e marcar isComplete=true
+- [x] Cancelar timer de auto-save ao completar o formulário (evita race condition)
+- [x] lastActivityAt atualizado a cada auto-save (alimenta o sistema de detecção de abandono)

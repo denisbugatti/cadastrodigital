@@ -1,0 +1,8 @@
+{
+  "query": "SELECT is_complete, COUNT(*) as count FROM form_responses WHERE deleted_at IS NULL GROUP BY is_complete ORDER BY is_complete;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT is_complete, COUNT(*) as count FROM form_responses WHERE deleted_at IS NULL GROUP BY is_complete ORDER BY is_complete;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'is_complete' in 'group statement'"
+  ]
+}

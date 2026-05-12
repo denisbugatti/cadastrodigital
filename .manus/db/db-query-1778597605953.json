@@ -1,0 +1,95 @@
+{
+  "query": "SELECT formId, isComplete, COUNT(*) as count FROM form_responses WHERE deletedAt IS NULL GROUP BY formId, isComplete ORDER BY formId, isComplete;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT formId, isComplete, COUNT(*) as count FROM form_responses WHERE deletedAt IS NULL GROUP BY formId, isComplete ORDER BY formId, isComplete;",
+  "rows": [
+    {
+      "formId": "90002",
+      "isComplete": "1",
+      "count": "1"
+    },
+    {
+      "formId": "150001",
+      "isComplete": "1",
+      "count": "10"
+    },
+    {
+      "formId": "180001",
+      "isComplete": "1",
+      "count": "2"
+    },
+    {
+      "formId": "210001",
+      "isComplete": "1",
+      "count": "5"
+    },
+    {
+      "formId": "210003",
+      "isComplete": "1",
+      "count": "7"
+    },
+    {
+      "formId": "210005",
+      "isComplete": "1",
+      "count": "14"
+    },
+    {
+      "formId": "240002",
+      "isComplete": "1",
+      "count": "10"
+    },
+    {
+      "formId": "270003",
+      "isComplete": "1",
+      "count": "3"
+    },
+    {
+      "formId": "270004",
+      "isComplete": "1",
+      "count": "2"
+    },
+    {
+      "formId": "270005",
+      "isComplete": "1",
+      "count": "10"
+    },
+    {
+      "formId": "270006",
+      "isComplete": "1",
+      "count": "2"
+    },
+    {
+      "formId": "270007",
+      "isComplete": "1",
+      "count": "2"
+    },
+    {
+      "formId": "270009",
+      "isComplete": "1",
+      "count": "1"
+    },
+    {
+      "formId": "270010",
+      "isComplete": "1",
+      "count": "3"
+    },
+    {
+      "formId": "270011",
+      "isComplete": "1",
+      "count": "3"
+    },
+    {
+      "formId": "300001",
+      "isComplete": "1",
+      "count": "6"
+    },
+    {
+      "formId": "390001",
+      "isComplete": "1",
+      "count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "formId\tisComplete\tcount\n90002\t1\t1\n150001\t1\t10\n180001\t1\t2\n210001\t1\t5\n210003\t1\t7\n210005\t1\t14\n240002\t1\t10\n270003\t1\t3\n270004\t1\t2\n270005\t1\t10\n270006\t1\t2\n270007\t1\t2\n270009\t1\t1\n270010\t1\t3\n270011\t1\t3\n300001\t1\t6\n390001\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 261
+}

@@ -204,6 +204,76 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
   const [protocolCode, setProtocolCode] = useState<string | null>(null);
   const [totalScore, setTotalScore] = useState<number | null>(null);
 
+  // ─── Auto-save partial responses to DB ───
+  // Tracks the DB response ID created for this session (partial save)
+  const partialResponseIdRef = useRef<number | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // On mount: restore partialResponseId from sessionStorage (if user refreshed)
+  useEffect(() => {
+    if (!form._dbFormId) return;
+    const key = `formflow_partial_db_${form._dbFormId}`;
+    const stored = sessionStorage.getItem(key);
+    if (stored) {
+      const id = parseInt(stored, 10);
+      if (!isNaN(id)) partialResponseIdRef.current = id;
+    }
+  }, [form._dbFormId]);
+
+  // Auto-save to DB whenever the user advances (currentIndex changes) and has answered at least 1 question
+  useEffect(() => {
+    if (!hasRestoredFromSave) return;
+    if (!form._dbFormId) return;
+    if (engine.isThankYou) return; // handled by the completion effect below
+    if (continueResponseId) return; // already has a DB record
+    if (engine.responses.size === 0) return; // nothing answered yet
+
+    // Debounce: wait 1.5s after last change before saving
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      const answersObj: Record<string, unknown> = {};
+      engine.responses.forEach((v, k) => { answersObj[k] = v.value; });
+
+      // Extract name and email
+      let respondentName: string | undefined;
+      let respondentEmail: string | undefined;
+      engine.responses.forEach((v) => {
+        const q = form.questions.find((q) => q.id === v.questionId);
+        if ((q?.type === "name" || q?.type === "short-text") && !respondentName && typeof v.value === "string") respondentName = v.value;
+        if (q?.type === "email" && typeof v.value === "string") respondentEmail = v.value;
+      });
+
+      if (partialResponseIdRef.current) {
+        // Update existing partial response
+        updateResponseMutation.mutate({
+          id: partialResponseIdRef.current,
+          answers: answersObj,
+          isComplete: false,
+        });
+      } else {
+        // Create new partial response
+        submitResponseMutation.mutate({
+          formId: form._dbFormId!,
+          answers: answersObj,
+          respondentName,
+          respondentEmail,
+          isComplete: false,
+        }, {
+          onSuccess: (data) => {
+            if (data?.id) {
+              partialResponseIdRef.current = data.id;
+              sessionStorage.setItem(`formflow_partial_db_${form._dbFormId}`, String(data.id));
+            }
+          },
+        });
+      }
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [engine.currentIndex, engine.responses.size, hasRestoredFromSave, form._dbFormId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!hasRestoredFromSave) return;
     if (engine.isThankYou) {
@@ -242,6 +312,9 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
 
       // Submit to database if we have a dbFormId and haven't submitted yet
       if (form._dbFormId && !hasSubmitted) {
+        // Cancel any pending auto-save timer
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
         const answersObj: Record<string, unknown> = {};
         engine.responses.forEach((v, k) => {
           answersObj[k] = v.value;
@@ -258,15 +331,19 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
           if (q?.type === "email" && typeof v.value === "string") respondentEmail = v.value;
         });
 
+        // Clean up sessionStorage for this form
+        sessionStorage.removeItem(`formflow_partial_db_${form._dbFormId}`);
+
         // If continuing an existing response, update it instead of creating a new one
-        if (continueResponseId) {
+        const existingId = continueResponseId ?? partialResponseIdRef.current;
+        if (existingId) {
           updateResponseMutation.mutate({
-            id: continueResponseId,
+            id: existingId,
             answers: answersObj,
             isComplete: true,
           }, {
-            onSuccess: () => {
-              // For continued responses, protocol code was already generated
+            onSuccess: (data) => {
+              if ((data as any)?.protocolCode) setProtocolCode((data as any).protocolCode);
               fireTrackingConversion(form.tracking, form.title);
             },
           });
