@@ -406,6 +406,15 @@ function ResponseCard({
   const isValidated = response.validationStatus === "approved";
   const isRejected = response.validationStatus === "rejected";
 
+  // Progress calculation for incomplete responses
+  const totalQuestions = questions.filter(
+    (q: any) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
+  ).length;
+  const answeredCount = Object.values(answers).filter(
+    (v) => v !== null && v !== undefined && v !== ""
+  ).length;
+  const progressPct = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+
   // Status color for left border
   const statusBorderColor = isValidated
     ? "border-l-green-500"
@@ -462,6 +471,11 @@ function ResponseCard({
                 ) : (
                   <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-0.5">
                     <Clock size={10} /> Em Preenchimento
+                    {totalQuestions > 0 && (
+                      <span className="ml-1 text-[10px] text-muted-foreground">
+                        · {answeredCount}/{totalQuestions} perguntas ({progressPct}%)
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
@@ -496,6 +510,26 @@ function ResponseCard({
             ) : (
               <Copy size={14} className="text-muted-foreground/40 shrink-0" />
             )}
+          </div>
+        )}
+
+        {/* ─── Progress Bar for Incomplete Responses ─── */}
+        {!response.isComplete && totalQuestions > 0 && (
+          <div className="mb-3 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <Clock size={11} /> Em preenchimento
+              </span>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {answeredCount} de {totalQuestions} perguntas
+              </span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-amber-500/15 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
           </div>
         )}
 

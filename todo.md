@@ -1917,3 +1917,9 @@
 - [x] Ao enviar o formulário, reutilizar o partialResponseId existente e marcar isComplete=true
 - [x] Cancelar timer de auto-save ao completar o formulário (evita race condition)
 - [x] lastActivityAt atualizado a cada auto-save (alimenta o sistema de detecção de abandono)
+
+## Feature: Badge de progresso "Em Preenchimento" nas listas de respostas
+- [x] Calcular número de perguntas respondidas a partir do campo `answers` da resposta parcial
+- [x] Barra de progresso âmbar com "X de Y perguntas (Z%)" no card de respostas incompletas (admin)
+- [x] Barra de progresso âmbar com "X/Y (Z%)" no card de respostas incompletas (gerente/corretor)
+- [x] questions passado como prop para CorretorResponseCard via selectedForm.questions

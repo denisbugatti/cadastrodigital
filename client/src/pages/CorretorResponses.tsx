@@ -326,6 +326,7 @@ function CorretorResponseCard({
   currentFolderId,
   onMoveToFolder,
   onRemoveFromFolder,
+  questions,
 }: {
   response: any;
   index: number;
@@ -333,6 +334,7 @@ function CorretorResponseCard({
   currentFolderId: number | null;
   onMoveToFolder: (responseId: number, folderId: number) => void;
   onRemoveFromFolder: (responseId: number) => void;
+  questions?: any[];
 }) {
   const [showFolderMenu, setShowFolderMenu] = useState(false);
 
@@ -360,6 +362,15 @@ function CorretorResponseCard({
   const phone = Object.values(answers).find(
     (v: any) => typeof v === "string" && /^\+?\d[\d\s()-]{7,}$/.test(v)
   ) as string | undefined;
+
+  // Progress calculation for incomplete responses
+  const totalQuestions = (questions ?? []).filter(
+    (q: any) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
+  ).length;
+  const answeredCount = Object.values(answers).filter(
+    (v) => v !== null && v !== undefined && v !== ""
+  ).length;
+  const progressPct = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
   const currentFolder = folders.find((f: any) => f.id === currentFolderId);
 
@@ -443,6 +454,26 @@ function CorretorResponseCard({
               {response.protocolCode}
             </span>
             <span className="text-[9px] text-muted-foreground/60 ml-auto">Protocolo</span>
+          </div>
+        )}
+
+        {/* Progress Bar for Incomplete Responses */}
+        {!response.isComplete && totalQuestions > 0 && (
+          <div className="mb-2.5 px-2.5 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <Clock size={10} /> Em preenchimento
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {answeredCount}/{totalQuestions} ({progressPct}%)
+              </span>
+            </div>
+            <div className="w-full h-1 rounded-full bg-amber-500/15 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
           </div>
         )}
 
@@ -1472,6 +1503,7 @@ export default function CorretorResponses() {
                   currentFolderId={responseToFolder[response.id] || null}
                   onMoveToFolder={handleMoveToFolder}
                   onRemoveFromFolder={handleRemoveFromFolder}
+                  questions={(selectedForm as any)?.questions ?? []}
                 />
               ))}
             </div>
