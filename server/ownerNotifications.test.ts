@@ -133,7 +133,7 @@ describe("Owner Notification System", () => {
     // Verify the payload contains the correct data
     const callArgs = (webpush.default.sendNotification as any).mock.calls[0];
     const payload = JSON.parse(callArgs[1]);
-    expect(payload.title).toContain("completa");
+    expect(payload.title).toContain("cadastro");
     expect(payload.data.isComplete).toBe(true);
     expect(payload.data.protocolCode).toBe("XYZ789");
     expect(payload.data.formId).toBe(3);
@@ -154,7 +154,7 @@ describe("Owner Notification System", () => {
     
     const callArgs = (webpush.default.sendNotification as any).mock.calls[0];
     const payload = JSON.parse(callArgs[1]);
-    expect(payload.title).toContain("parcial");
+    expect(payload.title).toContain("começou");
     expect(payload.data.isComplete).toBe(false);
   });
 

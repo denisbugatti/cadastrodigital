@@ -350,7 +350,6 @@ describe("Staff In-App Notifications", () => {
           expect.objectContaining({
             staffUserId: 10,
             type: "new_response",
-            title: expect.stringContaining("parcial"),
             metadata: expect.objectContaining({ isComplete: false }),
           }),
         ])

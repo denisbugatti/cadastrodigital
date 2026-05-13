@@ -1112,10 +1112,18 @@ export const appRouter = router({
           const allStaffToNotify = [...staffIds, ...Array.from(managerIds)];
 
           if (allStaffToNotify.length > 0) {
-            const notifTitle = `📋 Nova resposta ${isComplete ? "" : "parcial "}em ${formTitle}`;
-            const notifBody = respondent !== "Anônimo"
-              ? `${respondent} enviou uma resposta ${statusLabel} no formulário "${formTitle}"`
-              : `Nova resposta ${statusLabel} recebida no formulário "${formTitle}"`;
+            const notifTitle = isComplete
+              ? `📋 Novo cadastro completo em ${formTitle}`
+              : respondent !== "Anônimo"
+                ? `🖊️ ${respondent} começou o cadastro`
+                : `🖊️ Novo cadastro iniciado em ${formTitle}`;
+            const notifBody = isComplete
+              ? respondent !== "Anônimo"
+                ? `${respondent} concluiu o cadastro em "${formTitle}"`
+                : `Novo cadastro completo recebido em "${formTitle}"`
+              : respondent !== "Anônimo"
+                ? `${respondent} está preenchendo o formulário "${formTitle}"`
+                : `Um cliente iniciou o preenchimento do formulário "${formTitle}"`;
 
             // Check preferences for each staff user
             const prefsMap = await db.getNotificationPreferencesForStaff(allStaffToNotify, "new_response");
@@ -1297,7 +1305,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        await db.updateResponse(id, { ...data, lastActivityAt: new Date() });
+        const updateResult = await db.updateResponse(id, { ...data, lastActivityAt: new Date() });
+        const generatedProtocol = updateResult?.protocolCode ?? null;
 
         // Notify corretores when a partial response becomes complete
         if (input.isComplete === true) {
@@ -1305,16 +1314,30 @@ export const appRouter = router({
             const response = await db.getResponseById(id);
             if (response) {
               const form = await db.getFormById(response.formId);
-              const formTitle = form?.title ?? "Formul\u00e1rio";
-              const respondent = response.respondentName || response.respondentEmail || "An\u00f4nimo";
+              const formTitle = form?.title ?? "Formulário";
+              const respondent = response.respondentName || response.respondentEmail || "Anônimo";
+              // Use the newly generated protocol code (from updateResponse) or the one already on the record
+              const finalProtocol = generatedProtocol || response.protocolCode || null;
 
               // Stop any active abandono cadences for this response
               await db.stopCadencesForResponse(id, "form_completed");
 
+              // Send protocol email to respondent now that it's complete
+              if (finalProtocol && response.respondentEmail) {
+                sendProtocolEmail({
+                  to: response.respondentEmail,
+                  respondentName: response.respondentName ?? undefined,
+                  protocolCode: finalProtocol,
+                  formTitle,
+                }).catch((err) => {
+                  console.warn("[Email] Failed to send protocol email on completion:", (err as Error)?.message?.substring(0, 100));
+                });
+              }
+
               // ─── Owner notifications (webapp push only) when partial → complete ───
               notifyOwnerNewResponse(formTitle, respondent, {
                 isComplete: true,
-                protocolCode: response.protocolCode ?? undefined,
+                protocolCode: finalProtocol ?? undefined,
                 formId: response.formId,
                 responseId: id,
               }).catch((err) => {
@@ -1341,8 +1364,10 @@ export const appRouter = router({
               const allCompletionStaff = [...staffIds, ...Array.from(completionManagerIds)];
 
               if (allCompletionStaff.length > 0) {
-                const notifTitle = `📋 Cadastro completado: ${formTitle}`;
-                const notifBody = `${respondent} completou o cadastro no formulário "${formTitle}".`;
+                const notifTitle = `📋 ${respondent} concluiu o cadastro`;
+                const notifBody = finalProtocol
+                  ? `Protocolo ${finalProtocol} • ${formTitle}`
+                  : `Cadastro completo em "${formTitle}"`;
 
                 // Check preferences for each staff user
                 const prefsMap = await db.getNotificationPreferencesForStaff(allCompletionStaff, "new_response");
@@ -1383,7 +1408,7 @@ export const appRouter = router({
           }
         }
 
-        return { success: true };
+        return { success: true, protocolCode: generatedProtocol };
       }),
 
     generateFicha: staffAnyProcedure

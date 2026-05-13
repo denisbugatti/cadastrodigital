@@ -1923,3 +1923,16 @@
 - [x] Barra de progresso âmbar com "X de Y perguntas (Z%)" no card de respostas incompletas (admin)
 - [x] Barra de progresso âmbar com "X/Y (Z%)" no card de respostas incompletas (gerente/corretor)
 - [x] questions passado como prop para CorretorResponseCard via selectedForm.questions
+
+## BUGFIX: Notificação de início e protocolo
+- [ ] Notificação de início: mostrar nome do cliente (ex: "João Silva começou o cadastro") em vez de mensagem genérica
+- [ ] Protocolo: gerar número de protocolo somente quando o formulário for completado (não em respostas parciais)
+
+## BUGFIX: Notificação de início e protocolo
+- [x] Notificação de início: título mostra "{Nome} começou o cadastro" (em vez de "Nova resposta parcial")
+- [x] Notificação de conclusão: título mostra "{Nome} concluiu o cadastro" com protocolo
+- [x] Protocolo gerado APENAS ao completar o formulário (não em respostas parciais)
+- [x] updateResponse gera protocolo automaticamente quando isComplete=true e não há protocolo
+- [x] FormContainer captura protocolCode retornado pelo updateMutation para exibir na tela de agradecimento
+- [x] Email de protocolo enviado ao respondente quando formulário é completado via update (parcial→completo)
+- [x] Testes atualizados para refletir novas mensagens de notificação

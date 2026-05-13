@@ -506,15 +506,18 @@ function generateProtocolCode(): string {
 
 export async function createResponse(data: InsertFormResponse) {
   return withDbRetry(async (db) => {
-    // Generate a unique protocol code with retry for uniqueness
-    let protocolCode = generateProtocolCode();
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const existing = await db.select({ id: formResponses.id })
-        .from(formResponses)
-        .where(eq(formResponses.protocolCode, protocolCode))
-        .limit(1);
-      if (existing.length === 0) break;
-      protocolCode = generateProtocolCode(); // Regenerate if collision
+    // Generate protocol code ONLY for complete responses
+    let protocolCode: string | null = null;
+    if (data.isComplete !== false) {
+      protocolCode = generateProtocolCode();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const existing = await db.select({ id: formResponses.id })
+          .from(formResponses)
+          .where(eq(formResponses.protocolCode, protocolCode))
+          .limit(1);
+        if (existing.length === 0) break;
+        protocolCode = generateProtocolCode(); // Regenerate if collision
+      }
     }
 
     const result = await db.insert(formResponses).values({
@@ -581,7 +584,33 @@ export async function getResponseById(id: number) {
 
 export async function updateResponse(id: number, data: Partial<InsertFormResponse>) {
   return withDbRetry(async (db) => {
-    await db.update(formResponses).set(data).where(eq(formResponses.id, id));
+    // If marking as complete, generate a protocol code if not already set
+    let protocolCode: string | null | undefined = data.protocolCode;
+    if (data.isComplete === true) {
+      const existing = await db.select({ protocolCode: formResponses.protocolCode })
+        .from(formResponses)
+        .where(eq(formResponses.id, id))
+        .limit(1);
+      const currentProtocol = existing[0]?.protocolCode;
+      if (!currentProtocol) {
+        // Generate a unique protocol code
+        let newCode = generateProtocolCode();
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const collision = await db.select({ id: formResponses.id })
+            .from(formResponses)
+            .where(eq(formResponses.protocolCode, newCode))
+            .limit(1);
+          if (collision.length === 0) break;
+          newCode = generateProtocolCode();
+        }
+        protocolCode = newCode;
+      } else {
+        protocolCode = currentProtocol;
+      }
+    }
+    const updateData = protocolCode !== undefined ? { ...data, protocolCode } : data;
+    await db.update(formResponses).set(updateData).where(eq(formResponses.id, id));
+    return { protocolCode: protocolCode ?? null };
   });
 }
 

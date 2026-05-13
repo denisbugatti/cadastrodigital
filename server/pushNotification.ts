@@ -267,18 +267,26 @@ export async function notifyOwnerNewResponse(
     }
 
     const isComplete = extras?.isComplete !== false;
-    const statusLabel = isComplete ? "completa" : "parcial";
     const title = isComplete
-      ? "📋 Nova resposta completa!"
-      : "📝 Resposta parcial recebida";
+      ? "📋 Novo cadastro completo!"
+      : respondentName
+        ? `🖊️ ${respondentName} começou o cadastro`
+        : `🖊️ Novo cadastro iniciado`;
 
-    const bodyParts = [
-      respondentName
-        ? `${respondentName} enviou uma resposta ${statusLabel}`
-        : `Nova resposta ${statusLabel} recebida`,
-      `Formulário: ${formTitle}`,
-    ];
-    if (extras?.protocolCode) bodyParts.push(`Protocolo: #${extras.protocolCode}`);
+    const bodyParts = isComplete
+      ? [
+          respondentName
+            ? `${respondentName} concluiu o cadastro`
+            : `Novo cadastro completo recebido`,
+          `Formulário: ${formTitle}`,
+        ]
+      : [
+          respondentName
+            ? `${respondentName} está preenchendo o formulário`
+            : `Um cliente iniciou o preenchimento`,
+          `Formulário: ${formTitle}`,
+        ];
+    if (isComplete && extras?.protocolCode) bodyParts.push(`Protocolo: #${extras.protocolCode}`);
 
     await sendPushToUser(ownerUser.id, {
       title,
