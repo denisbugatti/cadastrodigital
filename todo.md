@@ -1936,3 +1936,17 @@
 - [x] FormContainer captura protocolCode retornado pelo updateMutation para exibir na tela de agradecimento
 - [x] Email de protocolo enviado ao respondente quando formulário é completado via update (parcial→completo)
 - [x] Testes atualizados para refletir novas mensagens de notificação
+
+## BUGFIX: Login não funciona
+- [ ] Investigar por que o login está falhando
+- [ ] Verificar logs do servidor para identificar o erro
+- [ ] Corrigir o problema de autenticação
+
+## BUGFIX: Links dos formulários não funcionam
+- [ ] Investigar por que os links dos formulários não abrem
+- [ ] Verificar a rota de formulários públicos no servidor
+- [ ] Corrigir o problema
+
+## BUGFIX: Erro TypeScript withDb no db.ts
+- [x] Corrigir logSms, getSmsCountThisMonth e getSmsDailyStats que usavam withDb em vez de withDbRetry
+- [x] Corrigir smsVerification.ts MapIterator com Array.from e tipo explícito

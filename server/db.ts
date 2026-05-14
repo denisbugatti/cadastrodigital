@@ -3130,7 +3130,7 @@ export async function getGlobalIntegrationStats() {
 /* ─── SMS Logs ─── */
 
 export function logSms(data: { phone: string; formId?: number; verificationSid?: string; status: string }) {
-  return withDb(async (db) => {
+  return withDbRetry(async (db) => {
     await db.insert(smsLogs).values({
       phone: data.phone,
       formId: data.formId ?? null,
@@ -3141,7 +3141,7 @@ export function logSms(data: { phone: string; formId?: number; verificationSid?:
 }
 
 export function getSmsCountThisMonth() {
-  return withDb(async (db) => {
+  return withDbRetry(async (db) => {
     const rows = await db.execute(
       sql`SELECT 
             COUNT(*) as total,
@@ -3165,7 +3165,7 @@ export function getSmsCountThisMonth() {
 }
 
 export function getSmsDailyStats(days: number = 30) {
-  return withDb(async (db) => {
+  return withDbRetry(async (db) => {
     const rows = await db.execute(
       sql`SELECT 
             DATE(createdAt) as date,

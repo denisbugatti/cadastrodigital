@@ -1,0 +1,150 @@
+{
+  "query": "SELECT id, email, name, role, active FROM staff_users LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2FrvTurB9J6YsbF.19ef00e26ab3 --database bDyKxbJirDkukZmvFFZQ8p --execute SELECT id, email, name, role, active FROM staff_users LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "contato@denisbugatti.com.br",
+      "name": "Denis Bugatti",
+      "role": "master",
+      "active": "1"
+    },
+    {
+      "id": "180001",
+      "email": "vitoria@nexoneinnovation.com.br",
+      "name": "vitoria",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "210001",
+      "email": "pedrohladi@nexoneinnovation.com.br",
+      "name": "Pedro Hladi",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "240001",
+      "email": "gregorio@nexoneinnovation.com.br",
+      "name": "Gregorio",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "240002",
+      "email": "giovanna@nexoneinnovation.com.br",
+      "name": "Giovanna",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "240003",
+      "email": "corleone@nexoneinnovation.com.br",
+      "name": "Corleone",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "240004",
+      "email": "galvao@nexoneinnovation.com.br",
+      "name": "Galvão",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "270001",
+      "email": "kleber@nexoneinnovation.com.br",
+      "name": "Kleber",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "270002",
+      "email": "malta@nexoneinnovation.com.br",
+      "name": "Geovana",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "300001",
+      "email": "mascherano@nexoneinnovation.com.br",
+      "name": "Mascherano ",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "300002",
+      "email": "materazzi@nexoneinnovation.com.br",
+      "name": "Materazzi",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "300003",
+      "email": "matheus@nexoneinnovation.com.br",
+      "name": "Ornelas",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "330001",
+      "email": "gabrielleonidas@nexoneinnovation.com.br",
+      "name": "Leônidas ",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "360001",
+      "email": "breno@nexoneinnovation.com.br",
+      "name": "Breno",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "360002",
+      "email": "eduardo@nexoneinnovation.com.br",
+      "name": "Alves",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "360003",
+      "email": "heitor@nexoneinnovation.com.br",
+      "name": "Heitor",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "360004",
+      "email": "kaue@nexoneinnovation.com.br",
+      "name": "Kaue",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "390001",
+      "email": "victor@nexoneinnovation.com.br",
+      "name": "Victor",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "420001",
+      "email": "miguel@nexoneinnovation.com.br",
+      "name": "Miguel",
+      "role": "corretor",
+      "active": "1"
+    },
+    {
+      "id": "450001",
+      "email": "shaolin@innovabr.com.br",
+      "name": "Shaolin",
+      "role": "corretor",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tactive\n1\tcontato@denisbugatti.com.br\tDenis Bugatti\tmaster\t1\n180001\tvitoria@nexoneinnovation.com.br\tvitoria\tcorretor\t1\n210001\tpedrohladi@nexoneinnovation.com.br\tPedro Hladi\tcorretor\t1\n240001\tgregorio@nexoneinnovation.com.br\tGregorio\tcorretor\t1\n240002\tgiovanna@nexoneinnovation.com.br\tGiovanna\tcorretor\t1\n240003\tcorleone@nexoneinnovation.com.br\tCorleone\tcorretor\t1\n240004\tgalvao@nexoneinnovation.com.br\tGalvão\tcorretor\t1\n270001\tkleber@nexoneinnovation.com.br\tKleber\tcorretor\t1\n270002\tmalta@nexoneinnovation.com.br\tGeovana\tcorretor\t1\n300001\tmascherano@nexoneinnovation.com.br\tMascherano \tcorretor\t1\n300002\tmaterazzi@nexoneinnovation.com.br\tMaterazzi\tcorretor\t1\n300003\tmatheus@nexoneinnovation.com.br\tOrnelas\tcorretor\t1\n330001\tgabrielleonidas@nexoneinnovation.com.br\tLeônidas \tcorretor\t1\n360001\tbreno@nexoneinnovation.com.br\tBreno\tcorretor\t1\n360002\teduardo@nexoneinnovation.com.br\tAlves\tcorretor\t1\n360003\theitor@nexoneinnovation.com.br\tHeitor\tcorretor\t1\n360004\tkaue@nexoneinnovation.com.br\tKaue\tcorretor\t1\n390001\tvictor@nexoneinnovation.com.br\tVictor\tcorretor\t1\n420001\tmiguel@nexoneinnovation.com.br\tMiguel\tcorretor\t1\n450001\tshaolin@innovabr.com.br\tShaolin\tcorretor\t1\n",
+  "stderr": "",
+  "execution_time_ms": 311
+}

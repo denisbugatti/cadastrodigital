@@ -60,8 +60,8 @@ function recordSend(phone: string): void {
 /** Periodic cleanup of stale entries (every 5 min). */
 setInterval(() => {
   const now = Date.now();
-  for (const [key, timestamps] of rateLimitStore.entries()) {
-    const active = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  for (const [key, timestamps] of Array.from(rateLimitStore.entries())) {
+    const active = timestamps.filter((t: number) => now - t < RATE_LIMIT_WINDOW_MS);
     if (active.length === 0) {
       rateLimitStore.delete(key);
     } else {
