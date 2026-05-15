@@ -52,7 +52,7 @@ describe("Corretor Notification — Resend Template", () => {
     expect(call.subject).toContain("Cadastro One Innovation");
     // Should use template, not inline HTML
     expect(call.template).toBeDefined();
-    expect(call.template.id).toBe("one-corretor-notification");
+    expect(call.template.id).toBe("164cfd9d-0780-4c4d-9841-59f2693d0552"); // one-corretor-notification
     expect(call.template.variables.CORRETOR_NAME).toBe("João Silva");
     expect(call.template.variables.FORM_TITLE).toBe("Cadastro One Innovation");
     expect(call.template.variables.PROTOCOL_CODE).toBe("ABC-123");

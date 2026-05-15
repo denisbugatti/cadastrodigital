@@ -77,7 +77,7 @@ export async function sendCorretorNotification(params: CorretorNotificationParam
       to: [params.corretorEmail],
       subject,
       template: {
-        id: "one-corretor-notification",
+        id: "164cfd9d-0780-4c4d-9841-59f2693d0552", // one-corretor-notification
         variables: {
           CORRETOR_NAME: params.corretorName,
           FORM_TITLE: params.formTitle,

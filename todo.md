@@ -1958,3 +1958,7 @@
 - [x] Notificação de conclusão: "✅ Novo cadastro realizado com sucesso!" + nome do formulário
 - [x] Notificação de abandono: "⚠️ Um cliente abandonou o cadastro" + nome do formulário
 - [x] Testes atualizados para refletir novas mensagens de notificação
+
+## BUGFIX: Convite por email não está sendo enviado
+- [x] Investigar o fluxo de convite de staff e identificar onde estava falhando (Resend exige UUID, não alias)
+- [x] Corrigir o problema: mapear alias → UUID em TEMPLATE_IDS no emailService.ts e corretorNotification.ts

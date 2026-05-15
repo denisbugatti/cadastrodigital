@@ -34,7 +34,25 @@ const FROM_EMAIL = "one@cadastrodigital.com.br";
 const FROM_NAME = "One Innovation";
 
 /**
- * Send an email using a Resend template (by alias).
+ * Map of template alias → Resend template UUID.
+ * The Resend API requires the UUID (not the alias) in the `template.id` field.
+ */
+const TEMPLATE_IDS: Record<string, string> = {
+  "one-invite-staff":          "41d689fb-2ed7-469a-9e3d-6204085bd5bc",
+  "one-protocol-pending":      "1d4c3ca1-026d-42ef-83c7-3b37cedcb802",
+  "one-approval":              "bd17dc65-aa61-4ba9-8444-4f9baa841c2e",
+  "one-rejection":             "9a49a11e-5022-4e3d-bf2b-cdeb80e13ac9",
+  "one-cadence-abandono-v1":   "dd26aab4-fdf6-4d3f-97f3-5915686d4a67",
+  "one-cadence-abandono-v2":   "9cb9b98c-7330-4280-9f15-258cbaaeca48",
+  "one-cadence-abandono-v3":   "0d780f6f-08cf-45d6-9f7c-bf8afeb58358",
+  "one-cadence-rejection-v1":  "73360690-8866-4c88-9a65-b8dc053c1ef1",
+  "one-cadence-rejection-v2":  "7771cbf0-4b04-4254-824a-21ac3440a1ed",
+  "one-cadence-rejection-v3":  "ac1d6bb6-499e-4ab1-8794-62518cc7e0bd",
+  "one-corretor-notification": "164cfd9d-0780-4c4d-9841-59f2693d0552",
+};
+
+/**
+ * Send an email using a Resend template (by alias → resolved to UUID).
  */
 async function sendTemplateEmail(params: {
   to: string;
@@ -45,19 +63,25 @@ async function sendTemplateEmail(params: {
   const resend = getResendClient();
   if (!resend) return false;
 
+  const templateId = TEMPLATE_IDS[params.templateAlias];
+  if (!templateId) {
+    console.error(`[Email] Unknown template alias: '${params.templateAlias}'. Add it to TEMPLATE_IDS map.`);
+    return false;
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [params.to],
       subject: params.subject,
       template: {
-        id: params.templateAlias,
+        id: templateId,
         variables: params.variables,
       },
     } as any);
 
     if (error) {
-      console.error("[Email] Template send error:", error);
+      console.error(`[Email] Template send error for '${params.templateAlias}':`, error);
       return false;
     }
     console.log(`[Email] Sent template '${params.templateAlias}' to ${params.to} (id: ${data?.id})`);
