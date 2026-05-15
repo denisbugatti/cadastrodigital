@@ -268,23 +268,19 @@ export async function notifyOwnerNewResponse(
 
     const isComplete = extras?.isComplete !== false;
     const title = isComplete
-      ? "📋 Novo cadastro completo!"
-      : respondentName
-        ? `🖊️ ${respondentName} começou o cadastro`
-        : `🖊️ Novo cadastro iniciado`;
+      ? `✅ Novo cadastro realizado com sucesso!`
+      : `🔔 Um novo cliente está se cadastrando`;
 
     const bodyParts = isComplete
       ? [
           respondentName
-            ? `${respondentName} concluiu o cadastro`
-            : `Novo cadastro completo recebido`,
-          `Formulário: ${formTitle}`,
+            ? `${respondentName} • Formulário: ${formTitle}`
+            : `Formulário: ${formTitle}`,
         ]
       : [
           respondentName
-            ? `${respondentName} está preenchendo o formulário`
-            : `Um cliente iniciou o preenchimento`,
-          `Formulário: ${formTitle}`,
+            ? `${respondentName} está preenchendo o formulário "${formTitle}"`
+            : `Um cliente iniciou o preenchimento do formulário "${formTitle}"`,
         ];
     if (isComplete && extras?.protocolCode) bodyParts.push(`Protocolo: #${extras.protocolCode}`);
 

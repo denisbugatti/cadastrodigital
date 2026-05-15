@@ -704,11 +704,21 @@ export const appRouter = router({
     myAssigned: staffAnyProcedure.query(async ({ ctx }) => {
       const session = ctx.customSession as any;
       if (!session?.staffUserId) return [];
+      // Start with forms directly assigned to this staff user
       const assignedFormIds = await db.getFormIdsByStaff(session.staffUserId);
-      if (assignedFormIds.length === 0) return [];
+      const allFormIds = new Set<number>(assignedFormIds);
+      // Gerentes also see forms assigned to their corretores
+      if (session?.role === 'gerente') {
+        const myCorretores = await staffDb.getCorretoresByManager(session.staffUserId);
+        for (const corretor of myCorretores) {
+          const corretorFormIds = await db.getFormIdsByStaff(corretor.id);
+          corretorFormIds.forEach((id: number) => allFormIds.add(id));
+        }
+      }
+      if (allFormIds.size === 0) return [];
       // Fetch full form data for each assigned form
       const allForms = await db.getFormsByUser(ctx.user.id);
-      return allForms.filter((f: any) => assignedFormIds.includes(f.id));
+      return allForms.filter((f: any) => allFormIds.has(f.id));
     }),
 
     getBySlug: publicProcedure
@@ -1113,14 +1123,12 @@ export const appRouter = router({
 
           if (allStaffToNotify.length > 0) {
             const notifTitle = isComplete
-              ? `📋 Novo cadastro completo em ${formTitle}`
-              : respondent !== "Anônimo"
-                ? `🖊️ ${respondent} começou o cadastro`
-                : `🖊️ Novo cadastro iniciado em ${formTitle}`;
+              ? `✅ Novo cadastro realizado com sucesso!`
+              : `🔔 Um novo cliente está se cadastrando`;
             const notifBody = isComplete
               ? respondent !== "Anônimo"
-                ? `${respondent} concluiu o cadastro em "${formTitle}"`
-                : `Novo cadastro completo recebido em "${formTitle}"`
+                ? `${respondent} • Formulário: ${formTitle}`
+                : `Formulário: ${formTitle}`
               : respondent !== "Anônimo"
                 ? `${respondent} está preenchendo o formulário "${formTitle}"`
                 : `Um cliente iniciou o preenchimento do formulário "${formTitle}"`;
@@ -1364,10 +1372,10 @@ export const appRouter = router({
               const allCompletionStaff = [...staffIds, ...Array.from(completionManagerIds)];
 
               if (allCompletionStaff.length > 0) {
-                const notifTitle = `📋 ${respondent} concluiu o cadastro`;
+                const notifTitle = `✅ Novo cadastro realizado com sucesso!`;
                 const notifBody = finalProtocol
-                  ? `Protocolo ${finalProtocol} • ${formTitle}`
-                  : `Cadastro completo em "${formTitle}"`;
+                  ? `${respondent} • Formulário: ${formTitle} • Protocolo: ${finalProtocol}`
+                  : `${respondent} • Formulário: ${formTitle}`;
 
                 // Check preferences for each staff user
                 const prefsMap = await db.getNotificationPreferencesForStaff(allCompletionStaff, "new_response");

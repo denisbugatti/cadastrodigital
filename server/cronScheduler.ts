@@ -397,7 +397,7 @@ async function runAbandonmentCheck(): Promise<void> {
         const form = await db.getFormById(resp.formId);
         const questions: any[] = form?.questions ?? [];
 
-        // Send abandonment notification to corretores
+        // Send abandonment notification to corretores (email)
         const result = await notifyCorretoresNewSubmission({
           formId: resp.formId,
           protocolCode: resp.protocolCode ?? `ABANDONO-${resp.id}`,
@@ -414,17 +414,43 @@ async function runAbandonmentCheck(): Promise<void> {
         // Mark as notified so we don't send again
         await db.markAbandonmentNotified(resp.id);
 
-        if (result.sent > 0) {
-          console.log(`[Cron] Abandonment notification sent for response #${resp.id} (${resp.respondentName ?? "An\u00f4nimo"}) to ${result.sent} corretor(es)`);
-
-          // Log activity
-          db.logActivity({
-            responseId: resp.id,
-            formId: resp.formId,
-            activityType: "abandonment_detected",
-            description: `Cliente ${resp.respondentName ?? resp.respondentEmail ?? "An\u00f4nimo"} abandonou o formul\u00e1rio ap\u00f3s 8 min de inatividade. Corretor notificado.`,
-          }).catch(() => {});
+        // Send in-app notification to assigned staff with the correct abandonment message
+        try {
+          const abandonForm = await db.getFormById(resp.formId);
+          const abandonAssignments = await db.getFormAssignments(resp.formId);
+          const abandonStaffIds = abandonAssignments.map((a: any) => a.staffUserId);
+          if (abandonForm?.assignedCorretorId && !abandonStaffIds.includes(abandonForm.assignedCorretorId)) {
+            abandonStaffIds.push(abandonForm.assignedCorretorId);
+          }
+          if (abandonStaffIds.length > 0) {
+            const abandonTitle = `⚠️ Um cliente abandonou o cadastro`;
+            const abandonBody = resp.respondentName
+              ? `${resp.respondentName} • Formulário: ${resp.formTitle}`
+              : `Formulário: ${resp.formTitle}`;
+            await db.createStaffNotificationsBatch(
+              abandonStaffIds.map((staffUserId: number) => ({
+                staffUserId,
+                type: "new_response" as const,
+                title: abandonTitle,
+                body: abandonBody,
+                link: "/corretor/respostas",
+                metadata: { formId: resp.formId, formTitle: resp.formTitle, respondentName: resp.respondentName ?? null, responseId: resp.id, isAbandoned: true },
+              }))
+            );
+          }
+        } catch (abandonNotifErr) {
+          console.warn(`[Cron] Failed to send in-app abandonment notification for response #${resp.id}:`, (abandonNotifErr as Error)?.message?.substring(0, 100));
         }
+
+        console.log(`[Cron] Abandonment notification sent for response #${resp.id} (${resp.respondentName ?? "Anônimo"}) to ${result.sent} corretor(es)`);
+
+        // Log activity
+        db.logActivity({
+          responseId: resp.id,
+          formId: resp.formId,
+          activityType: "abandonment_detected",
+          description: `Cliente ${resp.respondentName ?? resp.respondentEmail ?? "Anônimo"} abandonou o formulário após 8 min de inatividade. Corretor notificado.`,
+        }).catch(() => {});
       } catch (err) {
         console.warn(`[Cron] Failed to process abandonment for response #${resp.id}:`, (err as Error)?.message?.substring(0, 100));
       }

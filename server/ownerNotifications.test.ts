@@ -154,7 +154,7 @@ describe("Owner Notification System", () => {
     
     const callArgs = (webpush.default.sendNotification as any).mock.calls[0];
     const payload = JSON.parse(callArgs[1]);
-    expect(payload.title).toContain("começou");
+    expect(payload.title).toContain("cliente");
     expect(payload.data.isComplete).toBe(false);
   });
 

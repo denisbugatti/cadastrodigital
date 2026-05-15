@@ -1,0 +1,50 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [
+    "db",
+    "server",
+    "user"
+  ],
+  "dev_command": "pnpm run dev",
+  "env_vars": {
+    "DATABASE_URL": "mysql://2FrvTurB9J6YsbF.19ef00e26ab3:F59wPv8yOMYsr2CE0wY9@gateway02.us-east-1.prod.aws.tidbcloud.com:4000/bDyKxbJirDkukZmvFFZQ8p?ssl={\"rejectUnauthorized\":true}"
+  },
+  "experiments": null,
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663342930280/bDyKxbJirDkukZmvFFZQ8p",
+    "access_key_id": "ASIAZV3A2ECZH34GN2GF",
+    "secret_access_key": "dw4X0Shz7g6wjHvzTZmStWB2VsvyhYuCTjWDcIpj",
+    "session_token": "IQoJb3JpZ2luX2VjELH//////////wEaCXVzLWVhc3QtMSJHMEUCIFX8cIWEH+u9paqAVgF5NZpPt1Tnf3FaQ/SjL2r5Z+9ZAiEA8XdqXgYP6C8zNFojildG588BxAN6MZLhAwuL39wF01Mq9gMIeRAEGgw2NjUzODYwOTg4NjYiDNRbIW03GeEa+wNllCrTA8n0NYywvmalXy2BkQnKJF2YHShy+X1ok1QDEhvz9P1NIY/tmtLWqFCzXthKNVKxL9Jw8MM0xa5SirX0Zi47uBJees/xzvVVeQwi2YAAS60iQQsLt5eFl33zB4iXjrC4aS7J66AmmK7dkNIVQrhozcbpLDUvzDOYAiIOWtWVh4aed16CNymYdRnN/Nnp+r52RipkZ4gFX4VbOJ20cwQTPaNGcGLZ47MOVTdFId7t2jkQCbXnKNwgznsAdCmldAz/pJe1SZiTvQI3iOBBdsBBDbFHPPulPQ+D5z/6DPC6VDDkbnc4Qz9Avmr/GonATUy/BvXdhcC4vgjSxVecNPs9zRHIzgd7INIXUXbXnCeq51kYQaSXntVRy16ltJcvOzJ0nOnN7lJEWLGJgkAwv2zNOGfJn3Y0ruaXdtzUqYH9y9gSz9PSjzOMu2sF4HMMVAt95nv1O2Q4LE1beVzJxvLHnAnFVDrYw0CFJKWQAzvFoRPpukbefJfL6AMiwfgibusHqGvVprTKwNiOetTsjG9XfmO1cKVQnEmTaGf0bGvWOYJDynL1R5jcjalE5clQwH5v/hMzP5c4s7i9AD0HHz8mUWVS365mxczhq4ezPr0nOR3iYO6fMNuJndAGOp0Bz1PVwhWWCktBofHsmFerOhuj86zeN8veS7i8g7+zvFQOfIx9Z0/WqAgBhVzVsDvWxXN9K7e2t0mJPMpwtdvN4stxfJbjMrk4vWpeUc14rsqzZFE1otRQLhbtt3HHTqcOfXC4BHccXFmhLIsgu+//GJhy03l5t9cVoEB6/D/0dElbFejMAKHErwRzAkSmyHs1OgSjJDYbeJ1lRbMNBw==",
+    "expiration": "2026-05-16T04:07:55.000Z"
+  },
+  "name": "formflow",
+  "path": "/home/ubuntu/formflow",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "42GugRXCFEnTdhAb7nz2uM",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "GOOGLE_CLIENT_ID": "622089528011-gik3ilnfbkoi8h7udbravlfmas77is3p.apps.googleusercontent.com",
+    "GOOGLE_CLIENT_SECRET": "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",
+    "JWT_SECRET": "Wt3RYaFFcYEgMvfb5XJsEH",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "Denis Bugatti",
+    "OWNER_OPEN_ID": "e8LdUVBk6enpWCqy2EGCui",
+    "RESEND_API_KEY": "re_YSyaoy2h_6KkS2duHKeHaMTCDqXvyaXLk",
+    "TWILIO_ACCOUNT_SID": "ACfff3a12659dffdc09932dd1ae882cedb",
+    "TWILIO_AUTH_TOKEN": "d7ca5741dc702350edb75c2b027baa95",
+    "TWILIO_VERIFY_SERVICE_SID": "VA18e4b2cda32ab7ed75d0f5f1f0f2d5a7",
+    "VAPID_PRIVATE_KEY": "tNxVIOFVlIq3lkZRDc04slAvICgaNOmgj2Z2AI1LUb8",
+    "VAPID_PUBLIC_KEY": "BKvg7V6r3tEoeF63zh7MueunILRZ5SuIEG6q6jHOjIJvkB0cscS25u4MjhAdXs8Ye__oi3AhSu7jogKQGYvrbSI",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "53319886-7e5c-4257-882c-bc4581254c92",
+    "VITE_APP_ID": "bDyKxbJirDkukZmvFFZQ8p",
+    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663342930280/zdYrSNJjTJxSocBG.png",
+    "VITE_APP_TITLE": "Cadastro Digital",
+    "VITE_FRONTEND_FORGE_API_KEY": "NghQcXjEn2vumRozbakLdD",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im",
+    "VITE_VAPID_PUBLIC_KEY": "BKvg7V6r3tEoeF63zh7MueunILRZ5SuIEG6q6jHOjIJvkB0cscS25u4MjhAdXs8Ye__oi3AhSu7jogKQGYvrbSI"
+  },
+  "template_id": "web-db-user",
+  "test_command": "pnpm test"
+}

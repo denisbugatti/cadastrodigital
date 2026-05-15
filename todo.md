@@ -1950,3 +1950,11 @@
 ## BUGFIX: Erro TypeScript withDb no db.ts
 - [x] Corrigir logSms, getSmsCountThisMonth e getSmsDailyStats que usavam withDb em vez de withDbRetry
 - [x] Corrigir smsVerification.ts MapIterator com Array.from e tipo explícito
+
+## Correções de Notificações e Visibilidade do Gerente
+- [x] Gerente vê formulários dos seus corretores (myAssigned inclui formulários da equipe)
+- [x] Indicador "Ao Vivo" no header quando há respostas incompletas em andamento
+- [x] Notificação de início: "🔔 Um novo cliente está se cadastrando" + nome do formulário
+- [x] Notificação de conclusão: "✅ Novo cadastro realizado com sucesso!" + nome do formulário
+- [x] Notificação de abandono: "⚠️ Um cliente abandonou o cadastro" + nome do formulário
+- [x] Testes atualizados para refletir novas mensagens de notificação

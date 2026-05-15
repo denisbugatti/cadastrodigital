@@ -899,7 +899,7 @@ export default function CorretorResponses() {
 
   // Stats
   const stats = useMemo(() => {
-    if (!responses) return { total: 0, pending: 0, approved: 0, rejected: 0 };
+    if (!responses) return { total: 0, incomplete: 0, pending: 0, approved: 0, rejected: 0 };
     // If filtering by folder, show folder-specific stats
     let base = [...responses];
     if (selectedFolderId !== null) {
@@ -995,13 +995,25 @@ export default function CorretorResponses() {
         <div className="max-w-xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-display font-bold text-foreground truncate leading-tight">
-                {selectedForm ? selectedForm.title : "Validação de Respostas"}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm sm:text-base font-display font-bold text-foreground truncate leading-tight">
+                  {selectedForm ? selectedForm.title : "Validação de Respostas"}
+                </h1>
+                {/* Ao Vivo indicator — shown when there are incomplete (in-progress) responses */}
+                {stats.incomplete > 0 && (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[9px] font-bold uppercase tracking-wide shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                    Ao Vivo
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground font-body mt-0.5">
                 Olá, <span className="font-semibold text-foreground">{me?.name || "Corretor"}</span>
                 {assignedForms.length > 1 && (
                   <span className="ml-1">· {assignedForms.length} formulários</span>
+                )}
+                {stats.incomplete > 0 && (
+                  <span className="ml-1 text-red-400 font-medium">· {stats.incomplete} preenchendo agora</span>
                 )}
               </p>
             </div>

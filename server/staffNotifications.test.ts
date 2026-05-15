@@ -299,12 +299,12 @@ describe("Staff In-App Notifications", () => {
           expect.objectContaining({
             staffUserId: 10,
             type: "new_response",
-            title: expect.stringContaining("Formulário Teste"),
+            title: "✅ Novo cadastro realizado com sucesso!",
           }),
           expect.objectContaining({
             staffUserId: 20,
             type: "new_response",
-            title: expect.stringContaining("Formulário Teste"),
+            title: "✅ Novo cadastro realizado com sucesso!",
           }),
         ])
       );
