@@ -1265,7 +1265,6 @@ export const appRouter = router({
         }
 
         let responses = await db.getResponsesByFormWithSearch(input.formId, input.search);
-
         // Gerentes only see responses from their corretores
         // Also include incomplete responses without a corretor assigned (reviewedBy = null)
         // so the gerente can see and assign them
@@ -1277,8 +1276,20 @@ export const appRouter = router({
             (!r.reviewedBy && !r.isComplete)
           );
         }
-
-        return responses;
+        // Fallback: extract respondentName from answers JSON when the DB field is null
+        return responses.map((r: any) => {
+          if (r.respondentName) return r;
+          const ans = r.answers as Record<string, unknown> | null;
+          if (!ans) return r;
+          let name: string | null = null;
+          for (const [k, v] of Object.entries(ans)) {
+            if ((k.toLowerCase().includes('nome') || k.toLowerCase().includes('name')) && typeof v === 'string' && v.trim()) {
+              name = v.trim();
+              break;
+            }
+          }
+          return name ? { ...r, respondentName: name } : r;
+        });
       }),
 
     getById: staffAnyProcedure
