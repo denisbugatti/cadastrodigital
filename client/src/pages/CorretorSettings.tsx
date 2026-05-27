@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Bell, Loader2, FileText, User,
   CheckCircle2, XCircle, Smartphone, Monitor, Save,
+  Lock, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -133,6 +134,52 @@ export default function CorretorSettings() {
   const currentCpfCnpj = user?.type === "staff" ? (user as any).cpfCnpj ?? "" : "";
   const hasChanges = cpfCnpj.replace(/\D/g, "") !== (currentCpfCnpj || "");
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const changePassword = trpc.customAuth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Senha alterada com sucesso!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error("A nova senha e a confirmação não coincidem");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+    changePassword.mutate({ currentPassword, newPassword });
+  };
+  const passwordStrength = (pwd: string) => {
+    if (!pwd) return { label: "", color: "", width: "0%" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 1) return { label: "Fraca", color: "bg-red-500", width: "20%" };
+    if (score <= 2) return { label: "Razoável", color: "bg-orange-500", width: "40%" };
+    if (score <= 3) return { label: "Boa", color: "bg-yellow-500", width: "60%" };
+    if (score <= 4) return { label: "Forte", color: "bg-green-500", width: "80%" };
+    return { label: "Muito forte", color: "bg-emerald-500", width: "100%" };
+  };
+  const pwdStrength = passwordStrength(newPassword);
+
   return (
     <div className={`min-h-screen ${isDark ? "bg-[#0a0a0f]" : "bg-gray-50"}`}>
       {/* Header */}
@@ -230,6 +277,134 @@ export default function CorretorSettings() {
               Salvar Perfil
             </Button>
           </div>
+        </motion.div>
+
+        {/* ===== Security Section ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-xl border overflow-hidden ${
+            isDark ? "bg-white/[0.02] border-white/5" : "bg-white border-gray-200"
+          }`}
+        >
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              isDark ? "bg-white/5" : "bg-gray-100"
+            }`}>
+              <Lock size={16} className="text-brand" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Segurança</p>
+              <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                Altere sua senha de acesso
+              </p>
+            </div>
+          </div>
+          <form
+            onSubmit={handleChangePassword}
+            className={`border-t px-4 py-4 space-y-3 ${
+              isDark ? "border-white/5" : "border-gray-100"
+            }`}
+          >
+            {/* Current password */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Senha atual</label>
+              <div className="relative">
+                <Input
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Digite sua senha atual"
+                  className="h-9 text-sm pr-9"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            {/* New password */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Nova senha</label>
+              <div className="relative">
+                <Input
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="h-9 text-sm pr-9"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {newPassword && (
+                <div className="mt-1.5 space-y-1">
+                  <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${pwdStrength.color}`}
+                      style={{ width: pwdStrength.width }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Força: <span className="font-medium text-foreground">{pwdStrength.label}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+            {/* Confirm password */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Confirmar nova senha</label>
+              <div className="relative">
+                <Input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repita a nova senha"
+                  className="h-9 text-sm pr-9"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {confirmPassword && newPassword && (
+                <p className={`text-[10px] mt-1 flex items-center gap-1 ${
+                  newPassword === confirmPassword ? "text-green-500" : "text-red-500"
+                }`}>
+                  {newPassword === confirmPassword
+                    ? <><CheckCircle2 size={10} /> Senhas coincidem</>
+                    : <><XCircle size={10} /> Senhas não coincidem</>}
+                </p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              disabled={changePassword.isPending || !currentPassword || !newPassword || !confirmPassword}
+              className="w-full gap-2 h-9 text-xs"
+              size="sm"
+            >
+              {changePassword.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Save size={14} />
+              )}
+              Alterar Senha
+            </Button>
+          </form>
         </motion.div>
 
         {/* ===== Notifications Section ===== */}
