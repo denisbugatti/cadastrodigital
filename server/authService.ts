@@ -10,15 +10,15 @@ import { nanoid } from "nanoid";
 import { ENV } from "./_core/env";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
 import { drizzle } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
+import { createPool } from "mysql2";
 import { revokedTokens } from "../drizzle/schema";
 import { eq, lt } from "drizzle-orm";
 
 // Lazy DB connection for token revocation checks
 let _db: ReturnType<typeof drizzle> | null = null;
-function getDb() {
+function getDb(): ReturnType<typeof drizzle> {
   if (!_db) {
-    const pool = mysql.createPool(ENV.databaseUrl);
+    const pool = createPool(ENV.databaseUrl);
     _db = drizzle(pool);
   }
   return _db;
