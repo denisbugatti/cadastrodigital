@@ -239,6 +239,13 @@
       "when": 1775846070741,
       "tag": "0033_spicy_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1779915292595,
+      "tag": "0034_purple_hellfire_club",
+      "breakpoints": true
     }
   ]
 }

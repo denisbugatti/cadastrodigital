@@ -19,6 +19,7 @@ import {
   generateInviteToken,
   cleanCpfCnpj,
   isValidCpfCnpj,
+  revokeToken,
 } from "./authService";
 import { parse as parseCookieHeader } from "cookie";
 
@@ -419,10 +420,24 @@ export const customAuthRouter = router({
     }),
 
   /**
-   * Logout — clear session cookie
+   * Logout — clear session cookie and revoke token in DB
    */
-  logout: publicProcedure.mutation(({ ctx }) => {
+  logout: publicProcedure.mutation(async ({ ctx }) => {
     const cookieOptions = getSessionCookieOptions(ctx.req);
+    // Extract token from cookie or Authorization header
+    const cookies = parseCookies(ctx.req.headers.cookie);
+    let token = cookies.get(COOKIE_NAME);
+    if (!token) {
+      const authHeader = ctx.req.headers.authorization;
+      if (authHeader?.startsWith("Bearer ")) {
+        token = authHeader.slice(7);
+      }
+    }
+    // Revoke the token in the database so it cannot be reused via Authorization header
+    if (token) {
+      const oneYearFromNow = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      await revokeToken(token, oneYearFromNow).catch(() => {}); // Fire-and-forget, don't block logout
+    }
     ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
     return { success: true } as const;
   }),

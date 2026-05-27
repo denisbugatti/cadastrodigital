@@ -684,3 +684,20 @@ export const smsLogs = mysqlTable("sms_logs", {
 });
 export type SmsLog = typeof smsLogs.$inferSelect;
 export type InsertSmsLog = typeof smsLogs.$inferInsert;
+
+/**
+ * Revoked tokens — JWT token blacklist for logout.
+ * When a user logs out, their token is added here.
+ * verifySessionToken checks this table before accepting a token.
+ * Old entries are cleaned up automatically after expiry.
+ */
+export const revokedTokens = mysqlTable("revoked_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The full JWT token string */
+  token: text("token").notNull(),
+  /** When this token expires (for cleanup) */
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RevokedToken = typeof revokedTokens.$inferSelect;
+export type InsertRevokedToken = typeof revokedTokens.$inferInsert;

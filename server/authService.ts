@@ -9,6 +9,35 @@ import { SignJWT, jwtVerify } from "jose";
 import { nanoid } from "nanoid";
 import { ENV } from "./_core/env";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import { revokedTokens } from "../drizzle/schema";
+import { eq, lt } from "drizzle-orm";
+
+// Lazy DB connection for token revocation checks
+let _db: ReturnType<typeof drizzle> | null = null;
+function getDb() {
+  if (!_db) {
+    const pool = mysql.createPool(ENV.databaseUrl);
+    _db = drizzle(pool);
+  }
+  return _db;
+}
+
+/** Add a token to the revocation list */
+export async function revokeToken(token: string, expiresAt: Date): Promise<void> {
+  const db = getDb();
+  await db.insert(revokedTokens).values({ token, expiresAt });
+  // Cleanup old expired tokens (fire-and-forget)
+  db.delete(revokedTokens).where(lt(revokedTokens.expiresAt, new Date())).catch(() => {});
+}
+
+/** Check if a token has been revoked */
+async function isTokenRevoked(token: string): Promise<boolean> {
+  const db = getDb();
+  const rows = await db.select({ id: revokedTokens.id }).from(revokedTokens).where(eq(revokedTokens.token, token)).limit(1);
+  return rows.length > 0;
+}
 
 const SALT_ROUNDS = 12;
 
@@ -97,6 +126,10 @@ export async function verifySessionToken(token: string | undefined | null): Prom
     const { payload } = await jwtVerify(token, secretKey, {
       algorithms: ["HS256"],
     });
+
+    // Check if token has been revoked (e.g., after logout)
+    const revoked = await isTokenRevoked(token);
+    if (revoked) return null;
 
     const type = payload.type as string;
 
