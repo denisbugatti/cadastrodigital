@@ -22,6 +22,23 @@ import {
   revokeToken,
 } from "./authService";
 import { parse as parseCookieHeader } from "cookie";
+import { drizzle } from "drizzle-orm/mysql2";
+import { createPool } from "mysql2";
+import { passwordResetTokens } from "../drizzle/schema";
+import { eq, and, gt } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { sendPasswordResetEmail } from "./emailService";
+import { ENV } from "./_core/env";
+
+// Lazy DB for password reset tokens
+let _resetDb: ReturnType<typeof drizzle> | null = null;
+function getResetDb(): ReturnType<typeof drizzle> {
+  if (!_resetDb) {
+    const pool = createPool(ENV.databaseUrl);
+    _resetDb = drizzle(pool);
+  }
+  return _resetDb;
+}
 
 export const customAuthRouter = router({
   /**
@@ -416,6 +433,92 @@ export const customAuthRouter = router({
       // Hash and save new password
       const newHash = await hashPassword(input.newPassword);
       await staffDb.updateStaffUser(user.id, { passwordHash: newHash });
+      return { success: true };
+    }),
+
+  /**
+   * Request password reset — send reset link via email
+   */
+  requestPasswordReset: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      // Always return success to avoid email enumeration
+      const user = await staffDb.getStaffUserByEmail(input.email);
+      if (!user || !user.active) {
+        return { success: true };
+      }
+
+      const db = getResetDb();
+      // Invalidate any existing tokens for this user
+      await db.delete(passwordResetTokens).where(eq(passwordResetTokens.staffUserId, user.id));
+
+      // Create new token (expires in 30 minutes)
+      const token = nanoid(48);
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+      await db.insert(passwordResetTokens).values({
+        staffUserId: user.id,
+        token,
+        expiresAt,
+        used: false,
+      });
+
+      // Build reset URL using a placeholder — frontend will pass origin
+      // We store the token; the frontend constructs the URL
+      // Send email
+      const resetUrl = `${process.env.VITE_OAUTH_PORTAL_URL || "https://one.cadastrodigital.com.br"}/redefinir-senha?token=${token}`;
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl,
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * Reset password — validate token and set new password
+   */
+  resetPassword: publicProcedure
+    .input(z.object({
+      token: z.string().min(1),
+      newPassword: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = getResetDb();
+      const now = new Date();
+
+      // Find valid, unused, non-expired token
+      const rows = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.token, input.token),
+            eq(passwordResetTokens.used, false),
+            gt(passwordResetTokens.expiresAt, now)
+          )
+        )
+        .limit(1);
+
+      if (rows.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Link inválido ou expirado. Solicite um novo link de redefinição.",
+        });
+      }
+
+      const resetRecord = rows[0];
+
+      // Mark token as used
+      await db
+        .update(passwordResetTokens)
+        .set({ used: true })
+        .where(eq(passwordResetTokens.id, resetRecord.id));
+
+      // Hash and save new password
+      const newHash = await hashPassword(input.newPassword);
+      await staffDb.updateStaffUser(resetRecord.staffUserId, { passwordHash: newHash });
+
       return { success: true };
     }),
 

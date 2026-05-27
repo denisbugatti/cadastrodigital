@@ -553,5 +553,66 @@ export async function sendWeeklySummaryEmail(params: {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   EMAIL: RECUPERAÇÃO DE SENHA
+   Uses inline HTML (no Resend template needed)
+   ═══════════════════════════════════════════════════════════════ */
+
+export async function sendPasswordResetEmail(params: {
+  to: string;
+  name: string;
+  resetUrl: string;
+}): Promise<boolean> {
+  const { to, name, resetUrl } = params;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0f1117;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1d2e;border-radius:16px;overflow:hidden;max-width:600px;">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);padding:40px 40px 30px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:12px;">🔐</div>
+          <h1 style="color:#ffffff;font-size:24px;font-weight:700;margin:0;">Redefinição de Senha</h1>
+          <p style="color:#93c5fd;font-size:14px;margin:8px 0 0;">Cadastro Digital — One Innovation</p>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:40px;">
+          <p style="color:#e2e8f0;font-size:16px;margin:0 0 16px;">Olá, <strong>${name}</strong>!</p>
+          <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 24px;">
+            Recebemos uma solicitação para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 32px;">
+            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 40px;border-radius:10px;letter-spacing:0.5px;">Redefinir Senha</a>
+          </td></tr></table>
+          <div style="background:#0f1117;border-radius:10px;padding:16px;margin-bottom:24px;">
+            <p style="color:#64748b;font-size:13px;margin:0 0 8px;">Ou copie e cole este link no seu navegador:</p>
+            <p style="color:#60a5fa;font-size:12px;word-break:break-all;margin:0;">${resetUrl}</p>
+          </div>
+          <p style="color:#64748b;font-size:13px;line-height:1.5;margin:0;">
+            ⚠️ Este link expira em <strong style="color:#fbbf24;">30 minutos</strong>. Se você não solicitou a redefinição de senha, ignore este email — sua senha permanece a mesma.
+          </p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="background:#111827;padding:24px 40px;text-align:center;border-top:1px solid #1e293b;">
+          <p style="color:#475569;font-size:12px;margin:0;">One Innovation • Plataforma Cadastro Digital</p>
+          <p style="color:#374151;font-size:11px;margin:6px 0 0;">Este é um email automático, não responda.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return sendHtmlEmail({
+    to,
+    subject: `🔐 Redefinição de senha — Cadastro Digital`,
+    html,
+  });
+}
+
 // Export for testing
 export { sendTemplateEmail, sendHtmlEmail, buildWeeklySummaryHtml };

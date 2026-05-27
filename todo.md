@@ -1978,3 +1978,12 @@
 - [x] Criar sincronizacao automatica de respondentName no db.updateResponse (TiDB nao suporta triggers, implementado na camada de aplicacao)
 - [x] Exibir CPF/CNPJ mascarado no card da resposta (ex: ***.115.788-**)
 - [x] Melhorar chips de filtro com icones coloridos por status (Parcial/Pendente/Aprovado/Reprovado)
+
+## Recuperacao de senha (Esqueci minha senha)
+- [x] Criar tabela password_reset_tokens no banco
+- [x] Criar procedure requestPasswordReset (envia email via Resend)
+- [x] Criar procedure resetPassword (valida token e salva nova senha)
+- [x] Adicionar link "Esqueci minha senha" na tela de login
+- [x] Criar pagina ForgotPassword.tsx
+- [x] Criar pagina ResetPassword.tsx
+- [x] Registrar rotas no App.tsx

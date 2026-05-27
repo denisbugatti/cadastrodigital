@@ -701,3 +701,23 @@ export const revokedTokens = mysqlTable("revoked_tokens", {
 });
 export type RevokedToken = typeof revokedTokens.$inferSelect;
 export type InsertRevokedToken = typeof revokedTokens.$inferInsert;
+
+/**
+ * Password reset tokens — used for the "forgot password" flow.
+ * A token is generated and emailed to the user; they click the link
+ * to set a new password. Tokens expire after 30 minutes.
+ */
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The staff user this token belongs to */
+  staffUserId: int("staffUserId").notNull(),
+  /** Secure random token (nanoid 32 chars) */
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  /** When this token expires (30 minutes from creation) */
+  expiresAt: timestamp("expiresAt").notNull(),
+  /** Whether the token has been used */
+  used: boolean("used").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

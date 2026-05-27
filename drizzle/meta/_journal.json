@@ -246,6 +246,13 @@
       "when": 1779915292595,
       "tag": "0034_purple_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1779915742533,
+      "tag": "0035_familiar_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

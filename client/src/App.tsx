@@ -28,6 +28,8 @@ import FormCopiesManagement from "./pages/FormCopiesManagement";
 import AuditLog from "./pages/AuditLog";
 import Trash from "./pages/Trash";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function Router() {
   return (
@@ -36,6 +38,8 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/aceitar-convite"} component={AcceptInvite} />
       <Route path={"/cadastro-cliente"} component={ClientRegister} />
+      <Route path={"/esqueci-minha-senha"} component={ForgotPassword} />
+      <Route path={"/redefinir-senha"} component={ResetPassword} />
 
       {/* Home: AuthGate checks if logged in → redirect to dashboard, else show landing */}
       <Route path={"/"} component={AuthGate} />

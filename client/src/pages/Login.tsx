@@ -201,6 +201,15 @@ export default function Login() {
                   "Entrar"
                 )}
               </Button>
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate("/esqueci-minha-senha")}
+                  className="text-sm text-slate-400 hover:text-blue-400 transition-colors underline-offset-2 hover:underline"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </form>
           )}
 
