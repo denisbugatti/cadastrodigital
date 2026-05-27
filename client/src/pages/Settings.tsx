@@ -1325,7 +1325,7 @@ function SecurityTab() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const changePassword = trpc.auth.changePassword.useMutation({
+  const changePassword = trpc.customAuth.changePassword.useMutation({
     onSuccess: () => {
       toast.success("Senha alterada com sucesso!");
       setCurrentPassword("");
