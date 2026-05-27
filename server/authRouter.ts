@@ -383,6 +383,42 @@ export const customAuthRouter = router({
     }),
 
   /**
+   * Change password — authenticated staff user changes their own password
+   */
+  changePassword: publicProcedure
+    .input(z.object({
+      currentPassword: z.string().min(1, "Informe a senha atual"),
+      newPassword: z.string().min(6, "Nova senha deve ter no mínimo 6 caracteres"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const cookies = parseCookies(ctx.req.headers.cookie);
+      let token = cookies.get(COOKIE_NAME);
+      if (!token) {
+        const authHeader = ctx.req.headers.authorization;
+        if (authHeader?.startsWith("Bearer ")) {
+          token = authHeader.slice(7);
+        }
+      }
+      const session = await verifySessionToken(token);
+      if (!session || session.type !== "staff") {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado" });
+      }
+      const user = await staffDb.getStaffUserById(session.staffUserId);
+      if (!user) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado" });
+      }
+      // Verify current password
+      const valid = await verifyPassword(input.currentPassword, user.passwordHash);
+      if (!valid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha atual incorreta" });
+      }
+      // Hash and save new password
+      const newHash = await hashPassword(input.newPassword);
+      await staffDb.updateStaffUser(user.id, { passwordHash: newHash });
+      return { success: true };
+    }),
+
+  /**
    * Logout — clear session cookie
    */
   logout: publicProcedure.mutation(({ ctx }) => {

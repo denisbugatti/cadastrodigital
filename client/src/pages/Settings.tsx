@@ -14,7 +14,7 @@ import {
   Loader2, UserPlus, Mail, Phone, CheckCircle2, XCircle,
   Clock, FileDown, Filter, Palette, Sun, Moon, Monitor,
   Globe, Upload, Image as ImageIcon, X, Save, Webhook,
-  MessageSquare, TrendingUp, AlertTriangle
+  MessageSquare, TrendingUp, AlertTriangle, Lock, Eye, EyeOff
 } from "lucide-react";
 import { SettingsIntegrationsTab } from "@/components/settings/SettingsIntegrationsTab";
 import { Link } from "wouter";
@@ -86,7 +86,7 @@ export default function Settings() {
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Tabs defaultValue="aparencia" className="w-full">
-          <TabsList className={`grid w-full bg-secondary border border-border rounded-xl p-1 h-auto ${isCorretor ? 'grid-cols-5' : 'grid-cols-7'}`}>
+          <TabsList className={`grid w-full bg-secondary border border-border rounded-xl p-1 h-auto ${isCorretor ? 'grid-cols-6' : 'grid-cols-8'}`}>
             <TabsTrigger
               value="aparencia"
               className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
@@ -121,6 +121,13 @@ export default function Settings() {
             >
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Exportação</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="seguranca"
+              className="flex items-center gap-2 py-2.5 rounded-lg text-sm font-body font-medium data-[state=active]:bg-background data-[state=active]:text-brand data-[state=active]:shadow-sm transition-all"
+            >
+              <Lock className="h-4 w-4" />
+              <span className="hidden sm:inline">Segurança</span>
             </TabsTrigger>
             {!isCorretor && (
               <TabsTrigger
@@ -160,6 +167,9 @@ export default function Settings() {
 
           <TabsContent value="exportacao" className="mt-6">
             <ExportTab />
+          </TabsContent>
+          <TabsContent value="seguranca" className="mt-6">
+            <SecurityTab />
           </TabsContent>
           {!isCorretor && (
             <TabsContent value="integracoes" className="mt-6">
@@ -1298,6 +1308,214 @@ function SmsStatsTab() {
                 o respondente recebe um código de 6 dígitos por SMS ao preencher o campo de telefone. 
                 O número só é aceito após a confirmação do código. Limite de 5 envios por número a cada 10 minutos.
               </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Security Tab ───
+function SecurityTab() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const changePassword = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Senha alterada com sucesso!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error("A nova senha e a confirmação não coincidem");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+    changePassword.mutate({ currentPassword, newPassword });
+  };
+
+  const passwordStrength = (pwd: string) => {
+    if (!pwd) return { label: "", color: "", width: "0%" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 1) return { label: "Fraca", color: "bg-red-500", width: "20%" };
+    if (score <= 2) return { label: "Razoável", color: "bg-orange-500", width: "40%" };
+    if (score <= 3) return { label: "Boa", color: "bg-yellow-500", width: "60%" };
+    if (score <= 4) return { label: "Forte", color: "bg-green-500", width: "80%" };
+    return { label: "Muito forte", color: "bg-emerald-500", width: "100%" };
+  };
+
+  const strength = passwordStrength(newPassword);
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center">
+              <Lock className="h-5 w-5 text-brand" />
+            </div>
+            <div>
+              <CardTitle className="text-foreground font-display text-lg">Alterar Senha</CardTitle>
+              <CardDescription className="font-body text-sm">
+                Atualize sua senha de acesso à plataforma
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5 max-w-md">
+            {/* Current password */}
+            <div className="space-y-2">
+              <Label htmlFor="current-password" className="text-sm font-body font-medium text-foreground">
+                Senha atual
+              </Label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Digite sua senha atual"
+                  className="pr-10 font-body"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* New password */}
+            <div className="space-y-2">
+              <Label htmlFor="new-password" className="text-sm font-body font-medium text-foreground">
+                Nova senha
+              </Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="pr-10 font-body"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {/* Strength bar */}
+              {newPassword && (
+                <div className="space-y-1">
+                  <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+                      style={{ width: strength.width }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-body">
+                    Força da senha: <span className="font-medium text-foreground">{strength.label}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm password */}
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password" className="text-sm font-body font-medium text-foreground">
+                Confirmar nova senha
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repita a nova senha"
+                  className="pr-10 font-body"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {/* Match indicator */}
+              {confirmPassword && newPassword && (
+                <p className={`text-xs font-body flex items-center gap-1.5 ${
+                  newPassword === confirmPassword ? "text-green-500" : "text-red-500"
+                }`}>
+                  {newPassword === confirmPassword ? (
+                    <><CheckCircle2 className="h-3.5 w-3.5" /> Senhas coincidem</>
+                  ) : (
+                    <><XCircle className="h-3.5 w-3.5" /> Senhas não coincidem</>
+                  )}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={changePassword.isPending || !currentPassword || !newPassword || !confirmPassword}
+              className="w-full sm:w-auto font-body"
+            >
+              {changePassword.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Alterando...</>
+              ) : (
+                <><Save className="h-4 w-4 mr-2" /> Alterar senha</>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Tips card */}
+      <Card className="bg-card border border-border rounded-2xl shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <Shield className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-foreground mb-1">Dicas de segurança</h3>
+              <ul className="text-sm text-muted-foreground font-body leading-relaxed space-y-1">
+                <li>• Use no mínimo 8 caracteres com letras maiúsculas, números e símbolos</li>
+                <li>• Não reutilize senhas de outros serviços</li>
+                <li>• Não compartilhe sua senha com ninguém</li>
+                <li>• Troque sua senha regularmente para maior segurança</li>
+              </ul>
             </div>
           </div>
         </CardContent>

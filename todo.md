@@ -1962,3 +1962,8 @@
 ## BUGFIX: Convite por email não está sendo enviado
 - [x] Investigar o fluxo de convite de staff e identificar onde estava falhando (Resend exige UUID, não alias)
 - [x] Corrigir o problema: mapear alias → UUID em TEMPLATE_IDS no emailService.ts e corretorNotification.ts
+
+## Alteração de senha nas Configurações
+- [x] Verificar como senhas são armazenadas no banco (bcrypt hash)
+- [x] Adicionar procedure `auth.changePassword` no backend (authRouter.ts)
+- [x] Adicionar aba "Segurança" na página de Configurações com campos de senha atual, nova senha e confirmação + indicador de força + verificação de coincidência
