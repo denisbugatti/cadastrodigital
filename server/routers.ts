@@ -1310,6 +1310,8 @@ export const appRouter = router({
         answers: z.any().optional(),
         isComplete: z.boolean().optional(),
         timeSpentSeconds: z.number().optional(),
+        respondentName: z.string().optional(),
+        respondentEmail: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;

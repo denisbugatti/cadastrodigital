@@ -244,11 +244,13 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       });
 
       if (partialResponseIdRef.current) {
-        // Update existing partial response
+        // Update existing partial response (include name/email so it's visible in the dashboard)
         updateResponseMutation.mutate({
           id: partialResponseIdRef.current,
           answers: answersObj,
           isComplete: false,
+          respondentName: respondentName ?? undefined,
+          respondentEmail: respondentEmail ?? undefined,
         });
       } else {
         // Create new partial response
@@ -341,6 +343,8 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
             id: existingId,
             answers: answersObj,
             isComplete: true,
+            respondentName: respondentName ?? undefined,
+            respondentEmail: respondentEmail ?? undefined,
           }, {
             onSuccess: (data) => {
               if ((data as any)?.protocolCode) setProtocolCode((data as any).protocolCode);

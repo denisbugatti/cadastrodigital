@@ -1967,3 +1967,9 @@
 - [x] Verificar como senhas são armazenadas no banco (bcrypt hash)
 - [x] Adicionar procedure `auth.changePassword` no backend (authRouter.ts)
 - [x] Adicionar aba "Segurança" na página de Configurações com campos de senha atual, nova senha e confirmação + indicador de força + verificação de coincidência
+
+## BUGFIX: Nome do cliente aparecia como Anonimo
+- [x] Investigar: respondentName nao era enviado nas chamadas de update, apenas na criacao
+- [x] Corrigir: adicionar respondentName/respondentEmail no input do update procedure (backend)
+- [x] Corrigir: enviar respondentName/respondentEmail no auto-save e na finalizacao via update (frontend)
+- [x] Adicionar secao Seguranca tambem em CorretorSettings.tsx
