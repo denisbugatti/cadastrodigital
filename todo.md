@@ -1973,3 +1973,8 @@
 - [x] Corrigir: adicionar respondentName/respondentEmail no input do update procedure (backend)
 - [x] Corrigir: enviar respondentName/respondentEmail no auto-save e na finalizacao via update (frontend)
 - [x] Adicionar secao Seguranca tambem em CorretorSettings.tsx
+
+## 3 Melhorias: trigger, CPF mascarado, filtros de status
+- [x] Criar sincronizacao automatica de respondentName no db.updateResponse (TiDB nao suporta triggers, implementado na camada de aplicacao)
+- [x] Exibir CPF/CNPJ mascarado no card da resposta (ex: ***.115.788-**)
+- [x] Melhorar chips de filtro com icones coloridos por status (Parcial/Pendente/Aprovado/Reprovado)

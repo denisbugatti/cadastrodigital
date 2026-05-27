@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, Mail, Clock, CheckCircle2, XCircle,
-  Hash, Search, X, ShieldCheck, ShieldAlert, Eye, Phone,
+  Hash, Search, X, ShieldCheck, ShieldAlert, Eye, Phone, CreditCard,
   Calendar, ChevronRight, ChevronLeft, Timer, Lock, LogOut,
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
@@ -363,6 +363,28 @@ function CorretorResponseCard({
     (v: any) => typeof v === "string" && /^\+?\d[\d\s()-]{7,}$/.test(v)
   ) as string | undefined;
 
+  // Extract CPF/CNPJ from answers and mask it
+  const rawCpfCnpj = (() => {
+    for (const [k, v] of Object.entries(answers)) {
+      if ((k.toLowerCase().includes('cpf') || k.toLowerCase().includes('cnpj')) && typeof v === 'string' && v.trim()) {
+        return v.trim();
+      }
+    }
+    return null;
+  })();
+  const maskedCpfCnpj = (() => {
+    if (!rawCpfCnpj) return null;
+    const digits = rawCpfCnpj.replace(/\D/g, '');
+    if (digits.length === 11) {
+      // CPF: ***.XXX.XXX-**
+      return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
+    } else if (digits.length === 14) {
+      // CNPJ: **.XXX.XXX/XXXX-**
+      return `**.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-**`;
+    }
+    return rawCpfCnpj; // fallback: show as-is if format unknown
+  })();
+
   // Progress calculation for incomplete responses
   const totalQuestions = (questions ?? []).filter(
     (q: any) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
@@ -530,6 +552,12 @@ function CorretorResponseCard({
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-body">
               <Timer size={11} className="shrink-0 text-muted-foreground/50" />
               <span>{formatTime(response.timeSpentSeconds)}</span>
+            </div>
+          )}
+          {maskedCpfCnpj && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-body">
+              <CreditCard size={11} className="shrink-0 text-muted-foreground/50" />
+              <span className="font-mono tracking-wide">{maskedCpfCnpj}</span>
             </div>
           )}
         </div>
@@ -1298,24 +1326,25 @@ export default function CorretorResponses() {
         {/* ─── Filter Pills ─── */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
           {[
-            { id: "all", label: "Todos", count: stats.total },
-            { id: "incomplete", label: "Incompletos", count: stats.incomplete },
-            { id: "pending", label: "Pendentes", count: stats.pending },
-            { id: "approved", label: "Aprovados", count: stats.approved },
-            { id: "rejected", label: "Rejeitados", count: stats.rejected },
+            { id: "all", label: "Todos", count: stats.total, activeClass: "bg-brand/10 text-brand border-brand/20", badgeClass: "bg-brand/20", icon: null },
+            { id: "incomplete", label: "Parcial", count: stats.incomplete, activeClass: "bg-amber-500/10 text-amber-500 border-amber-500/20", badgeClass: "bg-amber-500/20", icon: <Clock size={10} /> },
+            { id: "pending", label: "Pendente", count: stats.pending, activeClass: "bg-blue-500/10 text-blue-500 border-blue-500/20", badgeClass: "bg-blue-500/20", icon: <Eye size={10} /> },
+            { id: "approved", label: "Aprovado", count: stats.approved, activeClass: "bg-green-500/10 text-green-500 border-green-500/20", badgeClass: "bg-green-500/20", icon: <ShieldCheck size={10} /> },
+            { id: "rejected", label: "Reprovado", count: stats.rejected, activeClass: "bg-red-500/10 text-red-500 border-red-500/20", badgeClass: "bg-red-500/20", icon: <ShieldAlert size={10} /> },
           ].map((filter) => (
             <button
               key={filter.id}
               onClick={() => setStatusFilter(filter.id)}
               className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium whitespace-nowrap transition-all border active:scale-[0.97] ${
                 statusFilter === filter.id
-                  ? "bg-brand/10 text-brand border-brand/20"
+                  ? filter.activeClass
                   : "bg-card text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
               }`}
             >
+              {filter.icon}
               {filter.label}
               <span className={`px-1 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold ${
-                statusFilter === filter.id ? "bg-brand/20" : "bg-muted"
+                statusFilter === filter.id ? filter.badgeClass : "bg-muted"
               }`}>
                 {filter.count}
               </span>

@@ -608,7 +608,21 @@ export async function updateResponse(id: number, data: Partial<InsertFormRespons
         protocolCode = currentProtocol;
       }
     }
-    const updateData = protocolCode !== undefined ? { ...data, protocolCode } : data;
+    // Auto-sync respondentName from answers when answers is provided and respondentName is not explicitly set
+    let autoName: string | undefined;
+    if (data.answers && !data.respondentName) {
+      const ans = data.answers as Record<string, unknown>;
+      for (const [k, v] of Object.entries(ans)) {
+        if ((k.toLowerCase().includes('nome') || k.toLowerCase().includes('name')) && typeof v === 'string' && v.trim()) {
+          autoName = v.trim();
+          break;
+        }
+      }
+    }
+    const updateData = {
+      ...(protocolCode !== undefined ? { ...data, protocolCode } : data),
+      ...(autoName ? { respondentName: autoName } : {}),
+    };
     await db.update(formResponses).set(updateData).where(eq(formResponses.id, id));
     return { protocolCode: protocolCode ?? null };
   });
