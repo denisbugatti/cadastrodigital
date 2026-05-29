@@ -2009,3 +2009,16 @@
 - [x] Abandono: respeita preferências de notificação por usuário (inApp + push)
 - [x] Ícones corretos no painel de notificações: azul para início, verde para conclusão, âmbar para abandono
 - [x] 10 novos testes cobrindo os 3 tipos de notificação e lógica de abandono
+
+## Retomada de Preenchimento (Persistencia Longa)
+- [ ] Resetar abandonmentNotifiedAt=null quando cliente retoma o preenchimento (responses.update)
+- [ ] Adicionar procedure findPartialByIdentifier para buscar resposta parcial por CPF/email+formId
+- [ ] No FormContainer: ao preencher campo CPF ou email, verificar se existe resposta parcial no DB e oferecer retomada
+- [ ] Garantir que o auto-save no DB funciona mesmo sem localStorage
+- [ ] Adicionar testes para resetar abandonmentNotifiedAt e para findPartialByIdentifier
+
+- [x] Resetar abandonmentNotifiedAt ao retomar preenchimento
+- [x] Implementar findPartialByIdentifier no DB e procedure pública
+- [x] Detecção automática de cadastro incompleto por CPF/email no FormContainer
+- [x] Modal de retomada com opção "Continuar" ou "Iniciar novo"
+- [x] Testes para findPartialByIdentifier e reset de abandonmentNotifiedAt

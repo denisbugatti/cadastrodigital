@@ -1338,6 +1338,29 @@ export const appRouter = router({
         };
       }),
 
+    /**
+     * Find a partial (incomplete) response for a form by CPF/CNPJ or email.
+     * Used to offer "continue where you left off" when the client fills in their identifier.
+     * Returns null if no partial response found (safe to call publicly).
+     */
+    findPartialByIdentifier: publicProcedure
+      .input(z.object({
+        formId: z.number(),
+        identifier: z.string().min(3).max(100),
+      }))
+      .query(async ({ input }) => {
+        const partial = await db.findPartialResponseByIdentifier(input.formId, input.identifier);
+        if (!partial) return null;
+        // Only return safe fields — no sensitive data
+        return {
+          id: partial.id,
+          formId: partial.formId,
+          answers: partial.answers ?? {},
+          respondentName: partial.respondentName ?? null,
+          lastActivityAt: partial.lastActivityAt,
+        };
+      }),
+
     update: publicProcedure
       .input(z.object({
         id: z.number(),
@@ -1349,7 +1372,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
-        const updateResult = await db.updateResponse(id, { ...data, lastActivityAt: new Date() });
+        // Reset abandonmentNotifiedAt so future abandonment can be detected again if client leaves again
+        const updateResult = await db.updateResponse(id, { ...data, lastActivityAt: new Date(), abandonmentNotifiedAt: null });
         const generatedProtocol = updateResult?.protocolCode ?? null;
 
         // Notify corretores when a partial response becomes complete

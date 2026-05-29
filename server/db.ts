@@ -3202,3 +3202,42 @@ export function getSmsDailyStats(days: number = 30) {
     }));
   });
 }
+
+/**
+ * Find the most recent incomplete (partial) response for a given form + identifier.
+ * Used to offer "continue where you left off" when the client fills in their CPF or email.
+ * @param formId - the form to search within
+ * @param identifier - CPF/CNPJ or email address of the respondent
+ * @returns The most recent partial response, or null if none found
+ */
+export async function findPartialResponseByIdentifier(formId: number, identifier: string) {
+  return withDbRetry(async (db) => {
+    const normalizedId = identifier.trim().toLowerCase();
+    const results = await db.select({
+      id: formResponses.id,
+      formId: formResponses.formId,
+      answers: formResponses.answers,
+      respondentName: formResponses.respondentName,
+      respondentEmail: formResponses.respondentEmail,
+      respondentCpfCnpj: formResponses.respondentCpfCnpj,
+      isComplete: formResponses.isComplete,
+      createdAt: formResponses.createdAt,
+      lastActivityAt: formResponses.lastActivityAt,
+    })
+      .from(formResponses)
+      .where(
+        and(
+          eq(formResponses.formId, formId),
+          eq(formResponses.isComplete, false),
+          isNull(formResponses.deletedAt),
+          or(
+            like(formResponses.respondentEmail, normalizedId),
+            like(formResponses.respondentCpfCnpj, identifier.replace(/\D/g, "").substring(0, 20)),
+          )
+        )
+      )
+      .orderBy(desc(formResponses.lastActivityAt))
+      .limit(1);
+    return results[0] ?? null;
+  });
+}

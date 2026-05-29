@@ -56,6 +56,7 @@ vi.mock("./db", () => ({
   getFormAssignmentsBatch: vi.fn().mockResolvedValue({}),
   setFormAssignments: vi.fn().mockResolvedValue(undefined),
   getFormIdsByStaff: vi.fn().mockResolvedValue([]),
+  findPartialResponseByIdentifier: vi.fn().mockResolvedValue(null),
 }));
 
 // ─── Mock storage module ───
@@ -1287,8 +1288,87 @@ describe("staffFormCreatorProcedure access control", () => {
     vi.mocked(staffDb.getCorretoresByManager).mockResolvedValue([{ id: 10 }] as any);
     // Mock: that corretor is assigned to form 1
     vi.mocked(db.getFormIdsByStaff).mockResolvedValueOnce([1]).mockResolvedValueOnce([]);
-
     const result = await caller.forms.list();
     expect(result).toHaveLength(1);
+  });
+});
+
+describe("responses.findPartialByIdentifier", () => {
+  it("returns null when no partial response found", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    vi.mocked(db.findPartialResponseByIdentifier).mockResolvedValue(null as any);
+    const result = await caller.responses.findPartialByIdentifier({
+      formId: 1,
+      identifier: "test@example.com",
+    });
+    expect(result).toBeNull();
+  });
+
+  it("returns safe fields when partial response found by email", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    vi.mocked(db.findPartialResponseByIdentifier).mockResolvedValue({
+      id: 42,
+      formId: 1,
+      answers: { q1: "Jo\u00e3o", q2: "test@example.com" },
+      respondentName: "Jo\u00e3o Silva",
+      respondentEmail: "test@example.com",
+      respondentCpfCnpj: null,
+      isComplete: false,
+      createdAt: new Date(),
+      lastActivityAt: new Date(),
+    } as any);
+    const result = await caller.responses.findPartialByIdentifier({
+      formId: 1,
+      identifier: "test@example.com",
+    });
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe(42);
+    expect(result!.respondentName).toBe("Jo\u00e3o Silva");
+    expect(result!.answers).toEqual({ q1: "Jo\u00e3o", q2: "test@example.com" });
+    expect(db.findPartialResponseByIdentifier).toHaveBeenCalledWith(1, "test@example.com");
+  });
+
+  it("returns safe fields when partial response found by CPF", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    vi.mocked(db.findPartialResponseByIdentifier).mockResolvedValue({
+      id: 55,
+      formId: 1,
+      answers: { q1: "Maria" },
+      respondentName: "Maria Santos",
+      respondentEmail: null,
+      respondentCpfCnpj: "12345678901",
+      isComplete: false,
+      createdAt: new Date(),
+      lastActivityAt: new Date(),
+    } as any);
+    const result = await caller.responses.findPartialByIdentifier({
+      formId: 1,
+      identifier: "12345678901",
+    });
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe(55);
+    expect(result!.respondentName).toBe("Maria Santos");
+  });
+});
+
+describe("responses.update abandonmentNotifiedAt reset", () => {
+  it("resets abandonmentNotifiedAt to null when client resumes filling", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    vi.mocked(db.updateResponse).mockResolvedValue({
+      id: 10,
+      protocolCode: null,
+      isComplete: false,
+    } as any);
+    await caller.responses.update({
+      id: 10,
+      answers: { q1: "Nova resposta" },
+    });
+    expect(db.updateResponse).toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({
+        abandonmentNotifiedAt: null,
+        lastActivityAt: expect.any(Date),
+      })
+    );
   });
 });

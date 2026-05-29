@@ -209,6 +209,66 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
   const partialResponseIdRef = useRef<number | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ─── Resume detection: check DB for existing partial response by CPF/email ───
+  // When the client fills in their CPF or email, we check if there's an existing partial response.
+  const [resumeCheckIdentifier, setResumeCheckIdentifier] = useState<string | null>(null);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [resumeData, setResumeData] = useState<{ id: number; answers: Record<string, unknown>; respondentName: string | null } | null>(null);
+
+  const { data: partialByIdentifier } = trpc.responses.findPartialByIdentifier.useQuery(
+    { formId: form._dbFormId!, identifier: resumeCheckIdentifier! },
+    {
+      enabled: !!form._dbFormId && !!resumeCheckIdentifier && !continueResponseId && !partialResponseIdRef.current,
+      retry: false,
+      staleTime: 10_000,
+    }
+  );
+
+  // When we get a result from the identifier check, show the resume prompt
+  useEffect(() => {
+    if (partialByIdentifier && !showResumePrompt && !continueResponseId) {
+      setResumeData({
+        id: partialByIdentifier.id,
+        answers: partialByIdentifier.answers as Record<string, unknown>,
+        respondentName: partialByIdentifier.respondentName,
+      });
+      setShowResumePrompt(true);
+    }
+  }, [partialByIdentifier]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle resume: restore answers from DB and continue from last answered question
+  const handleResume = useCallback(() => {
+    if (!resumeData) return;
+    setShowResumePrompt(false);
+    // Restore all answers
+    Object.entries(resumeData.answers).forEach(([qId, value]) => {
+      if (value !== null && value !== undefined && value !== "") {
+        engine.setResponse(qId, value as any);
+      }
+    });
+    // Find the last answered question and go to the next one
+    const answeredIds = new Set(Object.keys(resumeData.answers).filter(k => {
+      const v = resumeData.answers[k];
+      return v !== null && v !== undefined && v !== "";
+    }));
+    let lastAnsweredIdx = 0;
+    form.questions.forEach((q, idx) => {
+      if (answeredIds.has(q.id)) lastAnsweredIdx = idx;
+    });
+    const resumeIdx = Math.min(lastAnsweredIdx + 1, form.questions.length - 1);
+    if (resumeIdx > 0) engine.goToIndex(resumeIdx);
+    // Link this session to the existing DB record
+    partialResponseIdRef.current = resumeData.id;
+    if (form._dbFormId) {
+      sessionStorage.setItem(`formflow_partial_db_${form._dbFormId}`, String(resumeData.id));
+    }
+  }, [resumeData, engine, form.questions, form._dbFormId]);
+
+  const handleStartFresh = useCallback(() => {
+    setShowResumePrompt(false);
+    setResumeData(null);
+  }, []);
+
   // On mount: restore partialResponseId from sessionStorage (if user refreshed)
   useEffect(() => {
     if (!form._dbFormId) return;
@@ -395,6 +455,19 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
     [form.questions]
   );
 
+  // Check if the current question is an identifier (CPF or email) and trigger resume detection
+  const checkIdentifierForResume = useCallback((questionType: string, value: unknown) => {
+    if (continueResponseId || partialResponseIdRef.current) return; // already in a session
+    if (!form._dbFormId) return;
+    if (questionType === 'cpf' || questionType === 'cnpj') {
+      const raw = String(value ?? '').replace(/\D/g, '');
+      if (raw.length >= 11) setResumeCheckIdentifier(raw);
+    } else if (questionType === 'email') {
+      const email = String(value ?? '').trim().toLowerCase();
+      if (email.includes('@') && email.includes('.')) setResumeCheckIdentifier(email);
+    }
+  }, [continueResponseId, form._dbFormId]);
+
   const handleNext = useCallback(() => {
     const validation = engine.validateCurrent();
     if (!validation.valid) {
@@ -403,17 +476,25 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
       return;
     }
     setValidationError(undefined);
+    // Check if current question is an identifier for resume detection
+    const currentQ = engine.currentQuestion;
+    const currentVal = engine.getResponse(currentQ.id);
+    checkIdentifierForResume(currentQ.type, currentVal);
     engine.goNext();
-  }, [engine]);
+  }, [engine, checkIdentifierForResume]);
 
   const handleAutoAdvance = useCallback((value?: unknown) => {
     setValidationError(undefined);
+    // Check if current question is an identifier for resume detection
+    const currentQ = engine.currentQuestion;
+    const checkVal = value !== undefined ? value : engine.getResponse(currentQ.id);
+    checkIdentifierForResume(currentQ.type, checkVal);
     if (value !== undefined) {
       engine.goNextWithValue(value as any);
     } else {
       engine.goNext();
     }
-  }, [engine]);
+  }, [engine, checkIdentifierForResume]);
 
   const handlePrev = useCallback(() => {
     setValidationError(undefined);
@@ -734,6 +815,70 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── Resume Prompt Overlay ─── */}
+      <AnimatePresence>
+        {showResumePrompt && resumeData && (
+          <motion.div
+            className="absolute inset-0 z-50 flex items-center justify-center px-4"
+            style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              className="rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+              style={{
+                backgroundColor: isLightBg ? "#ffffff" : "#1e1e2e",
+                color: isLightBg ? "#1a1a2e" : "#f8f8f8",
+                border: isLightBg ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.1)",
+              }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            >
+              {/* Icon */}
+              <div className="flex items-center justify-center w-12 h-12 rounded-full mb-4 mx-auto"
+                style={{ backgroundColor: buttonColor + "22" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={buttonColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-center mb-2">
+                Cadastro encontrado
+              </h3>
+              <p className="text-sm text-center mb-6" style={{ opacity: 0.7 }}>
+                {resumeData.respondentName
+                  ? `${resumeData.respondentName}, encontramos um cadastro incompleto. Deseja continuar de onde parou?`
+                  : "Encontramos um cadastro incompleto. Deseja continuar de onde parou?"}
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleResume}
+                  className="w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:opacity-90 active:scale-95"
+                  style={{ backgroundColor: buttonColor, color: buttonTextColor }}
+                >
+                  Continuar de onde parei
+                </button>
+                <button
+                  onClick={handleStartFresh}
+                  className="w-full py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:opacity-70 active:scale-95"
+                  style={{
+                    backgroundColor: isLightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
+                    color: isLightBg ? "#1a1a2e" : "#f8f8f8",
+                  }}
+                >
+                  Iniciar novo cadastro
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
