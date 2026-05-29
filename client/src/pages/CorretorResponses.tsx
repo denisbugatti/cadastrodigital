@@ -17,7 +17,7 @@ import {
   ArrowRight, User, Inbox, Filter, Bell, BellOff,
   FolderPlus, Folder, FolderOpen, MoreVertical, Pencil, Trash2,
   FolderInput, FolderMinus, Check, CalendarDays, SortAsc, SortDesc, BarChart3,
-  Copy, Link2, Settings, Paperclip,
+  Copy, Link2, Settings, Paperclip, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -692,6 +692,9 @@ export default function CorretorResponses() {
   const [editingFolder, setEditingFolder] = useState<{ id: number; name: string; color: string } | null>(null);
   const [contextMenuFolderId, setContextMenuFolderId] = useState<number | null>(null);
   const [showFolderPanel, setShowFolderPanel] = useState(false);
+  // Corretor filter (only visible for gerente/master/diretor)
+  const [selectedCorretorIds, setSelectedCorretorIds] = useState<Set<number>>(new Set());
+  const [showCorretorFilter, setShowCorretorFilter] = useState(false);
 
   const searchParam = useMemo(() => debouncedSearch.trim() || undefined, [debouncedSearch]);
 
@@ -720,6 +723,13 @@ export default function CorretorResponses() {
   const { data: responses, isLoading: responsesLoading } = trpc.responses.listByForm.useQuery(
     { formId: selectedFormId!, search: searchParam },
     { enabled: !!selectedFormId, refetchInterval: 15000 }
+  );
+
+  // ─── Corretor list for filter (admin/gerente only) ───
+  const isAdminRole = me?.type === 'staff' && ['master', 'diretor', 'gerente'].includes((me as any).role);
+  const { data: assignedCorretores = [] } = trpc.forms.getAssignmentsWithStaff.useQuery(
+    { formId: selectedFormId! },
+    { enabled: !!selectedFormId && isAdminRole }
   );
 
   // ─── Folders ───
@@ -885,6 +895,11 @@ export default function CorretorResponses() {
       result = result.filter((r: any) => folderResponseIds.has(r.id));
     }
 
+    // Filter by corretor (admin/gerente only)
+    if (selectedCorretorIds.size > 0) {
+      result = result.filter((r: any) => r.reviewedBy && selectedCorretorIds.has(r.reviewedBy));
+    }
+
     // Filter by status
     if (statusFilter === "complete") result = result.filter((r: any) => r.isComplete);
     else if (statusFilter === "partial") result = result.filter((r: any) => !r.isComplete);
@@ -923,7 +938,7 @@ export default function CorretorResponses() {
     });
 
     return result;
-  }, [responses, statusFilter, selectedFolderId, folderAssignments, dateFrom, dateTo, dateFilterType, sortOrder]);
+  }, [responses, statusFilter, selectedFolderId, folderAssignments, dateFrom, dateTo, dateFilterType, sortOrder, selectedCorretorIds]);
 
   // Stats
   const stats = useMemo(() => {
@@ -956,7 +971,7 @@ export default function CorretorResponses() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchParam, selectedFormId, selectedFolderId, dateFrom, dateTo, dateFilterType, sortOrder]);
+  }, [statusFilter, searchParam, selectedFormId, selectedFolderId, dateFrom, dateTo, dateFilterType, sortOrder, selectedCorretorIds]);
 
   const isLoading = meLoading || formsLoading;
 
@@ -1367,6 +1382,26 @@ export default function CorretorResponses() {
             )}
           </button>
 
+          {/* Corretor filter toggle (admin/gerente only) */}
+          {isAdminRole && assignedCorretores.length > 0 && (
+            <button
+              onClick={() => setShowCorretorFilter(!showCorretorFilter)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium whitespace-nowrap transition-all border active:scale-[0.97] ${
+                showCorretorFilter || selectedCorretorIds.size > 0
+                  ? "bg-brand/10 text-brand border-brand/20"
+                  : "bg-card text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
+              }`}
+            >
+              <Users size={11} />
+              Corretor
+              {selectedCorretorIds.size > 0 && (
+                <span className="px-1 py-0.5 rounded-full text-[8px] font-bold bg-brand/20">
+                  {selectedCorretorIds.size}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Sort toggle */}
           <button
             onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
@@ -1450,6 +1485,64 @@ export default function CorretorResponses() {
                     Mostrando {filteredResponses.length} resultado(s)
                     {dateFrom && ` a partir de ${new Date(dateFrom + "T00:00:00").toLocaleDateString("pt-BR")}`}
                     {dateTo && ` até ${new Date(dateTo + "T00:00:00").toLocaleDateString("pt-BR")}`}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Corretor Filter Panel ─── */}
+        <AnimatePresence>
+          {showCorretorFilter && isAdminRole && assignedCorretores.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-card rounded-xl border border-border p-3 sm:p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-display font-bold text-foreground flex items-center gap-1.5">
+                    <Users size={12} className="text-brand" />
+                    Filtrar por Corretor
+                  </h4>
+                  {selectedCorretorIds.size > 0 && (
+                    <button
+                      onClick={() => setSelectedCorretorIds(new Set())}
+                      className="text-[10px] text-muted-foreground hover:text-foreground font-body flex items-center gap-1 transition-colors"
+                    >
+                      <X size={10} /> Limpar
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {assignedCorretores.map((c: any) => {
+                    const isSelected = selectedCorretorIds.has(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          const next = new Set(selectedCorretorIds);
+                          if (isSelected) next.delete(c.id);
+                          else next.add(c.id);
+                          setSelectedCorretorIds(next);
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium transition-all border active:scale-[0.97] ${
+                          isSelected
+                            ? "bg-brand/10 text-brand border-brand/20"
+                            : "bg-transparent text-muted-foreground border-border hover:border-brand/20 hover:text-foreground"
+                        }`}
+                      >
+                        {isSelected && <Check size={9} />}
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedCorretorIds.size > 0 && (
+                  <p className="text-[10px] text-muted-foreground font-body">
+                    Mostrando respostas de {selectedCorretorIds.size} corretor(es) selecionado(s)
                   </p>
                 )}
               </div>

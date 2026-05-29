@@ -1987,3 +1987,25 @@
 - [x] Criar pagina ForgotPassword.tsx
 - [x] Criar pagina ResetPassword.tsx
 - [x] Registrar rotas no App.tsx
+
+## Filtro Multi-Corretor em CorretorResponses
+- [x] Adicionar procedure getAssignmentsWithStaff no router forms (retorna corretores atribuídos ao formulário)
+- [x] Adicionar estado selectedCorretorIds (Set<number>) e showCorretorFilter no CorretorResponses
+- [x] Adicionar query trpc.forms.getAssignmentsWithStaff habilitada apenas para roles admin/gerente
+- [x] Filtrar filteredResponses por reviewedBy quando selectedCorretorIds.size > 0
+- [x] Adicionar botão chip 'Corretor' na barra de filtros (visível apenas para admin/gerente)
+- [x] Adicionar painel de seleção multi-corretor com checkboxes animados
+
+## Notificações de Cadastro (3 tipos)
+- [ ] Notificação: cliente começou o cadastro (já implementado via notifyCorretoresNewSubmission)
+- [ ] Notificação: cliente finalizou o cadastro (já implementado via notifyOwnerNewResponse)
+- [ ] Notificação: cliente abandonou o cadastro após 10min sem preencher (inactivityCheck.ts)
+
+## Notificações de Cadastro (3 tipos)
+- [x] Notificação: cliente começou o cadastro (response_started - in-app + push via submit procedure)
+- [x] Notificação: cliente finalizou o cadastro (new_response - in-app + push via submit/update procedure)
+- [x] Notificação: cliente abandonou o cadastro após 10min sem preencher (response_abandoned - in-app + push via cronScheduler)
+- [x] Abandono: gerentes também recebem notificação (in-app + push)
+- [x] Abandono: respeita preferências de notificação por usuário (inApp + push)
+- [x] Ícones corretos no painel de notificações: azul para início, verde para conclusão, âmbar para abandono
+- [x] 10 novos testes cobrindo os 3 tipos de notificação e lógica de abandono

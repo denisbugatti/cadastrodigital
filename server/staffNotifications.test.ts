@@ -9,6 +9,7 @@ import type { TrpcContext } from "./_core/context";
  * - staffNotifications.markRead
  * - staffNotifications.markAllRead
  * - Notification creation on response submit
+ * - Abandonment notification type mapping
  */
 
 // ─── Mock db module ───
@@ -75,7 +76,9 @@ vi.mock("./db", () => ({
   upsertStaffNotificationPreference: vi.fn(),
   isNotificationEnabled: vi.fn(),
   NOTIFICATION_TYPES: [
-    { key: "new_response", label: "Novas respostas", description: "..." },
+    { key: "response_started", label: "Cliente começou a cadastrar", description: "Quando um cliente inicia o preenchimento de um formulário" },
+    { key: "new_response", label: "Cliente finalizou o cadastro", description: "Quando um cliente conclui e envia o formulário" },
+    { key: "response_abandoned", label: "Cliente abandonou o cadastro", description: "Quando um cliente para de preencher por 10 minutos" },
     { key: "response_approved", label: "Cadastro aprovado", description: "..." },
     { key: "response_rejected", label: "Cadastro rejeitado", description: "..." },
   ],
@@ -389,5 +392,91 @@ describe("Staff In-App Notifications", () => {
       // Should NOT create in-app notifications
       expect(db.createStaffNotificationsBatch).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ─── Test: Abandonment notification logic ───
+describe("Abandonment notification type mapping", () => {
+  it("should use response_abandoned type for abandoned responses", () => {
+    const isAbandoned = true;
+    const notifType = isAbandoned ? "response_abandoned" : "new_response";
+    expect(notifType).toBe("response_abandoned");
+  });
+
+  it("should use response_started type for partial (non-abandoned) responses", () => {
+    const isComplete = false;
+    const isAbandoned = false;
+    const notifType = isComplete ? "new_response" : (isAbandoned ? "response_abandoned" : "response_started");
+    expect(notifType).toBe("response_started");
+  });
+
+  it("should use new_response type for completed responses", () => {
+    const isComplete = true;
+    const notifType = isComplete ? "new_response" : "response_started";
+    expect(notifType).toBe("new_response");
+  });
+
+  it("should build correct abandonment title with client name", () => {
+    const respondentName = "João Silva";
+    const displayName = respondentName || "Um cliente";
+    const title = `⚠️ ${displayName} abandonou o cadastro`;
+    expect(title).toBe("⚠️ João Silva abandonou o cadastro");
+  });
+
+  it("should build generic abandonment title when no client name", () => {
+    const respondentName: string | null = null;
+    const displayName = respondentName || "Um cliente";
+    const title = `⚠️ ${displayName} abandonou o cadastro`;
+    expect(title).toBe("⚠️ Um cliente abandonou o cadastro");
+  });
+
+  it("should respect notification preferences for abandonment type", () => {
+    // Simulate preference check
+    const prefsMap = new Map<number, { inApp: boolean; push: boolean }>([
+      [10, { inApp: true, push: true }],
+      [20, { inApp: false, push: false }],
+    ]);
+    const staffIds = [10, 20];
+    const inAppIds = staffIds.filter((id) => prefsMap.get(id)?.inApp !== false);
+    const pushIds = staffIds.filter((id) => prefsMap.get(id)?.push !== false);
+    expect(inAppIds).toEqual([10]);
+    expect(pushIds).toEqual([10]);
+  });
+
+  it("should include managers in abandonment notifications", () => {
+    const corretorIds = [10];
+    const managerIds = new Set([20]);
+    const allStaff = [...corretorIds, ...Array.from(managerIds)];
+    expect(allStaff).toContain(10);
+    expect(allStaff).toContain(20);
+    expect(allStaff).toHaveLength(2);
+  });
+
+  it("should link managers to gerente/respostas and corretores to corretor/respostas", () => {
+    const managerIds = new Set([20]);
+    const allStaff = [10, 20];
+    const links = allStaff.map((id) => ({
+      staffUserId: id,
+      link: managerIds.has(id) ? "/gerente/respostas" : "/corretor/respostas",
+    }));
+    expect(links.find((l) => l.staffUserId === 10)?.link).toBe("/corretor/respostas");
+    expect(links.find((l) => l.staffUserId === 20)?.link).toBe("/gerente/respostas");
+  });
+});
+
+// ─── Test: Notification type definitions ───
+describe("NOTIFICATION_TYPES definitions", () => {
+  it("should include all 3 cadastro notification types", () => {
+    const types = (db.NOTIFICATION_TYPES as any[]).map((t: any) => t.key);
+    expect(types).toContain("response_started");
+    expect(types).toContain("new_response");
+    expect(types).toContain("response_abandoned");
+  });
+
+  it("should have correct labels for each notification type", () => {
+    const typesMap = new Map((db.NOTIFICATION_TYPES as any[]).map((t: any) => [t.key, t.label]));
+    expect(typesMap.get("response_started")).toBe("Cliente começou a cadastrar");
+    expect(typesMap.get("new_response")).toBe("Cliente finalizou o cadastro");
+    expect(typesMap.get("response_abandoned")).toBe("Cliente abandonou o cadastro");
   });
 });

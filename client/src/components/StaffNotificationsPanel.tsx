@@ -307,7 +307,11 @@ export function StaffNotificationsPanel() {
                         {/* Icon */}
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                           notif.type === "new_response"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : notif.type === "response_started"
                             ? "bg-blue-500/10 text-blue-500"
+                            : notif.type === "response_abandoned"
+                            ? "bg-amber-500/10 text-amber-500"
                             : notif.type === "response_approved"
                             ? "bg-emerald-500/10 text-emerald-500"
                             : notif.type === "response_rejected"
@@ -322,6 +326,8 @@ export function StaffNotificationsPanel() {
                             <CircleX size={14} />
                           ) : notif.type === "form_assigned" ? (
                             <UserPlus size={14} />
+                          ) : notif.type === "response_abandoned" ? (
+                            <Clock size={14} />
                           ) : (
                             <FileText size={14} />
                           )}

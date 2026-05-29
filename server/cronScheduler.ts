@@ -433,16 +433,51 @@ async function runAbandonmentCheck(): Promise<void> {
               ? `⚠️ ${abandonDisplayName} abandonou o cadastro`
               : `⚠️ Um cliente abandonou o cadastro`;
             const abandonBody = `No formulário ${resp.formTitle}`;
-            await db.createStaffNotificationsBatch(
-              abandonStaffIds.map((staffUserId: number) => ({
-                staffUserId,
-                type: "response_abandoned" as any,
+
+            // Also include managers of assigned corretores
+            const staffDb = await import("./staffDb");
+            const abandonManagerIds = new Set<number>();
+            for (const sid of abandonStaffIds) {
+              try {
+                const su = await staffDb.getStaffUserById(sid);
+                if (su?.managerId && !abandonStaffIds.includes(su.managerId)) {
+                  abandonManagerIds.add(su.managerId);
+                }
+              } catch (_) { /* ignore */ }
+            }
+            const allAbandonStaff = [...abandonStaffIds, ...Array.from(abandonManagerIds)];
+
+            // Check preferences
+            const prefsMap = await db.getNotificationPreferencesForStaff(allAbandonStaff, "response_abandoned");
+
+            // In-app notifications
+            const inAppIds = allAbandonStaff.filter((id: number) => prefsMap.get(id)?.inApp !== false);
+            if (inAppIds.length > 0) {
+              await db.createStaffNotificationsBatch(
+                inAppIds.map((staffUserId: number) => ({
+                  staffUserId,
+                  type: "response_abandoned" as any,
+                  title: abandonTitle,
+                  body: abandonBody,
+                  link: abandonManagerIds.has(staffUserId) ? "/gerente/respostas" : "/corretor/respostas",
+                  metadata: { formId: resp.formId, formTitle: resp.formTitle, respondentName: resp.respondentName ?? null, responseId: resp.id, isAbandoned: true, isManagerNotification: abandonManagerIds.has(staffUserId) },
+                }))
+              );
+            }
+
+            // Push notifications
+            for (const staffUserId of allAbandonStaff) {
+              if (prefsMap.get(staffUserId)?.push === false) continue;
+              sendPushToStaffUser(staffUserId, {
                 title: abandonTitle,
                 body: abandonBody,
-                link: "/corretor/respostas",
-                metadata: { formId: resp.formId, formTitle: resp.formTitle, respondentName: resp.respondentName ?? null, responseId: resp.id, isAbandoned: true },
-              }))
-            );
+                icon: "/icons/icon-192x192.png",
+                badge: "/icons/icon-72x72.png",
+                url: abandonManagerIds.has(staffUserId) ? "/gerente/respostas" : "/corretor/respostas",
+                tag: `abandoned-${resp.id}`,
+                data: { type: "response_abandoned", formId: resp.formId, responseId: resp.id, respondentName: resp.respondentName ?? null, timestamp: Date.now() },
+              }).catch((pushErr: any) => console.warn(`[Cron] Push for abandonment failed for staff ${staffUserId}:`, pushErr?.message?.substring(0, 100)));
+            }
           }
         } catch (abandonNotifErr) {
           console.warn(`[Cron] Failed to send in-app abandonment notification for response #${resp.id}:`, (abandonNotifErr as Error)?.message?.substring(0, 100));

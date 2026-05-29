@@ -644,6 +644,30 @@ export const appRouter = router({
         return db.getFormAssignments(input.formId);
       }),
 
+    /** Get assignments for a form with staff user details (name, id, role) — for corretor filter */
+    getAssignmentsWithStaff: staffAdminProcedure
+      .input(z.object({ formId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const session = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
+        const assignments = await db.getFormAssignments(input.formId);
+        if (assignments.length === 0) return [];
+        const staffIds = assignments.map((a: any) => a.staffUserId);
+        const staffList = await Promise.all(
+          staffIds.map((id: number) => staffDb.getStaffUserById(id))
+        );
+        let result = staffList
+          .filter((u): u is NonNullable<typeof u> => u !== null && u.active)
+          .map((u) => ({ id: u.id, name: u.name, role: u.role }))
+          .filter((u) => u.role === 'corretor');
+        // Gerentes only see their own corretores
+        if (session?.role === 'gerente') {
+          const myCorretores = await staffDb.getCorretoresByManager(session.staffUserId);
+          const myIds = new Set(myCorretores.map((c: any) => c.id));
+          result = result.filter((u) => myIds.has(u.id));
+        }
+        return result;
+      }),
+
     /** Get assignments for multiple forms (batch) */
     getAssignmentsBatch: staffFormCreatorProcedure
       .input(z.object({ formIds: z.array(z.number()) }))
