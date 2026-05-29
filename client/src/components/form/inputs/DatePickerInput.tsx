@@ -133,15 +133,17 @@ export function DatePickerInput({ value, onChange, error }: DatePickerInputProps
         />
       </div>
 
-      {/* Validation hint */}
-      {digits.length === 8 && !isValidDate(displayValue) && (
+      {/* Validation hint — engine error (e.g. required) or inline invalid date */}
+      {(error || (digits.length === 8 && !isValidDate(displayValue))) && (
         <motion.p
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-xs ml-8"
           style={{ color: "#EF4444" }}
         >
-          Data inválida. Verifique o dia, mês e ano.
+          {error && digits.length < 8
+            ? error
+            : "Data inválida. Verifique o dia, mês e ano."}
         </motion.p>
       )}
     </motion.div>

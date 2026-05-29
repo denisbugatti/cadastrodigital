@@ -145,6 +145,28 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
       }
     }
 
+    // Date validation
+    if (q.type === "date" && typeof value === "string" && value) {
+      // value is stored as YYYY-MM-DD; validate it's a real date
+      const parts = value.split("-");
+      if (parts.length !== 3) {
+        return { valid: false, message: "Data inválida. Use o formato DD/MM/AAAA." };
+      }
+      const [y, m, d] = parts.map(Number);
+      if (!y || !m || !d || m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) {
+        return { valid: false, message: "Data inválida. Verifique o dia, mês e ano." };
+      }
+      const date = new Date(y, m - 1, d);
+      if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+        return { valid: false, message: "Data inválida. Verifique o dia, mês e ano." };
+      }
+    }
+
+    // Date required but empty or incomplete (user typed partial digits)
+    if (q.type === "date" && q.required && (!value || value === "")) {
+      return { valid: false, message: "Este campo é obrigatório" };
+    }
+
     // Pattern validation (email, etc.)
     if (q.validation?.pattern && typeof value === "string" && value) {
       const regex = new RegExp(q.validation.pattern);
