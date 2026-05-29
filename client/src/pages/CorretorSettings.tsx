@@ -14,14 +14,16 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Bell, Loader2, FileText, User,
   CheckCircle2, XCircle, Smartphone, Monitor, Save,
-  Lock, Eye, EyeOff,
+  Lock, Eye, EyeOff, PlayCircle, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 const TYPE_ICONS: Record<string, { icon: any; color: string }> = {
-  new_response: { icon: FileText, color: "text-blue-500" },
-  response_approved: { icon: CheckCircle2, color: "text-emerald-500" },
+  response_started: { icon: PlayCircle, color: "text-blue-400" },
+  new_response: { icon: CheckCircle2, color: "text-emerald-500" },
+  response_abandoned: { icon: AlertTriangle, color: "text-amber-500" },
+  response_approved: { icon: CheckCircle2, color: "text-emerald-600" },
   response_rejected: { icon: XCircle, color: "text-red-500" },
 };
 

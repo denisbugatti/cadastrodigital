@@ -387,7 +387,7 @@ async function tick(): Promise<void> {
  */
 async function runAbandonmentCheck(): Promise<void> {
   try {
-    const abandoned = await db.getAbandonedResponses(8); // 8 minutes timeout
+    const abandoned = await db.getAbandonedResponses(10); // 10 minutes timeout
     if (abandoned.length === 0) return;
 
     console.log(`[Cron] Found ${abandoned.length} abandoned response(s). Notifying corretores...`);
@@ -436,7 +436,7 @@ async function runAbandonmentCheck(): Promise<void> {
             await db.createStaffNotificationsBatch(
               abandonStaffIds.map((staffUserId: number) => ({
                 staffUserId,
-                type: "new_response" as const,
+                type: "response_abandoned" as any,
                 title: abandonTitle,
                 body: abandonBody,
                 link: "/corretor/respostas",
@@ -455,7 +455,7 @@ async function runAbandonmentCheck(): Promise<void> {
           responseId: resp.id,
           formId: resp.formId,
           activityType: "abandonment_detected",
-          description: `Cliente ${resp.respondentName ?? resp.respondentEmail ?? "Anônimo"} abandonou o formulário após 8 min de inatividade. Corretor notificado.`,
+          description: `Cliente ${resp.respondentName ?? resp.respondentEmail ?? "Anônimo"} abandonou o formulário após 10 min de inatividade. Corretor notificado.`,
         }).catch(() => {});
       } catch (err) {
         console.warn(`[Cron] Failed to process abandonment for response #${resp.id}:`, (err as Error)?.message?.substring(0, 100));

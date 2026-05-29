@@ -2768,7 +2768,9 @@ export async function markAbandonmentNotified(responseId: number): Promise<void>
 
 /** Default notification types with their labels */
 export const NOTIFICATION_TYPES = [
-  { key: "new_response", label: "Novas respostas", description: "Quando um novo cadastro é enviado no seu formulário" },
+  { key: "response_started", label: "Cliente começou a cadastrar", description: "Quando um cliente inicia o preenchimento de um formulário" },
+  { key: "new_response", label: "Cliente finalizou o cadastro", description: "Quando um cliente conclui e envia o formulário" },
+  { key: "response_abandoned", label: "Cliente abandonou o cadastro", description: "Quando um cliente para de preencher por 10 minutos" },
   { key: "response_approved", label: "Cadastro aprovado", description: "Quando um cadastro é aprovado" },
   { key: "response_rejected", label: "Cadastro rejeitado", description: "Quando um cadastro é rejeitado" },
 ] as const;

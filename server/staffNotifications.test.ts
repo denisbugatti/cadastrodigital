@@ -344,12 +344,12 @@ describe("Staff In-App Notifications", () => {
         isComplete: false,
       });
 
-      // Verify notification was created even for partial response
+      // Verify notification was created even for partial response (uses response_started type)
       expect(db.createStaffNotificationsBatch).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             staffUserId: 10,
-            type: "new_response",
+            type: "response_started",
             metadata: expect.objectContaining({ isComplete: false }),
           }),
         ])

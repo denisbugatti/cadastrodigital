@@ -1125,15 +1125,15 @@ export const appRouter = router({
           const allStaffToNotify = [...staffIds, ...Array.from(managerIds)];
 
           if (allStaffToNotify.length > 0) {
+            // Use distinct notification types for start vs completion
+            const notifType = isComplete ? "new_response" : "response_started";
             const notifTitle = isComplete
               ? `✅ ${respondent !== "Anônimo" ? respondent : "Um cliente"} finalizou o cadastro`
               : `🔔 Um novo cliente está se cadastrando`;
-            const notifBody = isComplete
-              ? `No formulário ${formTitle}`
-              : `No formulário ${formTitle}`;
+            const notifBody = `No formulário ${formTitle}`;
 
-            // Check preferences for each staff user
-            const prefsMap = await db.getNotificationPreferencesForStaff(allStaffToNotify, "new_response");
+            // Check preferences for each staff user (use the correct type)
+            const prefsMap = await db.getNotificationPreferencesForStaff(allStaffToNotify, notifType);
 
             // In-app notifications — only for staff who have in-app enabled
             const inAppStaffIds = allStaffToNotify.filter((id: number) => prefsMap.get(id)?.inApp !== false);
@@ -1141,7 +1141,7 @@ export const appRouter = router({
               db.createStaffNotificationsBatch(
                 inAppStaffIds.map((staffUserId: number) => ({
                   staffUserId,
-                  type: "new_response",
+                  type: notifType as any,
                   title: notifTitle,
                   body: notifBody,
                   link: managerIds.has(staffUserId) ? "/gerente/respostas" : "/corretor/respostas",
