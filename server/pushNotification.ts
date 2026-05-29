@@ -184,12 +184,15 @@ export async function notifyCorretorPush(params: {
   formId?: number;
 }) {
   try {
-    const body = params.respondentName
-      ? `${params.respondentName} enviou uma resposta no formulário "${params.formTitle}"`
-      : `Nova resposta recebida no formulário "${params.formTitle}"`;
+    const displayName = params.respondentName || "Um cliente";
+    const isCompletion = !!params.protocolCode;
+    const title = isCompletion
+      ? `✅ ${displayName} finalizou o cadastro`
+      : `🔔 Um novo cliente está se cadastrando`;
+    const body = `No formulário ${params.formTitle}`;
 
     await sendPushToStaffUser(params.staffUserId, {
-      title: "\ud83d\udccb Nova resposta para validar!",
+      title,
       body,
       icon: "/icons/icon-192x192.png",
       badge: "/icons/icon-72x72.png",
@@ -267,21 +270,14 @@ export async function notifyOwnerNewResponse(
     }
 
     const isComplete = extras?.isComplete !== false;
+    const displayName = respondentName || "Um cliente";
     const title = isComplete
-      ? `✅ Novo cadastro realizado com sucesso!`
+      ? `✅ ${displayName} finalizou o cadastro`
       : `🔔 Um novo cliente está se cadastrando`;
 
     const bodyParts = isComplete
-      ? [
-          respondentName
-            ? `${respondentName} • Formulário: ${formTitle}`
-            : `Formulário: ${formTitle}`,
-        ]
-      : [
-          respondentName
-            ? `${respondentName} está preenchendo o formulário "${formTitle}"`
-            : `Um cliente iniciou o preenchimento do formulário "${formTitle}"`,
-        ];
+      ? [`No formulário ${formTitle}`]
+      : [`No formulário ${formTitle}`];
     if (isComplete && extras?.protocolCode) bodyParts.push(`Protocolo: #${extras.protocolCode}`);
 
     await sendPushToUser(ownerUser.id, {

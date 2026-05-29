@@ -17,6 +17,7 @@ import {
 import { notifyOwner } from "./_core/notification";
 import { sendPushToUser, sendPushToStaffUser } from "./pushNotification";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
+import { extractFirstName } from "../shared/respondentName";
 
 /** How often to check (in ms). We check every 60 seconds. */
 const CHECK_INTERVAL_MS = 60 * 1000;
@@ -423,10 +424,15 @@ async function runAbandonmentCheck(): Promise<void> {
             abandonStaffIds.push(abandonForm.assignedCorretorId);
           }
           if (abandonStaffIds.length > 0) {
-            const abandonTitle = `⚠️ Um cliente abandonou o cadastro`;
-            const abandonBody = resp.respondentName
-              ? `${resp.respondentName} • Formulário: ${resp.formTitle}`
-              : `Formulário: ${resp.formTitle}`;
+            const abandonFirstName = extractFirstName(
+              resp.answers as Record<string, unknown>,
+              resp.respondentName
+            );
+            const abandonDisplayName = abandonFirstName !== "Anônimo" ? abandonFirstName : resp.respondentName;
+            const abandonTitle = abandonDisplayName
+              ? `⚠️ ${abandonDisplayName} abandonou o cadastro`
+              : `⚠️ Um cliente abandonou o cadastro`;
+            const abandonBody = `No formulário ${resp.formTitle}`;
             await db.createStaffNotificationsBatch(
               abandonStaffIds.map((staffUserId: number) => ({
                 staffUserId,

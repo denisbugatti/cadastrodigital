@@ -17,6 +17,7 @@ import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { customAuthRouter } from "./authRouter";
 import * as staffDb from "./staffDb";
 import { verifySessionToken } from "./authService";
+import { extractFirstName } from "../shared/respondentName";
 import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEmail, sendCadenceEmail, sendRejectionCadenceEmail } from "./emailService";
 import { generateInviteToken } from "./authService";
 import { getOrCreateOwnerUser } from "./ownerUser";
@@ -1032,8 +1033,10 @@ export const appRouter = router({
         try {
           const form = await db.getFormById(input.formId);
           const formTitle = form?.title ?? "Formulário";
-          const respondent = input.respondentName || input.respondentEmail || "Anônimo";
           const isComplete = input.isComplete !== false;
+          // Extract first name: PF → first name of nome, PJ → first name of sócio
+          const firstName = extractFirstName(input.answers as Record<string, unknown>, input.respondentName);
+          const respondent = firstName !== "Anônimo" ? firstName : (input.respondentName || input.respondentEmail || "Anônimo");
           const statusLabel = isComplete ? "completa" : "parcial (em andamento)";
 
           // ─── Owner notifications (webapp push only) ───
@@ -1123,15 +1126,11 @@ export const appRouter = router({
 
           if (allStaffToNotify.length > 0) {
             const notifTitle = isComplete
-              ? `✅ Novo cadastro realizado com sucesso!`
+              ? `✅ ${respondent !== "Anônimo" ? respondent : "Um cliente"} finalizou o cadastro`
               : `🔔 Um novo cliente está se cadastrando`;
             const notifBody = isComplete
-              ? respondent !== "Anônimo"
-                ? `${respondent} • Formulário: ${formTitle}`
-                : `Formulário: ${formTitle}`
-              : respondent !== "Anônimo"
-                ? `${respondent} está preenchendo o formulário "${formTitle}"`
-                : `Um cliente iniciou o preenchimento do formulário "${formTitle}"`;
+              ? `No formulário ${formTitle}`
+              : `No formulário ${formTitle}`;
 
             // Check preferences for each staff user
             const prefsMap = await db.getNotificationPreferencesForStaff(allStaffToNotify, "new_response");
@@ -1336,7 +1335,14 @@ export const appRouter = router({
             if (response) {
               const form = await db.getFormById(response.formId);
               const formTitle = form?.title ?? "Formulário";
-              const respondent = response.respondentName || response.respondentEmail || "Anônimo";
+              // Extract first name: PF → first name of nome, PJ → first name of sócio
+              const completionFirstName = extractFirstName(
+                (input.answers ?? response.answers) as Record<string, unknown>,
+                response.respondentName
+              );
+              const respondent = completionFirstName !== "Anônimo"
+                ? completionFirstName
+                : (response.respondentName || response.respondentEmail || "Anônimo");
               // Use the newly generated protocol code (from updateResponse) or the one already on the record
               const finalProtocol = generatedProtocol || response.protocolCode || null;
 
@@ -1385,10 +1391,8 @@ export const appRouter = router({
               const allCompletionStaff = [...staffIds, ...Array.from(completionManagerIds)];
 
               if (allCompletionStaff.length > 0) {
-                const notifTitle = `✅ Novo cadastro realizado com sucesso!`;
-                const notifBody = finalProtocol
-                  ? `${respondent} • Formulário: ${formTitle} • Protocolo: ${finalProtocol}`
-                  : `${respondent} • Formulário: ${formTitle}`;
+                const notifTitle = `✅ ${respondent !== "Anônimo" ? respondent : "Um cliente"} finalizou o cadastro`;
+                const notifBody = `No formulário ${formTitle}`;
 
                 // Check preferences for each staff user
                 const prefsMap = await db.getNotificationPreferencesForStaff(allCompletionStaff, "new_response");
