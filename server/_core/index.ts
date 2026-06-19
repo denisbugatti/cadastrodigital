@@ -64,8 +64,13 @@ async function startServer() {
         try { await runSeeds(); } catch (e: any) {
           console.warn("[Server] Seed failed:", e?.message?.substring(0, 80));
         }
-        // Start the email cadence cron scheduler after DB is ready
-        startCronScheduler();
+        // Start the email cadence cron scheduler after DB is ready.
+        // Gated by ENABLE_CRON so deploys can boot without contacting real clients.
+        if (process.env.ENABLE_CRON === "true") {
+          startCronScheduler();
+        } else {
+          console.log("[Cron] Disabled (set ENABLE_CRON=true to enable)");
+        }
       }
     })
     .catch(() => console.warn("[Server] DB warm-up failed, will retry on first request"));
@@ -77,7 +82,7 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
+  server.listen(port, "127.0.0.1", () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
 }

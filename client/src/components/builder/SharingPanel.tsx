@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import type { SharingSettings, EmbedMode, FormDesignSettings, FormSettings } from "@/lib/builderTypes";
+import { BRANDS, BRAND_LIST, brandFromValue } from "@shared/brands";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -49,8 +50,10 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
   const [isUploadingOgImage, setIsUploadingOgImage] = useState(false);
   const ogImageInputRef = useRef<HTMLInputElement>(null);
 
-  // Fixed domain for form URLs — always use the custom domain
-  const baseUrl = "https://one.cadastrodigital.com.br";
+  // Brand/domain of this form (One ou Vitacon) → defines the subdomain of the link
+  const brand = brandFromValue(sharing.brand);
+  const baseHost = BRANDS[brand].host;
+  const baseUrl = `https://${baseHost}`;
 
   const formUrl = `${baseUrl}/${sharing.slug}`;
 
@@ -235,6 +238,32 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
             </div>
           )}
 
+          {/* Brand / domain selector */}
+          <div className="mb-4">
+            <label className="text-sm font-body font-medium text-foreground mb-2 block">
+              Marca / Domínio
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {BRAND_LIST.map((b) => (
+                <button
+                  key={b.key}
+                  type="button"
+                  onClick={() => onUpdate({ brand: b.key })}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-body font-medium border transition-all ${
+                    brand === b.key
+                      ? "bg-brand text-white border-brand shadow-sm"
+                      : "bg-secondary text-foreground border-border hover:border-brand/50"
+                  }`}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5 ml-1">
+              Define em qual subdomínio o formulário fica: <span className="font-mono">{baseHost}</span>
+            </p>
+          </div>
+
           {/* URL slug editor */}
           <div className="mb-4">
             <label className="text-sm font-body font-medium text-foreground mb-2 block">
@@ -242,7 +271,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
             </label>
             <div className="flex items-center gap-0 bg-secondary rounded-xl border border-border overflow-hidden">
               <span className="text-xs text-muted-foreground shrink-0 px-3 py-2.5 bg-muted/50 border-r border-border font-mono">
-                one.cadastrodigital.com.br/
+                {baseHost}/
               </span>
               <div className="flex-1 flex items-center">
                 <input
@@ -379,7 +408,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
               {/* Text preview */}
               <div className="p-3">
                 <p className="text-xs text-muted-foreground mb-0.5 truncate">
-                  one.cadastrodigital.com.br
+                  {baseHost}
                 </p>
                 <p className="text-sm font-semibold text-foreground truncate">
                   {ogTitle}

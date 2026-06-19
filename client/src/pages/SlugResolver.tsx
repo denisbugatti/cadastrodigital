@@ -11,7 +11,8 @@ import { useParams, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import NotFound from "./NotFound";
 import { FormContainer } from "@/components/form/FormContainer";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { BRANDS, brandFromValue, brandFromHost } from "@shared/brands";
 import type { FormData, Question } from "@/lib/formTypes";
 
 // Known internal routes that should NOT be treated as form slugs
@@ -41,6 +42,19 @@ export default function SlugResolver() {
     { id: Number(continueResponseId) },
     { enabled: !!continueResponseId && !isNaN(Number(continueResponseId)) && !isInternalPath, retry: 1 }
   );
+
+  // Brand separation: if the form belongs to another brand, send the visitor to
+  // the correct subdomain (self-healing links). Only triggers on real brand hosts.
+  useEffect(() => {
+    if (!dbForm) return;
+    const formBrand = brandFromValue((dbForm as any).sharing?.brand);
+    const hostBrand = brandFromHost(window.location.hostname);
+    if (hostBrand && hostBrand !== formBrand) {
+      window.location.replace(
+        `https://${BRANDS[formBrand].host}${window.location.pathname}${window.location.search}`
+      );
+    }
+  }, [dbForm]);
 
   const form = useMemo<FormData | null>(() => {
     if (!dbForm) return null;

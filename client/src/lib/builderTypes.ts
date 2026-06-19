@@ -282,6 +282,8 @@ export interface SharingSettings {
   embedHeight: string;
   embedButtonText: string;
   embedButtonColor: string;
+  /** Which brand/domain this form belongs to (controls subdomain + separation). */
+  brand?: "one" | "vitacon";
 }
 
 // ─── Workspace (folder with custom domain) ───
@@ -602,6 +604,7 @@ export const defaultSharingSettings: SharingSettings = {
   embedHeight: "600",
   embedButtonText: "Responder formulário",
   embedButtonColor: "#3B82F6",
+  brand: "one",
 };
 
 export function createEmptyForm(): BuilderForm {
