@@ -284,6 +284,8 @@ export interface SharingSettings {
   embedButtonColor: string;
   /** Which brand/domain this form belongs to (controls subdomain + separation). */
   brand?: "one" | "vitacon";
+  /** When true, this form is the default/template opened at the brand subdomain root. */
+  isBrandDefault?: boolean;
 }
 
 // ─── Workspace (folder with custom domain) ───

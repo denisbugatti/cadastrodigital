@@ -250,6 +250,31 @@ export async function getFormById(id: number) {
   });
 }
 
+/** The default/template form for a brand (sharing.isBrandDefault === true), or null. */
+export async function getBrandDefaultForm(brand: string) {
+  return withDbRetry(async (db) => {
+    const result = await db.select().from(forms).where(and(
+      isNull(forms.deletedAt),
+      sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')) = ${brand}`,
+      sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.isBrandDefault')) = 'true'`,
+    )).orderBy(desc(forms.updatedAt)).limit(1);
+    return result[0] ?? null;
+  });
+}
+
+/** Clears the brand-default flag on every other form of the same brand (keeps a single default). */
+export async function clearBrandDefault(brand: string, exceptFormId: number) {
+  return withDbRetry(async (db) => {
+    await db.update(forms)
+      .set({ sharing: sql`JSON_SET(COALESCE(${forms.sharing}, JSON_OBJECT()), '$.isBrandDefault', false)` } as any)
+      .where(and(
+        sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')) = ${brand}`,
+        sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.isBrandDefault')) = 'true'`,
+        sql`${forms.id} <> ${exceptFormId}`,
+      ));
+  });
+}
+
 export async function updateForm(id: number, data: Partial<InsertForm>) {
   return withDbRetry(async (db) => {
     await db.update(forms).set(data).where(eq(forms.id, id));

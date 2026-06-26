@@ -752,6 +752,12 @@ export const appRouter = router({
         return db.getFormBySlug(input.slug);
       }),
 
+    getBrandDefault: publicProcedure
+      .input(z.object({ brand: z.enum(["one", "vitacon"]) }))
+      .query(async ({ input }) => {
+        return db.getBrandDefaultForm(input.brand);
+      }),
+
     checkSlugAvailable: publicProcedure
       .input(z.object({ slug: z.string(), excludeFormId: z.number().optional() }))
       .query(async ({ input }) => {
@@ -856,6 +862,12 @@ export const appRouter = router({
             throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
           }
           (data as any).slug = newSlug;
+        }
+        // Enforce a single default form per brand: if this form is being set as the
+        // brand default, clear the flag on every other form of the same brand.
+        if ((data as any).sharing && (data as any).sharing.isBrandDefault === true) {
+          const brand = (data as any).sharing.brand ?? (form as any).sharing?.brand ?? "one";
+          await db.clearBrandDefault(brand, id);
         }
         await db.updateForm(id, data);
 

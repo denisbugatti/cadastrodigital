@@ -262,6 +262,16 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
             <p className="text-xs text-muted-foreground mt-1.5 ml-1">
               Define em qual subdomínio o formulário fica: <span className="font-mono">{baseHost}</span>
             </p>
+            <div className="flex items-center justify-between mt-3 px-3 py-2.5 rounded-xl bg-secondary border border-border">
+              <div className="pr-3">
+                <Label className="text-sm font-body font-medium text-foreground">Padrão da marca</Label>
+                <p className="text-xs text-muted-foreground">Abre automaticamente ao acessar a raiz de <span className="font-mono">{baseHost}</span></p>
+              </div>
+              <Switch
+                checked={sharing.isBrandDefault ?? false}
+                onCheckedChange={(checked) => onUpdate({ isBrandDefault: checked })}
+              />
+            </div>
           </div>
 
           {/* URL slug editor */}

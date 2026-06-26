@@ -63,6 +63,8 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
   const updateFormMutation = trpc.forms.update.useMutation();
   const createFormMutation = trpc.forms.create.useMutation();
   const createVersionMutation = trpc.versions.create.useMutation();
+  // Used to refresh cached queries after a save so edits appear without a reload
+  const utils = trpc.useUtils();
 
   // Save form to database (update existing or create new)
   const saveToDb = useCallback((formData: BuilderForm) => {
@@ -82,6 +84,10 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
         onSuccess: (result) => {
           setIsSaved(true);
           setLastSavedAt(new Date().toISOString());
+          // Refresh caches so Dashboard/Editor show the saved edits without a reload
+          utils.forms.list.invalidate();
+          utils.forms.getById.invalidate({ id: dbFormId });
+          utils.forms.getBySlug.invalidate();
           // Show sync notification if copies were updated
           if (result && typeof result === 'object' && 'syncedCopies' in result && (result as any).syncedCopies > 0) {
             const count = (result as any).syncedCopies;
@@ -117,6 +123,8 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
           setIsSaved(true);
           setLastSavedAt(new Date().toISOString());
           isCreatingRef.current = false;
+          utils.forms.list.invalidate();
+          utils.forms.getById.invalidate({ id: newId });
           // Navigate to the new form's editor URL
           navigate(`/editor/${newId}`, { replace: true });
         },
@@ -130,7 +138,7 @@ export function useBuilder(initialForm?: BuilderForm, options?: UseBuilderOption
         },
       });
     }
-  }, [dbFormId, updateFormMutation, createFormMutation, navigate]);
+  }, [dbFormId, updateFormMutation, createFormMutation, navigate, utils]);
 
   // Auto-save with debounce (800ms after last change)
   useEffect(() => {
