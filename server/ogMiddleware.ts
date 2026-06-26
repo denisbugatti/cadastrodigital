@@ -1,14 +1,18 @@
 /**
  * Open Graph middleware — serves dynamic OG meta tags for social media crawlers.
- * When WhatsApp, Facebook, Twitter, etc. fetch a form URL (/:slug),
- * this middleware returns a minimal HTML page with the correct OG tags
- * so the link preview shows the form title, description, and image.
+ * When WhatsApp, Facebook, Twitter, etc. fetch a form URL (/:slug) or a brand
+ * subdomain root, this returns a minimal HTML page with the correct OG tags so the
+ * link preview shows the right brand/form (title, description, image).
+ *
+ * Brand-aware: the meta is resolved from the request Host (one./vitacon.) so the
+ * Vitacon subdomain never shows One Innovation branding and vice-versa.
  *
  * Regular browsers get the normal SPA (index.html) as usual.
  */
 
 import { type Request, type Response, type NextFunction } from "express";
-import { getFormBySlug, getSiteSettings } from "./db";
+import { getFormBySlug, getSiteSettings, getBrandDefaultForm } from "./db";
+import { brandFromHost, BRANDS } from "../shared/brands";
 
 // User-agent patterns for known social media crawlers
 const CRAWLER_UA_PATTERNS = [
@@ -71,27 +75,21 @@ async function getCachedSiteSettings() {
   }
 }
 
-export function ogMiddleware() {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    // Only intercept GET requests
-    if (req.method !== "GET") return next();
+/** Pick the best OG image for a form: explicit ogImage > logo > default. */
+function ogImageFromForm(form: any): string {
+  const design = form?.design && typeof form.design === "object" ? form.design : {};
+  if (design.ogImage) return String(design.ogImage);
+  if (design.logoUrl) return String(design.logoUrl);
+  return DEFAULT_OG_IMAGE;
+}
 
-    // Only intercept crawler requests
-    const ua = req.headers["user-agent"];
-    if (!isCrawler(ua)) return next();
-
-    const path = req.path;
-
-    // Handle homepage OG tags for crawlers
-    if (path === "/" || path === "") {
-      try {
-        const settings = await getCachedSiteSettings();
-        const title = escapeHtml(settings?.ogTitle || DEFAULT_OG_TITLE);
-        const description = escapeHtml(settings?.ogDescription || DEFAULT_OG_DESCRIPTION);
-        const image = escapeHtml(settings?.ogImage || DEFAULT_OG_IMAGE);
-        const url = escapeHtml(settings?.ogUrl || BASE_URL);
-
-        const html = `<!DOCTYPE html>
+/** Render the crawler HTML page with the given OG fields. */
+function renderOgHtml(opts: { title: string; description: string; image: string; url: string }): string {
+  const title = escapeHtml(opts.title);
+  const description = escapeHtml(opts.description);
+  const image = escapeHtml(opts.image);
+  const url = escapeHtml(opts.url);
+  return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -115,7 +113,68 @@ export function ogMiddleware() {
   <p>Redirecionando para <a href="${url}">${title}</a>...</p>
 </body>
 </html>`;
-        return res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(html);
+}
+
+export function ogMiddleware() {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Only intercept GET requests
+    if (req.method !== "GET") return next();
+
+    // Only intercept crawler requests
+    const ua = req.headers["user-agent"];
+    if (!isCrawler(ua)) return next();
+
+    const path = req.path;
+    // Resolve the brand from the request host (one. / vitacon.); null on apex/unknown
+    const host = (req.headers.host || "").toLowerCase().split(":")[0];
+    const hostBrand = brandFromHost(host);
+    const baseUrl = hostBrand ? `https://${BRANDS[hostBrand].host}` : BASE_URL;
+
+    // Handle homepage OG tags for crawlers
+    if (path === "/" || path === "") {
+      try {
+        // Brand subdomain root → use that brand's default form branding
+        if (hostBrand) {
+          const def = await getBrandDefaultForm(hostBrand);
+          if (def) {
+            const design = (def.design && typeof def.design === "object" ? def.design : {}) as any;
+            return res
+              .status(200)
+              .set({ "Content-Type": "text/html; charset=utf-8" })
+              .end(renderOgHtml({
+                title: design.ogTitle || def.title || `${BRANDS[hostBrand].label} | Cadastro Digital`,
+                description: design.ogDescription || def.description || DEFAULT_OG_DESCRIPTION,
+                image: ogImageFromForm(def),
+                url: `${baseUrl}/`,
+              }));
+          }
+          // No default form set for this brand yet.
+          if (hostBrand !== "one") {
+            // Vitacon (and future brands) → generic brand title, never show One branding
+            return res
+              .status(200)
+              .set({ "Content-Type": "text/html; charset=utf-8" })
+              .end(renderOgHtml({
+                title: `${BRANDS[hostBrand].label} | Cadastro Digital`,
+                description: DEFAULT_OG_DESCRIPTION,
+                image: DEFAULT_OG_IMAGE,
+                url: `${baseUrl}/`,
+              }));
+          }
+          // 'one' with no default form → fall through to global site settings below
+        }
+
+        // Apex / One / unknown host → global site settings
+        const settings = await getCachedSiteSettings();
+        return res
+          .status(200)
+          .set({ "Content-Type": "text/html; charset=utf-8" })
+          .end(renderOgHtml({
+            title: settings?.ogTitle || DEFAULT_OG_TITLE,
+            description: settings?.ogDescription || DEFAULT_OG_DESCRIPTION,
+            image: settings?.ogImage || DEFAULT_OG_IMAGE,
+            url: settings?.ogUrl || baseUrl,
+          }));
       } catch {
         return next();
       }
@@ -137,68 +196,33 @@ export function ogMiddleware() {
     if (appRoutes.includes(slug.toLowerCase())) return next();
 
     try {
-      const form = await getFormBySlug(slug);
+      // Resolve the form scoped to the host brand (same slug can exist per brand)
+      const form = await getFormBySlug(slug, hostBrand ?? undefined);
       if (!form) return next();
 
       // Extract OG fields from design, with fallbacks to form title/description
       let ogTitle = form.title || "Cadastro Digital";
       let ogDescription = form.description || "Preencha o formulário de forma segura e digital.";
-      let ogImage = DEFAULT_OG_IMAGE;
 
       try {
         if (form.design && typeof form.design === "object") {
           const design = form.design as any;
-          // Prefer explicit OG fields set in the editor's "Compartilhamento" section
           if (design.ogTitle) ogTitle = design.ogTitle;
           if (design.ogDescription) ogDescription = design.ogDescription;
-          // Image priority: ogImage > logoUrl > default
-          if (design.ogImage) {
-            ogImage = design.ogImage;
-          } else if (design.logoUrl) {
-            ogImage = design.logoUrl;
-          }
         }
       } catch {
         // ignore parse errors
       }
 
-      const title = escapeHtml(ogTitle);
-      const description = escapeHtml(ogDescription);
-
-      const url = `${BASE_URL}/${slug}`;
-
-      const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title} — Cadastro Digital</title>
-  <meta name="description" content="${description}" />
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${description}" />
-  <meta property="og:image" content="${escapeHtml(ogImage)}" />
-  <meta property="og:url" content="${escapeHtml(url)}" />
-  <meta property="og:site_name" content="Cadastro Digital" />
-  <meta property="og:locale" content="pt_BR" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
-
-  <!-- Redirect real browsers to the SPA -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(url)}" />
-</head>
-<body>
-  <p>Redirecionando para <a href="${escapeHtml(url)}">${title}</a>...</p>
-</body>
-</html>`;
-
-      return res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(html);
+      return res
+        .status(200)
+        .set({ "Content-Type": "text/html; charset=utf-8" })
+        .end(renderOgHtml({
+          title: ogTitle,
+          description: ogDescription,
+          image: ogImageFromForm(form),
+          url: `${baseUrl}/${slug}`,
+        }));
     } catch (err) {
       // On any error, fall through to the SPA
       console.warn("[OG Middleware] Error:", (err as Error).message);
