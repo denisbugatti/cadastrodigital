@@ -236,9 +236,14 @@ export async function getFormsByUser(userId: number) {
   });
 }
 
-export async function getFormBySlug(slug: string) {
+export async function getFormBySlug(slug: string, brand?: string) {
   return withDbRetry(async (db) => {
-    const result = await db.select().from(forms).where(and(eq(forms.slug, slug), isNull(forms.deletedAt))).limit(1);
+    const conditions: any[] = [eq(forms.slug, slug), isNull(forms.deletedAt)];
+    if (brand) {
+      // Slug is unique per brand; forms without an explicit brand are treated as "one" (legacy default)
+      conditions.push(sql`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one') = ${brand}`);
+    }
+    const result = await db.select().from(forms).where(and(...conditions)).limit(1);
     return result[0] ?? null;
   });
 }

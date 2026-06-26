@@ -160,7 +160,9 @@ export type InsertResponseValidation = typeof responseValidations.$inferInsert;
  */
 export const forms = mysqlTable("forms", {
   id: int("id").autoincrement().primaryKey(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  // Not globally unique: the same slug may exist once per brand (one./vitacon.).
+  // Uniqueness-per-brand is enforced in application code (see getFormBySlug + forms router).
+  slug: varchar("slug", { length: 255 }).notNull(),
   userId: int("userId").notNull(),
   title: varchar("title", { length: 500 }).notNull(),
   description: text("description"),

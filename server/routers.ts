@@ -747,9 +747,9 @@ export const appRouter = router({
     }),
 
     getBySlug: publicProcedure
-      .input(z.object({ slug: z.string() }))
+      .input(z.object({ slug: z.string(), brand: z.enum(["one", "vitacon"]).optional() }))
       .query(async ({ input }) => {
-        return db.getFormBySlug(input.slug);
+        return db.getFormBySlug(input.slug, input.brand);
       }),
 
     getBrandDefault: publicProcedure
@@ -759,9 +759,9 @@ export const appRouter = router({
       }),
 
     checkSlugAvailable: publicProcedure
-      .input(z.object({ slug: z.string(), excludeFormId: z.number().optional() }))
+      .input(z.object({ slug: z.string(), excludeFormId: z.number().optional(), brand: z.enum(["one", "vitacon"]).optional() }))
       .query(async ({ input }) => {
-        const existing = await db.getFormBySlug(input.slug);
+        const existing = await db.getFormBySlug(input.slug, input.brand);
         if (!existing) return { available: true };
         if (input.excludeFormId && existing.id === input.excludeFormId) return { available: true };
         return { available: false };
@@ -788,6 +788,14 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const slug = input.slug || `form_${nanoid(10)}`;
+        // Slug must be unique within the form's brand (same slug allowed across brands)
+        if (input.slug) {
+          const formBrand = (input.sharing as any)?.brand ?? "one";
+          const clash = await db.getFormBySlug(slug, formBrand);
+          if (clash) {
+            throw new TRPCError({ code: "CONFLICT", message: "Este slug já está em uso nesta marca." });
+          }
+        }
         const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
         const result = await db.createForm({
           slug,
@@ -843,13 +851,15 @@ export const appRouter = router({
         if (session?.role === 'gerente' && (form as any).isTemplate) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Gerentes não podem editar formulários template" });
         }
+        // Slug uniqueness is scoped to the form's brand (same slug allowed across brands)
+        const formBrand = (data as any).sharing?.brand ?? (form as any).sharing?.brand ?? "one";
         // Handle direct slug update
         if (directSlug) {
           const sanitized = directSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
           if (sanitized) {
-            const existing = await db.getFormBySlug(sanitized);
+            const existing = await db.getFormBySlug(sanitized, formBrand);
             if (existing && existing.id !== id) {
-              throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
+              throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso nesta marca.' });
             }
             (data as any).slug = sanitized;
           }
@@ -857,9 +867,9 @@ export const appRouter = router({
         // Sync slug from sharing settings to the forms.slug column
         if (data.sharing && typeof data.sharing === 'object' && 'slug' in data.sharing && data.sharing.slug) {
           const newSlug = data.sharing.slug as string;
-          const existing = await db.getFormBySlug(newSlug);
+          const existing = await db.getFormBySlug(newSlug, formBrand);
           if (existing && existing.id !== id) {
-            throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso por outro formulário.' });
+            throw new TRPCError({ code: 'CONFLICT', message: 'Este slug já está em uso nesta marca.' });
           }
           (data as any).slug = newSlug;
         }

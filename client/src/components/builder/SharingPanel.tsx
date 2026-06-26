@@ -67,7 +67,7 @@ export function SharingPanel({ sharing, formTitle, formId, onUpdate, design, onU
 
   // Check slug availability with debounce
   const checkSlugQuery = trpc.forms.checkSlugAvailable.useQuery(
-    { slug: slugInput, excludeFormId: formId },
+    { slug: slugInput, excludeFormId: formId, brand },
     {
       enabled: slugStatus === "checking" && slugInput.length >= 2,
       retry: 1,

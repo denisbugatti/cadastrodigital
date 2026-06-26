@@ -31,9 +31,11 @@ export default function SlugResolver() {
 
   // Check if this is a known internal route (evaluated after hooks)
   const isInternalPath = INTERNAL_PATHS.has(slug);
+  // Brand of the current subdomain — slugs are unique per brand, so the lookup is scoped to it
+  const hostBrand = typeof window !== "undefined" ? brandFromHost(window.location.hostname) : null;
 
   const { data: dbForm, isLoading, error } = trpc.forms.getBySlug.useQuery(
-    { slug },
+    { slug, brand: hostBrand ?? undefined },
     { enabled: !!slug && !isInternalPath, retry: 1 }
   );
 
@@ -48,13 +50,12 @@ export default function SlugResolver() {
   useEffect(() => {
     if (!dbForm) return;
     const formBrand = brandFromValue((dbForm as any).sharing?.brand);
-    const hostBrand = brandFromHost(window.location.hostname);
     if (hostBrand && hostBrand !== formBrand) {
       window.location.replace(
         `https://${BRANDS[formBrand].host}${window.location.pathname}${window.location.search}`
       );
     }
-  }, [dbForm]);
+  }, [dbForm, hostBrand]);
 
   const form = useMemo<FormData | null>(() => {
     if (!dbForm) return null;
