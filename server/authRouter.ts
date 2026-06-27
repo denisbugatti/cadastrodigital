@@ -7,6 +7,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, router } from "./_core/trpc";
 import { COOKIE_NAME, ONE_YEAR_MS } from "../shared/const";
+import { DEFAULT_SITE_URL } from "../shared/brands";
 import { getSessionCookieOptions } from "./_core/cookies";
 import * as staffDb from "./staffDb";
 import { logAudit, AUDIT_ACTIONS } from "./auditLog";
@@ -465,7 +466,7 @@ export const customAuthRouter = router({
       // Build reset URL using a placeholder — frontend will pass origin
       // We store the token; the frontend constructs the URL
       // Send email
-      const resetUrl = `${process.env.VITE_OAUTH_PORTAL_URL || "https://one.cadastrodigital.com.br"}/redefinir-senha?token=${token}`;
+      const resetUrl = `${process.env.VITE_OAUTH_PORTAL_URL || DEFAULT_SITE_URL}/redefinir-senha?token=${token}`;
       await sendPasswordResetEmail({
         to: user.email,
         name: user.name,

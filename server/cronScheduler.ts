@@ -18,6 +18,7 @@ import { notifyOwner } from "./_core/notification";
 import { sendPushToUser, sendPushToStaffUser } from "./pushNotification";
 import { notifyCorretoresNewSubmission } from "./corretorNotification";
 import { extractFirstName } from "../shared/respondentName";
+import { BRANDS, brandFromValue } from "../shared/brands";
 
 /** How often to check (in ms). We check every 60 seconds. */
 const CHECK_INTERVAL_MS = 60 * 1000;
@@ -30,18 +31,6 @@ let lastWeeklySummaryDate = "";
 
 /** Track last abandonment check (runs every 2 minutes) */
 let lastAbandonmentCheckTime = 0;
-
-/**
- * Get the current site URL from environment or fallback.
- * In production, this should be set via SITE_URL env var.
- */
-function getSiteUrl(): string {
-  return (
-    process.env.SITE_URL ||
-    process.env.VITE_APP_URL ||
-    "https://one.cadastrodigital.com.br"
-  );
-}
 
 /**
  * Check if it's time to run the enrollment job.
@@ -123,14 +112,18 @@ async function runProcessDue(): Promise<void> {
       return;
     }
 
-    const siteUrl = getSiteUrl();
+    // Honor an explicit SITE_URL override; otherwise build the link from the
+    // form's OWN brand host (slugs are per-brand — a global host would resolve
+    // to the wrong form across brands).
+    const siteUrlOverride = process.env.SITE_URL || process.env.VITE_APP_URL || "";
     let sent = 0;
     let failed = 0;
 
     for (const cadence of dueCadences) {
+      const base = siteUrlOverride || `https://${BRANDS[brandFromValue((cadence as any).formBrand)].host}`;
       const formUrl = cadence.formSlug
-        ? `${siteUrl}/${cadence.formSlug}?continue=${cadence.responseId}`
-        : `${siteUrl}/form/${cadence.formId}?continue=${cadence.responseId}`;
+        ? `${base}/${cadence.formSlug}?continue=${cadence.responseId}`
+        : `${base}/form/${cadence.formId}?continue=${cadence.responseId}`;
 
       try {
         let success = false;

@@ -1272,6 +1272,7 @@ export async function getDueCadences(): Promise<Array<{
   maxSequence: number;
   formTitle: string;
   formSlug: string | null;
+  formBrand: string;
 }>> {
   const db = getDb();
   const now = new Date();
@@ -1289,6 +1290,7 @@ export async function getDueCadences(): Promise<Array<{
       maxSequence: emailCadence.maxSequence,
       formTitle: forms.title,
       formSlug: forms.slug,
+      formBrand: sql<string>`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one')`,
     })
     .from(emailCadence)
     .innerJoin(forms, eq(emailCadence.formId, forms.id))

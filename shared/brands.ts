@@ -50,6 +50,17 @@ export const BRAND_LIST: BrandConfig[] = [BRANDS.one, BRANDS.vitacon];
 
 export const DEFAULT_BRAND: BrandKey = "one";
 
+/**
+ * The default/primary brand for *visible site URLs* — links, OG fallback, emails
+ * and notifications when there's no host or form brand to derive it from.
+ * Decoupled from DEFAULT_BRAND (which controls untagged-form ownership) on purpose:
+ * changing this flips "the site default" without re-assigning any form's brand.
+ */
+export const DEFAULT_SITE_BRAND: BrandKey = "vitacon";
+
+/** Default canonical site URL (fallback for links/OG/emails when brand is unknown). */
+export const DEFAULT_SITE_URL = `https://${BRANDS[DEFAULT_SITE_BRAND].host}`;
+
 /** The shared root domain — host-based brand routing only applies under it. */
 export const BRAND_ROOT_DOMAIN = "cadastrodigital.com.br";
 

@@ -12,7 +12,7 @@
 
 import { type Request, type Response, type NextFunction } from "express";
 import { getFormBySlug, getSiteSettings, getBrandDefaultForm } from "./db";
-import { brandFromHost, BRANDS } from "../shared/brands";
+import { brandFromHost, BRANDS, DEFAULT_SITE_URL } from "../shared/brands";
 
 // User-agent patterns for known social media crawlers
 const CRAWLER_UA_PATTERNS = [
@@ -63,7 +63,7 @@ function encodeAssetUrl(url: string): string {
 
 const DEFAULT_OG_TITLE = "Cadastro Digital | One Innovation";
 const DEFAULT_OG_DESCRIPTION = "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.";
-const BASE_URL = "https://one.cadastrodigital.com.br";
+const BASE_URL = DEFAULT_SITE_URL;
 
 // Cache site settings to avoid DB hits on every crawler request
 let _cachedSiteSettings: any = null;
