@@ -47,6 +47,20 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+/**
+ * Make a stored asset URL safe to embed in a meta tag: encodes raw spaces and
+ * other unsafe characters (e.g. "og imagem.jpg" -> "og%20imagem.jpg") without
+ * double-encoding already-encoded URLs. Crawlers like WhatsApp/Facebook reject
+ * URLs with raw spaces and silently drop the preview image.
+ */
+function encodeAssetUrl(url: string): string {
+  try {
+    return encodeURI(decodeURI(url));
+  } catch {
+    return url.replace(/ /g, "%20");
+  }
+}
+
 const DEFAULT_OG_TITLE = "Cadastro Digital | One Innovation";
 const DEFAULT_OG_DESCRIPTION = "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.";
 const BASE_URL = "https://one.cadastrodigital.com.br";
@@ -85,7 +99,7 @@ function renderOgHtml(opts: { title: string; description: string; image: string;
   const description = escapeHtml(opts.description);
   const url = escapeHtml(opts.url);
   const hasImage = !!(opts.image && opts.image.trim());
-  const image = hasImage ? escapeHtml(opts.image) : "";
+  const image = hasImage ? escapeHtml(encodeAssetUrl(opts.image)) : "";
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
