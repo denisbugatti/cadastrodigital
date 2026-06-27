@@ -24,25 +24,20 @@ function isSecureRequest(req: Request) {
 export function getSessionCookieOptions(
   req: Request
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
+  // Share the session cookie across ALL subdomains of the production domain
+  // (one. / vitacon. / apex) so a login on one. is recognized on vitacon. too.
+  // On localhost, the Hostinger test host, or a raw IP, keep it host-only.
+  const host = (req.hostname || "").toLowerCase();
+  const domain =
+    host.endsWith("cadastrodigital.com.br") && !LOCAL_HOSTS.has(host) && !isIpAddress(host)
+      ? ".cadastrodigital.com.br"
+      : undefined;
 
   return {
     httpOnly: true,
     path: "/",
     sameSite: "none",
     secure: isSecureRequest(req),
+    domain,
   };
 }
