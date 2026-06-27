@@ -257,6 +257,13 @@ export async function getFormById(id: number) {
   });
 }
 
+/** All forms flagged as gallery templates (isTemplate=true), newest first. */
+export async function listTemplateForms() {
+  return withDbRetry(async (db) => {
+    return db.select().from(forms).where(and(eq(forms.isTemplate, true), isNull(forms.deletedAt))).orderBy(desc(forms.updatedAt));
+  });
+}
+
 /** The default/template form for a brand (sharing.isBrandDefault === true), or null. */
 export async function getBrandDefaultForm(brand: string) {
   return withDbRetry(async (db) => {

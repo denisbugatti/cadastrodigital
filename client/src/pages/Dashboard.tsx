@@ -299,6 +299,7 @@ export default function Dashboard() {
 
   // ─── tRPC Queries ───
   const formsQuery = trpc.forms.list.useQuery(undefined);
+  const templatesQuery = trpc.forms.listTemplates.useQuery(undefined, { enabled: showTemplates });
   const workspacesQuery = trpc.workspaces.list.useQuery(undefined);
 
   // Fetch assignments batch for all forms (to show badges)
@@ -676,6 +677,32 @@ export default function Dashboard() {
       toast.error("Erro ao clonar template", {
         description: "Tente novamente.",
       });
+    } finally {
+      setCloningTemplate(null);
+    }
+  };
+
+  // Toggle a form as a gallery template (adiciona/remove da galeria)
+  const handleToggleTemplate = async (form: DashboardForm) => {
+    try {
+      await updateFormMutation.mutateAsync({ id: form.id, isTemplate: !form.isTemplate });
+      toast.success(form.isTemplate ? "Removido da galeria de templates" : "Adicionado à galeria de templates");
+      utils.forms.listTemplates.invalidate();
+    } catch {
+      toast.error("Erro ao atualizar template");
+    }
+  };
+
+  // Clone a DB template (form marked as template) from the gallery
+  const handleUseDbTemplate = async (tpl: { id: number; title: string }) => {
+    setCloningTemplate(`db-${tpl.id}`);
+    try {
+      const result: any = await duplicateFormMutation.mutateAsync({ id: tpl.id, title: `${tpl.title} (cópia)` });
+      toast.success("Template clonado!", { description: `Uma cópia de "${tpl.title}" foi criada.` });
+      setShowTemplates(false);
+      if (result?.id) navigate(`/editor/${result.id}`);
+    } catch {
+      toast.error("Erro ao clonar template", { description: "Tente novamente." });
     } finally {
       setCloningTemplate(null);
     }
@@ -1208,6 +1235,44 @@ export default function Dashboard() {
                       </motion.div>
                     );
                   })}
+                  {(templatesQuery.data ?? []).map((tpl: any) => {
+                    const isCloning = cloningTemplate === `db-${tpl.id}`;
+                    const brand = tpl.sharing?.brand === "vitacon" ? "vitacon" : "one";
+                    const grad = brand === "vitacon" ? "from-zinc-600 to-zinc-400" : "from-blue-500 to-cyan-400";
+                    return (
+                      <motion.div
+                        key={`db-${tpl.id}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="group relative rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
+                        onClick={() => !isCloning && handleUseDbTemplate(tpl)}
+                      >
+                        <div className={`h-20 bg-gradient-to-r ${grad} flex items-center justify-center relative`}>
+                          <div className="absolute inset-0 bg-black/5" />
+                          <LayoutTemplate size={32} className="text-white relative z-10 drop-shadow-md" />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/20 text-white backdrop-blur-sm capitalize">{brand}</span>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <h4 className="font-display text-base font-bold text-foreground mb-1 line-clamp-1">{tpl.title}</h4>
+                          <p className="text-sm text-muted-foreground font-body leading-relaxed line-clamp-2">{tpl.description || "Template salvo da sua galeria."}</p>
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              disabled={isCloning}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-semibold bg-brand/10 text-brand hover:bg-brand/20 transition-colors disabled:opacity-50"
+                            >
+                              {isCloning ? (
+                                <><Loader2 size={12} className="animate-spin" /> Clonando...</>
+                              ) : (
+                                <><Sparkles size={12} /> Usar template</>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
@@ -1255,6 +1320,7 @@ export default function Dashboard() {
                     assignedCount={(assignmentsBatchQuery.data as any)?.[form.id]?.length ?? 0}
                     onAssign={canEditForms ? (f) => setAssignTarget(f) : undefined}
                     onDisconnect={canEditForms ? (f) => setDisconnectTarget(f) : undefined}
+                    onToggleTemplate={canEditForms ? handleToggleTemplate : undefined}
                   />
                 ))}
               </AnimatePresence>
@@ -1515,9 +1581,10 @@ interface FormCardProps {
   assignedCount?: number;
   onAssign?: (form: DashboardForm) => void;
   onDisconnect?: (form: DashboardForm) => void;
+  onToggleTemplate?: (form: DashboardForm) => void;
 }
 
-function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms, assignedCount, onAssign, onDisconnect }: FormCardProps) {
+function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplicate, onRename, onUpdateSlug, onMoveToFolder, onExport, onExportCsv, canEditForms, assignedCount, onAssign, onDisconnect, onToggleTemplate }: FormCardProps) {
   const statusConfig = getStatusConfig(form.status);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1660,6 +1727,12 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
               {canEditForms && (
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExport(form); }}>
                   <Download size={15} className="mr-2" /> Exportar JSON
+                </DropdownMenuItem>
+              )}
+              {canEditForms && onToggleTemplate && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onToggleTemplate(form); }}>
+                  <LayoutTemplate size={15} className="mr-2" />
+                  {form.isTemplate ? "Remover da galeria" : "Adicionar à galeria"}
                 </DropdownMenuItem>
               )}
               {canEditForms && form.parentFormId && onDisconnect && (

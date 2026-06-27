@@ -769,6 +769,11 @@ export const appRouter = router({
         return stripFormSecrets(await db.getBrandDefaultForm(input.brand));
       }),
 
+    listTemplates: staffAnyProcedure.query(async () => {
+      const list = await db.listTemplateForms();
+      return list.map((f: any) => stripFormSecrets(f));
+    }),
+
     checkSlugAvailable: publicProcedure
       .input(z.object({ slug: z.string(), excludeFormId: z.number().optional(), brand: z.enum(["one", "vitacon"]).optional() }))
       .query(async ({ input }) => {
@@ -852,6 +857,7 @@ export const appRouter = router({
         workspaceId: z.string().nullable().optional(),
         status: z.enum(["draft", "published", "closed"]).optional(),
         color: z.string().optional(),
+        isTemplate: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, slug: directSlug, ...data } = input;
