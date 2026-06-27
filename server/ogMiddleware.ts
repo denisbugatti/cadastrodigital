@@ -47,8 +47,6 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
-const DEFAULT_OG_IMAGE =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/app-icon-3d-512_2f82cd93.png";
 const DEFAULT_OG_TITLE = "Cadastro Digital | One Innovation";
 const DEFAULT_OG_DESCRIPTION = "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.";
 const BASE_URL = "https://one.cadastrodigital.com.br";
@@ -75,20 +73,19 @@ async function getCachedSiteSettings() {
   }
 }
 
-/** Pick the best OG image for a form: explicit ogImage > logo > default. */
+/** Only the explicitly configured OG image — no default/brand fallback (blank if unset). */
 function ogImageFromForm(form: any): string {
   const design = form?.design && typeof form.design === "object" ? form.design : {};
-  if (design.ogImage) return String(design.ogImage);
-  if (design.logoUrl) return String(design.logoUrl);
-  return DEFAULT_OG_IMAGE;
+  return design.ogImage ? String(design.ogImage) : "";
 }
 
-/** Render the crawler HTML page with the given OG fields. */
+/** Render the crawler HTML page with the given OG fields. Image tags are omitted when no image is configured. */
 function renderOgHtml(opts: { title: string; description: string; image: string; url: string }): string {
   const title = escapeHtml(opts.title);
   const description = escapeHtml(opts.description);
-  const image = escapeHtml(opts.image);
   const url = escapeHtml(opts.url);
+  const hasImage = !!(opts.image && opts.image.trim());
+  const image = hasImage ? escapeHtml(opts.image) : "";
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -99,15 +96,13 @@ function renderOgHtml(opts: { title: string; description: string; image: string;
   <meta property="og:type" content="website" />
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
-  <meta property="og:image" content="${image}" />
-  <meta property="og:url" content="${url}" />
+${hasImage ? `  <meta property="og:image" content="${image}" />\n` : ""}  <meta property="og:url" content="${url}" />
   <meta property="og:site_name" content="Cadastro Digital" />
   <meta property="og:locale" content="pt_BR" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="${hasImage ? "summary_large_image" : "summary"}" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image" content="${image}" />
-  <meta http-equiv="refresh" content="0;url=${url}" />
+${hasImage ? `  <meta name="twitter:image" content="${image}" />\n` : ""}  <meta http-equiv="refresh" content="0;url=${url}" />
 </head>
 <body>
   <p>Redirecionando para <a href="${url}">${title}</a>...</p>
@@ -157,7 +152,7 @@ export function ogMiddleware() {
               .end(renderOgHtml({
                 title: `${BRANDS[hostBrand].label} | Cadastro Digital`,
                 description: DEFAULT_OG_DESCRIPTION,
-                image: DEFAULT_OG_IMAGE,
+                image: "",
                 url: `${baseUrl}/`,
               }));
           }
@@ -172,7 +167,7 @@ export function ogMiddleware() {
           .end(renderOgHtml({
             title: settings?.ogTitle || DEFAULT_OG_TITLE,
             description: settings?.ogDescription || DEFAULT_OG_DESCRIPTION,
-            image: settings?.ogImage || DEFAULT_OG_IMAGE,
+            image: settings?.ogImage || "",
             url: settings?.ogUrl || baseUrl,
           }));
       } catch {
