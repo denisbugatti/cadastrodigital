@@ -38,7 +38,7 @@ interface AddressData {
   cep?: string;
 }
 
-interface GeneratePdfInput {
+export interface GeneratePdfInput {
   tipo: "pf" | "pj";
   answers: ResponseAnswers;
   questions: FormQuestion[];
@@ -70,11 +70,11 @@ function findAnswerValue(answers: ResponseAnswers, questions: FormQuestion[], ti
 }
 
 /** Get answer by exact question ID */
-function getById(answers: ResponseAnswers, id: string): any {
+export function getById(answers: ResponseAnswers, id: string): any {
   return answers[id] ?? "";
 }
 
-function formatAddress(addr: any): { full: string; bairro: string; cidade: string; estado: string; cep: string } {
+export function formatAddress(addr: any): { full: string; bairro: string; cidade: string; estado: string; cep: string } {
   const empty = { full: "", bairro: "", cidade: "", estado: "", cep: "" };
   if (!addr) return empty;
 
@@ -108,7 +108,7 @@ function formatAddress(addr: any): { full: string; bairro: string; cidade: strin
   };
 }
 
-function formatCurrency(val: any): string {
+export function formatCurrency(val: any): string {
   if (!val) return "";
   const num = typeof val === "number" ? val : parseFloat(String(val).replace(/[^\d.,]/g, "").replace(",", "."));
   if (isNaN(num)) return String(val);
@@ -126,7 +126,7 @@ function formatDate(val: any): string {
   }
 }
 
-function parseDateParts(val: any): { day: string; month: string; year: string } {
+export function parseDateParts(val: any): { day: string; month: string; year: string } {
   if (!val) return { day: "", month: "", year: "" };
   try {
     const d = new Date(val);
@@ -149,7 +149,7 @@ async function fetchPdfTemplate(url: string): Promise<Uint8Array> {
 }
 
 /** Split phone into DDD + number */
-function splitPhone(phone: string): { ddd: string; number: string } {
+export function splitPhone(phone: string): { ddd: string; number: string } {
   if (!phone) return { ddd: "", number: "" };
   const s = String(phone).replace(/[^\d]/g, "");
   if (s.length >= 10) {
@@ -160,13 +160,13 @@ function splitPhone(phone: string): { ddd: string; number: string } {
 
 // ─── Estado Civil mapping ───
 
-interface EstadoCivilResult {
+export interface EstadoCivilResult {
   checkbox: "solteiro" | "casado" | "uniao_estavel" | "divorciado" | "viuvo";
   regime?: "comunhao_parcial" | "comunhao_universal" | "separacao_total" | "pacto_nupcial";
   needsConjuge: boolean;
 }
 
-function parseEstadoCivil(val: any): EstadoCivilResult {
+export function parseEstadoCivil(val: any): EstadoCivilResult {
   const s = String(val).toLowerCase().trim();
 
   if (/solteiro/i.test(s)) {

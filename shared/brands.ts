@@ -15,11 +15,35 @@ export interface BrandConfig {
   key: BrandKey;
   label: string;
   host: string;
+  /** Primary brand color (hex) — One is blue, Vitacon is gray. Used in PDFs/emails. */
+  primaryColor: string;
+  /** Logo URL for PDF/email headers. Empty string → text fallback (the label). */
+  logoUrl: string;
+  /** Footer line used in generated PDFs. */
+  pdfFooter: string;
+  /** Sender display name for transactional emails. */
+  emailFromName: string;
 }
 
 export const BRANDS: Record<BrandKey, BrandConfig> = {
-  one: { key: "one", label: "One Innovation", host: "one.cadastrodigital.com.br" },
-  vitacon: { key: "vitacon", label: "Vitacon", host: "vitacon.cadastrodigital.com.br" },
+  one: {
+    key: "one",
+    label: "One Innovation",
+    host: "one.cadastrodigital.com.br",
+    primaryColor: "#0D8BD9",
+    logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663342930280/idQysuOkKZvswPXU.png",
+    pdfFooter: "Cadastro Digital — One Innovation",
+    emailFromName: "One Innovation",
+  },
+  vitacon: {
+    key: "vitacon",
+    label: "Vitacon",
+    host: "vitacon.cadastrodigital.com.br",
+    primaryColor: "#4A4A4F", // TODO: trocar pelo cinza exato da Vitacon
+    logoUrl: "", // TODO: URL do logo Vitacon (PNG). Vazio → usa o texto "Vitacon"
+    pdfFooter: "Cadastro Digital — Vitacon",
+    emailFromName: "Vitacon",
+  },
 };
 
 export const BRAND_LIST: BrandConfig[] = [BRANDS.one, BRANDS.vitacon];

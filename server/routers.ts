@@ -18,6 +18,7 @@ import { customAuthRouter } from "./authRouter";
 import * as staffDb from "./staffDb";
 import { verifySessionToken } from "./authService";
 import { extractFirstName } from "../shared/respondentName";
+import { brandFromValue } from "../shared/brands";
 import { sendInviteEmail, sendApprovalEmail, sendRejectionEmail, sendFollowUpEmail, sendCadenceEmail, sendRejectionCadenceEmail } from "./emailService";
 import { generateInviteToken } from "./authService";
 import { getOrCreateOwnerUser } from "./ownerUser";
@@ -1559,8 +1560,9 @@ export const appRouter = router({
           }
         }
 
-        // Generate the full PDF (Protocolo de Entrada + Ficha PF/PJ)
-        let pdfBytes = await generateFullPdf({
+        // Generate the cadastro PDF (Protocolo + Ficha). Vitacon forms get a dedicated
+        // from-scratch Vitacon-branded PDF; all other brands keep the One template.
+        const pdfInput = {
           tipo,
           answers,
           questions,
@@ -1569,7 +1571,14 @@ export const appRouter = router({
           createdAt: response.createdAt ?? undefined,
           corretorName,
           corretorCpf,
-        });
+        };
+        let pdfBytes: Uint8Array;
+        if (brandFromValue((form as any).sharing?.brand) === "vitacon") {
+          const { generateVitaconFichaPdf } = await import("./pdfGeneratorVitacon");
+          pdfBytes = await generateVitaconFichaPdf({ ...pdfInput, protocolCode: response.protocolCode ?? undefined });
+        } else {
+          pdfBytes = await generateFullPdf(pdfInput);
+        }
 
         // Collect file attachments from answers
         const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
@@ -1742,7 +1751,7 @@ export const appRouter = router({
           }
         }
 
-        let pdfBytes = await generateFullPdf({
+        const pdfInput = {
           tipo,
           answers,
           questions,
@@ -1751,7 +1760,14 @@ export const appRouter = router({
           createdAt: response.createdAt ?? undefined,
           corretorName,
           corretorCpf,
-        });
+        };
+        let pdfBytes: Uint8Array;
+        if (brandFromValue((form as any).sharing?.brand) === "vitacon") {
+          const { generateVitaconFichaPdf } = await import("./pdfGeneratorVitacon");
+          pdfBytes = await generateVitaconFichaPdf({ ...pdfInput, protocolCode: response.protocolCode ?? undefined });
+        } else {
+          pdfBytes = await generateFullPdf(pdfInput);
+        }
 
         const attachments: Array<{ url: string; filename: string; mimeType: string }> = [];
         for (const q of questions) {
