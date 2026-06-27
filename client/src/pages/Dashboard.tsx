@@ -86,6 +86,7 @@ import { trpc } from "@/lib/trpc";
 
 import { importFormFromJSON } from "@/lib/formStorage";
 import { createOneInnovationForm, createVitaconForm } from "@/lib/oneInnovationForm";
+import { BRANDS, brandFromValue } from "@shared/brands";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -111,6 +112,7 @@ interface DashboardForm {
   updatedAt: Date;
   parentFormId: number | null;
   isTemplate: boolean;
+  sharing?: { brand?: string; isBrandDefault?: boolean; slug?: string } | null;
 }
 
 interface DashboardFolder {
@@ -380,6 +382,7 @@ export default function Dashboard() {
       updatedAt: new Date(f.updatedAt),
       parentFormId: f.parentFormId ?? null,
       isTemplate: f.isTemplate ?? false,
+      sharing: f.sharing ?? null,
     }));
   }, [formsQuery.data]);
 
@@ -1718,7 +1721,7 @@ function FormCard({ form, index, folders, onNavigate, onRequestDelete, onDuplica
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`${window.location.origin}/${form.slug}`); toast.success("Link copiado!"); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); navigator.clipboard.writeText(`https://${BRANDS[brandFromValue(form.sharing?.brand)].host}/${form.slug}`); toast.success("Link copiado!"); }}>
                 <Share2 size={15} className="mr-2" /> Compartilhar link
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDropdownOpen(false); onExportCsv(form); }}>
