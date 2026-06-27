@@ -23,6 +23,8 @@ export interface BrandConfig {
   pdfFooter: string;
   /** Sender display name for transactional emails. */
   emailFromName: string;
+  /** Generic OG/meta description used as the brand fallback (unknown slug, brand root with no default form). Never mix brands here. */
+  ogDescription: string;
 }
 
 export const BRANDS: Record<BrandKey, BrandConfig> = {
@@ -34,6 +36,7 @@ export const BRANDS: Record<BrandKey, BrandConfig> = {
     logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663342930280/idQysuOkKZvswPXU.png",
     pdfFooter: "Cadastro Digital — One Innovation",
     emailFromName: "One Innovation",
+    ogDescription: "Empreendimentos inovadores nas melhores localizações de São Paulo com a máxima qualidade e rigorosa pontualidade.",
   },
   vitacon: {
     key: "vitacon",
@@ -43,6 +46,7 @@ export const BRANDS: Record<BrandKey, BrandConfig> = {
     logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/pXc_q0ax-vitacon%20logo.png", // logo branco (vai sobre faixa cinza no PDF / fundo cinza no e-mail)
     pdfFooter: "Cadastro Digital — Vitacon",
     emailFromName: "Vitacon",
+    ogDescription: "A Vitacon oferece apartamentos modernos, espaços compartilhados e tecnologia de ponta. Conheça nossos empreendimentos e faça seu cadastro.",
   },
 };
 

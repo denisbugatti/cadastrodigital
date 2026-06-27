@@ -152,7 +152,7 @@ export function ogMiddleware() {
               .set({ "Content-Type": "text/html; charset=utf-8" })
               .end(renderOgHtml({
                 title: design.ogTitle || def.title || `${BRANDS[hostBrand].label} | Cadastro Digital`,
-                description: design.ogDescription || def.description || DEFAULT_OG_DESCRIPTION,
+                description: design.ogDescription || def.description || BRANDS[hostBrand].ogDescription,
                 image: ogImageFromForm(def),
                 url: `${baseUrl}/`,
               }));
@@ -165,7 +165,7 @@ export function ogMiddleware() {
               .set({ "Content-Type": "text/html; charset=utf-8" })
               .end(renderOgHtml({
                 title: `${BRANDS[hostBrand].label} | Cadastro Digital`,
-                description: DEFAULT_OG_DESCRIPTION,
+                description: BRANDS[hostBrand].ogDescription,
                 image: "",
                 url: `${baseUrl}/`,
               }));
@@ -207,7 +207,23 @@ export function ogMiddleware() {
     try {
       // Resolve the form scoped to the host brand (same slug can exist per brand)
       const form = await getFormBySlug(slug, hostBrand ?? undefined);
-      if (!form) return next();
+      if (!form) {
+        // Unknown slug. On a brand subdomain, NEVER fall through to the static
+        // index.html (it carries hardcoded One Innovation OG). Render the brand's
+        // own generic fallback instead — brand title, brand description, no image.
+        if (hostBrand) {
+          return res
+            .status(200)
+            .set({ "Content-Type": "text/html; charset=utf-8" })
+            .end(renderOgHtml({
+              title: `${BRANDS[hostBrand].label} | Cadastro Digital`,
+              description: BRANDS[hostBrand].ogDescription,
+              image: "",
+              url: `${baseUrl}/${slug}`,
+            }));
+        }
+        return next();
+      }
 
       // Extract OG fields from design, with fallbacks to form title/description
       let ogTitle = form.title || "Cadastro Digital";
