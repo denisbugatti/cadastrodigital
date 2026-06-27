@@ -13,6 +13,7 @@
 
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import { BRANDS } from "../shared/brands";
+import { VITACON_WATERMARK_B64 } from "./vitaconWatermark";
 import {
   getById,
   formatAddress,
@@ -84,6 +85,14 @@ export async function generateVitaconFichaPdf(input: GenerateVitaconPdfInput): P
     }
   }
 
+  // Gray watermark (the Vitacon logo recolored) — drawn faintly behind every page.
+  let watermarkImg: any = null;
+  try {
+    watermarkImg = await doc.embedPng(Buffer.from(VITACON_WATERMARK_B64, "base64"));
+  } catch {
+    watermarkImg = null;
+  }
+
   const dateStr = (input.createdAt ?? new Date()).toLocaleDateString("pt-BR");
   const protocol = input.protocolCode || "";
 
@@ -106,6 +115,12 @@ export async function generateVitaconFichaPdf(input: GenerateVitaconPdfInput): P
   function header() {
     page = doc.addPage([W, H]);
     pages.push(page);
+    // Faint centered watermark (Vitacon logo in gray) behind the content.
+    if (watermarkImg) {
+      const wmW = W * 0.64;
+      const wmH = (watermarkImg.height / watermarkImg.width) * wmW;
+      page.drawImage(watermarkImg, { x: (W - wmW) / 2, y: (H - wmH) / 2, width: wmW, height: wmH, opacity: 0.07 });
+    }
     // Gray header band (full width) — the white Vitacon logo + white text sit on it.
     const bandH = 86;
     page.drawRectangle({ x: 0, y: H - bandH, width: W, height: bandH, color: ACCENT });
