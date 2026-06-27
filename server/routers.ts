@@ -625,7 +625,6 @@ export const appRouter = router({
   // ─── Forms (admin only: master/diretor/gerente) ───
   forms: router({
     list: staffAdminProcedure.query(async ({ ctx }) => {
-      const allForms = await db.getFormsByUser(ctx.user.id);
       const session = ctx.customSession as any;
       // Master/diretor see all forms; gerentes only see forms assigned to their corretores
       if (session?.role === 'gerente' && session?.staffUserId) {
@@ -643,9 +642,10 @@ export const appRouter = router({
         const gerenteFormIds = await db.getFormIdsByStaff(session.staffUserId);
         gerenteFormIds.forEach((id: number) => allAssignedFormIds.add(id));
         if (allAssignedFormIds.size === 0) return []; // No assignments at all
-        return allForms.filter((f: any) => allAssignedFormIds.has(f.id));
+        // Fetch by id (any owner) so other-brand assigned forms aren't hidden.
+        return db.getFormsByIds(Array.from(allAssignedFormIds));
       }
-      return allForms;
+      return db.getFormsByUser(ctx.user.id);
     }),
 
     /** Get assignments for a specific form */
@@ -752,9 +752,10 @@ export const appRouter = router({
         }
       }
       if (allFormIds.size === 0) return [];
-      // Fetch full form data for each assigned form
-      const allForms = await db.getFormsByUser(ctx.user.id);
-      return allForms.filter((f: any) => allFormIds.has(f.id));
+      // Fetch assigned forms by id directly — they may belong to a different
+      // userId than ctx.user (e.g. another brand's forms), so filtering the
+      // owner's forms would wrongly hide them.
+      return db.getFormsByIds(Array.from(allFormIds));
     }),
 
     getBySlug: publicProcedure

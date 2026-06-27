@@ -236,6 +236,18 @@ export async function getFormsByUser(userId: number) {
   });
 }
 
+/**
+ * Fetch full form rows by id (any owner). Used for staff/corretor views where the
+ * assigned form may belong to a different userId than the session's ctx.user
+ * (e.g. forms of another brand) — filtering by owner would wrongly hide them.
+ */
+export async function getFormsByIds(formIds: number[]) {
+  if (formIds.length === 0) return [] as any[];
+  return withDbRetry(async (db) => {
+    return db.select().from(forms).where(and(inArray(forms.id, formIds), isNull(forms.deletedAt))).orderBy(desc(forms.updatedAt));
+  });
+}
+
 export async function getFormBySlug(slug: string, brand?: string) {
   return withDbRetry(async (db) => {
     // Slug is unique per brand. A missing/unknown host-brand (apex, www, test host) resolves
@@ -2554,11 +2566,20 @@ export async function getFormAssignments(formId: number) {
  */
 export async function getFormIdsByStaff(staffUserId: number): Promise<number[]> {
   return withDbRetry(async (db) => {
+    // Modern N:N assignments (form_assignments table)
     const rows = await db
       .select({ formId: formAssignments.formId })
       .from(formAssignments)
       .where(eq(formAssignments.staffUserId, staffUserId));
-    return rows.map((r: any) => r.formId);
+    // Legacy single-corretor assignments (forms.assignedCorretorId) — older forms
+    // were assigned this way and never got a form_assignments row, so a corretor
+    // would otherwise never see them.
+    const legacy = await db
+      .select({ formId: forms.id })
+      .from(forms)
+      .where(and(eq(forms.assignedCorretorId, staffUserId), isNull(forms.deletedAt)));
+    const ids = new Set<number>([...rows.map((r: any) => r.formId), ...legacy.map((r: any) => r.formId)]);
+    return Array.from(ids);
   });
 }
 
