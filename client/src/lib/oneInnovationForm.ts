@@ -390,3 +390,43 @@ export function createOneInnovationForm(): BuilderForm {
     updatedAt: "2026-02-24T18:00:00.000Z",
   };
 }
+
+const VITACON_LOGO_URL =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/pXc_q0ax-vitacon%20logo.png";
+
+/**
+ * Vitacon template — mesma estrutura, perguntas e lógica do form One, mas com a
+ * marca Vitacon: fundo cinza, logo branco da Vitacon, sem menção à "One Innovation",
+ * e já marcado como brand=vitacon (cai no subdomínio vitacon.).
+ */
+export function createVitaconForm(): BuilderForm {
+  const base = createOneInnovationForm();
+  // Troca qualquer "One Innovation" no conteúdo das perguntas por "Vitacon".
+  const questions = JSON.parse(
+    JSON.stringify(base.questions).replace(/One Innovation/g, "Vitacon"),
+  );
+  return {
+    ...base,
+    id: "vitacon_form",
+    title: "Cadastro Online - Vitacon",
+    description: "Cadastro digital Vitacon para aquisição de imóveis",
+    questions,
+    design: {
+      ...base.design,
+      backgroundColor: "#4A4A4F",
+      buttonColor: "#FFFFFF",
+      buttonTextColor: "#4A4A4F",
+      questionColor: "#FFFFFF",
+      answerColor: "#FFFFFF",
+      logoUrl: VITACON_LOGO_URL,
+      ogTitle: "Cadastro Online | Vitacon",
+      ogImage: "",
+    },
+    sharing: {
+      ...(base.sharing as any),
+      slug: "vitacon-cadastro",
+      embedButtonColor: "#4A4A4F",
+      brand: "vitacon",
+    },
+  } as BuilderForm;
+}

@@ -85,7 +85,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
 import { importFormFromJSON } from "@/lib/formStorage";
-import { createOneInnovationForm } from "@/lib/oneInnovationForm";
+import { createOneInnovationForm, createVitaconForm } from "@/lib/oneInnovationForm";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
@@ -172,6 +172,16 @@ const FORM_TEMPLATES: FormTemplate[] = [
     gradient: "from-blue-500 to-cyan-400",
     tags: ["Imobiliário", "PF/PJ", "Documentos"],
     factory: createOneInnovationForm,
+  },
+  {
+    id: "vitacon",
+    title: "Cadastro Online — Vitacon",
+    description: "Cadastro imobiliário Vitacon com fluxo PF/PJ, validação de CPF/CNPJ e upload de documentos.",
+    icon: Building2,
+    color: "#4A4A4F",
+    gradient: "from-zinc-600 to-zinc-400",
+    tags: ["Vitacon", "PF/PJ", "Documentos"],
+    factory: createVitaconForm,
   },
   {
     id: "satisfaction-survey",
