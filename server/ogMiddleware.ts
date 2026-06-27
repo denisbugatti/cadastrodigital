@@ -113,6 +113,7 @@ function renderOgHtml(opts: { title: string; description: string; image: string;
 ${hasImage ? `  <meta property="og:image" content="${image}" />\n` : ""}  <meta property="og:url" content="${url}" />
   <meta property="og:site_name" content="Cadastro Digital" />
   <meta property="og:locale" content="pt_BR" />
+  <meta property="og:ttl" content="600" />
   <meta name="twitter:card" content="${hasImage ? "summary_large_image" : "summary"}" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
@@ -149,7 +150,7 @@ export function ogMiddleware() {
             const design = (def.design && typeof def.design === "object" ? def.design : {}) as any;
             return res
               .status(200)
-              .set({ "Content-Type": "text/html; charset=utf-8" })
+              .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache, max-age=0, must-revalidate" })
               .end(renderOgHtml({
                 title: design.ogTitle || def.title || `${BRANDS[hostBrand].label} | Cadastro Digital`,
                 description: design.ogDescription || def.description || BRANDS[hostBrand].ogDescription,
@@ -162,7 +163,7 @@ export function ogMiddleware() {
             // Vitacon (and future brands) → generic brand title, never show One branding
             return res
               .status(200)
-              .set({ "Content-Type": "text/html; charset=utf-8" })
+              .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache, max-age=0, must-revalidate" })
               .end(renderOgHtml({
                 title: `${BRANDS[hostBrand].label} | Cadastro Digital`,
                 description: BRANDS[hostBrand].ogDescription,
@@ -177,7 +178,7 @@ export function ogMiddleware() {
         const settings = await getCachedSiteSettings();
         return res
           .status(200)
-          .set({ "Content-Type": "text/html; charset=utf-8" })
+          .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache, max-age=0, must-revalidate" })
           .end(renderOgHtml({
             title: settings?.ogTitle || DEFAULT_OG_TITLE,
             description: settings?.ogDescription || DEFAULT_OG_DESCRIPTION,
@@ -214,7 +215,7 @@ export function ogMiddleware() {
         if (hostBrand) {
           return res
             .status(200)
-            .set({ "Content-Type": "text/html; charset=utf-8" })
+            .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache, max-age=0, must-revalidate" })
             .end(renderOgHtml({
               title: `${BRANDS[hostBrand].label} | Cadastro Digital`,
               description: BRANDS[hostBrand].ogDescription,
@@ -241,7 +242,7 @@ export function ogMiddleware() {
 
       return res
         .status(200)
-        .set({ "Content-Type": "text/html; charset=utf-8" })
+        .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache, max-age=0, must-revalidate" })
         .end(renderOgHtml({
           title: ogTitle,
           description: ogDescription,
