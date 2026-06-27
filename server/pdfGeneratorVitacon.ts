@@ -107,11 +107,11 @@ export async function generateVitaconFichaPdf(input: GenerateVitaconPdfInput): P
     page = doc.addPage([W, H]);
     pages.push(page);
     // Gray header band (full width) — the white Vitacon logo + white text sit on it.
-    const bandH = 70;
+    const bandH = 86;
     page.drawRectangle({ x: 0, y: H - bandH, width: W, height: bandH, color: ACCENT });
     const midY = H - bandH / 2;
     if (logoImg) {
-      const lh = 26;
+      const lh = 48;
       const lw = (logoImg.width / logoImg.height) * lh;
       page.drawImage(logoImg, { x: M, y: midY - lh / 2, width: lw, height: lh });
     } else {
