@@ -380,6 +380,8 @@ export async function duplicateForm(
   newSlug: string,
   customTitle?: string,
   customWorkspaceId?: string | null,
+  /** When true, the copy is linked to the source (parentFormId) so it syncs on edit. */
+  linkToParent?: boolean,
 ) {
   return withDbRetry(async (db) => {
     const original = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
@@ -401,6 +403,7 @@ export async function duplicateForm(
       status: "draft",
       color: o.color,
       responseCount: 0,
+      parentFormId: linkToParent ? id : null,
     });
     return { id: result[0].insertId };
   });

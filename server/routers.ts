@@ -973,11 +973,12 @@ export const appRouter = router({
         id: z.number(),
         title: z.string().optional(),
         workspaceId: z.string().nullable().optional(),
+        linkToParent: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const newSlug = `form_${nanoid(10)}`;
         const cs = ctx.customSession?.type === 'staff' ? ctx.customSession : null;
-        const result = await db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId);
+        const result = await db.duplicateForm(input.id, ctx.user.id, newSlug, input.title, input.workspaceId, input.linkToParent);
         logAudit({
           action: AUDIT_ACTIONS.FORM_DUPLICATE,
           staffUserId: cs?.staffUserId,

@@ -697,7 +697,7 @@ export default function Dashboard() {
   const handleUseDbTemplate = async (tpl: { id: number; title: string }) => {
     setCloningTemplate(`db-${tpl.id}`);
     try {
-      const result: any = await duplicateFormMutation.mutateAsync({ id: tpl.id, title: `${tpl.title} (cópia)` });
+      const result: any = await duplicateFormMutation.mutateAsync({ id: tpl.id, title: `${tpl.title} (cópia)`, linkToParent: true });
       toast.success("Template clonado!", { description: `Uma cópia de "${tpl.title}" foi criada.` });
       setShowTemplates(false);
       if (result?.id) navigate(`/editor/${result.id}`);
