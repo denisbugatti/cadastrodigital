@@ -8,7 +8,7 @@ import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Palette, Type, Image, Globe, Upload, X, Loader2, Sparkles, Waves, Zap,
-  Droplets, Flame, CloudRain, CircleDot, Sun, Cpu, Star, Sunrise, Wind,
+  Droplets, Flame, CloudRain, CircleDot, Sun, Cpu, Star, Sunrise, Wind, Ban,
 } from "lucide-react";
 import type { FormDesignSettings, BackgroundType, InputStyle } from "@/lib/builderTypes";
 import { BackgroundPaths } from "@/components/ui/background-paths";
@@ -481,6 +481,7 @@ export function DesignEditor({ design, onUpdate }: DesignEditorProps) {
               </h4>
               <div className="grid grid-cols-3 gap-2 mb-4 max-h-[320px] overflow-y-auto pr-1">
                 {([
+                  { id: "none" as BackgroundType, label: "Nenhum", icon: Ban },
                   { id: "paths" as BackgroundType, label: "Paths", icon: Waves },
                   { id: "aurora" as BackgroundType, label: "Aurora", icon: Sparkles },
                   { id: "shaders" as BackgroundType, label: "Shaders", icon: Zap },
@@ -837,6 +838,7 @@ function InputStylePreview({ style }: { style: string }) {
 
 /** Color configuration per background type */
 const BACKGROUND_COLOR_CONFIG: Record<BackgroundType, { label: string; count: number; defaults: string[]; hints: string[] }> = {
+  none: { label: "", count: 0, defaults: [], hints: [] },
   paths: { label: "Cor das linhas", count: 1, defaults: ["#7BBEFA"], hints: ["Cor das linhas SVG"] },
   aurora: { label: "Cores da aurora", count: 3, defaults: ["#3B82F6", "#8B5CF6", "#06B6D4"], hints: ["Cor 1", "Cor 2", "Cor 3"] },
   shaders: { label: "Cores do shader", count: 4, defaults: ["hsl(203, 100%, 62%)", "hsl(255, 100%, 72%)", "hsl(158, 99%, 59%)", "hsl(264, 100%, 61%)"], hints: ["Cor 1", "Cor 2", "Cor 3", "Cor 4"] },
