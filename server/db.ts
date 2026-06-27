@@ -238,12 +238,14 @@ export async function getFormsByUser(userId: number) {
 
 export async function getFormBySlug(slug: string, brand?: string) {
   return withDbRetry(async (db) => {
-    const conditions: any[] = [eq(forms.slug, slug), isNull(forms.deletedAt)];
-    if (brand) {
-      // Slug is unique per brand; forms without an explicit brand are treated as "one" (legacy default)
-      conditions.push(sql`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one') = ${brand}`);
-    }
-    const result = await db.select().from(forms).where(and(...conditions)).limit(1);
+    // Slug is unique per brand. A missing/unknown host-brand (apex, www, test host) resolves
+    // to the default brand 'one'. Forms with no explicit sharing.brand are treated as 'one'.
+    const b = brand || "one";
+    const result = await db.select().from(forms).where(and(
+      eq(forms.slug, slug),
+      isNull(forms.deletedAt),
+      sql`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one') = ${b}`,
+    )).orderBy(asc(forms.id)).limit(1);
     return result[0] ?? null;
   });
 }
@@ -260,9 +262,9 @@ export async function getBrandDefaultForm(brand: string) {
   return withDbRetry(async (db) => {
     const result = await db.select().from(forms).where(and(
       isNull(forms.deletedAt),
-      sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')) = ${brand}`,
+      sql`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one') = ${brand}`,
       sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.isBrandDefault')) = 'true'`,
-    )).orderBy(desc(forms.updatedAt)).limit(1);
+    )).orderBy(desc(forms.updatedAt), desc(forms.id)).limit(1);
     return result[0] ?? null;
   });
 }
@@ -273,7 +275,7 @@ export async function clearBrandDefault(brand: string, exceptFormId: number) {
     await db.update(forms)
       .set({ sharing: sql`JSON_SET(COALESCE(${forms.sharing}, JSON_OBJECT()), '$.isBrandDefault', false)` } as any)
       .where(and(
-        sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')) = ${brand}`,
+        sql`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one') = ${brand}`,
         sql`JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.isBrandDefault')) = 'true'`,
         sql`${forms.id} <> ${exceptFormId}`,
       ));
@@ -376,8 +378,9 @@ export async function duplicateForm(
     const original = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
     if (!original[0]) throw new Error("Form not found");
     const o = original[0];
-    // Update sharing object with new slug
-    const newSharing = o.sharing ? { ...(o.sharing as any), slug: newSlug } : { slug: newSlug };
+    // Update sharing object with new slug; a copy never inherits the brand-default flag
+    const { isBrandDefault: _omitDef, ...srcSharing } = (o.sharing as any) ?? {};
+    const newSharing = { ...srcSharing, slug: newSlug, isBrandDefault: false };
     const result = await db.insert(forms).values({
       slug: newSlug,
       userId,
@@ -421,17 +424,24 @@ export async function duplicateFormForCorretor(
       .trim()
       .replace(/\s+/g, "-"); // spaces to hyphens
 
-    // Check if slug already exists, if so append a number
+    // Slug must be unique within the copy's brand only (same slug allowed across brands)
+    const copyBrand = ((o.sharing as any)?.brand) === "vitacon" ? "vitacon" : "one";
     let slug = baseSlug;
     let attempt = 0;
     while (true) {
-      const existing = await db.select({ id: forms.id }).from(forms).where(eq(forms.slug, slug)).limit(1);
+      const existing = await db.select({ id: forms.id }).from(forms).where(and(
+        eq(forms.slug, slug),
+        isNull(forms.deletedAt),
+        sql`COALESCE(JSON_UNQUOTE(JSON_EXTRACT(${forms.sharing}, '$.brand')), 'one') = ${copyBrand}`,
+      )).limit(1);
       if (!existing[0]) break;
       attempt++;
       slug = `${baseSlug}-${attempt}`;
     }
 
-    const newSharing = o.sharing ? { ...(o.sharing as any), slug } : { slug };
+    // A corretor copy never inherits the brand-default flag
+    const { isBrandDefault: _omitDef, ...srcSharing } = (o.sharing as any) ?? {};
+    const newSharing = { ...srcSharing, slug, isBrandDefault: false };
     const result = await db.insert(forms).values({
       slug,
       userId,

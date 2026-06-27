@@ -27,6 +27,16 @@ import * as googleOAuth from "./googleOAuthService";
 import { sendVerificationCode, checkVerificationCode } from "./smsVerification";
 
 /**
+ * Strip secret-bearing fields (integration webhook config: URLs, headers, tokens)
+ * from a form before returning it on a PUBLIC (unauthenticated) endpoint.
+ */
+function stripFormSecrets<T extends Record<string, any> | null | undefined>(form: T): T {
+  if (!form) return form;
+  const { webhook: _webhook, ...safe } = form as any;
+  return safe as T;
+}
+
+/**
  * ownerFallbackProcedure:
  * If the user is authenticated, use their id.
  * If not authenticated, fall back to the cached owner user.
@@ -749,13 +759,13 @@ export const appRouter = router({
     getBySlug: publicProcedure
       .input(z.object({ slug: z.string(), brand: z.enum(["one", "vitacon"]).optional() }))
       .query(async ({ input }) => {
-        return db.getFormBySlug(input.slug, input.brand);
+        return stripFormSecrets(await db.getFormBySlug(input.slug, input.brand));
       }),
 
     getBrandDefault: publicProcedure
       .input(z.object({ brand: z.enum(["one", "vitacon"]) }))
       .query(async ({ input }) => {
-        return db.getBrandDefaultForm(input.brand);
+        return stripFormSecrets(await db.getBrandDefaultForm(input.brand));
       }),
 
     checkSlugAvailable: publicProcedure
@@ -769,8 +779,11 @@ export const appRouter = router({
 
     getById: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
-        return db.getFormById(input.id);
+      .query(async ({ ctx, input }) => {
+        const form = await db.getFormById(input.id);
+        // Only authenticated staff get integration secrets (webhook); anonymous form-fill does not
+        const isStaff = (ctx as any).customSession?.type === "staff";
+        return isStaff ? form : stripFormSecrets(form);
       }),
 
     create: staffFormCreatorProcedure
