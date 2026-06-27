@@ -43,6 +43,8 @@ const INK = rgb(0.13, 0.13, 0.15);
 const MUTED = rgb(0.5, 0.5, 0.53);
 const HAIR = rgb(0.86, 0.86, 0.88);
 const SECTION_BG = rgb(0.95, 0.95, 0.96);
+const WHITE = rgb(1, 1, 1);
+const WHITE_DIM = rgb(0.88, 0.88, 0.9);
 
 function S(v: any): string {
   return v == null ? "" : String(v);
@@ -64,10 +66,8 @@ export async function generateVitaconFichaPdf(input: GenerateVitaconPdfInput): P
   const reg = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  // Try to embed the Vitacon logo; fall back to bold text if missing/unfetchable.
+  // Try to embed the Vitacon logo (white wordmark); fall back to bold text if unfetchable.
   let logoImg: any = null;
-  let logoW = 0;
-  const logoH = 24;
   const logoUrl = BRANDS.vitacon.logoUrl;
   if (logoUrl) {
     try {
@@ -78,7 +78,6 @@ export async function generateVitaconFichaPdf(input: GenerateVitaconPdfInput): P
         logoImg = lower.endsWith(".jpg") || lower.endsWith(".jpeg")
           ? await doc.embedJpg(bytes)
           : await doc.embedPng(bytes);
-        logoW = (logoImg.width / logoImg.height) * logoH;
       }
     } catch {
       logoImg = null;
@@ -107,17 +106,21 @@ export async function generateVitaconFichaPdf(input: GenerateVitaconPdfInput): P
   function header() {
     page = doc.addPage([W, H]);
     pages.push(page);
-    const top = H - M;
+    // Gray header band (full width) — the white Vitacon logo + white text sit on it.
+    const bandH = 70;
+    page.drawRectangle({ x: 0, y: H - bandH, width: W, height: bandH, color: ACCENT });
+    const midY = H - bandH / 2;
     if (logoImg) {
-      page.drawImage(logoImg, { x: M, y: top - logoH, width: logoW, height: logoH });
+      const lh = 26;
+      const lw = (logoImg.width / logoImg.height) * lh;
+      page.drawImage(logoImg, { x: M, y: midY - lh / 2, width: lw, height: lh });
     } else {
-      page.drawText("Vitacon", { x: M, y: top - 19, size: 19, font: bold, color: INK });
+      page.drawText("Vitacon", { x: M, y: midY - 8, size: 22, font: bold, color: WHITE });
     }
-    drawRight("CADASTRO DE INTERESSE", top - 6, 7.5, bold, MUTED);
-    if (protocol) drawRight(`Protocolo ${protocol}`, top - 19, 10.5, bold, ACCENT);
-    drawRight(dateStr, top - 31, 8, reg, MUTED);
-    page.drawRectangle({ x: M, y: top - 42, width: W - 2 * M, height: 2.5, color: ACCENT });
-    y = top - 62;
+    drawRight("CADASTRO DE INTERESSE", midY + 9, 7.5, bold, WHITE_DIM);
+    if (protocol) drawRight(`Protocolo ${protocol}`, midY - 4, 10.5, bold, WHITE);
+    drawRight(dateStr, midY - 17, 8, reg, WHITE_DIM);
+    y = H - bandH - 24;
   }
 
   function ensure(space: number) {

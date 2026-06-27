@@ -39,8 +39,8 @@ export const BRANDS: Record<BrandKey, BrandConfig> = {
     key: "vitacon",
     label: "Vitacon",
     host: "vitacon.cadastrodigital.com.br",
-    primaryColor: "#4A4A4F", // TODO: trocar pelo cinza exato da Vitacon
-    logoUrl: "", // TODO: URL do logo Vitacon (PNG). Vazio → usa o texto "Vitacon"
+    primaryColor: "#4A4A4F", // cinza Vitacon
+    logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/pXc_q0ax-vitacon%20logo.png", // logo branco (vai sobre faixa cinza no PDF / fundo cinza no e-mail)
     pdfFooter: "Cadastro Digital — Vitacon",
     emailFromName: "Vitacon",
   },

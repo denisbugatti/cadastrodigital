@@ -48,7 +48,7 @@ const THEMES = {
   },
   vitacon: {
     brandName: "Vitacon",
-    logoUrl: "", // TODO: URL do logo Vitacon (PNG). Vazio → usa o texto "Vitacon".
+    logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663342930280/bDyKxbJirDkukZmvFFZQ8p/uploads/pXc_q0ax-vitacon%20logo.png", // logo branco — aparece sobre o fundo cinza do e-mail
     bg: "#4A4A4F", // cinza Vitacon
     footer: "Vitacon — Cadastro Digital",
     ids: null, // created on run, UUIDs printed at the end
