@@ -188,10 +188,13 @@ export async function notifyCorretorPush(params: {
       ? params.respondentName.trim()
       : "";
     const isCompletion = !!params.protocolCode;
-    const title = isCompletion
+    const base = isCompletion
       ? (name ? `✅ ${name} finalizou o cadastro` : `✅ Cadastro finalizado`)
       : (name ? `🔔 ${name} está se cadastrando` : `🔔 Um novo cliente está se cadastrando`);
-    const body = `No formulário ${params.formTitle}`;
+    const title = `${base} - ${params.formTitle}`;
+    const body = isCompletion
+      ? (params.protocolCode ? `Protocolo: #${params.protocolCode}` : "Cadastro concluído")
+      : "Cadastro em andamento";
 
     await sendPushToStaffUser(params.staffUserId, {
       title,
@@ -275,14 +278,14 @@ export async function notifyOwnerNewResponse(
     const name = respondentName && respondentName.trim() && respondentName.trim() !== "Anônimo"
       ? respondentName.trim()
       : "";
-    const title = isComplete
+    const base = isComplete
       ? (name ? `✅ ${name} finalizou o cadastro` : `✅ Cadastro finalizado`)
       : (name ? `🔔 ${name} está se cadastrando` : `🔔 Um novo cliente está se cadastrando`);
+    const title = `${base} - ${formTitle}`;
 
     const bodyParts = isComplete
-      ? [`No formulário ${formTitle}`]
-      : [`No formulário ${formTitle}`];
-    if (isComplete && extras?.protocolCode) bodyParts.push(`Protocolo: #${extras.protocolCode}`);
+      ? [extras?.protocolCode ? `Protocolo: #${extras.protocolCode}` : "Cadastro concluído"]
+      : ["Cadastro em andamento"];
 
     await sendPushToUser(ownerUser.id, {
       title,
