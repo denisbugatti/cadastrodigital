@@ -7,6 +7,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { BRANDS, brandFromValue } from "@shared/brands";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1137,7 +1138,7 @@ export default function CorretorResponses() {
         {selectedForm?.slug && (
           <button
             onClick={() => {
-              const url = `${window.location.origin}/${selectedForm.slug}`;
+              const url = `https://${BRANDS[brandFromValue((selectedForm as any).sharing?.brand)].host}/${selectedForm.slug}`;
               navigator.clipboard.writeText(url).then(() => {
                 toast.success("Link copiado!", { description: url });
               }).catch(() => {
@@ -1148,7 +1149,7 @@ export default function CorretorResponses() {
           >
             <Link2 size={16} className="shrink-0" />
             <span className="text-xs sm:text-sm font-semibold truncate">
-              {window.location.origin}/{selectedForm.slug}
+              https://{BRANDS[brandFromValue((selectedForm as any).sharing?.brand)].host}/{selectedForm.slug}
             </span>
             <Copy size={14} className="shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
           </button>
