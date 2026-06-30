@@ -1154,7 +1154,7 @@ export const appRouter = router({
             notifyCorretorPush({
               staffUserId: form.assignedCorretorId,
               formTitle,
-              respondentName: input.respondentName ?? undefined,
+              respondentName: respondent,
               protocolCode: result.protocolCode ?? undefined,
               formId: input.formId,
             }).catch((err) => {
@@ -1197,7 +1197,7 @@ export const appRouter = router({
             const notifType = isComplete ? "new_response" : "response_started";
             const notifTitle = isComplete
               ? `✅ ${respondent !== "Anônimo" ? respondent : "Um cliente"} finalizou o cadastro`
-              : `🔔 Um novo cliente está se cadastrando`;
+              : (respondent !== "Anônimo" ? `🔔 ${respondent} está se cadastrando` : `🔔 Um novo cliente está se cadastrando`);
             const notifBody = `No formulário ${formTitle}`;
 
             // Check preferences for each staff user (use the correct type)
@@ -1216,7 +1216,7 @@ export const appRouter = router({
                   metadata: {
                     formId: input.formId,
                     formTitle,
-                    respondentName: input.respondentName ?? null,
+                    respondentName: respondent !== "Anônimo" ? respondent : (input.respondentName ?? null),
                     protocolCode: result.protocolCode ?? null,
                     isComplete,
                     responseId: result.id,
@@ -1234,7 +1234,7 @@ export const appRouter = router({
               notifyCorretorPush({
                 staffUserId,
                 formTitle,
-                respondentName: input.respondentName ?? undefined,
+                respondentName: respondent,
                 protocolCode: result.protocolCode ?? undefined,
                 formId: input.formId,
               }).catch((err) => {

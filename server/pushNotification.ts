@@ -184,11 +184,13 @@ export async function notifyCorretorPush(params: {
   formId?: number;
 }) {
   try {
-    const displayName = params.respondentName || "Um cliente";
+    const name = params.respondentName && params.respondentName.trim() && params.respondentName.trim() !== "Anônimo"
+      ? params.respondentName.trim()
+      : "";
     const isCompletion = !!params.protocolCode;
     const title = isCompletion
-      ? `✅ ${displayName} finalizou o cadastro`
-      : `🔔 Um novo cliente está se cadastrando`;
+      ? (name ? `✅ ${name} finalizou o cadastro` : `✅ Cadastro finalizado`)
+      : (name ? `🔔 ${name} está se cadastrando` : `🔔 Um novo cliente está se cadastrando`);
     const body = `No formulário ${params.formTitle}`;
 
     await sendPushToStaffUser(params.staffUserId, {
@@ -270,10 +272,12 @@ export async function notifyOwnerNewResponse(
     }
 
     const isComplete = extras?.isComplete !== false;
-    const displayName = respondentName || "Um cliente";
+    const name = respondentName && respondentName.trim() && respondentName.trim() !== "Anônimo"
+      ? respondentName.trim()
+      : "";
     const title = isComplete
-      ? `✅ ${displayName} finalizou o cadastro`
-      : `🔔 Um novo cliente está se cadastrando`;
+      ? (name ? `✅ ${name} finalizou o cadastro` : `✅ Cadastro finalizado`)
+      : (name ? `🔔 ${name} está se cadastrando` : `🔔 Um novo cliente está se cadastrando`);
 
     const bodyParts = isComplete
       ? [`No formulário ${formTitle}`]
