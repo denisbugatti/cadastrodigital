@@ -702,7 +702,13 @@ export default function CorretorResponses() {
   // Get forms assigned to this staff user via form_assignments table
   const { data: assignedForms = [], isLoading: formsLoading } = trpc.forms.myAssigned.useQuery(
     undefined,
-    { enabled: !!me && me.type === "staff" }
+    {
+      enabled: !!me && me.type === "staff",
+      // Auto-refresh so newly-assigned forms show up without a manual reload/re-login.
+      refetchOnWindowFocus: true,
+      refetchOnMount: "always",
+      refetchInterval: 30000,
+    }
   );
 
   // Selected form
