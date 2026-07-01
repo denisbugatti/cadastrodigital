@@ -157,17 +157,10 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
           engine.setResponse(qId, value as string | number | boolean | string[] | Record<string, string> | null);
         }
       });
-      // Find the last answered question to resume from there
-      const answeredIds = new Set(Object.keys(initialAnswers).filter(k => {
-        const v = initialAnswers[k];
-        return v !== null && v !== undefined && v !== "";
-      }));
-      let lastAnsweredIdx = 0;
-      form.questions.forEach((q, idx) => {
-        if (answeredIds.has(q.id)) lastAnsweredIdx = idx;
-      });
-      // Go to the question after the last answered one
-      const resumeIdx = Math.min(lastAnsweredIdx + 1, form.questions.length - 1);
+      // Resume by RE-WALKING the conditional-logic path with the restored
+      // answers (never "last answered + 1" positionally — that dropped PF
+      // respondents into the PJ block that sits right after in the array).
+      const resumeIdx = engine.deriveResumeIndex(initialAnswers as Record<string, unknown>);
       if (resumeIdx > 0) {
         engine.goToIndex(resumeIdx);
       }
@@ -188,8 +181,17 @@ export function FormContainer({ form, initialAnswers, continueResponseId }: Form
             engine.setResponse(qId, value as string | number | boolean | string[] | Record<string, string> | null);
           }
         });
-      }
-      if (typeof savedIdx === "number" && savedIdx > 0 && savedIdx < form.questions.length) {
+        // Validate the saved index against the logical path re-derived from the
+        // saved answers. If the form structure changed since the save (or the
+        // saved index landed inside a branch the user never chose), fall back
+        // to the derived index instead of trusting the stale position.
+        const derivedIdx = engine.deriveResumeIndex(savedResps as Record<string, unknown>);
+        const savedIdxValid = typeof savedIdx === "number" && savedIdx > 0 && savedIdx < form.questions.length;
+        const resumeIdx = savedIdxValid && savedIdx === derivedIdx ? savedIdx : derivedIdx;
+        if (resumeIdx > 0) {
+          engine.goToIndex(resumeIdx);
+        }
+      } else if (typeof savedIdx === "number" && savedIdx > 0 && savedIdx < form.questions.length) {
         engine.goToIndex(savedIdx);
       }
     }

@@ -35,6 +35,7 @@ interface UseFormEngineReturn {
   getResponse: (questionId: string) => FormResponse["value"] | undefined;
   validateCurrent: () => { valid: boolean; message?: string };
   visitedQuestionNumber: number;
+  deriveResumeIndex: (answers: Record<string, unknown>) => number;
 }
 
 export function useFormEngine(form: FormData): UseFormEngineReturn {
@@ -417,6 +418,35 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     [currentIndex, totalQuestions]
   );
 
+  /**
+   * Re-derive the resume index by walking the form the way a user would:
+   * from the top, following conditional-logic jumps (branches/rules/defaultGoTo)
+   * using the restored answers. Returns the first unanswered real question ON
+   * THE LOGICAL PATH. Never resume positionally ("last answered + 1") — that
+   * drops the user into a branch they never chose (e.g. a Pessoa Física
+   * respondent resuming straight into the Pessoa Jurídica block that happens
+   * to sit right after the PF questions in the array).
+   */
+  const deriveResumeIndex = useCallback((answers: Record<string, unknown>): number => {
+    const answered = (q: Question) => {
+      const v = answers[q.id];
+      return v !== null && v !== undefined && v !== "" &&
+        !(Array.isArray(v) && v.length === 0);
+    };
+    let idx = 0;
+    const visited = new Set<number>();
+    while (idx >= 0 && idx < questions.length && !visited.has(idx)) {
+      visited.add(idx);
+      const q = questions[idx];
+      if (q.type === "thank-you") break;
+      const isScreen = SCREEN_TYPES.has(q.type);
+      if (!isScreen && !answered(q)) break; // resume at the first unanswered real question
+      const jump = getNextIndexForValue(q, isScreen ? undefined : (answers[q.id] as any));
+      idx = jump !== -1 ? jump : idx + 1;
+    }
+    return Math.min(Math.max(idx, 0), questions.length - 1);
+  }, [questions, getNextIndexForValue]);
+
   // Compute a sequential question number based on navigation history
   // This counts only actual questions (not screens) visited so far
   const visitedQuestionNumber = useMemo(() => {
@@ -454,5 +484,6 @@ export function useFormEngine(form: FormData): UseFormEngineReturn {
     getResponse,
     validateCurrent,
     visitedQuestionNumber,
+    deriveResumeIndex,
   };
 }
