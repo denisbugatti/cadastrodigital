@@ -1106,10 +1106,13 @@ export const appRouter = router({
           const firstName = extractFirstName(input.answers as Record<string, unknown>, input.respondentName);
           const respondent = firstName !== "Anônimo" ? firstName : (input.respondentName || input.respondentEmail || "Anônimo");
           const statusLabel = isComplete ? "completa" : "parcial (em andamento)";
+          const hasName = respondent !== "Anônimo";
+          // Only notify once we know WHO is registering (or on completion). Avoids a
+          // nameless "Um novo cliente está se cadastrando" before the name is typed.
+          const shouldNotify = isComplete || hasName;
 
           // ─── Owner notifications (webapp push only) ───
-          // Notify the owner via webapp push for every response (complete or partial)
-          notifyOwnerNewResponse(formTitle, respondent, {
+          if (shouldNotify) notifyOwnerNewResponse(formTitle, respondent, {
             isComplete,
             protocolCode: result.protocolCode ?? undefined,
             formId: input.formId,
@@ -1130,9 +1133,9 @@ export const appRouter = router({
             });
           }
 
-          // Notify corretores via email with full response data + file links
-          // Fires for ALL responses (complete and partial) so corretor can follow up immediately
-          {
+          // Notify corretores via email with full response data + file links.
+          // Only once we know who is registering (or on completion) — no nameless alerts.
+          if (shouldNotify) {
             const questions: any[] = form?.questions ?? [];
             notifyCorretoresNewSubmission({
               formId: input.formId,
@@ -1150,7 +1153,7 @@ export const appRouter = router({
           }
 
           // Push notification to old assigned corretor (legacy field)
-          if (form?.assignedCorretorId) {
+          if (shouldNotify && form?.assignedCorretorId) {
             notifyCorretorPush({
               staffUserId: form.assignedCorretorId,
               formTitle,
@@ -1192,7 +1195,7 @@ export const appRouter = router({
           // Combine all staff to notify: assigned staff + their managers
           const allStaffToNotify = [...staffIds, ...Array.from(managerIds)];
 
-          if (allStaffToNotify.length > 0) {
+          if (shouldNotify && allStaffToNotify.length > 0) {
             // Use distinct notification types for start vs completion
             const notifType = isComplete ? "new_response" : "response_started";
             const notifTitle = isComplete
