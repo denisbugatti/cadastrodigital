@@ -47,22 +47,21 @@ async function startServer() {
       createContext,
     })
   );
-  // Vitacon-only: public form links on the One host (one.cadastrodigital.com.br/<slug>)
-  // redirect to the Vitacon host (302). App routes (/dashboard, /corretor/*, /api, assets)
-  // and the bare root stay on One so the admin/corretor panel keeps working there.
+  // Vitacon-only: the One brand is RETIRED. Any page on the One host, the apex
+  // or www redirects to the Vitacon host preserving path + query — home, login,
+  // dashboard and form links alike (one/alves -> vitacon/alves). Forms stay in
+  // the DB; only the One surface goes away. /api is NOT redirected so callbacks
+  // and health checks keep answering on any host.
+  const RETIRED_HOSTS = new Set([
+    "one.cadastrodigital.com.br",
+    "cadastrodigital.com.br",
+    "www.cadastrodigital.com.br",
+  ]);
   app.use((req, res, next) => {
     if (req.method !== "GET") return next();
     const host = (req.headers.host || "").toLowerCase().split(":")[0];
-    if (host !== "one.cadastrodigital.com.br") return next();
-    const slugMatch = req.path.match(/^\/([a-z0-9][a-z0-9_-]{0,60})$/i);
-    if (!slugMatch) return next();
-    const slug = slugMatch[1].toLowerCase();
-    const APP_ROUTES = new Set([
-      "login", "dashboard", "editor", "responses", "equipe", "configuracoes",
-      "validar", "aceitar-convite", "404", "portal", "cadastro-cliente",
-      "api", "assets", "sw.js", "manifest.json", "robots.txt",
-    ]);
-    if (APP_ROUTES.has(slug)) return next();
+    if (!RETIRED_HOSTS.has(host)) return next();
+    if (req.path.startsWith("/api")) return next();
     return res.redirect(302, `https://vitacon.cadastrodigital.com.br${req.originalUrl}`);
   });
 
