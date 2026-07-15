@@ -2157,19 +2157,31 @@ export const appRouter = router({
         if (buffer.length > 10 * 1024 * 1024) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo muito grande. Máximo: 10MB" });
         }
-        // Validate mime type (only common document/image types)
-        const allowedMimes = [
-          "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif",
-          "application/pdf",
-          "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ];
-        if (!allowedMimes.includes(input.mimeType)) {
+        // Validate mime type (only common document/image types). Browsers on mobile,
+        // WhatsApp-forwarded files and downloads frequently report an empty or generic
+        // ("application/octet-stream") type — so when the reported type isn't allowed,
+        // fall back to inferring it from the filename extension before rejecting.
+        const EXT_MIME: Record<string, string> = {
+          jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif",
+          webp: "image/webp", heic: "image/heic", heif: "image/heif",
+          pdf: "application/pdf",
+          doc: "application/msword",
+          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          xls: "application/vnd.ms-excel",
+          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        };
+        const allowedMimes = new Set(Object.values(EXT_MIME));
+        let mime = (input.mimeType || "").toLowerCase().trim();
+        if (!allowedMimes.has(mime)) {
+          const ext = (input.filename.split(".").pop() || "").toLowerCase();
+          if (EXT_MIME[ext]) mime = EXT_MIME[ext]; // infer from extension
+        }
+        if (!allowedMimes.has(mime)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não permitido" });
         }
         const fileKey = `form-uploads/${nanoid(8)}-${input.filename}`;
-        const { url } = await storagePut(fileKey, buffer, input.mimeType);
-        return { url, fileKey, filename: input.filename, mimeType: input.mimeType };
+        const { url } = await storagePut(fileKey, buffer, mime);
+        return { url, fileKey, filename: input.filename, mimeType: mime };
       }),
 
     listByForm: staffAnyProcedure
