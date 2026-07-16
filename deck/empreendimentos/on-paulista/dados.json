@@ -1,0 +1,187 @@
+{
+  "projeto": {
+    "nome": "ON PAULISTA",
+    "tagline": "Valorize com a cidade",
+    "regiao": "Avenida Paulista"
+  },
+  "slides": [
+    { "tipo": "capa", "proj": "ON PAULISTA", "tagline": "Valorize com a cidade" },
+
+    { "tipo": "imagem", "imagem": "hero-fachada.jpg", "chrome": false },
+
+    { "tipo": "estatistica", "rotulo": "A região concentra", "numero": "1,5", "unidade": "milhão",
+      "descricao": "de pessoas circulando no entorno imediato da Avenida Paulista — o endereço de maior densidade e fluxo de São Paulo.",
+      "imagem": "entorno-google.jpg" },
+
+    { "tipo": "imagem", "imagem": "entorno-paulista.jpg", "chrome": false,
+      "titulo": "Times Square Paulistana",
+      "legenda": "O coração de São Paulo · A esquina mais movimentada do país, agora o seu endereço." },
+
+    { "tipo": "imagem", "imagem": "grid-hospitais.jpg", "chrome": false },
+
+    { "tipo": "lista", "rotulo": "Saúde ao redor", "titulo": "Cercado pelos **melhores hospitais** da cidade.",
+      "itens": [
+        { "nome": "Hospital Oswaldo Cruz", "valor": "1 min a pé" },
+        { "nome": "H. Beneficência Portuguesa", "valor": "3 min a pé" },
+        { "nome": "Hospital do Servidor Público", "valor": "3 min de bike" },
+        { "nome": "Hospital Santa Catarina", "valor": "4 min de bike" },
+        { "nome": "Hospital dos Olhos", "valor": "4 min de bike" },
+        { "nome": "Hospital Santa Maria", "valor": "5 min de bike" },
+        { "nome": "Hospital HCor", "valor": "7 min de bike" },
+        { "nome": "Hospital Santa Joana", "valor": "7 min de bike" }
+      ] },
+
+    { "tipo": "imagem", "imagem": "parque-ibirapuera.jpg", "chrome": false,
+      "titulo": "Parque Ibirapuera", "legenda": "5 minutos de distância" },
+
+    { "tipo": "institucional", "titulo": "A melhor em **investimentos imobiliários**",
+      "descricao": "Queremos inspirar, transformar e conectar todos em um só propósito: reinventar a cidade e a vida das pessoas. Apartamentos inteligentes, studios e até 3 dormitórios nos endereços mais desejados de São Paulo.",
+      "link": "reclameaqui.com.br/empresa/vitacon", "print": "reclameaqui.jpg",
+      "stats": [
+        { "n": "15", "l": "Anos de mercado" },
+        { "n": "+25", "l": "Mil clientes" },
+        { "n": "+100", "l": "Projetos desenvolvidos" }
+      ] },
+
+    { "tipo": "imagem", "fixo": "inst-ultimas-entregas.jpg", "chrome": false },
+
+    { "tipo": "divisor", "fundo": "azul", "titulo": "Demanda\nembarcada" },
+
+    { "tipo": "imagem", "fixo": "inst-mural-parceiros.jpg", "chrome": false },
+
+    { "tipo": "demanda", "titulo": "Bellas Artes", "sub": "A universidade privada mais bem avaliada do estado.",
+      "imagem": "demanda-belasartes.jpg",
+      "kpis": [
+        { "n": "8K", "k": "Alunos de graduação e pós" },
+        { "n": "+65", "k": "Cursos de graduação, pós e especialização" },
+        { "n": "35K", "k": "Movimentação diária no entorno" }
+      ] },
+
+    { "tipo": "imagem", "imagem": "demanda-allianz.jpg", "chrome": false },
+
+    { "tipo": "demanda", "titulo": "G4 Educação",
+      "sub": "Demanda garantida no Vitacon Powered by Housi, exclusiva para associados do G4.",
+      "imagem": "demanda-g4.jpg",
+      "kpis": [
+        { "n": "+45 mil", "k": "empresas participantes" },
+        { "n": "+20 mil", "k": "gestores formados em cursos presenciais" },
+        { "n": "Alta", "k": "taxa de ocupação e diferenciais" }
+      ] },
+
+    { "tipo": "demanda", "titulo": "Afya Educação Médica",
+      "sub": "Demanda garantida no Vitacon Powered by Housi, com desconto nas diárias para alunos e funcionários.",
+      "imagem": "demanda-afya.jpg",
+      "kpis": [
+        { "n": "+100 mil", "k": "funcionários pelo Brasil" },
+        { "n": "+22 mil", "k": "estudantes de medicina" },
+        { "n": "+55 mi", "k": "consultas por ano" },
+        { "n": "38", "k": "unidades de graduação" }
+      ] },
+
+    { "tipo": "divisor", "fundo": "preto", "titulo": "Vem aí\nSão Paulo\nExpo", "rotuloTopo": "Demanda Embarcada" },
+
+    { "tipo": "demanda", "titulo": "São Paulo Expo",
+      "sub": "O maior complexo de exposições da América Latina, a poucos minutos.",
+      "imagem": "demanda-spexpo.jpg",
+      "kpis": [
+        { "n": "+90", "k": "eventos durante o ano" },
+        { "n": "+2,4 MM", "k": "visitantes por mês" },
+        { "n": "+18.000", "k": "expositores" }
+      ] },
+
+    { "tipo": "divisor", "fundo": "preto", "titulo": "Distrito\nAnhembi", "rotuloTopo": "Demanda Embarcada" },
+
+    { "tipo": "demanda", "titulo": "Distrito Anhembi",
+      "sub": "Um dos maiores polos de eventos e negócios do país em retomada.",
+      "imagem": "demanda-anhembi.jpg",
+      "kpis": [
+        { "n": "+100", "k": "eventos durante o ano" },
+        { "n": "+2,2 MM", "k": "visitantes" },
+        { "n": "+9.000", "k": "expositores" }
+      ] },
+
+    { "tipo": "imagem", "imagem": "transicao-produto.jpg", "chrome": false },
+
+    { "tipo": "imagem", "fixo": "inst-92-valorizacao.jpg", "chrome": false },
+
+    { "tipo": "imagem", "imagem": "decor-interiores.jpg", "chrome": false },
+
+    { "tipo": "imagem", "fixo": "inst-housi-appspace.jpg", "chrome": false },
+
+    { "tipo": "imagem", "fixo": "inst-cafe-manha.jpg", "chrome": false },
+
+    { "tipo": "imagem", "fixo": "inst-housi-housekeeping.jpg", "chrome": false },
+
+    { "tipo": "divisor", "fundo": "preto", "destaque": true, "titulo": "Superior\naos\nconcorrentes", "rotuloTopo": "Nossa personalidade" },
+
+    { "tipo": "imagem", "fixo": "inst-superior-concorrentes.jpg", "chrome": false },
+
+    { "tipo": "comparativo", "rotulo": "Projeto Powered by Housi · Paulista",
+      "titulo": "Valorização que excede a expectativa", "cta": "+80% rentabilidade",
+      "imagem": "tabela-fachada.jpg",
+      "linhas": [
+        { "lab": "Ocupação", "mercado": "54,09%", "vitacon": "78,00%", "barra": "78%" },
+        { "lab": "Diária", "mercado": "R$ 291", "vitacon": "R$ 392", "barra": "62%" },
+        { "lab": "Rentabilidade", "mercado": "R$ 4.202", "vitacon": "R$ 9.623", "barra": "88%" }
+      ] },
+
+    { "tipo": "imagem", "imagem": "render-01.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-02.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-03.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-04.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-05.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-06.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-07.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-08.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-09.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-10.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-11.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-12.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-13.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-14.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-15.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-16.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-17.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-18.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-19.jpg", "chrome": false, "fit": "contain" },
+    { "tipo": "imagem", "imagem": "render-20.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-21.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-22.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-23.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-24.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-25.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-26.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-27.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-28.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-29.jpg", "chrome": false },
+    { "tipo": "imagem", "imagem": "render-30.jpg", "chrome": false },
+
+    { "tipo": "plano", "rotulo": "Plano de Pagamento", "titulo": "Entrada de 15%, o resto financiado.",
+      "nota": "Valores de referência · Studio 24 m² · Sujeito a alteração",
+      "blocos": [
+        { "cap": "Total investido", "pct": "15%", "val": "R$ 68.500", "azul": true },
+        { "cap": "Financiamento", "pct": "85%", "val": "R$ 418.500" },
+        { "cap": "Valor do imóvel", "val": "R$ 465.000" }
+      ] },
+
+    { "tipo": "simulacao", "rotulo": "Simulação de Rentabilidade",
+      "investido": "R$ 68.500,00", "mensal": "R$ 3.936,64", "anual": "R$ 47.235,71",
+      "imagem": "simulacao-fachada.jpg",
+      "linhas": [
+        { "l": "Diárias praticadas na região", "v": "R$ 400,00" },
+        { "l": "Ocupação", "v": "78% · 24 dias" },
+        { "l": "Receita bruta mensal", "v": "R$ 9.600,00", "tipo": "receita" },
+        { "l": "Parcela do financiamento (40 anos · 0,9%)", "v": "− R$ 3.672,64", "neg": true },
+        { "l": "Administração + Seguro (15%)", "v": "− R$ 1.440,00", "neg": true },
+        { "l": "IPTU, WiFi, água e luz", "v": "− R$ 480,00", "neg": true },
+        { "l": "Condomínio estimado", "v": "− R$ 300,00", "neg": true }
+      ] },
+
+    { "tipo": "cadastro",
+      "titulo": "Lançamentos **exclusivos** para clientes cadastrados da Vitacon",
+      "botao": "Fale com um dos nossos corretores" },
+
+    { "tipo": "juridico",
+      "legal": "Incorporação Imobiliária registrada sob n.º 03 em 28/01/2026 na matrícula nº 152.634 do 2º Oficial de Registro de Imóveis de São Paulo. O projeto será constituído por unidades R2V (Residencial) sem restrições de destinação, além das categorias HIS-2 (Habitação de Interesse Social) destinadas a famílias com renda familiar até R$ 9.726,00 ou até R$ 1.621,00 de renda per capita mensal e HMP (Habitação de Moradia Popular) destinadas a famílias com renda familiar até R$ 16.210,00 ou até R$ 2.431,50 de renda per capita mensal (de acordo com o art. 1º do Decreto Municipal nº 64.895 de 05 de janeiro de 2026), ressalvada eventual alteração da legislação em vigor. Imagens meramente ilustrativas e informações preliminares, sujeito a alteração sem aviso prévio. Intermediações: Vitacon Esmeralda Intermediação Ltda. — CNPJ: 30.058.251/0001-98. Rua Haddock Lobo, 347 — 2º andar — Jardins, São Paulo/SP, CRECI SP 032158-J. Material desenvolvido em abril/2026." }
+  ]
+}

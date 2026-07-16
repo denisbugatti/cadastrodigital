@@ -108,3 +108,7 @@ temp/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+
+# deck build artifacts / working files
+deck/**/_deck.html
+scratchpad/
