@@ -8,17 +8,18 @@
     { "tipo": "capa" },
 
     { "tipo": "saopaulo", "rotulo": "Capital do turismo", "titulo": "São Paulo",
-      "bullets": [
-        { "h": "**35 milhões** de turistas em 2024" },
-        { "h": "1º tri/2025", "sub": "Turismo nacional: 10.955.000 · Turismo internacional: 726.326" },
-        { "h": "Ranking mundial", "sub": "São Paulo em 1º lugar no ranking mundial de cidades com as maiores frotas de helicópteros do mundo." }
+      "stats": [
+        { "n": "35 milhões", "l": "de turistas em 2024" },
+        { "n": "47 milhões", "l": "de turistas em 2025" },
+        { "n": "27 milhões", "l": "de turistas em 2026 (1º tri)" }
       ],
-      "fonte": "Fonte: EMBRATUR — Agência Brasileira de Turismo",
-      "callouts": [
-        "Possui **46 mil** quartos de hotel e **75,6 mil** leitos",
-        "São Paulo representa **56,7%** do turismo nacional",
-        "**27,6 mil** unidades no Airbnb"
-      ] },
+      "badge": "+24%",
+      "notas": [
+        "**46 mil** quartos de hotel e **75,6 mil** leitos",
+        "**27 mil** unidades no Airbnb",
+        "São Paulo representa **56,7%** do turismo nacional"
+      ],
+      "fonte": "Fonte: EMBRATUR — Agência Brasileira de Turismo" },
 
     { "tipo": "estatistica", "rotulo": "A região concentra", "numero": "1,5", "unidade": "milhão",
       "descricao": "de pessoas circulando no entorno imediato da Avenida Paulista — o endereço de maior densidade e fluxo de São Paulo.",

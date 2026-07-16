@@ -282,8 +282,8 @@ function mapaBrasil() {
         <feGaussianBlur stdDeviation="7" result="b"/>
         <feMerge><feMergeNode in="b"/><feMergeNode in="b"/></feMerge>
       </filter>
-      <radialGradient id="spgrad" cx="45%" cy="42%" r="70%">
-        <stop offset="0%" stop-color="#7a6bff"/>
+      <radialGradient id="spgrad" cx="45%" cy="42%" r="72%">
+        <stop offset="0%" stop-color="#5a76ff"/>
         <stop offset="55%" stop-color="#2800FF"/>
         <stop offset="100%" stop-color="#1400a0"/>
       </radialGradient>
@@ -294,26 +294,30 @@ function mapaBrasil() {
   </svg>`;
 }
 
-/* ---- São Paulo (capital do turismo) ---- */
+/* ---- São Paulo (capital do turismo) — dados + mapa ao lado ---- */
 C.saopaulo = (s, ctx) => {
-  const bullets = (s.bullets || []).map((b) =>
-    `<div class="sp-b"><div class="sp-b-h">${rich(b.h)}</div>${b.sub ? `<div class="sp-b-s">${esc(b.sub)}</div>` : ""}</div>`
-  ).join("");
-  const callouts = (s.callouts || []).map((c) =>
-    `<div class="sp-call"><span class="dot"></span><span class="ct">${rich(c)}</span></div>`
-  ).join("");
+  const nums = (s.stats || []).map((st) => {
+    const t = String(st.n);
+    const first = t.charAt(0);
+    const rest = t.slice(1);
+    return `<div class="sp-num"><div class="n"><b>${esc(first)}</b>${esc(rest)}</div><div class="l">${esc(st.l)}</div></div>`;
+  }).join("");
+  const notas = (s.notas || []).map((n) => `<div class="sp-note">${rich(n)}</div>`).join("");
   return `
   <div class="slide">
     <div class="sp-slide">
       <div class="sp-left">
         ${rotulo(s.rotulo || "Capital do turismo")}
-        <h1 class="sp-title">${esc(s.titulo || "São Paulo")}</h1>
-        <div class="sp-bullets">${bullets}</div>
+        <div class="sp-top">
+          <div class="sp-nums">${nums}</div>
+          <div class="sp-notes">${notas}</div>
+        </div>
+        ${s.badge ? `<div class="sp-badge">${esc(s.badge)} ${ARROW}</div>` : ""}
+        <div class="sp-title-big">${esc(s.titulo || "São Paulo")}</div>
         ${s.fonte ? `<div class="sp-fonte">${esc(s.fonte)}</div>` : ""}
       </div>
       <div class="sp-right">
         ${mapaBrasil()}
-        <div class="sp-callouts">${callouts}</div>
       </div>
     </div>
     ${chrome(ctx)}
