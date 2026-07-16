@@ -112,3 +112,5 @@ temp/
 # deck build artifacts / working files
 deck/**/_deck.html
 scratchpad/
+deck/**/._preview.*
+deck/**/._deck.html
