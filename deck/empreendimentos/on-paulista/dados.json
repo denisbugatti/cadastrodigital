@@ -5,7 +5,7 @@
     "regiao": "Avenida Paulista"
   },
   "slides": [
-    { "tipo": "capa", "proj": "ON PAULISTA", "tagline": "Valorize com a cidade" },
+    { "tipo": "capa" },
 
     { "tipo": "imagem", "imagem": "hero-fachada.jpg", "chrome": false },
 

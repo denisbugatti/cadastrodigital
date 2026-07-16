@@ -45,14 +45,11 @@ function rich(t) {
 
 const C = {};
 
-/* ---- capa ---- */
+/* ---- capa (capa oficial Vitacon, fixa e pixel-exata) ---- */
 C.capa = (s, ctx) => `
   <div class="slide">
-    <div class="capa">
-      ${BIGV}
-      <div class="proj-capa">${esc(s.proj || ctx.projeto.nome)}</div>
-      <div class="lockup">${wmH(ctx, 118)}</div>
-      <div class="tagline">${esc(s.tagline || ctx.projeto.tagline || "Valorize com a cidade")}</div>
+    <div class="imagem">
+      <img src="${ctx.fixo(s.fixo || "capa-vitacon.png")}">
     </div>
   </div>`;
 
