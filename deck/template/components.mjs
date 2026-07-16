@@ -4,6 +4,8 @@
    ctx = { projeto, pageNum, total, fixo(name), foto(name), wm }
    ============================================================ */
 
+import { BRASIL } from "./brasil-map.mjs";
+
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 18 L18 6 M9 6 h9 v9"/></svg>`;
@@ -266,6 +268,57 @@ C.juridico = (s, ctx) => `
       <div class="legal">${esc(s.legal || "")}</div>
     </div>
   </div>`;
+
+/* ---- mapa do Brasil com SP em neon (identidade Vitacon) ---- */
+function mapaBrasil() {
+  const outros = BRASIL.locations
+    .filter((l) => l.id !== "sp")
+    .map((l) => `<path d="${l.path}" class="uf"/>`)
+    .join("");
+  const sp = BRASIL.locations.find((l) => l.id === "sp");
+  return `<svg class="brasil" viewBox="${BRASIL.viewBox}" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <filter id="neon" x="-70%" y="-70%" width="240%" height="240%">
+        <feGaussianBlur stdDeviation="7" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="b"/></feMerge>
+      </filter>
+      <radialGradient id="spgrad" cx="45%" cy="42%" r="70%">
+        <stop offset="0%" stop-color="#7a6bff"/>
+        <stop offset="55%" stop-color="#2800FF"/>
+        <stop offset="100%" stop-color="#1400a0"/>
+      </radialGradient>
+    </defs>
+    <g class="ufs">${outros}</g>
+    <path d="${sp.path}" class="sp-glow"/>
+    <path d="${sp.path}" class="sp-fill"/>
+  </svg>`;
+}
+
+/* ---- São Paulo (capital do turismo) ---- */
+C.saopaulo = (s, ctx) => {
+  const bullets = (s.bullets || []).map((b) =>
+    `<div class="sp-b"><div class="sp-b-h">${rich(b.h)}</div>${b.sub ? `<div class="sp-b-s">${esc(b.sub)}</div>` : ""}</div>`
+  ).join("");
+  const callouts = (s.callouts || []).map((c) =>
+    `<div class="sp-call"><span class="dot"></span><span class="ct">${rich(c)}</span></div>`
+  ).join("");
+  return `
+  <div class="slide">
+    <div class="sp-slide">
+      <div class="sp-left">
+        ${rotulo(s.rotulo || "Capital do turismo")}
+        <h1 class="sp-title">${esc(s.titulo || "São Paulo")}</h1>
+        <div class="sp-bullets">${bullets}</div>
+        ${s.fonte ? `<div class="sp-fonte">${esc(s.fonte)}</div>` : ""}
+      </div>
+      <div class="sp-right">
+        ${mapaBrasil()}
+        <div class="sp-callouts">${callouts}</div>
+      </div>
+    </div>
+    ${chrome(ctx)}
+  </div>`;
+};
 
 export function renderSlide(s, ctx) {
   const fn = C[s.tipo];
