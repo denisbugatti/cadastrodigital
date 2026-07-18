@@ -21,8 +21,12 @@ export default function Login() {
   const [tab, setTab] = useState<LoginTab>("staff");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Staff login
-  const [email, setEmail] = useState("");
+  // Staff login — remember the last used email so it comes pre-filled next time.
+  // The password itself is NEVER stored by us: with proper autocomplete attrs the
+  // browser's own password manager offers to save and autofill it securely.
+  const [email, setEmail] = useState(() => {
+    try { return localStorage.getItem("cd_last_login_email") || ""; } catch { return ""; }
+  });
   const [staffPassword, setStaffPassword] = useState("");
 
   // Client login
@@ -35,6 +39,8 @@ export default function Login() {
       if (data.token) {
         setStoredToken(data.token);
       }
+      // Remember the email for next visit (pre-filled login)
+      try { localStorage.setItem("cd_last_login_email", email); } catch { /* ignore */ }
       toast.success("Login realizado com sucesso!");
       // Invalidate cache and navigate (works in both iframe and direct contexts)
       await utils.customAuth.me.invalidate();
@@ -163,6 +169,8 @@ export default function Login() {
                 <Label className="text-slate-300 text-sm">Email</Label>
                 <Input
                   type="email"
+                  name="email"
+                  autoComplete="username email"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -175,6 +183,8 @@ export default function Login() {
                 <div className="relative mt-1.5">
                   <Input
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={staffPassword}
                     onChange={(e) => setStaffPassword(e.target.value)}
@@ -220,6 +230,8 @@ export default function Login() {
                 <Label className="text-slate-300 text-sm">CPF ou CNPJ</Label>
                 <Input
                   type="text"
+                  name="cpfCnpj"
+                  autoComplete="username"
                   placeholder="000.000.000-00"
                   value={cpfCnpj}
                   onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
@@ -233,6 +245,8 @@ export default function Login() {
                 <div className="relative mt-1.5">
                   <Input
                     type={showPassword ? "text" : "password"}
+                    name="clientPassword"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={clientPassword}
                     onChange={(e) => setClientPassword(e.target.value)}
