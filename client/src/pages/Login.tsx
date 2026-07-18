@@ -24,10 +24,17 @@ export default function Login() {
   // Staff login — remember the last used email so it comes pre-filled next time.
   // The password itself is NEVER stored by us: with proper autocomplete attrs the
   // browser's own password manager offers to save and autofill it securely.
+  //
+  // DEV ONLY: locally you can pre-fill both fields via .env.local (gitignored):
+  //   VITE_DEV_LOGIN_EMAIL=... / VITE_DEV_LOGIN_PASSWORD=...
+  // These are stripped from production builds (guarded by import.meta.env.DEV).
+  const devEmail = import.meta.env.DEV ? (import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined) : undefined;
+  const devPassword = import.meta.env.DEV ? (import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined) : undefined;
   const [email, setEmail] = useState(() => {
+    if (devEmail) return devEmail;
     try { return localStorage.getItem("cd_last_login_email") || ""; } catch { return ""; }
   });
-  const [staffPassword, setStaffPassword] = useState("");
+  const [staffPassword, setStaffPassword] = useState(devPassword || "");
 
   // Client login
   const [cpfCnpj, setCpfCnpj] = useState("");
