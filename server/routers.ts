@@ -2042,6 +2042,52 @@ export const appRouter = router({
 
         return { success: true };
       }),
+
+    /** Move a response to the trash (recoverable from the Lixeira page). */
+    softDelete: staffAdminProcedure
+      .input(z.object({ responseId: z.number() }))
+      .mutation(async ({ input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        await db.softDeleteResponse(input.responseId);
+        return { success: true };
+      }),
+
+    /** Save the staff-facing observações for a response. */
+    updateNotes: staffAnyProcedure
+      .input(z.object({ responseId: z.number(), notes: z.string().max(5000) }))
+      .mutation(async ({ input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        await db.updateResponse(input.responseId, { reviewNotes: input.notes });
+        return { success: true };
+      }),
+
+    /** Edit one answer of a response (used to replace/remove uploaded documents). */
+    updateAnswer: staffAdminProcedure
+      .input(z.object({
+        responseId: z.number(),
+        questionId: z.string().min(1),
+        value: z.any(),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        const answers = { ...(response.answers as Record<string, unknown> ?? {}) };
+        if (input.value === null || input.value === undefined || input.value === "") {
+          delete answers[input.questionId];
+        } else {
+          answers[input.questionId] = input.value;
+        }
+        await db.updateResponse(input.responseId, { answers });
+        return { success: true };
+      }),
   }),
 
   // ─── Form Versions ───

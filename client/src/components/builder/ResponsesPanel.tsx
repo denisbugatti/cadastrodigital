@@ -1,28 +1,23 @@
 /**
- * FormFlow Responses Panel — Real Data Dashboard
- * Mobile-first responsive design with cards on small screens, table on desktop.
- * Validation drawer, field-by-field review, PDF generation.
+ * Responses Panel — glass redesign.
+ * Cadastros são apenas recebidos (sem validação/PDF/cadência):
+ *  - Cards com nome em destaque; clique abre o detalhe.
+ *  - Detalhe: copiar qualquer resposta, endereço linha a linha, preview grande
+ *    de documentos (trocar/excluir), observações com autosave e lixeira com undo.
  */
 
-import { useState, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  ClipboardList, Download, Search, Calendar,
-  ChevronDown, ChevronLeft, ChevronRight, Filter, X, FileSpreadsheet, ArrowUpDown, FileText,
-  CheckCircle2, XCircle, Shield, ShieldCheck, ShieldAlert,
-  Lock, Loader2, Check, AlertTriangle, Eye,
-  ExternalLink, Image as ImageIcon, File as FileIcon, Clock, Phone, Users,
-  MailCheck, Pause, Send, MailPlus, Mail, RotateCcw, Share2,
+  ClipboardList, Search, X, FileSpreadsheet, FileText,
+  CheckCircle2, Loader2, Check, Copy, Phone, Clock, Calendar,
+  ExternalLink, Image as ImageIcon, Trash2, RotateCcw, ChevronDown,
+  StickyNote, UploadCloud, MessageCircle, Inbox, CircleDashed, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import type { BuilderQuestion } from "@/lib/builderTypes";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface ResponsesPanelProps {
   formTitle: string;
@@ -32,1182 +27,683 @@ interface ResponsesPanelProps {
 }
 
 type DateFilter = "all" | "today" | "7days" | "30days";
+type StatusFilter = "all" | "complete" | "incomplete";
 
-/* ─── Validation Drawer (Mobile-optimized) ─── */
-function ValidationDrawer({
-  response,
-  questions,
-  onClose,
-  formId,
+/* Strong ease-out — snappy, intentional (never ease-in on UI) */
+const EASE = [0.23, 1, 0.32, 1] as const;
+
+/* ─── Helpers ─── */
+
+interface FileValue { url: string; filename: string; mimeType: string }
+
+function parseFiles(value: unknown): FileValue[] {
+  if (!value) return [];
+  let v: unknown = value;
+  if (typeof v === "string") {
+    if (!v.startsWith("{") && !v.startsWith("[")) return [];
+    try { v = JSON.parse(v); } catch { return []; }
+  }
+  if (Array.isArray(v)) return v.filter((f: any) => f && typeof f === "object" && f.url);
+  if (v && typeof v === "object" && (v as any).url) return [v as FileValue];
+  return [];
+}
+
+const ADDRESS_LABELS: Record<string, string> = {
+  cep: "CEP", street: "Rua", number: "Número", complement: "Complemento",
+  neighborhood: "Bairro", city: "Cidade", state: "Estado",
+};
+const ADDRESS_ORDER = ["cep", "street", "number", "complement", "neighborhood", "city", "state"];
+
+function parseAddress(value: unknown): { label: string; value: string }[] | null {
+  let v: unknown = value;
+  if (typeof v === "string" && v.startsWith("{")) {
+    try { v = JSON.parse(v); } catch { return null; }
+  }
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const obj = v as Record<string, unknown>;
+  if (!("cep" in obj) && !("street" in obj) && !("city" in obj)) return null;
+  const lines: { label: string; value: string }[] = [];
+  for (const key of ADDRESS_ORDER) {
+    const val = obj[key];
+    if (val !== null && val !== undefined && String(val).trim() !== "") {
+      lines.push({ label: ADDRESS_LABELS[key] ?? key, value: String(val) });
+    }
+  }
+  return lines.length > 0 ? lines : null;
+}
+
+function formatPlainAnswer(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
+  if (Array.isArray(value)) return value.map((x) => formatPlainAnswer(x)).join(", ");
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "")
+      .map(([k, v]) => `${ADDRESS_LABELS[k] ?? k}: ${v}`)
+      .join("\n");
+  }
+  return String(value);
+}
+
+/** Resolve a choice id (c_pf) to its human label when the question has choices. */
+function resolveChoiceLabel(question: BuilderQuestion | undefined, value: unknown): string {
+  const plain = formatPlainAnswer(value);
+  const choices = (question as any)?.choices as { id: string; label: string }[] | undefined;
+  if (!choices?.length) return plain;
+  const parts = Array.isArray(value) ? value : [value];
+  const labels = parts.map((p) => choices.find((c) => c.id === p)?.label ?? formatPlainAnswer(p));
+  return labels.join(", ");
+}
+
+function formatWhatsAppLink(phone: string): string | null {
+  if (!phone) return null;
+  const cleaned = phone.replace(/[^\d+]/g, "");
+  const number = cleaned.startsWith("+") ? cleaned.replace("+", "") : cleaned.startsWith("55") ? cleaned : `55${cleaned}`;
+  return `https://wa.me/${number}`;
+}
+
+function formatDate(d: string | Date): { day: string; time: string } {
+  const date = new Date(d);
+  return {
+    day: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+    time: date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+  };
+}
+
+/* ─── Copy button (per-answer) ─── */
+function CopyButton({ text, label, small }: { text: string; label?: string; small?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const copy = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 1400);
+    }).catch(() => toast.error("Não foi possível copiar"));
+  }, [text]);
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={label ?? "Copiar"}
+      className={`shrink-0 inline-flex items-center justify-center rounded-lg border transition-[transform,background-color,border-color] duration-150 active:scale-[0.94] ${
+        small ? "w-7 h-7" : "w-8 h-8"
+      } ${copied
+        ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400"
+        : "border-white/10 bg-white/[0.04] text-muted-foreground hover:text-foreground hover:bg-white/[0.08]"}`}
+      style={{ transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {copied ? (
+          <motion.span key="ok" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} transition={{ duration: 0.15, ease: EASE }}>
+            <Check size={small ? 12 : 14} />
+          </motion.span>
+        ) : (
+          <motion.span key="copy" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} transition={{ duration: 0.15, ease: EASE }}>
+            <Copy size={small ? 12 : 14} />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </button>
+  );
+}
+
+/* ─── Status chip ─── */
+function StatusChip({ complete }: { complete: boolean }) {
+  return complete ? (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-400/10 text-emerald-400 border border-emerald-400/25">
+      <CheckCircle2 size={12} /> Completo
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-400/10 text-amber-400 border border-amber-400/25">
+      <CircleDashed size={12} /> Incompleto
+    </span>
+  );
+}
+
+/* ─── Document block: big preview + replace/remove (admin) ─── */
+function DocumentBlock({
+  file, responseId, questionId, allFiles, formId,
 }: {
-  response: any;
-  questions: BuilderQuestion[];
-  onClose: () => void;
+  file: FileValue;
+  responseId: number;
+  questionId: string;
+  allFiles: FileValue[];
   formId: number;
 }) {
-  const answers = (response.answers ?? {}) as Record<string, any>;
-  const actualQs = questions.filter(
-    (q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"
-  );
-
-  const validationsQuery = trpc.validations.byResponse.useQuery(
-    { responseId: response.id },
-    { staleTime: 5000 }
-  );
-
-  const filesQuery = trpc.files.listByResponse.useQuery(
-    { responseId: response.id },
-    { staleTime: 10000 }
-  );
-
   const utils = trpc.useUtils();
-
-  const validateMutation = trpc.validations.validate.useMutation({
-    onSuccess: () => {
-      validationsQuery.refetch();
-      utils.responses.listByForm.invalidate({ formId });
-    },
-    onError: (err) => toast.error(err.message || "Erro ao validar"),
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<"replace" | "remove" | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const uploadMutation = trpc.files.publicUpload.useMutation();
+  const updateAnswer = trpc.responses.updateAnswer.useMutation({
+    onSuccess: () => utils.responses.listByForm.invalidate({ formId }),
   });
 
-  const finalizeMutation = trpc.validations.finalizeValidation.useMutation({
-    onSuccess: (data) => {
-      validationsQuery.refetch();
-      utils.responses.listByForm.invalidate({ formId });
-      const statusMsg = data.status === "approved" ? "aprovado" : "rejeitado";
-      toast.success(`Validação finalizada! Cadastro ${statusMsg}. Email enviado ao cliente.`);
-    },
-    onError: (err) => toast.error(err.message || "Erro ao finalizar validação"),
-  });
+  const isImage = file.mimeType?.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic)$/i.test(file.filename ?? "");
+  const isPdf = file.mimeType === "application/pdf" || /\.pdf$/i.test(file.filename ?? "");
 
-  const [rejectingField, setRejectingField] = useState<string | null>(null);
-  const [justification, setJustification] = useState("");
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
-  const [showConfirmFinalize, setShowConfirmFinalize] = useState(false);
-  const [reopenedValidation, setReopenedValidation] = useState(false);
+  const persist = useCallback(async (next: FileValue[]) => {
+    const value = next.length === 0 ? "" : next.length === 1 ? JSON.stringify(next[0]) : JSON.stringify(next);
+    await updateAnswer.mutateAsync({ responseId, questionId, value });
+  }, [responseId, questionId, updateAnswer]);
 
-  const isAlreadyFinalized = (response.validationStatus === "approved" || response.validationStatus === "rejected") && !reopenedValidation;
-
-  const validations = validationsQuery.data ?? [];
-  const files = filesQuery.data ?? [];
-
-  const validationMap = useMemo(() => {
-    const map: Record<string, { status: string; justification?: string }> = {};
-    validations.forEach((v: any) => {
-      map[v.questionId] = { status: v.status, justification: v.justification };
-    });
-    return map;
-  }, [validations]);
-
-  const fieldsWithAnswers = actualQs.filter((q) => answers[q.id] !== undefined && answers[q.id] !== "");
-  const totalFields = fieldsWithAnswers.length;
-  const approvedFields = fieldsWithAnswers.filter((q) => validationMap[q.id]?.status === "approved").length;
-  const rejectedFields = fieldsWithAnswers.filter((q) => validationMap[q.id]?.status === "rejected").length;
-  const validatedFields = approvedFields + rejectedFields;
-  const pendingFields = totalFields - validatedFields;
-
-  const handleApprove = (questionId: string) => {
-    validateMutation.mutate({ responseId: response.id, questionId, status: "approved" });
-  };
-
-  const handleReject = (questionId: string) => {
-    setRejectingField(questionId);
-    setJustification("");
-  };
-
-  const confirmReject = () => {
-    if (!rejectingField) return;
-    if (!justification.trim()) {
-      toast.error("Justificativa é obrigatória");
-      return;
+  const handleReplace = useCallback(async (picked: File) => {
+    setBusy("replace");
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(picked);
+      });
+      const uploaded = await uploadMutation.mutateAsync({
+        filename: picked.name, contentBase64: base64, mimeType: picked.type, context: "form-response",
+      });
+      const next = allFiles.map((f) => (f.url === file.url ? { url: uploaded.url, filename: picked.name, mimeType: uploaded.mimeType } : f));
+      await persist(next);
+      toast.success("Documento substituído");
+    } catch {
+      toast.error("Erro ao substituir o documento");
+    } finally {
+      setBusy(null);
+      if (inputRef.current) inputRef.current.value = "";
     }
-    validateMutation.mutate({
-      responseId: response.id,
-      questionId: rejectingField,
-      status: "rejected",
-      justification: justification.trim(),
-    });
-    setRejectingField(null);
-    setJustification("");
-  };
+  }, [allFiles, file.url, persist, uploadMutation]);
 
-  const isFileField = (q: BuilderQuestion) => q.type === "file-upload";
-  const getFileForQuestion = (questionId: string) => files.filter((f: any) => f.questionId === questionId);
-
-  const parseFileAnswer = (answer: any): { url: string; filename: string; mimeType: string } | null => {
-    if (!answer) return null;
-    if (typeof answer === "object" && answer.url) return answer;
-    if (typeof answer === "string") {
-      try {
-        const parsed = JSON.parse(answer);
-        if (parsed && typeof parsed === "object" && parsed.url) return parsed;
-      } catch {
-        if (answer && !answer.startsWith("{") && !answer.startsWith("http")) {
-          return { url: "", filename: answer, mimeType: "" };
-        }
-        if (answer.startsWith("http")) {
-          const ext = answer.split(".").pop()?.toLowerCase() || "";
-          const mimeMap: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", pdf: "application/pdf" };
-          return { url: answer, filename: answer.split("/").pop() || "arquivo", mimeType: mimeMap[ext] || "application/octet-stream" };
-        }
-      }
+  const handleRemove = useCallback(async () => {
+    setBusy("remove");
+    try {
+      await persist(allFiles.filter((f) => f.url !== file.url));
+      toast.success("Documento removido");
+    } catch {
+      toast.error("Erro ao remover o documento");
+    } finally {
+      setBusy(null);
+      setConfirmRemove(false);
     }
-    return null;
-  };
-
-  const StatusDot = ({ status }: { status?: string }) => {
-    if (status === "approved") return <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />;
-    if (status === "rejected") return <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />;
-    return <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30 shrink-0" />;
-  };
+  }, [allFiles, file.url, persist]);
 
   return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-[2px] z-40"
-        onClick={onClose}
-      />
-
-      {/* Drawer — full screen on mobile, side panel on desktop */}
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 bottom-0 w-full sm:max-w-[520px] bg-card z-50 flex flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
-      >
-        {/* ── Header ── */}
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-5 shrink-0">
-          <div className="flex items-start justify-between mb-4 sm:mb-5">
-            <div>
-              <h3 className="text-base sm:text-lg font-display font-bold text-foreground tracking-tight">
-                Validação
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                {response.protocolCode && (
-                  <span className="text-xs font-mono text-brand font-semibold bg-brand/10 px-2 py-0.5 rounded-md">
-                    #{response.protocolCode}
-                  </span>
-                )}
-                <p className="text-xs sm:text-[13px] text-muted-foreground">
-                  {new Date(response.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 -mr-2 -mt-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-            >
-              <X size={18} />
-            </button>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+      {/* Big preview */}
+      {isImage ? (
+        <a href={file.url} target="_blank" rel="noopener noreferrer" className="block bg-black/30">
+          <img src={file.url} alt={file.filename} loading="lazy" className="w-full max-h-[420px] object-contain" />
+        </a>
+      ) : isPdf ? (
+        pdfOpen ? (
+          <div className="bg-black/30">
+            <embed src={`${file.url}#toolbar=0&navpanes=0`} type="application/pdf" className="w-full h-[380px]" />
           </div>
-
-          {/* Stats row — 2x2 on small mobile, 4 cols on wider */}
-          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-            <div className="bg-secondary rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
-              <p className="text-lg sm:text-2xl font-display font-bold text-foreground">{totalFields}</p>
-              <p className="text-[9px] sm:text-[11px] text-muted-foreground">Total</p>
-            </div>
-            <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
-              <p className="text-lg sm:text-2xl font-display font-bold text-emerald-600">{approvedFields}</p>
-              <p className="text-[9px] sm:text-[11px] text-emerald-500">OK</p>
-            </div>
-            <div className="bg-red-50 dark:bg-red-950/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
-              <p className="text-lg sm:text-2xl font-display font-bold text-red-600">{rejectedFields}</p>
-              <p className="text-[9px] sm:text-[11px] text-red-400">Reprov.</p>
-            </div>
-            <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg sm:rounded-xl px-2 sm:px-4 py-2 sm:py-3 text-center">
-              <p className="text-lg sm:text-2xl font-display font-bold text-amber-600">{pendingFields}</p>
-              <p className="text-[9px] sm:text-[11px] text-amber-500">Pend.</p>
-            </div>
-          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPdfOpen(true)}
+            className="w-full h-28 flex flex-col items-center justify-center gap-2 bg-black/20 hover:bg-black/30 transition-colors"
+          >
+            <FileText size={24} className="text-brand" />
+            <span className="text-xs text-muted-foreground">Clique para visualizar o PDF</span>
+          </button>
+        )
+      ) : (
+        <div className="h-24 flex items-center justify-center bg-black/20">
+          <FileText size={28} className="text-muted-foreground" />
         </div>
+      )}
 
-        <div className="h-px bg-border mx-4 sm:mx-6" />
-
-        {/* ── Fields list ── */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-4">
-          {fieldsWithAnswers.map((q, _i) => {
-            const answer = answers[q.id];
-            const validation = validationMap[q.id];
-            const isFile = isFileField(q);
-            const questionFiles = isFile ? getFileForQuestion(q.id) : [];
-            const isPending = !validation;
-            const isApproved = validation?.status === "approved";
-            const isRejected = validation?.status === "rejected";
-
-            return (
-              <div key={q.id} className="group">
-                {/* Field label */}
-                <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                  <StatusDot status={validation?.status} />
-                  <span className="text-xs sm:text-[13px] font-medium text-muted-foreground truncate">
-                    {q.title}
-                  </span>
-                </div>
-
-                {/* Answer card */}
-                <div
-                  className={`ml-4 sm:ml-5 rounded-xl border transition-all ${
-                    isApproved
-                      ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20"
-                      : isRejected
-                      ? "border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20"
-                      : "border-border bg-secondary/50 hover:border-border"
-                  }`}
-                >
-                  <div className="px-3 sm:px-4 py-2.5 sm:py-3">
-                    {(() => {
-                      const fileFromAnswer = isFile ? parseFileAnswer(answer) : null;
-                      const dbFiles = isFile ? questionFiles : [];
-                      const allFiles = fileFromAnswer ? [fileFromAnswer] : dbFiles;
-
-                      if (isFile && allFiles.length > 0) {
-                        return (
-                          <div className="space-y-2 sm:space-y-3">
-                            {allFiles.map((file: any, fIdx: number) => {
-                              const isImage = file.mimeType?.startsWith("image/");
-                              const _isPdf = file.mimeType === "application/pdf";
-                              const hasUrl = !!file.url;
-
-                              return (
-                                <div key={fIdx}>
-                                  {isImage && hasUrl ? (
-                                    <div className="space-y-2">
-                                      <img
-                                        src={file.url}
-                                        alt={file.filename}
-                                        className="w-full max-h-40 sm:max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                        onClick={() => setExpandedImage(file.url)}
-                                      />
-                                      <div className="flex items-center gap-2">
-                                        <button
-                                          onClick={() => setExpandedImage(file.url)}
-                                          className="flex items-center gap-1 text-[11px] text-brand hover:underline"
-                                        >
-                                          <ImageIcon size={11} /> Ampliar
-                                        </button>
-                                        <a
-                                          href={file.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                                        >
-                                          <ExternalLink size={11} /> Abrir
-                                        </a>
-                                      </div>
-                                    </div>
-                                  ) : hasUrl ? (
-                                    <a
-                                      href={file.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 p-2.5 rounded-lg bg-card border border-border hover:border-brand/30 transition-all"
-                                    >
-                                      <FileIcon size={16} className="text-brand shrink-0" />
-                                      <span className="text-xs sm:text-sm text-foreground truncate">{file.filename}</span>
-                                      <ExternalLink size={12} className="text-muted-foreground shrink-0 ml-auto" />
-                                    </a>
-                                  ) : (
-                                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-card border border-border">
-                                      <FileIcon size={16} className="text-muted-foreground shrink-0" />
-                                      <span className="text-xs sm:text-sm text-muted-foreground truncate">{file.filename}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      }
-
-                      // Text answer
-                      const displayValue = typeof answer === "object" ? JSON.stringify(answer) : String(answer);
-                      return (
-                        <p className="text-xs sm:text-sm text-foreground font-body leading-relaxed break-words">
-                          {displayValue}
-                        </p>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="px-3 sm:px-4 py-2 border-t border-border/50 flex items-center gap-2">
-                    {isPending ? (
-                      <>
-                        <button
-                          onClick={() => handleApprove(q.id)}
-                          disabled={validateMutation.isPending}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-body font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 transition-all"
-                        >
-                          <Check size={12} /> Aprovar
-                        </button>
-                        <button
-                          onClick={() => handleReject(q.id)}
-                          disabled={validateMutation.isPending}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-body font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800 transition-all"
-                        >
-                          <X size={12} /> Reprovar
-                        </button>
-                      </>
-                    ) : isApproved ? (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 size={13} /> Aprovado
-                      </div>
-                    ) : isRejected ? (
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 mb-1">
-                          <XCircle size={13} /> Reprovado
-                        </div>
-                        {validation?.justification && (
-                          <p className="text-[11px] text-muted-foreground italic ml-5">
-                            "{validation.justification}"
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* ── Approve All Button ── */}
-          {pendingFields > 0 && (
-            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50">
-              <button
-                onClick={() => {
-                  const pendingQs = fieldsWithAnswers.filter((q) => !validationMap[q.id]);
-                  pendingQs.forEach((q) => {
-                    handleApprove(q.id);
-                  });
-                }}
-                disabled={validateMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-sm"
-              >
-                {validateMutation.isPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <CheckCircle2 size={16} />
-                )}
-                Aprovar Todos ({pendingFields} pendente{pendingFields > 1 ? "s" : ""})
-              </button>
-            </div>
-          )}
-
-          {/* ─── Reabrir Validação Button (when already finalized) ─── */}
-          {isAlreadyFinalized && totalFields > 0 && (
-            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50 space-y-2">
-              <div className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-semibold ${
-                response.validationStatus === "approved"
-                  ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
-                  : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
-              }`}>
-                {response.validationStatus === "approved" ? (
-                  <><CheckCircle2 size={16} /> Validação finalizada — Aprovado</>
-                ) : (
-                  <><XCircle size={16} /> Validação finalizada — Rejeitado</>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  setReopenedValidation(true);
-                  toast.info("Validação reaberta. Modifique e finalize novamente.");
-                }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-950/50 border border-amber-200 dark:border-amber-800 transition-all"
-              >
-                <RotateCcw size={16} />
-                Reabrir Validação
-              </button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Reabra para modificar validações e enviar um novo email ao cliente.
-              </p>
-            </div>
-          )}
-
-          {/* ─── Finalizar Validação Button ─── */}
-          {!isAlreadyFinalized && pendingFields === 0 && totalFields > 0 && (
-            <div className="pt-3 sm:pt-4 mt-2 border-t border-border/50 space-y-2">
-              {/* Status summary */}
-              <div className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-semibold ${
-                approvedFields === totalFields
-                  ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
-                  : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
-              }`}>
-                {approvedFields === totalFields ? (
-                  <><CheckCircle2 size={16} /> Todas as respostas aprovadas</>
-                ) : (
-                  <><AlertTriangle size={16} /> {approvedFields} aprovado{approvedFields !== 1 ? "s" : ""}, {rejectedFields} reprovado{rejectedFields !== 1 ? "s" : ""}</>
-                )}
-              </div>
-
-              {/* Finalizar button */}
-              <button
-                onClick={() => setShowConfirmFinalize(true)}
-                disabled={finalizeMutation.isPending}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-body font-semibold text-white transition-all shadow-sm disabled:opacity-50 ${
-                  approvedFields === totalFields
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-brand hover:bg-brand/90"
-                }`}
-              >
-                {finalizeMutation.isPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Send size={16} />
-                )}
-                Finalizar Validação e Enviar Email
-              </button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Um email consolidado será enviado ao cliente com o resultado da validação.
-              </p>
-            </div>
-          )}
-        </div>
-      </motion.div>
-
-      {/* ── Confirm finalize dialog ── */}
-      <AnimatePresence>
-        {showConfirmFinalize && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-[60]"
-              onClick={() => setShowConfirmFinalize(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-4 right-4 sm:left-auto sm:right-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bottom-4 sm:bottom-auto sm:w-[400px] bg-card rounded-2xl border border-border shadow-2xl z-[61] p-5"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2 rounded-xl ${
-                  approvedFields === totalFields
-                    ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600"
-                    : "bg-amber-100 dark:bg-amber-950/50 text-amber-600"
-                }`}>
-                  {approvedFields === totalFields ? <ShieldCheck size={20} /> : <ShieldAlert size={20} />}
-                </div>
-                <div>
-                  <h4 className="text-sm font-display font-bold text-foreground">
-                    Finalizar validação?
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Esta ação enviará um email ao cliente.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-secondary/50 rounded-xl p-3 mb-4 text-xs text-muted-foreground space-y-1">
-                <p><strong className="text-foreground">{approvedFields}</strong> campo{approvedFields !== 1 ? "s" : ""} aprovado{approvedFields !== 1 ? "s" : ""}</p>
-                {rejectedFields > 0 && (
-                  <p><strong className="text-foreground">{rejectedFields}</strong> campo{rejectedFields !== 1 ? "s" : ""} reprovado{rejectedFields !== 1 ? "s" : ""}</p>
-                )}
-                <p className="pt-1 border-t border-border/50 mt-1">
-                  {approvedFields === totalFields
-                    ? "O cliente receberá um email de aprovação."
-                    : "O cliente receberá um email com os itens a corrigir."}
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowConfirmFinalize(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:bg-secondary transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => {
-                    setShowConfirmFinalize(false);
-                    finalizeMutation.mutate({ responseId: response.id });
-                  }}
-                  disabled={finalizeMutation.isPending}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-white transition-all disabled:opacity-50 ${
-                    approvedFields === totalFields
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-brand hover:bg-brand/90"
-                  }`}
-                >
-                  {finalizeMutation.isPending ? "Enviando..." : "Confirmar e Enviar"}
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Reject justification modal ── */}
-      <AnimatePresence>
-        {rejectingField && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-[60]"
-              onClick={() => setRejectingField(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-4 right-4 sm:left-auto sm:right-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bottom-4 sm:bottom-auto sm:w-[400px] bg-card rounded-2xl border border-border shadow-2xl z-[61] p-5"
-            >
-              <h4 className="text-sm font-display font-bold text-foreground mb-1">
-                Motivo da reprovação
-              </h4>
-              <p className="text-xs text-muted-foreground mb-3">
-                Informe o motivo para o cliente corrigir.
-              </p>
-              <textarea
-                value={justification}
-                onChange={(e) => setJustification(e.target.value)}
-                placeholder="Ex: Documento ilegível, envie novamente..."
-                className="w-full px-3 py-2.5 rounded-xl text-sm font-body bg-secondary border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/30 resize-none h-24 transition-colors"
-                autoFocus
-              />
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => setRejectingField(null)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-muted-foreground border border-border hover:bg-secondary transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmReject}
-                  disabled={!justification.trim() || validateMutation.isPending}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-body font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-all"
-                >
-                  Reprovar
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Image lightbox ── */}
-      <AnimatePresence>
-        {expandedImage && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70]"
-              onClick={() => setExpandedImage(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-4 sm:inset-8 z-[71] flex items-center justify-center"
-              onClick={() => setExpandedImage(null)}
-            >
-              <img
-                src={expandedImage}
-                alt="Preview"
-                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-              />
-            </motion.div>
-            <button
-              onClick={() => setExpandedImage(null)}
-              className="fixed top-4 right-4 z-[72] p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all"
-            >
-              <X size={20} />
-            </button>
-          </>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
-
-/* ─── Cadence Panel (inline per response) ─── */
-function CadencePanelInline({ responseId }: { responseId: number }) {
-  const utils = trpc.useUtils();
-  const { data: cadences, isLoading } = trpc.cadence.getByResponse.useQuery(
-    { responseId },
-    { staleTime: 15000 }
-  );
-  const stopMutation = trpc.cadence.stop.useMutation({
-    onSuccess: () => {
-      utils.cadence.getByResponse.invalidate({ responseId });
-      toast.success("Cadência pausada!");
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
-
-  if (isLoading) return null;
-
-  // Show completed/inactive cadences if any exist but none active
-  if (!cadences || cadences.length === 0) {
-    return null;
-  }
-
-  const hasActiveCadence = cadences?.some((c: any) => c.active && !c.stoppedReason);
-
-  if (!hasActiveCadence) {
-    return (
-      <div className="px-4 pb-2">
-        <div className="space-y-1.5">
-          {cadences.map((c: any) => {
-            const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
-            const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
-            return (
-              <div key={c.id} className="rounded-lg border border-border bg-muted/30 p-2">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Pause size={11} className="text-muted-foreground" />
-                  <span className="text-[10px] font-semibold text-muted-foreground">Cadência: {typeLabel}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-                    <div className="h-full rounded-full bg-muted-foreground/30" style={{ width: `${progress}%` }} />
-                  </div>
-                  <span className="text-[9px] text-muted-foreground font-mono shrink-0">{c.sequenceNumber}/{c.maxSequence}</span>
-                </div>
-                {c.stoppedReason && (
-                  <div className="mt-1 text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1">
-                    <CheckCircle2 size={9} />
-                    {c.stoppedReason === "form_completed" ? "Cadastro completado" :
-                     c.stoppedReason === "form_approved" ? "Cadastro aprovado" :
-                     c.stoppedReason === "manual" ? "Pausado manualmente" :
-                     c.stoppedReason === "max_reached" ? "Ciclo completo" : c.stoppedReason}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {/* File bar */}
+      <div className="px-3.5 py-2.5 flex items-center gap-2.5 border-t border-white/[0.06]">
+        {isImage ? <ImageIcon size={15} className="text-brand shrink-0" /> : <FileText size={15} className="text-brand shrink-0" />}
+        <span className="text-xs sm:text-sm text-foreground truncate flex-1">{file.filename || "arquivo"}</span>
+        <a
+          href={file.url} target="_blank" rel="noopener noreferrer"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors"
+          title="Abrir em nova aba"
+        >
+          <ExternalLink size={13} />
+        </a>
       </div>
-    );
-  }
 
-  return (
-    <div className="px-4 pb-2 space-y-1.5">
-      {cadences.map((c: any) => {
-        const isActive = c.active && !c.stoppedReason;
-        const progress = c.maxSequence > 0 ? Math.round((c.sequenceNumber / c.maxSequence) * 100) : 0;
-        const typeLabel = c.cadenceType === "abandono" ? "Abandono" : "Reprovação";
-
-        return (
-          <div
-            key={c.id}
-            className={`rounded-lg border p-2 ${
-              isActive
-                ? c.cadenceType === "abandono"
-                  ? "border-amber-500/20 bg-amber-500/5"
-                  : "border-red-500/20 bg-red-500/5"
-                : "border-border bg-muted/30"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <div className="flex items-center gap-1.5">
-                {isActive ? (
-                  <MailCheck size={11} className={c.cadenceType === "abandono" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"} />
-                ) : (
-                  <Pause size={11} className="text-muted-foreground" />
-                )}
-                <span className={`text-[10px] font-semibold ${
-                  isActive
-                    ? c.cadenceType === "abandono" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
-                    : "text-muted-foreground"
-                }`}>
-                  Cadência: {typeLabel}
-                </span>
-              </div>
-              {isActive && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    stopMutation.mutate({ cadenceId: c.id });
-                  }}
-                  disabled={stopMutation.isPending}
-                  className="text-[9px] text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-0.5"
-                >
-                  <Pause size={9} /> Pausar
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    isActive
-                      ? c.cadenceType === "abandono" ? "bg-amber-500" : "bg-red-500"
-                      : "bg-muted-foreground/30"
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <span className="text-[9px] text-muted-foreground font-mono shrink-0">
-                {c.sequenceNumber}/{c.maxSequence}
-              </span>
-            </div>
-            {c.stoppedReason && (
-              <div className="mt-1 text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1">
-                <CheckCircle2 size={9} />
-                {c.stoppedReason === "form_completed" ? "Cadastro completado" :
-                 c.stoppedReason === "form_approved" ? "Cadastro aprovado" :
-                 c.stoppedReason === "manual" ? "Pausado manualmente" :
-                 c.stoppedReason === "max_reached" ? "Ciclo completo" : c.stoppedReason}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {/* Email History */}
-      <EmailHistoryInline responseId={responseId} />
-    </div>
-  );
-}
-
-/* ─── Email History Inline (shows sent emails timeline) ─── */
-function EmailHistoryInline({ responseId }: { responseId: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const { data: history, isLoading } = trpc.cadence.getEmailHistory.useQuery(
-    { responseId },
-    { enabled: expanded, staleTime: 30000 }
-  );
-
-  return (
-    <div className="mt-1">
-      <button
-        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
-      >
-        <Clock size={10} />
-        <span className="font-medium">Histórico de e-mails</span>
-        <ChevronDown size={10} className={`ml-auto transition-transform ${expanded ? "rotate-180" : ""}`} />
-      </button>
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-1.5 space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
-              {isLoading ? (
-                <div className="flex items-center gap-1 text-[9px] text-muted-foreground py-1">
-                  <Loader2 size={9} className="animate-spin" /> Carregando...
-                </div>
-              ) : !history || history.length === 0 ? (
-                <div className="text-[9px] text-muted-foreground py-1 italic">Nenhum e-mail enviado ainda</div>
-              ) : (
-                history.map((event: any, i: number) => {
-                  const icon = event.activityType === "cadence_email_sent" ? <Send size={9} className="text-blue-500 shrink-0" />
-                    : event.activityType === "cadence_started" ? <MailPlus size={9} className="text-green-500 shrink-0" />
-                    : event.activityType === "cadence_stopped" ? <Pause size={9} className="text-red-500 shrink-0" />
-                    : event.activityType === "approval_email_sent" ? <CheckCircle2 size={9} className="text-green-500 shrink-0" />
-                    : event.activityType === "rejection_email_sent" ? <XCircle size={9} className="text-red-500 shrink-0" />
-                    : event.activityType === "protocol_email_sent" ? <Mail size={9} className="text-blue-500 shrink-0" />
-                    : <Send size={9} className="text-muted-foreground shrink-0" />;
-
-                  return (
-                    <div key={i} className="flex items-start gap-1.5 text-[9px]">
-                      <div className="mt-0.5">{icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-foreground truncate">{event.description}</div>
-                        <div className="text-muted-foreground">
-                          {new Date(event.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}{" "}
-                          {new Date(event.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                          {event.metadata?.recipientEmail && (
-                            <span className="ml-1 text-muted-foreground/70">• {event.metadata.recipientEmail}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ─── PDF Attachment Selection Dialog ─── */
-function PdfAttachmentDialog({
-  responseId,
-  onClose,
-  onGenerate,
-}: {
-  responseId: number;
-  onClose: () => void;
-  onGenerate: (excludeUrls: string[]) => void;
-}) {
-  const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const attachmentsQuery = trpc.responses.listAttachments.useQuery(
-    { responseId },
-    { staleTime: 30_000 }
-  );
-
-  const attachments = attachmentsQuery.data ?? [];
-  const hasAttachments = attachments.length > 0;
-  const isLoading = attachmentsQuery.isLoading;
-
-  const toggleAttachment = (url: string) => {
-    setExcluded((prev) => {
-      const next = new Set(prev);
-      if (next.has(url)) next.delete(url);
-      else next.add(url);
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    if (excluded.size === 0) {
-      setExcluded(new Set(attachments.map((a) => a.url)));
-    } else {
-      setExcluded(new Set());
-    }
-  };
-
-  const includedCount = attachments.length - excluded.size;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.2 }}
-        className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-display font-bold text-foreground">Gerar PDF</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Selecione os anexos para incluir no PDF
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
-          >
-            <X size={16} className="text-muted-foreground" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-brand" />
-              <span className="ml-2 text-sm text-muted-foreground">Carregando anexos...</span>
-            </div>
-          ) : !hasAttachments ? (
-            <div className="text-center py-6">
-              <FileText size={28} className="mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">Nenhum anexo encontrado</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">O PDF será gerado apenas com o protocolo e ficha</p>
-            </div>
+      {/* Actions */}
+      <div className="px-3.5 pb-3 flex items-center gap-2">
+        <input
+          ref={inputRef} type="file" className="hidden"
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.heic"
+          onChange={(e) => e.target.files?.[0] && handleReplace(e.target.files[0])}
+        />
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() => inputRef.current?.click()}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium border border-white/10 bg-white/[0.04] text-foreground hover:bg-white/[0.08] transition-[transform,background-color] duration-150 active:scale-[0.97] disabled:opacity-50"
+        >
+          {busy === "replace" ? <Loader2 size={13} className="animate-spin" /> : <UploadCloud size={13} />}
+          Trocar arquivo
+        </button>
+        <AnimatePresence mode="wait" initial={false}>
+          {confirmRemove ? (
+            <motion.button
+              key="confirm" type="button" disabled={busy !== null} onClick={handleRemove}
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15, ease: EASE }}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-red-500/90 text-white transition-transform duration-150 active:scale-[0.97]"
+            >
+              {busy === "remove" ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              Confirmar exclusão
+            </motion.button>
           ) : (
-            <>
-              {/* Select all toggle */}
-              <button
-                onClick={toggleAll}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors text-xs font-medium text-muted-foreground mb-2 cursor-pointer"
-              >
-                <div
-                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                    excluded.size === 0
-                      ? "bg-brand border-brand text-white"
-                      : excluded.size === attachments.length
-                        ? "border-border"
-                        : "bg-brand/30 border-brand text-white"
-                  }`}
-                >
-                  {excluded.size === 0 && <Check size={10} />}
-                  {excluded.size > 0 && excluded.size < attachments.length && (
-                    <div className="w-1.5 h-1.5 bg-white rounded-sm" />
-                  )}
-                </div>
-                {excluded.size === 0 ? "Desmarcar todos" : "Selecionar todos"}
-                <span className="ml-auto text-muted-foreground/60">
-                  {includedCount}/{attachments.length}
-                </span>
-              </button>
-
-              {/* Attachment list */}
-              <div className="space-y-1">
-                {attachments.map((att, i) => {
-                  const isIncluded = !excluded.has(att.url);
-                  const isImage = att.mimeType.startsWith("image/");
-                  const isPdf = att.mimeType === "application/pdf";
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => toggleAttachment(att.url)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
-                        isIncluded
-                          ? "bg-brand/5 border border-brand/20"
-                          : "bg-secondary/30 border border-transparent opacity-60"
-                      }`}
-                    >
-                      <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                          isIncluded ? "bg-brand border-brand text-white" : "border-border"
-                        }`}
-                      >
-                        {isIncluded && <Check size={10} />}
-                      </div>
-                      {isImage ? (
-                        <ImageIcon size={16} className="text-blue-500 shrink-0" />
-                      ) : isPdf ? (
-                        <FileText size={16} className="text-red-500 shrink-0" />
-                      ) : (
-                        <FileIcon size={16} className="text-muted-foreground shrink-0" />
-                      )}
-                      <div className="min-w-0 text-left">
-                        <p className="text-xs font-medium text-foreground truncate">
-                          {att.filename}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {att.source}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+            <motion.button
+              key="remove" type="button" onClick={() => { setConfirmRemove(true); setTimeout(() => setConfirmRemove(false), 3000); }}
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15, ease: EASE }}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium border border-red-400/25 bg-red-400/[0.06] text-red-400 hover:bg-red-400/[0.12] transition-[transform,background-color] duration-150 active:scale-[0.97]"
+            >
+              <Trash2 size={13} /> Excluir
+            </motion.button>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/50 flex items-center gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-lg text-xs font-medium text-muted-foreground bg-secondary hover:bg-secondary/80 transition-colors cursor-pointer"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => onGenerate(Array.from(excluded))}
-            className="flex-1 py-2 rounded-lg text-xs font-medium text-white bg-brand hover:bg-brand/90 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Download size={13} />
-            Gerar PDF
-            {hasAttachments && (
-              <span className="text-[10px] opacity-70">
-                ({includedCount} {includedCount === 1 ? "anexo" : "anexos"})
-              </span>
-            )}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }
 
-/* ─── Response Card (Mobile) ─── */
-function ResponseCard({
-  response,
-  questions,
-  onValidate,
-  onGeneratePdf,
-  isGenerating,
-  getStatusBadge,
-  formatWhatsAppLink,
-  staffUsers = [],
+/* ─── Observações (autosave) ─── */
+function NotesField({ responseId, initial, formId }: { responseId: number; initial: string; formId: number }) {
+  const utils = trpc.useUtils();
+  const [value, setValue] = useState(initial);
+  const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const updateNotes = trpc.responses.updateNotes.useMutation({
+    onSuccess: () => {
+      setState("saved");
+      utils.responses.listByForm.invalidate({ formId });
+      setTimeout(() => setState("idle"), 1600);
+    },
+    onError: () => { setState("idle"); toast.error("Erro ao salvar observações"); },
+  });
+
+  const onChange = (v: string) => {
+    setValue(v);
+    setState("saving");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => updateNotes.mutate({ responseId, notes: v }), 800);
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+      <div className="flex items-center justify-between mb-2">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <StickyNote size={13} className="text-amber-400" /> Observações
+        </span>
+        <AnimatePresence mode="wait" initial={false}>
+          {state === "saving" && (
+            <motion.span key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+              <Loader2 size={10} className="animate-spin" /> Salvando…
+            </motion.span>
+          )}
+          {state === "saved" && (
+            <motion.span key="saved" initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: EASE }} className="text-[11px] text-emerald-400 inline-flex items-center gap-1">
+              <Check size={10} /> Salvo
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Anote qualquer coisa sobre este cadastro…"
+        rows={3}
+        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none resize-y leading-relaxed"
+      />
+    </div>
+  );
+}
+
+/* ─── Detail sheet (opens on card click) ─── */
+function ResponseDetailSheet({
+  response, questions, formId, onClose, onDeleted,
 }: {
   response: any;
   questions: BuilderQuestion[];
-  onValidate: (id: number) => void;
-  onGeneratePdf: (id: number) => void;
-  isGenerating: boolean;
-  getStatusBadge: (status: string | null | undefined) => React.ReactNode;
-  formatWhatsAppLink: (phone: string) => string | null;
-  staffUsers?: any[];
+  formId: number;
+  onClose: () => void;
+  onDeleted: () => void;
 }) {
+  const utils = trpc.useUtils();
   const answers = (response.answers ?? {}) as Record<string, any>;
-  const isValidated = response.validationStatus === "approved";
-  const actualQs = questions.filter((q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Smart field detection for mobile cards
-  const findByType = (types: string[]) => actualQs.find((q) => types.includes(q.type));
-  const findByTitle = (keywords: string[]) => actualQs.find((q) => keywords.some((kw) => q.title.toLowerCase().includes(kw)));
+  const softDelete = trpc.responses.softDelete.useMutation({
+    onSuccess: () => {
+      utils.responses.listByForm.invalidate({ formId });
+      utils.trash.list.invalidate();
+      onDeleted();
+      toast.success("Cadastro movido para a lixeira", {
+        action: {
+          label: "Desfazer",
+          onClick: () => restore.mutate({ id: response.id }),
+        },
+      });
+    },
+    onError: (e) => toast.error(e.message || "Erro ao excluir"),
+  });
+  const restore = trpc.trash.restoreResponse.useMutation({
+    onSuccess: () => {
+      utils.responses.listByForm.invalidate({ formId });
+      utils.trash.list.invalidate();
+      toast.success("Cadastro restaurado");
+    },
+  });
 
-  const docField = findByType(["cpf"]) || findByType(["cnpj"]) || findByTitle(["cpf", "cnpj"]);
-  const nameField = findByType(["name"]) || findByTitle(["nome", "name", "razão social"]);
-  const phoneField = findByType(["phone"]) || findByTitle(["telefone", "celular", "whatsapp", "phone", "fone"]);
+  const answered = useMemo(
+    () => questions.filter((q) =>
+      q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement" &&
+      answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== ""
+    ),
+    [questions, answers]
+  );
 
-  const previewFields: { label: string; value: any; isPhone?: boolean }[] = [];
-  if (docField && answers[docField.id]) previewFields.push({ label: "CPF/CNPJ", value: answers[docField.id] });
-  if (nameField && answers[nameField.id]) previewFields.push({ label: "Nome", value: answers[nameField.id] });
-  if (phoneField && answers[phoneField.id]) previewFields.push({ label: "Telefone", value: answers[phoneField.id], isPhone: true });
+  // Big-name header data
+  const name = response.respondentName || (() => {
+    const nameQ = questions.find((q) => q.type === "name");
+    return (nameQ && formatPlainAnswer(answers[nameQ.id])) || "Sem nome";
+  })();
+  const phoneQ = questions.find((q) => q.type === "phone");
+  const phone = phoneQ ? formatPlainAnswer(answers[phoneQ.id]) : "";
+  const wa = phone ? formatWhatsAppLink(phone) : null;
+  const dt = formatDate(response.createdAt);
 
-  // Fallback if no smart fields found
-  if (previewFields.length === 0) {
-    actualQs.slice(0, 3).forEach((q) => {
-      if (answers[q.id]) previewFields.push({ label: q.title, value: answers[q.id] });
-    });
-  }
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-xl p-0 border-l border-white/10 bg-[#0b1220]/85 backdrop-blur-2xl overflow-hidden flex flex-col"
+      >
+        {/* Header — client name BIG */}
+        <SheetHeader className="px-5 sm:px-6 pt-6 pb-4 border-b border-white/[0.06] shrink-0 text-left space-y-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <SheetTitle className="text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight break-words">
+                {name}
+              </SheetTitle>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <StatusChip complete={!!response.isComplete} />
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Calendar size={11} /> {dt.day} · {dt.time}
+                </span>
+                {response.protocolCode && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-brand/90">
+                    #{response.protocolCode}
+                    <CopyButton text={response.protocolCode} small label="Copiar protocolo" />
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {phone && (
+            <div className="mt-3 flex items-center gap-2">
+              <a
+                href={wa ?? undefined} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-emerald-400/10 text-emerald-400 border border-emerald-400/25 hover:bg-emerald-400/[0.18] transition-[transform,background-color] duration-150 active:scale-[0.97]"
+              >
+                <MessageCircle size={14} /> {phone}
+              </a>
+              <CopyButton text={phone} label="Copiar telefone" />
+            </div>
+          )}
+        </SheetHeader>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-6 py-4 space-y-3">
+          <NotesField responseId={response.id} initial={response.reviewNotes ?? ""} formId={formId} />
+
+          {answered.map((q, i) => {
+            const raw = answers[q.id];
+            const files = q.type === "file-upload" ? parseFiles(raw) : [];
+            const addressLines = files.length === 0 ? parseAddress(raw) : null;
+            const display = resolveChoiceLabel(q, raw);
+
+            return (
+              <motion.div
+                key={q.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: EASE, delay: Math.min(i * 0.03, 0.3) }}
+                className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5"
+              >
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{q.title}</p>
+
+                {files.length > 0 ? (
+                  <div className="space-y-3">
+                    {files.map((f) => (
+                      <DocumentBlock key={f.url} file={f} allFiles={files} responseId={response.id} questionId={q.id} formId={formId} />
+                    ))}
+                  </div>
+                ) : addressLines ? (
+                  <div className="space-y-1.5">
+                    {addressLines.map((line) => (
+                      <div key={line.label} className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                        <span className="text-[11px] text-muted-foreground w-24 shrink-0">{line.label}</span>
+                        <span className="text-sm text-foreground flex-1 truncate">{line.value}</span>
+                        <CopyButton text={line.value} small label={`Copiar ${line.label}`} />
+                      </div>
+                    ))}
+                    <div className="flex justify-end pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(addressLines.map((l) => `${l.label}: ${l.value}`).join("\n"));
+                          toast.success("Endereço completo copiado");
+                        }}
+                        className="text-[11px] text-brand hover:underline underline-offset-2 inline-flex items-center gap-1"
+                      >
+                        <Copy size={10} /> Copiar endereço completo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2.5">
+                    <p className="text-sm text-foreground leading-relaxed break-words flex-1 whitespace-pre-line">{display}</p>
+                    <CopyButton text={display} label="Copiar resposta" />
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+
+          {answered.length === 0 && (
+            <div className="py-10 text-center text-sm text-muted-foreground">Nenhuma resposta preenchida ainda.</div>
+          )}
+        </div>
+
+        {/* Footer — delete to trash */}
+        <div className="px-5 sm:px-6 py-3.5 border-t border-white/[0.06] shrink-0">
+          <AnimatePresence mode="wait" initial={false}>
+            {confirmDelete ? (
+              <motion.div
+                key="confirm" className="flex items-center gap-2"
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} transition={{ duration: 0.15, ease: EASE }}
+              >
+                <button
+                  type="button"
+                  onClick={() => softDelete.mutate({ responseId: response.id })}
+                  disabled={softDelete.isPending}
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-red-500/90 text-white transition-transform duration-150 active:scale-[0.97]"
+                >
+                  {softDelete.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Mover para a lixeira
+                </button>
+                <button
+                  type="button" onClick={() => setConfirmDelete(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm text-muted-foreground border border-white/10 hover:bg-white/[0.05] transition-colors"
+                >
+                  Cancelar
+                </button>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="ask" type="button" onClick={() => setConfirmDelete(true)}
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} transition={{ duration: 0.15, ease: EASE }}
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-red-400 border border-red-400/25 bg-red-400/[0.05] hover:bg-red-400/[0.12] transition-[transform,background-color] duration-150 active:scale-[0.97]"
+              >
+                <Trash2 size={14} /> Excluir cadastro
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/* ─── Response card (list item) ─── */
+function ResponseCard({
+  response, questions, index, onOpen,
+}: {
+  response: any;
+  questions: BuilderQuestion[];
+  index: number;
+  onOpen: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const answers = (response.answers ?? {}) as Record<string, any>;
+  const name = response.respondentName || (() => {
+    const nameQ = questions.find((q) => q.type === "name");
+    return (nameQ && formatPlainAnswer(answers[nameQ.id])) || "Sem nome";
+  })();
+  const phoneQ = questions.find((q) => q.type === "phone");
+  const phone = phoneQ ? formatPlainAnswer(answers[phoneQ.id]) : "";
+  const wa = phone ? formatWhatsAppLink(phone) : null;
+  const dt = formatDate(response.createdAt);
+  const hasNotes = !!(response.reviewNotes && String(response.reviewNotes).trim());
+
+  return (
+    <motion.button
+      type="button"
+      layout
+      onClick={onOpen}
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.15, ease: EASE } }}
+      transition={{ duration: 0.3, ease: EASE, delay: Math.min(index * 0.04, 0.36) }}
+      className="group w-full text-left rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 sm:p-5 hover:border-brand/30 hover:bg-white/[0.055] transition-[border-color,background-color,transform] duration-200 active:scale-[0.985]"
+      style={{ transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        {/* BIG client name */}
+        <h3 className="text-lg sm:text-2xl font-display font-bold text-foreground leading-tight break-words min-w-0">
+          {name}
+        </h3>
+        <div className="shrink-0 pt-0.5">
+          <StatusChip complete={!!response.isComplete} />
+        </div>
+      </div>
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        {phone && (
+          <span
+            role="link"
+            onClick={(e) => { e.stopPropagation(); if (wa) window.open(wa, "_blank", "noopener"); }}
+            className="inline-flex items-center gap-1.5 text-sm text-emerald-400 hover:underline underline-offset-2 cursor-pointer"
+          >
+            <Phone size={13} /> {phone}
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Clock size={12} /> {dt.day} · {dt.time}
+        </span>
+        {response.protocolCode && (
+          <span className="text-xs font-mono text-brand/80">#{response.protocolCode}</span>
+        )}
+        {hasNotes && (
+          <span className="inline-flex items-center gap-1 text-xs text-amber-400/90">
+            <StickyNote size={11} /> obs
+          </span>
+        )}
+      </div>
+    </motion.button>
+  );
+}
+
+/* ─── Trash view ─── */
+function TrashList({ formId, onClose }: { formId: number; onClose: () => void }) {
+  const utils = trpc.useUtils();
+  const trashQuery = trpc.trash.list.useQuery(undefined, { staleTime: 5000 });
+  const restore = trpc.trash.restoreResponse.useMutation({
+    onSuccess: () => {
+      utils.trash.list.invalidate();
+      utils.responses.listByForm.invalidate({ formId });
+      toast.success("Cadastro restaurado");
+    },
+    onError: (e) => toast.error(e.message || "Erro ao restaurar"),
+  });
+
+  const items = (trashQuery.data?.responses ?? []).filter((r: any) => r.formId === formId);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-xl overflow-hidden hover:border-brand/20 transition-all"
+      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.25, ease: EASE }}
+      className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl overflow-hidden"
     >
-      {/* Card header */}
-      <div className="px-4 py-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-            <Clock size={14} className="text-muted-foreground" />
-          </div>
-          <div className="min-w-0">
-            {response.protocolCode && (
-              <p className="text-[11px] font-mono text-brand font-semibold tracking-wide mb-0.5">
-                #{response.protocolCode}
-              </p>
-            )}
-            <p className="text-sm font-medium text-foreground">
-              {new Date(response.createdAt).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "short",
-              })}
-              <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-                {new Date(response.createdAt).toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </p>
-          </div>
-        </div>
-        <div className="shrink-0">{getStatusBadge(response.validationStatus)}</div>
+      <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.06]">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Trash2 size={15} className="text-red-400" /> Lixeira deste formulário
+          <span className="text-xs text-muted-foreground font-normal">({items.length})</span>
+        </span>
+        <button type="button" onClick={onClose} className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors">
+          <X size={14} />
+        </button>
       </div>
 
-      {/* Preview fields */}
-      {previewFields.length > 0 && (
-        <div className="px-4 pb-2 space-y-1.5">
-          {previewFields.map((field, i) => {
-            const displayValue = typeof field.value === "object" ? JSON.stringify(field.value) : String(field.value);
-            const whatsappUrl = field.isPhone ? formatWhatsAppLink(displayValue) : null;
-
+      {trashQuery.isLoading ? (
+        <div className="py-8 flex justify-center"><Loader2 size={18} className="animate-spin text-muted-foreground" /></div>
+      ) : items.length === 0 ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">Lixeira vazia.</div>
+      ) : (
+        <div className="divide-y divide-white/[0.05]">
+          {items.map((r: any) => {
+            const dt = formatDate(r.deletedAt ?? r.createdAt);
             return (
-              <div key={i} className="flex items-baseline gap-2">
-                <span className="text-[11px] text-muted-foreground shrink-0 w-[80px] truncate">
-                  {field.label}
-                </span>
-                {whatsappUrl ? (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium truncate"
-                  >
-                    <Phone size={11} className="shrink-0" />
-                    {displayValue}
-                  </a>
-                ) : (
-                  <span className="text-xs text-foreground font-medium truncate">
-                    {displayValue}
-                  </span>
-                )}
+              <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{r.respondentName || r.protocolCode || `Cadastro #${r.id}`}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Excluído em {dt.day} · {dt.time}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => restore.mutate({ id: r.id })}
+                  disabled={restore.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-brand border border-brand/25 bg-brand/[0.06] hover:bg-brand/[0.12] transition-[transform,background-color] duration-150 active:scale-[0.96]"
+                >
+                  <RotateCcw size={12} /> Restaurar
+                </button>
               </div>
             );
           })}
         </div>
       )}
-
-      {/* Reviewer info */}
-      {response.reviewedBy && (
-        <div className="px-4 pb-1.5 flex items-center gap-1.5">
-          <Users size={11} className="text-muted-foreground" />
-          <span className="text-[11px] text-muted-foreground">Responsável:</span>
-          <span className="text-[11px] font-medium text-foreground">
-            {staffUsers.find((s: any) => s.id === response.reviewedBy)?.name || "Staff #" + response.reviewedBy}
-          </span>
-        </div>
-      )}
-
-      {/* Cadence info */}
-      <CadencePanelInline responseId={response.id} />
-
-      {/* Actions */}
-      <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-2">
-        <button
-          onClick={() => onValidate(response.id)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-medium text-brand bg-brand-lighter/50 hover:bg-brand-lighter border border-brand/20 transition-all"
-        >
-          <Shield size={13} />
-          Validar
-        </button>
-        <button
-          onClick={() => {
-            if (!isValidated) {
-              toast.info("Validação necessária", {
-                description: "Valide todas as respostas antes de gerar o PDF.",
-              });
-              return;
-            }
-            onGeneratePdf(response.id);
-          }}
-          disabled={isGenerating}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-body font-medium transition-all ${
-            isValidated
-              ? "text-white bg-brand hover:bg-brand/90"
-              : "text-muted-foreground bg-muted border border-border cursor-not-allowed"
-          }`}
-        >
-          {isGenerating ? (
-            <Loader2 size={13} className="animate-spin" />
-          ) : !isValidated ? (
-            <Lock size={13} />
-          ) : (
-            <FileText size={13} />
-          )}
-          Gerar PDF
-        </button>
-      </div>
+      <p className="px-4 py-2.5 text-[11px] text-muted-foreground border-t border-white/[0.06]">
+        Itens da lixeira também aparecem em Gestão → Lixeira, onde podem ser excluídos definitivamente.
+      </p>
     </motion.div>
   );
 }
 
-/* ─── Main Panel ─── */
+/* ─── Main panel ─── */
 export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], formId }: ResponsesPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [corretorFilter, setCorretorFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showCorretorPicker, setShowCorretorPicker] = useState(false);
-  const [cadenceFilter, setCadenceFilter] = useState<"all" | "active" | "none">("all");
-  const [showCadencePicker, setShowCadencePicker] = useState(false);
-  const [_selectedResponseId, _setSelectedResponseId] = useState<number | null>(null);
-  const [validatingResponseId, setValidatingResponseId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<string>("createdAt");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [generatingId, setGeneratingId] = useState<number | null>(null);
-  const [pdfDialogResponseId, setPdfDialogResponseId] = useState<number | null>(null);
-  const [_excludedAttachmentUrls, setExcludedAttachmentUrls] = useState<Set<string>>(new Set());
-  const [pdfPreview, setPdfPreview] = useState<{ blobUrl: string; filename: string; responseId: number } | null>(null);
-  const itemsPerPage = 10;
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [showTrash, setShowTrash] = useState(false);
 
   const actualQuestions = useMemo(
     () => questions.filter((q) => q.type !== "welcome" && q.type !== "thank-you" && q.type !== "statement"),
@@ -1216,707 +712,197 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
   const responsesQuery = trpc.responses.listByForm.useQuery(
     { formId: formId!, search: searchQuery || undefined },
-    { enabled: !!formId, staleTime: 10000 }
+    { enabled: !!formId, staleTime: 10000, refetchInterval: 30000 }
   );
-
-  // Staff users for corretor filter (reviewedBy)
-  const staffQuery = trpc.staff.list.useQuery(undefined, { staleTime: 60000 });
-  const staffUsers = staffQuery.data ?? [];
-
-  // Form corretores (assigned to this form)
-  const formCorretoresQuery = trpc.corretores.byForm.useQuery(
-    { formId: formId! },
-    { enabled: !!formId, staleTime: 60000 }
-  );
-
-  // Response IDs with active cadences (for cadence filter)
-  const cadenceIdsQuery = trpc.cadence.getActiveResponseIds.useQuery(
-    { formId: formId! },
-    { enabled: !!formId && cadenceFilter !== "all", staleTime: 15000 }
-  );
-  const activeResponseIds = useMemo(() => new Set(cadenceIdsQuery.data ?? []), [cadenceIdsQuery.data]);
-
   const responses = responsesQuery.data ?? [];
-  const utils = trpc.useUtils();
 
-  // ─── Smart field detection: find CPF/CNPJ, Nome, Telefone from questions ───
-  const smartFields = useMemo(() => {
-    const findByType = (types: string[]) =>
-      actualQuestions.find((q) => types.includes(q.type));
-    const findByTitle = (keywords: string[]) =>
-      actualQuestions.find((q) =>
-        keywords.some((kw) => q.title.toLowerCase().includes(kw))
-      );
-
-    const cpfField = findByType(["cpf"]) || findByTitle(["cpf"]);
-    const cnpjField = findByType(["cnpj"]) || findByTitle(["cnpj"]);
-    const nameField = findByType(["name"]) || findByTitle(["nome", "name", "razão social", "razao social"]);
-    const phoneField = findByType(["phone"]) || findByTitle(["telefone", "celular", "whatsapp", "phone", "fone"]);
-
-    // CPF/CNPJ combined — prefer CPF, fallback to CNPJ
-    const docField = cpfField || cnpjField;
-
-    return { docField, nameField, phoneField };
-  }, [actualQuestions]);
-
-  // Format phone for WhatsApp link
-  const formatWhatsAppLink = (phone: string) => {
-    if (!phone) return null;
-    // Remove everything except digits and +
-    const cleaned = phone.replace(/[^\d+]/g, "");
-    // If starts with +, keep as is; otherwise assume Brazil (+55)
-    const number = cleaned.startsWith("+") ? cleaned.replace("+", "") : cleaned.startsWith("55") ? cleaned : `55${cleaned}`;
-    return `https://wa.me/${number}`;
-  };
-
-  // Columns for desktop table — use smart fields
-  const visibleColumns = useMemo(() => {
-    // If we found smart fields, use those specifically
-    const { docField, nameField, phoneField } = smartFields;
-    const smartCols: BuilderQuestion[] = [];
-    if (docField) smartCols.push(docField);
-    if (nameField) smartCols.push(nameField);
-    if (phoneField) smartCols.push(phoneField);
-
-    // If we found at least 2 smart fields, use them
-    if (smartCols.length >= 2) return smartCols;
-
-    // Fallback: first 3 questions
-    return actualQuestions.slice(0, 3);
-  }, [actualQuestions, smartFields]);
-
-  // Build combined list of people for the corretor/reviewer filter
-  const filterPeople = useMemo(() => {
-    const people: { id: string; name: string; type: string }[] = [];
-    const seen = new Set<string>();
-
-    // Staff users who reviewed responses
-    for (const staff of staffUsers) {
-      const key = `staff-${staff.id}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        people.push({ id: `staff-${staff.id}`, name: staff.name, type: staff.role || "staff" });
-      }
+  const filtered = useMemo(() => {
+    let list = [...responses];
+    if (statusFilter === "complete") list = list.filter((r: any) => r.isComplete);
+    if (statusFilter === "incomplete") list = list.filter((r: any) => !r.isComplete);
+    if (dateFilter !== "all") {
+      const now = Date.now();
+      const spans: Record<Exclude<DateFilter, "all">, number> = {
+        today: 1 * 24 * 60 * 60 * 1000,
+        "7days": 7 * 24 * 60 * 60 * 1000,
+        "30days": 30 * 24 * 60 * 60 * 1000,
+      };
+      const span = spans[dateFilter];
+      list = list.filter((r: any) => now - new Date(r.createdAt).getTime() <= span);
     }
+    return list;
+  }, [responses, statusFilter, dateFilter]);
 
-    // Form corretores (legacy)
-    const formCorretores = formCorretoresQuery.data ?? [];
-    for (const c of formCorretores) {
-      const key = `corretor-${(c as any).id}`;
-      if (!seen.has(key) && !staffUsers.some((s: any) => s.id === (c as any).staffUserId)) {
-        seen.add(key);
-        people.push({ id: key, name: (c as any).name, type: "corretor" });
-      }
-    }
+  const stats = useMemo(() => ({
+    total: responses.length,
+    complete: responses.filter((r: any) => r.isComplete).length,
+    incomplete: responses.filter((r: any) => !r.isComplete).length,
+  }), [responses]);
 
-    return people;
-  }, [staffUsers, formCorretoresQuery.data]);
-
-  // Filter responses
-  const filteredResponses = useMemo(() => {
-    let filtered = [...responses];
-
-    // Status filter
-    if (statusFilter !== "all") {
-      if (statusFilter === "pending") {
-        filtered = filtered.filter((r: any) => !r.validationStatus || r.validationStatus === "pending");
-      } else {
-        filtered = filtered.filter((r: any) => r.validationStatus === statusFilter);
-      }
-    }
-
-    // Corretor/reviewer filter
-    if (corretorFilter !== "all") {
-      if (corretorFilter === "unassigned") {
-        filtered = filtered.filter((r: any) => !r.reviewedBy);
-      } else if (corretorFilter.startsWith("staff-")) {
-        const staffId = parseInt(corretorFilter.replace("staff-", ""));
-        filtered = filtered.filter((r: any) => r.reviewedBy === staffId);
-      }
-    }
-
-    // Date filter
-    const now = new Date();
-    if (dateFilter === "today") {
-      filtered = filtered.filter((r: any) => new Date(r.createdAt).toDateString() === now.toDateString());
-    } else if (dateFilter === "7days") {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter((r: any) => new Date(r.createdAt) >= weekAgo);
-    } else if (dateFilter === "30days") {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter((r: any) => new Date(r.createdAt) >= monthAgo);
-    }
-
-    // Cadence filter
-    if (cadenceFilter === "active") {
-      filtered = filtered.filter((r: any) => activeResponseIds.has(r.id));
-    } else if (cadenceFilter === "none") {
-      filtered = filtered.filter((r: any) => !activeResponseIds.has(r.id));
-    }
-
-    filtered.sort((a: any, b: any) => {
-      if (sortField === "createdAt") {
-        const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        return sortDir === "asc" ? diff : -diff;
-      }
-      const va = (a.answers as any)?.[sortField] || "";
-      const vb = (b.answers as any)?.[sortField] || "";
-      return sortDir === "asc" ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
-    });
-
-    return filtered;
-  }, [responses, dateFilter, statusFilter, corretorFilter, cadenceFilter, activeResponseIds, sortField, sortDir]);
-
-  const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
-  const paginatedResponses = filteredResponses.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const openResponse = useMemo(
+    () => filtered.find((r: any) => r.id === openId) ?? responses.find((r: any) => r.id === openId) ?? null,
+    [filtered, responses, openId]
   );
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("desc");
-    }
-  };
-
-  // Open attachment selection dialog before generating PDF
-  const handleGenerateFicha = useCallback(
-    (responseId: number) => {
-      setPdfDialogResponseId(responseId);
-      setExcludedAttachmentUrls(new Set());
-    },
-    []
-  );
-
-  // Actually generate PDF with selected attachments -> opens preview
-  const doGeneratePdf = useCallback(
-    async (responseId: number, excludeUrls: string[]) => {
-      setPdfDialogResponseId(null);
-      setGeneratingId(responseId);
-      try {
-        const result = await utils.responses.generateFicha.fetch({
-          responseId,
-          excludeAttachmentUrls: excludeUrls.length > 0 ? excludeUrls : undefined,
-        });
-        const byteCharacters = atob(result.base64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: "application/pdf" });
-        const blobUrl = URL.createObjectURL(blob);
-        const filename = result.filename || "ficha.pdf";
-        setPdfPreview({ blobUrl, filename, responseId });
-      } catch (err: any) {
-        toast.error(err.message || "Erro ao gerar PDF");
-      } finally {
-        setGeneratingId(null);
-      }
-    },
-    [utils]
-  );
-
-  // Close PDF preview and revoke blob URL
-  const closePdfPreview = useCallback(() => {
-    if (pdfPreview) {
-      URL.revokeObjectURL(pdfPreview.blobUrl);
-    }
-    setPdfPreview(null);
-  }, [pdfPreview]);
-
-  // Download PDF from preview
-  const downloadPdfFromPreview = useCallback(() => {
-    if (!pdfPreview) return;
-    const link = document.createElement("a");
-    link.href = pdfPreview.blobUrl;
-    link.download = pdfPreview.filename;
-    link.click();
-    toast.success("PDF baixado com sucesso!");
-  }, [pdfPreview]);
-
-  // Share PDF via WhatsApp - uses a mutation so we need a separate hook
-  const shareFichaMutation = trpc.responses.shareFicha.useMutation({
-    onSuccess: (result) => {
-      const text = encodeURIComponent(`Ficha cadastral: ${result.url}`);
-      window.open(`https://wa.me/?text=${text}`, "_blank");
-    },
-    onError: (err) => {
-      toast.error(err.message || "Erro ao compartilhar PDF");
-    },
-  });
-
-  const sharePdfViaWhatsApp = useCallback(async () => {
-    if (!pdfPreview) return;
-    toast.info("Gerando link de compartilhamento...");
-    shareFichaMutation.mutate({ responseId: pdfPreview.responseId });
-  }, [pdfPreview, shareFichaMutation]);
-
-  // Export CSV
+  // CSV export (kept — status is now Completo/Incompleto + observações)
   const exportCSV = useCallback(() => {
-    const headers = ["Data", ...actualQuestions.map((q) => q.title), "Status Validação"];
-    const rows = filteredResponses.map((r: any) => {
+    const headers = ["Data", "Status", ...actualQuestions.map((q) => q.title), "Observações"];
+    const rows = filtered.map((r: any) => {
       const answers = (r.answers ?? {}) as Record<string, any>;
       return [
         new Date(r.createdAt).toLocaleString("pt-BR"),
-        ...actualQuestions.map((q) => answers[q.id] || ""),
-        r.validationStatus || "pending",
+        r.isComplete ? "Completo" : "Incompleto",
+        ...actualQuestions.map((q) => formatPlainAnswer(answers[q.id]).replace(/\n/g, " | ")),
+        (r.reviewNotes ?? "").replace(/\n/g, " | "),
       ];
     });
-
     const csvContent = [
       headers.map((h) => `"${h}"`).join(","),
-      ...rows.map((row) => row.map((cell: any) => `"${cell}"`).join(",")),
+      ...rows.map((row) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
     ].join("\n");
-
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["﻿" + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = `${formTitle.replace(/\s+/g, "_")}_respostas_${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  }, [filteredResponses, actualQuestions, formTitle]);
+  }, [filtered, actualQuestions, formTitle]);
 
-  // Loading state
   if (!formId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-6 sm:p-8 bg-card">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
-          <div className="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
-            <ClipboardList size={36} className="text-brand/50 sm:hidden" />
-            <ClipboardList size={44} className="text-brand/50 hidden sm:block" />
-          </div>
-          <h3 className="text-lg sm:text-xl font-display font-bold text-foreground mb-2 sm:mb-3">
-            Salve o formulário primeiro
-          </h3>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Publique o formulário para começar a receber respostas.
-          </p>
-        </motion.div>
+      <div className="h-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Salve o formulário para ver as respostas.</p>
       </div>
     );
   }
 
-  if (responsesQuery.isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-card">
-        <Loader2 size={32} className="text-brand animate-spin" />
-      </div>
-    );
-  }
+  const dateLabels: Record<DateFilter, string> = { all: "Período", today: "Hoje", "7days": "7 dias", "30days": "30 dias" };
 
-  // Empty state
-  if (responses.length === 0 && !searchQuery) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-6 sm:p-8 bg-card">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
-          <div className="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 rounded-2xl bg-brand-lighter flex items-center justify-center">
-            <ClipboardList size={36} className="text-brand/50 sm:hidden" />
-            <ClipboardList size={44} className="text-brand/50 hidden sm:block" />
-          </div>
-          <h3 className="text-lg sm:text-xl font-display font-bold text-foreground mb-2 sm:mb-3">
-            Nenhuma resposta ainda
-          </h3>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Compartilhe o formulário para começar a receber respostas.
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  const validatingResponse = validatingResponseId
-    ? responses.find((r: any) => r.id === validatingResponseId)
-    : null;
-
-  const getStatusBadge = (status: string | null | undefined) => {
-    switch (status) {
-      case "approved":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">
-            <ShieldCheck size={11} /> Aprovado
-          </span>
-        );
-      case "rejected":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-800">
-            <ShieldAlert size={11} /> Reprovado
-          </span>
-        );
-      case "in_review":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
-            <Shield size={11} /> Em revisão
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-body font-medium bg-secondary text-muted-foreground border border-border">
-            <Shield size={11} /> Pendente
-          </span>
-        );
-    }
-  };
+  const statTiles: { key: StatusFilter; label: string; value: number; icon: React.ReactNode; accent: string }[] = [
+    { key: "all", label: "Total", value: stats.total, icon: <Inbox size={15} />, accent: "text-brand" },
+    { key: "complete", label: "Completos", value: stats.complete, icon: <CheckCircle2 size={15} />, accent: "text-emerald-400" },
+    { key: "incomplete", label: "Incompletos", value: stats.incomplete, icon: <CircleDashed size={15} />, accent: "text-amber-400" },
+  ];
 
   return (
-    <div className="h-full flex flex-col bg-card">
-      {/* ─── Header ─── */}
-      <div className="border-b border-border px-4 sm:px-6 py-3 sm:py-4 shrink-0">
-        {/* Title row */}
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <div>
+    <div className="h-full flex flex-col">
+      {/* ─── Header (glass) ─── */}
+      <div className="border-b border-white/[0.06] px-4 sm:px-6 py-4 shrink-0 bg-white/[0.02] backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="min-w-0">
             <h2 className="text-base sm:text-lg font-display font-bold text-foreground">Respostas</h2>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              {filteredResponses.length} resposta{filteredResponses.length !== 1 ? "s" : ""} encontrada{filteredResponses.length !== 1 ? "s" : ""}
+              {filtered.length === responses.length
+                ? `${responses.length} cadastro${responses.length === 1 ? "" : "s"}`
+                : `${filtered.length} de ${responses.length} cadastros`}
             </p>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => responsesQuery.refetch()}
-              className="p-2 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl text-muted-foreground border border-border hover:bg-secondary transition-all"
               title="Atualizar"
+              className="w-9 h-9 inline-flex items-center justify-center rounded-xl text-muted-foreground border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-[transform,background-color] duration-150 active:scale-[0.94]"
             >
-              <Loader2
-                size={14}
-                className={responsesQuery.isFetching ? "animate-spin" : ""}
-              />
+              <RefreshCw size={14} className={responsesQuery.isFetching ? "animate-spin" : ""} />
             </button>
             <button
+              type="button"
+              onClick={() => setShowTrash((v) => !v)}
+              title="Lixeira"
+              className={`w-9 h-9 inline-flex items-center justify-center rounded-xl border transition-[transform,background-color,border-color] duration-150 active:scale-[0.94] ${
+                showTrash
+                  ? "text-red-400 border-red-400/30 bg-red-400/[0.08]"
+                  : "text-muted-foreground border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"
+              }`}
+            >
+              <Trash2 size={14} />
+            </button>
+            <button
+              type="button"
               onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-body font-medium text-foreground border border-border hover:bg-secondary hover:border-brand/20 transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 h-9 rounded-xl text-sm font-medium text-foreground border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-[transform,background-color] duration-150 active:scale-[0.97]"
             >
-              <FileSpreadsheet size={14} />
-              <span className="hidden sm:inline">Exportar CSV</span>
-              <span className="sm:hidden">CSV</span>
+              <FileSpreadsheet size={14} /> CSV
             </button>
           </div>
         </div>
 
-        {/* Stats cards — clickable as filters */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-3 sm:mb-4">
-          {[
-            { label: "Total", value: responses.length, color: "text-brand", filterKey: "all", activeRing: "ring-brand/40" },
-            {
-              label: "Aprovados",
-              value: responses.filter((r: any) => r.validationStatus === "approved").length,
-              color: "text-emerald-600",
-              filterKey: "approved",
-              activeRing: "ring-emerald-500/40",
-            },
-            {
-              label: "Reprovados",
-              value: responses.filter((r: any) => r.validationStatus === "rejected").length,
-              color: "text-red-600",
-              filterKey: "rejected",
-              activeRing: "ring-red-500/40",
-            },
-            {
-              label: "Em revisão",
-              value: responses.filter((r: any) => r.validationStatus === "in_review").length,
-              color: "text-blue-600",
-              filterKey: "in_review",
-              activeRing: "ring-blue-500/40",
-            },
-            {
-              label: "Pendentes",
-              value: responses.filter(
-                (r: any) => !r.validationStatus || r.validationStatus === "pending"
-              ).length,
-              color: "text-amber-600",
-              filterKey: "pending",
-              activeRing: "ring-amber-500/40",
-            },
-          ].map((stat, i) => (
-            <button
-              key={stat.label}
-              onClick={() => {
-                setStatusFilter(statusFilter === stat.filterKey ? "all" : stat.filterKey);
-                setCurrentPage(1);
-              }}
-              className={`text-left bg-secondary/50 rounded-lg sm:rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 border transition-all cursor-pointer hover:bg-secondary/80 ${
-                i >= 3 ? "hidden sm:block" : ""
-              } ${
-                statusFilter === stat.filterKey
-                  ? `border-current ${stat.activeRing} ring-2`
-                  : "border-border/50"
+        {/* Stats — clicáveis (filtram) */}
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
+          {statTiles.map((s, i) => (
+            <motion.button
+              key={s.key}
+              type="button"
+              onClick={() => setStatusFilter(s.key)}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: EASE, delay: i * 0.05 }}
+              className={`rounded-2xl border px-3.5 py-3 text-left backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 active:scale-[0.98] ${
+                statusFilter === s.key
+                  ? "border-brand/40 bg-brand/[0.08]"
+                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
               }`}
             >
-              <p className="text-[9px] sm:text-[10px] font-body text-muted-foreground truncate">{stat.label}</p>
-              <p className={`text-lg sm:text-xl font-display font-bold ${stat.color}`}>{stat.value}</p>
-            </button>
+              <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground`}>
+                <span className={s.accent}>{s.icon}</span> {s.label}
+              </span>
+              <p className={`mt-1 text-xl sm:text-2xl font-display font-bold ${s.accent}`}>{s.value}</p>
+            </motion.button>
           ))}
         </div>
 
-        {/* Quick status filter pills — visible on mobile for hidden stats */}
-        <div className="flex sm:hidden gap-1.5 mb-3 overflow-x-auto -mx-3 px-3 scrollbar-none">
-          {[
-            { label: "Todos", key: "all", color: "text-brand", activeBg: "bg-brand/10 border-brand/30" },
-            { label: "Aprovados", key: "approved", color: "text-emerald-600", activeBg: "bg-emerald-500/10 border-emerald-500/30" },
-            { label: "Reprovados", key: "rejected", color: "text-red-600", activeBg: "bg-red-500/10 border-red-500/30" },
-            { label: "Revisão", key: "in_review", color: "text-blue-600", activeBg: "bg-blue-500/10 border-blue-500/30" },
-            { label: "Pendentes", key: "pending", color: "text-amber-600", activeBg: "bg-amber-500/10 border-amber-500/30" },
-          ].map((pill) => (
-            <button
-              key={pill.key}
-              onClick={() => {
-                setStatusFilter(pill.key);
-                setCurrentPage(1);
-              }}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-body font-medium border transition-all ${
-                statusFilter === pill.key
-                  ? `${pill.color} ${pill.activeBg}`
-                  : "text-muted-foreground border-border/50 hover:bg-secondary"
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Filters — horizontal scroll on mobile */}
-        <div className="flex flex-row gap-2 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1 sm:pb-0 scrollbar-none sm:flex-wrap">
-          {/* Search */}
-          <div className="flex-1 min-w-[160px] relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        {/* Search + período */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
-              type="text"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="Buscar nas respostas..."
-              className="w-full pl-9 pr-4 py-2 rounded-lg sm:rounded-xl text-sm font-body bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/30 transition-colors"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nome, e-mail ou protocolo…"
+              className="w-full h-10 pl-10 pr-9 rounded-xl bg-white/[0.03] border border-white/10 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-brand/40 focus:bg-white/[0.05] transition-colors"
             />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X size={14} />
+              </button>
+            )}
           </div>
 
-          {/* Corretor/Reviewer filter */}
-          {filterPeople.length > 0 && (
-            <div className="relative shrink-0">
-              <button
-                onClick={() => {
-                  setShowCorretorPicker(!showCorretorPicker);
-                  setShowDatePicker(false);
-                  setShowCadencePicker(false);
-                }}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
-                  corretorFilter !== "all"
-                    ? "bg-brand-lighter text-brand border-brand/20"
-                    : "text-muted-foreground border-border hover:bg-secondary"
-                }`}
-              >
-                <Users size={14} />
-                <span className="truncate max-w-[100px] sm:max-w-[140px]">
-                  {corretorFilter === "all"
-                    ? "Responsável"
-                    : corretorFilter === "unassigned"
-                    ? "Sem responsável"
-                    : filterPeople.find((p) => p.id === corretorFilter)?.name || "Responsável"}
-                </span>
-                <ChevronDown size={12} />
-              </button>
-
-              {/* Gaveta lateral para seleção de responsável */}
-              <Sheet open={showCorretorPicker} onOpenChange={setShowCorretorPicker}>
-                <SheetContent side="right" className="w-[300px] sm:w-[360px] p-0 flex flex-col">
-                  <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
-                    <SheetTitle className="text-base font-semibold flex items-center gap-2">
-                      <Users size={16} className="text-brand" />
-                      Filtrar por responsável
-                    </SheetTitle>
-                  </SheetHeader>
-                  <div className="flex-1 overflow-y-auto py-2">
-                    {/* Opção: Todos */}
-                    <button
-                      onClick={() => {
-                        setCorretorFilter("all");
-                        setShowCorretorPicker(false);
-                        setCurrentPage(1);
-                      }}
-                      className={`w-full text-left px-5 py-3 text-sm font-body transition-colors flex items-center gap-3 ${
-                        corretorFilter === "all"
-                          ? "bg-brand-lighter text-brand font-medium"
-                          : "text-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                        <Users size={14} className="text-muted-foreground" />
-                      </div>
-                      <span>Todos os responsáveis</span>
-                      {corretorFilter === "all" && <Check size={14} className="ml-auto text-brand" />}
-                    </button>
-
-                    {/* Opção: Sem responsável */}
-                    <button
-                      onClick={() => {
-                        setCorretorFilter("unassigned");
-                        setShowCorretorPicker(false);
-                        setCurrentPage(1);
-                      }}
-                      className={`w-full text-left px-5 py-3 text-sm font-body transition-colors flex items-center gap-3 ${
-                        corretorFilter === "unassigned"
-                          ? "bg-brand-lighter text-brand font-medium"
-                          : "text-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                        <X size={14} className="text-muted-foreground" />
-                      </div>
-                      <span>Sem responsável</span>
-                      {corretorFilter === "unassigned" && <Check size={14} className="ml-auto text-brand" />}
-                    </button>
-
-                    {filterPeople.length > 0 && (
-                      <div className="mx-5 my-2 border-t border-border" />
-                    )}
-
-                    {/* Lista de corretores */}
-                    {filterPeople.map((person) => (
-                      <button
-                        key={person.id}
-                        onClick={() => {
-                          setCorretorFilter(person.id);
-                          setShowCorretorPicker(false);
-                          setCurrentPage(1);
-                        }}
-                        className={`w-full text-left px-5 py-3 text-sm font-body transition-colors flex items-center gap-3 ${
-                          corretorFilter === person.id
-                            ? "bg-brand-lighter text-brand font-medium"
-                            : "text-foreground hover:bg-secondary"
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-xs font-semibold text-brand shrink-0">
-                          {person.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="truncate font-medium">{person.name}</span>
-                          <span className="text-[11px] text-muted-foreground capitalize">{person.type}</span>
-                        </div>
-                        {corretorFilter === person.id && <Check size={14} className="ml-auto text-brand shrink-0" />}
-                      </button>
-                    ))}
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-          )}
-
-          {/* Date filter */}
-          <div className="relative shrink-0">
+          <div className="relative">
             <button
-              onClick={() => {
-                setShowDatePicker(!showDatePicker);
-                setShowCorretorPicker(false);
-                setShowCadencePicker(false);
-              }}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
+              type="button"
+              onClick={() => setShowDatePicker((v) => !v)}
+              className={`inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl text-sm border transition-colors ${
                 dateFilter !== "all"
-                  ? "bg-brand-lighter text-brand border-brand/20"
-                  : "text-muted-foreground border-border hover:bg-secondary"
+                  ? "text-brand border-brand/30 bg-brand/[0.07]"
+                  : "text-muted-foreground border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
               }`}
             >
               <Calendar size={14} />
-              {dateFilter === "all"
-                ? "Período"
-                : dateFilter === "today"
-                ? "Hoje"
-                : dateFilter === "7days"
-                ? "7 dias"
-                : "30 dias"}
-              <ChevronDown size={12} />
+              <span className="hidden sm:inline">{dateLabels[dateFilter]}</span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${showDatePicker ? "rotate-180" : ""}`} />
             </button>
-
             <AnimatePresence>
               {showDatePicker && (
                 <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="absolute top-full right-0 mt-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1 min-w-[160px]"
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97, y: -4 }}
+                  transition={{ duration: 0.15, ease: EASE }}
+                  style={{ transformOrigin: "top right" }}
+                  className="absolute right-0 top-11 z-30 w-36 rounded-xl border border-white/10 bg-[#0d1526]/95 backdrop-blur-2xl shadow-xl overflow-hidden"
                 >
-                  {(
-                    [
-                      ["all", "Todos os períodos"],
-                      ["today", "Hoje"],
-                      ["7days", "Últimos 7 dias"],
-                      ["30days", "Últimos 30 dias"],
-                    ] as [DateFilter, string][]
-                  ).map(([key, label]) => (
+                  {(Object.keys(dateLabels) as DateFilter[]).map((k) => (
                     <button
-                      key={key}
-                      onClick={() => {
-                        setDateFilter(key);
-                        setShowDatePicker(false);
-                        setCurrentPage(1);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
-                        dateFilter === key
-                          ? "bg-brand-lighter text-brand font-medium"
-                          : "text-foreground hover:bg-secondary"
+                      key={k} type="button"
+                      onClick={() => { setDateFilter(k); setShowDatePicker(false); }}
+                      className={`w-full text-left px-3.5 py-2 text-sm transition-colors ${
+                        dateFilter === k ? "text-brand bg-brand/[0.08]" : "text-foreground hover:bg-white/[0.05]"
                       }`}
                     >
-                      {label}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Cadence filter */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => {
-                setShowCadencePicker(!showCadencePicker);
-                setShowCorretorPicker(false);
-                setShowDatePicker(false);
-              }}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-sm font-body font-medium border transition-all ${
-                cadenceFilter !== "all"
-                  ? "bg-brand-lighter text-brand border-brand/20"
-                  : "text-muted-foreground border-border hover:bg-secondary"
-              }`}
-            >
-              <Mail size={14} />
-              {cadenceFilter === "all"
-                ? "Cadência"
-                : cadenceFilter === "active"
-                ? "Com cadência"
-                : "Sem cadência"}
-              <ChevronDown size={12} />
-            </button>
-
-            <AnimatePresence>
-              {showCadencePicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="absolute top-full right-0 mt-1 bg-card rounded-xl border border-border shadow-xl z-50 py-1 min-w-[180px]"
-                >
-                  {([
-                    ["all", "Todas"],
-                    ["active", "Com cadência ativa"],
-                    ["none", "Sem cadência"],
-                  ] as ["all" | "active" | "none", string][]).map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setCadenceFilter(key);
-                        setShowCadencePicker(false);
-                        setCurrentPage(1);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${
-                        cadenceFilter === key
-                          ? "bg-brand-lighter text-brand font-medium"
-                          : "text-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {label}
+                      {k === "all" ? "Todo período" : dateLabels[k]}
                     </button>
                   ))}
                 </motion.div>
@@ -1926,355 +912,50 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         </div>
       </div>
 
-      {/* ─── Content: Cards on mobile, Table on desktop ─── */}
-      <div className="flex-1 overflow-auto custom-scrollbar">
-        {/* Mobile: Card list */}
-        <div className="sm:hidden p-3 space-y-2.5">
-          {paginatedResponses.map((resp: any) => (
-            <ResponseCard
-              key={resp.id}
-              response={resp}
-              questions={questions}
-              onValidate={setValidatingResponseId}
-              onGeneratePdf={handleGenerateFicha}
-              isGenerating={generatingId === resp.id}
-              getStatusBadge={getStatusBadge}
-              formatWhatsAppLink={formatWhatsAppLink}
-              staffUsers={staffUsers}
-            />
-          ))}
+      {/* ─── Content ─── */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4">
+        <AnimatePresence>{showTrash && <TrashList formId={formId} onClose={() => setShowTrash(false)} />}</AnimatePresence>
 
-          {filteredResponses.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Filter size={28} className="text-muted-foreground/20 mb-3" />
-              <p className="text-sm font-body text-muted-foreground">
-                Nenhuma resposta encontrada.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Desktop: Table */}
-        <table className="w-full hidden sm:table">
-          <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm z-10">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[120px]">
-                Protocolo
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[140px]">
-                <button
-                  onClick={() => handleSort("createdAt")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Data
-                  <ArrowUpDown size={11} className={sortField === "createdAt" ? "text-brand" : ""} />
-                </button>
-              </th>
-              {visibleColumns.map((q) => (
-                <th
-                  key={q.id}
-                  className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border"
-                >
-                  <button
-                    onClick={() => handleSort(q.id)}
-                    className="flex items-center gap-1 hover:text-foreground transition-colors max-w-[160px] truncate"
-                  >
-                    {q.title}
-                    <ArrowUpDown
-                      size={11}
-                      className={`shrink-0 ${sortField === q.id ? "text-brand" : ""}`}
-                    />
-                  </button>
-                </th>
-              ))}
-              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[110px]">
-                Validação
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[130px]">
-                Responsável
-              </th>
-              <th className="text-right px-4 py-3 text-xs font-body font-semibold text-muted-foreground uppercase tracking-wider border-b border-border w-[180px]">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedResponses.map((resp: any, idx: number) => {
-              const answers = (resp.answers ?? {}) as Record<string, any>;
-              const isValidated = resp.validationStatus === "approved";
-              const isGenerating = generatingId === resp.id;
-
-              return (
-                <motion.tr
-                  key={resp.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className="border-b border-border/50 hover:bg-secondary/30 transition-colors group"
-                >
-                  <td className="px-4 py-3 text-xs font-mono text-brand font-semibold whitespace-nowrap">
-                    {resp.protocolCode ? `#${resp.protocolCode}` : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-body text-muted-foreground whitespace-nowrap">
-                    {new Date(resp.createdAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                    })}
-                    <span className="ml-1 text-xs text-muted-foreground/50">
-                      {new Date(resp.createdAt).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </td>
-                  {visibleColumns.map((q) => {
-                    const val = answers[q.id];
-                    const isPhone = q.type === "phone" || ["telefone", "celular", "whatsapp", "phone", "fone"].some((kw) => q.title.toLowerCase().includes(kw));
-                    const whatsappUrl = isPhone && val ? formatWhatsAppLink(String(val)) : null;
-
-                    return (
-                      <td
-                        key={q.id}
-                        className="px-4 py-3 text-sm font-body text-foreground max-w-[180px] truncate"
-                      >
-                        {whatsappUrl ? (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
-                            title="Abrir no WhatsApp"
-                          >
-                            <Phone size={12} className="shrink-0" />
-                            {val}
-                          </a>
-                        ) : (
-                          val || "\u2014"
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="px-4 py-3">{getStatusBadge(resp.validationStatus)}</td>
-                  <td className="px-4 py-3">
-                    {resp.reviewedBy ? (
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center text-[9px] font-semibold text-brand shrink-0">
-                          {(staffUsers.find((s: any) => s.id === resp.reviewedBy)?.name || "?").charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-xs font-body text-foreground truncate max-w-[90px]">
-                          {staffUsers.find((s: any) => s.id === resp.reviewedBy)?.name || "Staff #" + resp.reviewedBy}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground/50">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => setValidatingResponseId(resp.id)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body font-medium text-brand bg-brand-lighter/50 hover:bg-brand-lighter border border-brand/20 transition-all"
-                        title="Validar respostas"
-                      >
-                        <Shield size={12} />
-                        Validar
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (!isValidated) {
-                            toast.info("Validação necessária", {
-                              description: "Valide todas as respostas antes de gerar o PDF.",
-                            });
-                            return;
-                          }
-                          handleGenerateFicha(resp.id);
-                        }}
-                        disabled={isGenerating}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-body font-medium transition-all ${
-                          isValidated
-                            ? "text-white bg-brand hover:bg-brand/90"
-                            : "text-muted-foreground bg-muted cursor-not-allowed"
-                        }`}
-                        title={isValidated ? "Gerar ficha PDF" : "Valide a resposta antes"}
-                      >
-                        {isGenerating ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : !isValidated ? (
-                          <Lock size={12} />
-                        ) : (
-                          <FileText size={12} />
-                        )}
-                        {isGenerating ? "..." : "PDF"}
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {/* Desktop empty state */}
-        {filteredResponses.length === 0 && (
-          <div className="hidden sm:flex flex-col items-center justify-center py-20 text-center">
-            <Filter size={32} className="text-muted-foreground/20 mb-4" />
-            <p className="text-sm font-body text-muted-foreground">
-              Nenhuma resposta encontrada com os filtros atuais.
-            </p>
+        {responsesQuery.isLoading ? (
+          <div className="py-16 flex flex-col items-center gap-3">
+            <Loader2 size={22} className="animate-spin text-brand" />
+            <p className="text-sm text-muted-foreground">Carregando cadastros…</p>
           </div>
-        )}
-      </div>
-
-      {/* ─── Pagination ─── */}
-      {totalPages > 1 && (
-        <div className="border-t border-border px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shrink-0 bg-card">
-          <p className="text-[10px] sm:text-xs font-body text-muted-foreground">
-            {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredResponses.length)} de {filteredResponses.length}
-          </p>
-          <div className="flex items-center gap-0.5 sm:gap-1">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-              // Smart page numbers: show pages around current
-              let page: number;
-              if (totalPages <= 5) {
-                page = i + 1;
-              } else if (currentPage <= 3) {
-                page = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                page = totalPages - 4 + i;
-              } else {
-                page = currentPage - 2 + i;
-              }
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-[11px] sm:text-xs font-body font-medium transition-all ${
-                    page === currentPage
-                      ? "bg-brand text-white"
-                      : "text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Validation Drawer ─── */}
-      <AnimatePresence>
-        {validatingResponse && (
-          <ValidationDrawer
-            response={validatingResponse}
-            questions={questions}
-            onClose={() => setValidatingResponseId(null)}
-            formId={formId!}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ─── PDF Attachment Selection Dialog ─── */}
-      <AnimatePresence>
-        {pdfDialogResponseId !== null && (
-          <PdfAttachmentDialog
-            responseId={pdfDialogResponseId}
-            onClose={() => setPdfDialogResponseId(null)}
-            onGenerate={(excludeUrls) => doGeneratePdf(pdfDialogResponseId, excludeUrls)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ─── PDF Preview Modal ─── */}
-      <AnimatePresence>
-        {pdfPreview && (
+        ) : filtered.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] flex flex-col"
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE }}
+            className="py-16 flex flex-col items-center gap-3 text-center"
           >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closePdfPreview} />
-
-            {/* Header */}
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className="relative z-10 flex items-center justify-between px-4 py-3 bg-card/95 backdrop-blur border-b border-border/50"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="p-1.5 rounded-lg bg-brand/10">
-                  <Eye size={16} className="text-brand" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-display font-bold text-foreground truncate">
-                    Preview do PDF
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {pdfPreview.filename}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={sharePdfViaWhatsApp}
-                  disabled={shareFichaMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {shareFichaMutation.isPending ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <Share2 size={13} />
-                  )}
-                  <span className="hidden sm:inline">WhatsApp</span>
-                </button>
-                <button
-                  onClick={downloadPdfFromPreview}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand hover:bg-brand/90 text-white transition-colors cursor-pointer"
-                >
-                  <Download size={13} />
-                  <span className="hidden sm:inline">Download</span>
-                </button>
-                <button
-                  onClick={closePdfPreview}
-                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
-                >
-                  <X size={16} className="text-muted-foreground" />
-                </button>
-              </div>
-            </motion.div>
-
-            {/* PDF Viewer */}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ delay: 0.05 }}
-              className="relative flex-1 m-2 sm:m-4 rounded-xl overflow-hidden bg-white shadow-2xl"
-            >
-              <iframe
-                src={`${pdfPreview.blobUrl}#toolbar=0&navpanes=0`}
-                className="w-full h-full border-0"
-                title="Preview do PDF"
-              />
-            </motion.div>
+            <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+              <ClipboardList size={22} className="text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Nenhum cadastro {statusFilter !== "all" || searchQuery || dateFilter !== "all" ? "com esses filtros" : "ainda"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Os cadastros aparecem aqui assim que os clientes preencherem o formulário.</p>
+            </div>
           </motion.div>
+        ) : (
+          <div className={`grid gap-2.5 sm:gap-3 grid-cols-1 xl:grid-cols-2 ${showTrash ? "mt-3" : ""}`}>
+            <AnimatePresence mode="popLayout">
+              {filtered.map((r: any, i: number) => (
+                <ResponseCard key={r.id} response={r} questions={questions} index={i} onOpen={() => setOpenId(r.id)} />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Detail sheet ─── */}
+      <AnimatePresence>
+        {openResponse && (
+          <ResponseDetailSheet
+            key={openResponse.id}
+            response={openResponse}
+            questions={questions}
+            formId={formId}
+            onClose={() => setOpenId(null)}
+            onDeleted={() => setOpenId(null)}
+          />
         )}
       </AnimatePresence>
     </div>
