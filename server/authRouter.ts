@@ -47,16 +47,11 @@ export const customAuthRouter = router({
    * Returns staff or client user data, or null if not authenticated.
    */
   me: publicProcedure.query(async ({ ctx }) => {
-    const cookies = parseCookies(ctx.req.headers.cookie);
-    let token = cookies.get(COOKIE_NAME);
-    // Fallback: read token from Authorization header (for iframe/preview contexts where cookies are blocked)
-    if (!token) {
-      const authHeader = ctx.req.headers.authorization;
-      if (authHeader?.startsWith("Bearer ")) {
-        token = authHeader.slice(7);
-      }
-    }
-    const session = await verifySessionToken(token);
+    // Use the session already resolved by the tRPC context — it tries the cookie
+    // AND falls back to the Authorization header even when a stale/revoked cookie
+    // is present. Re-parsing only the cookie here let a rotten httpOnly cookie
+    // veto a valid localStorage token, locking users on the login screen.
+    const session = ctx.customSession;
 
     if (!session) return null;
 
@@ -370,15 +365,7 @@ export const customAuthRouter = router({
       phone: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const cookies = parseCookies(ctx.req.headers.cookie);
-      let token = cookies.get(COOKIE_NAME);
-      if (!token) {
-        const authHeader = ctx.req.headers.authorization;
-        if (authHeader?.startsWith("Bearer ")) {
-          token = authHeader.slice(7);
-        }
-      }
-      const session = await verifySessionToken(token);
+      const session = ctx.customSession;
       if (!session || session.type !== "staff") {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado" });
       }
@@ -410,15 +397,7 @@ export const customAuthRouter = router({
       newPassword: z.string().min(6, "Nova senha deve ter no mínimo 6 caracteres"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const cookies = parseCookies(ctx.req.headers.cookie);
-      let token = cookies.get(COOKIE_NAME);
-      if (!token) {
-        const authHeader = ctx.req.headers.authorization;
-        if (authHeader?.startsWith("Bearer ")) {
-          token = authHeader.slice(7);
-        }
-      }
-      const session = await verifySessionToken(token);
+      const session = ctx.customSession;
       if (!session || session.type !== "staff") {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado" });
       }

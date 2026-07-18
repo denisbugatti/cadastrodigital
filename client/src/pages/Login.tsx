@@ -49,13 +49,17 @@ export default function Login() {
       // Remember the email for next visit (pre-filled login)
       try { localStorage.setItem("cd_last_login_email", email); } catch { /* ignore */ }
       toast.success("Login realizado com sucesso!");
-      // Invalidate cache and navigate (works in both iframe and direct contexts)
-      await utils.customAuth.me.invalidate();
+      // Seed the session cache SYNCHRONOUSLY with the logged-in user before
+      // navigating — the route guard reads this cache on mount; a stale null
+      // there bounces the user straight back to /login ("login ok but stuck").
+      utils.customAuth.me.setData(undefined, data.user as any);
       if (data.user.role === "corretor") {
         navigate("/corretor/respostas", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
       }
+      // Background revalidation against the server (cookie/token already set).
+      void utils.customAuth.me.invalidate();
     },
     onError: (err) => {
       toast.error(err.message);
@@ -69,9 +73,10 @@ export default function Login() {
         setStoredToken(data.token);
       }
       toast.success("Login realizado com sucesso!");
-      // Invalidate cache and navigate (works in both iframe and direct contexts)
-      await utils.customAuth.me.invalidate();
+      // Seed the session cache synchronously before navigating (see staffLogin note).
+      utils.customAuth.me.setData(undefined, data.user as any);
       navigate("/portal", { replace: true });
+      void utils.customAuth.me.invalidate();
     },
     onError: (err) => {
       toast.error(err.message);

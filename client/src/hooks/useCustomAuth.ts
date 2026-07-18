@@ -64,7 +64,10 @@ export function useCustomAuth() {
     const user = meQuery.data as AuthUser;
     return {
       user,
-      loading: meQuery.isLoading || logoutMutation.isPending,
+      // Also treat "no user yet + refetch in flight" as loading: right after a
+      // login (or with a stale null cache) guards would otherwise read null and
+      // bounce the user back to /login before the revalidation lands.
+      loading: meQuery.isLoading || (meQuery.isFetching && !user) || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
       isAuthenticated: Boolean(user),
       isStaff: user?.type === "staff",
@@ -75,7 +78,7 @@ export function useCustomAuth() {
       isCorretor: user?.type === "staff" && user.role === "corretor",
       canEditForms: user?.type === "staff" && (user.role === "master" || user.role === "diretor"),
     };
-  }, [meQuery.data, meQuery.error, meQuery.isLoading, logoutMutation.error, logoutMutation.isPending]);
+  }, [meQuery.data, meQuery.error, meQuery.isLoading, meQuery.isFetching, logoutMutation.error, logoutMutation.isPending]);
 
   // Check if user has a specific permission
   const hasPermission = useCallback((permission: string): boolean => {

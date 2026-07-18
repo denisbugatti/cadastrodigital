@@ -1853,9 +1853,7 @@ export const appRouter = router({
     myResponses: publicProcedure
       .query(async ({ ctx }) => {
         // Parse cookie to get client session
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "client") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de cliente necessário" });
         }
@@ -2294,9 +2292,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         // Get staff session from cookie
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2315,9 +2311,7 @@ export const appRouter = router({
         endpoint: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2327,9 +2321,7 @@ export const appRouter = router({
 
     status: publicProcedure
       .query(async ({ ctx }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           return { subscriptionCount: 0, hasActiveSubscription: false };
         }
@@ -2349,9 +2341,7 @@ export const appRouter = router({
   // ─── Response Folders (Corretor organization) ───
   folders: router({
     list: publicProcedure.query(async ({ ctx }) => {
-      const cookies = cookie.parse(ctx.req.headers.cookie || "");
-      const token = cookies[COOKIE_NAME];
-      const session = await verifySessionToken(token);
+      const session = ctx.customSession;
       if (!session || session.type !== "staff") {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
       }
@@ -2368,9 +2358,7 @@ export const appRouter = router({
         color: z.string().max(30).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2389,9 +2377,7 @@ export const appRouter = router({
         color: z.string().max(30).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2405,9 +2391,7 @@ export const appRouter = router({
     delete: publicProcedure
       .input(z.object({ folderId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2421,9 +2405,7 @@ export const appRouter = router({
         folderId: z.number(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2434,9 +2416,7 @@ export const appRouter = router({
     unassign: publicProcedure
       .input(z.object({ responseId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2450,9 +2430,7 @@ export const appRouter = router({
         folderId: z.number(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const cookies = cookie.parse(ctx.req.headers.cookie || "");
-        const token = cookies[COOKIE_NAME];
-        const session = await verifySessionToken(token);
+        const session = ctx.customSession;
         if (!session || session.type !== "staff") {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Login de equipe necessário" });
         }
@@ -2461,9 +2439,7 @@ export const appRouter = router({
       }),
 
     assignments: publicProcedure.query(async ({ ctx }) => {
-      const cookies = cookie.parse(ctx.req.headers.cookie || "");
-      const token = cookies[COOKIE_NAME];
-      const session = await verifySessionToken(token);
+      const session = ctx.customSession;
       if (!session || session.type !== "staff") {
         return [];
       }

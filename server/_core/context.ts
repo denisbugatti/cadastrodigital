@@ -59,29 +59,28 @@ export async function createContext(
   if (!user) {
     try {
       const cookies = parseCookies(opts.req.headers.cookie);
-      let token = cookies.get(COOKIE_NAME);
-      // Fallback: read token from Authorization header (for iframe/preview contexts where cookies are blocked)
-      if (!token) {
-        const authHeader = opts.req.headers.authorization;
-        if (authHeader?.startsWith("Bearer ")) {
-          token = authHeader.slice(7);
-        }
+      const cookieToken = cookies.get(COOKIE_NAME);
+      const authHeader = opts.req.headers.authorization;
+      const headerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+      // Try the cookie token first, then FALL BACK to the Authorization header even
+      // when a cookie exists — a stale/revoked httpOnly cookie must not veto a
+      // valid localStorage token (that combo locked users out of login forever).
+      let session = cookieToken ? await verifySessionToken(cookieToken) : null;
+      if (!session && headerToken && headerToken !== cookieToken) {
+        session = await verifySessionToken(headerToken);
       }
-      if (token) {
-        const session = await verifySessionToken(token);
-        if (session) {
-          customSession = session;
+      if (session) {
+        customSession = session;
 
-          // For staff users, map them to the owner user in the users table
-          // so they can access forms and other data that belongs to the owner.
-          // All staff members share access to the same forms.
-          if (session.type === "staff") {
-            const ownerOpenId = ENV.ownerOpenId;
-            if (ownerOpenId) {
-              const ownerUser = await db.getUserByOpenId(ownerOpenId);
-              if (ownerUser) {
-                user = ownerUser;
-              }
+        // For staff users, map them to the owner user in the users table
+        // so they can access forms and other data that belongs to the owner.
+        // All staff members share access to the same forms.
+        if (session.type === "staff") {
+          const ownerOpenId = ENV.ownerOpenId;
+          if (ownerOpenId) {
+            const ownerUser = await db.getUserByOpenId(ownerOpenId);
+            if (ownerUser) {
+              user = ownerUser;
             }
           }
         }
