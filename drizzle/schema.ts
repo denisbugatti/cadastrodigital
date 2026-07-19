@@ -225,6 +225,10 @@ export const formResponses = mysqlTable("form_responses", {
   lastActivityAt: timestamp("lastActivityAt").defaultNow(),
   /** When the abandonment notification was sent to the corretor */
   abandonmentNotifiedAt: timestamp("abandonmentNotifiedAt"),
+  /** Marcado pela equipe quando o cliente efetivou a compra (badge "Comprou") */
+  purchased: boolean("purchased").default(false).notNull(),
+  /** Quando a compra foi marcada */
+  purchasedAt: timestamp("purchasedAt"),
   /** Soft delete — null means active, timestamp means moved to trash */
   deletedAt: timestamp("deletedAt"),
   /** Comprovante ANAPRO — URL do arquivo no S3 (obrigatório para gerar PDF) */

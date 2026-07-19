@@ -2055,6 +2055,21 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    /** Toggle the "Comprou" badge — marks that the client closed the purchase. */
+    setPurchased: staffAnyProcedure
+      .input(z.object({ responseId: z.number(), purchased: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const response = await db.getResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resposta não encontrada" });
+        }
+        await db.updateResponse(input.responseId, {
+          purchased: input.purchased,
+          purchasedAt: input.purchased ? new Date() : null,
+        });
+        return { success: true };
+      }),
+
     /** Save the staff-facing observações for a response. */
     updateNotes: staffAnyProcedure
       .input(z.object({ responseId: z.number(), notes: z.string().max(5000) }))

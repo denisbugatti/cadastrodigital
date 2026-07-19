@@ -12,7 +12,7 @@ import {
   ClipboardList, Search, X, FileSpreadsheet, FileText,
   CheckCircle2, Loader2, Check, Copy, Phone, Clock, Calendar,
   ExternalLink, Image as ImageIcon, Trash2, RotateCcw, ChevronDown,
-  StickyNote, UploadCloud, MessageCircle, Inbox, CircleDashed, RefreshCw,
+  StickyNote, UploadCloud, MessageCircle, Inbox, CircleDashed, RefreshCw, ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -27,7 +27,7 @@ interface ResponsesPanelProps {
 }
 
 type DateFilter = "all" | "today" | "7days" | "30days";
-type StatusFilter = "all" | "complete" | "incomplete";
+type StatusFilter = "all" | "complete" | "incomplete" | "purchased";
 
 /* Strong ease-out — snappy, intentional (never ease-in on UI) */
 const EASE = [0.23, 1, 0.32, 1] as const;
@@ -62,14 +62,26 @@ function parseAddress(value: unknown): { label: string; value: string }[] | null
   if (!v || typeof v !== "object" || Array.isArray(v)) return null;
   const obj = v as Record<string, unknown>;
   if (!("cep" in obj) && !("street" in obj) && !("city" in obj)) return null;
-  const lines: { label: string; value: string }[] = [];
-  for (const key of ADDRESS_ORDER) {
+  const push = (acc: { label: string; value: string }[], key: string) => {
     const val = obj[key];
     if (val !== null && val !== undefined && String(val).trim() !== "") {
-      lines.push({ label: ADDRESS_LABELS[key] ?? key, value: String(val) });
+      acc.push({ label: ADDRESS_LABELS[key] ?? key, value: String(val).trim() });
     }
-  }
+  };
+  const lines: { label: string; value: string }[] = [];
+  ADDRESS_ORDER.forEach((key) => push(lines, key));
+  // Keep any extra field the form may carry (país, referência…) so nothing is lost.
+  Object.keys(obj).filter((k) => !ADDRESS_ORDER.includes(k)).forEach((k) => push(lines, k));
   return lines.length > 0 ? lines : null;
+}
+
+/** Single-line address, handy for pasting into other systems. */
+function addressOneLine(lines: { label: string; value: string }[]): string {
+  const get = (label: string) => lines.find((l) => l.label === label)?.value ?? "";
+  const street = [get("Rua"), get("Número")].filter(Boolean).join(", ");
+  const extra = [get("Complemento"), get("Bairro")].filter(Boolean).join(" - ");
+  const cityState = [get("Cidade"), get("Estado")].filter(Boolean).join("/");
+  return [street, extra, cityState, get("CEP")].filter(Boolean).join(" · ");
 }
 
 function formatPlainAnswer(value: unknown): string {
@@ -93,6 +105,28 @@ function resolveChoiceLabel(question: BuilderQuestion | undefined, value: unknow
   const parts = Array.isArray(value) ? value : [value];
   const labels = parts.map((p) => choices.find((c) => c.id === p)?.label ?? formatPlainAnswer(p));
   return labels.join(", ");
+}
+
+/** Nome e telefone efetivamente respondidos (o form tem campos PF e PJ). */
+function extractContact(response: any, questions: BuilderQuestion[]): { name: string; phone: string } {
+  const answers = (response.answers ?? {}) as Record<string, any>;
+  const firstAnswered = (match: (q: BuilderQuestion) => boolean) => {
+    for (const q of questions) {
+      if (!match(q)) continue;
+      const val = formatPlainAnswer(answers[q.id]).trim();
+      if (val) return val;
+    }
+    return "";
+  };
+  const name =
+    (response.respondentName ?? "").trim() ||
+    firstAnswered((q) => q.type === "name") ||
+    firstAnswered((q) => /nome|razão social|razao social/i.test(q.title ?? "")) ||
+    "Sem nome";
+  const phone =
+    firstAnswered((q) => q.type === "phone") ||
+    firstAnswered((q) => /telefone|celular|whatsapp|fone/i.test(q.title ?? ""));
+  return { name, phone };
 }
 
 function formatWhatsAppLink(phone: string): string | null {
@@ -154,13 +188,27 @@ function CopyButton({ text, label, small }: { text: string; label?: string; smal
 /* ─── Status chip ─── */
 function StatusChip({ complete }: { complete: boolean }) {
   return complete ? (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-400/10 text-emerald-400 border border-emerald-400/25">
-      <CheckCircle2 size={12} /> Completo
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-400/10 text-emerald-400 border border-emerald-400/25">
+      <CheckCircle2 size={10} /> Completo
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-400/10 text-amber-400 border border-amber-400/25">
-      <CircleDashed size={12} /> Incompleto
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-400/10 text-amber-400 border border-amber-400/25">
+      <CircleDashed size={10} /> Incompleto
     </span>
+  );
+}
+
+/* ─── "Comprou" badge ─── */
+function PurchasedBadge() {
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2, ease: EASE }}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border border-violet-400/40"
+    >
+      <ShoppingBag size={10} /> Comprou
+    </motion.span>
   );
 }
 
@@ -408,15 +456,17 @@ function ResponseDetailSheet({
     [questions, answers]
   );
 
-  // Big-name header data
-  const name = response.respondentName || (() => {
-    const nameQ = questions.find((q) => q.type === "name");
-    return (nameQ && formatPlainAnswer(answers[nameQ.id])) || "Sem nome";
-  })();
-  const phoneQ = questions.find((q) => q.type === "phone");
-  const phone = phoneQ ? formatPlainAnswer(answers[phoneQ.id]) : "";
+  const { name, phone } = extractContact(response, questions);
   const wa = phone ? formatWhatsAppLink(phone) : null;
   const dt = formatDate(response.createdAt);
+
+  const setPurchased = trpc.responses.setPurchased.useMutation({
+    onSuccess: (_d, vars) => {
+      utils.responses.listByForm.invalidate({ formId });
+      toast.success(vars.purchased ? "Marcado como comprou 🎉" : "Marcação removida");
+    },
+    onError: (e) => toast.error(e.message || "Erro ao marcar"),
+  });
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
@@ -428,13 +478,14 @@ function ResponseDetailSheet({
         <SheetHeader className="px-5 sm:px-6 pt-6 pb-4 border-b border-white/[0.06] shrink-0 text-left space-y-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <SheetTitle className="text-2xl sm:text-3xl font-display font-bold text-foreground leading-tight break-words">
+              <SheetTitle className="text-lg sm:text-xl font-display font-bold text-foreground leading-snug break-words">
                 {name}
               </SheetTitle>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {response.purchased && <PurchasedBadge />}
                 <StatusChip complete={!!response.isComplete} />
                 <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <Calendar size={11} /> {dt.day} · {dt.time}
+                  <Calendar size={10} /> {dt.day} · {dt.time}
                 </span>
                 {response.protocolCode && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-mono text-brand/90">
@@ -446,17 +497,34 @@ function ResponseDetailSheet({
             </div>
           </div>
 
-          {phone && (
-            <div className="mt-3 flex items-center gap-2">
-              <a
-                href={wa ?? undefined} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-emerald-400/10 text-emerald-400 border border-emerald-400/25 hover:bg-emerald-400/[0.18] transition-[transform,background-color] duration-150 active:scale-[0.97]"
-              >
-                <MessageCircle size={14} /> {phone}
-              </a>
-              <CopyButton text={phone} label="Copiar telefone" />
-            </div>
-          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {phone && (
+              <>
+                <a
+                  href={wa ?? undefined} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium bg-emerald-400/10 text-emerald-400 border border-emerald-400/25 hover:bg-emerald-400/[0.18] transition-[transform,background-color] duration-150 active:scale-[0.97]"
+                >
+                  <MessageCircle size={13} /> {phone}
+                </a>
+                <CopyButton text={phone} small label="Copiar telefone" />
+              </>
+            )}
+            <button
+              type="button"
+              disabled={setPurchased.isPending}
+              onClick={() => setPurchased.mutate({ responseId: response.id, purchased: !response.purchased })}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] disabled:opacity-60 ${
+                response.purchased
+                  ? "bg-violet-500/20 text-violet-300 border-violet-400/40 hover:bg-violet-500/30"
+                  : "bg-white/[0.04] text-muted-foreground border-white/10 hover:text-violet-300 hover:border-violet-400/30"
+              }`}
+            >
+              {setPurchased.isPending
+                ? <Loader2 size={13} className="animate-spin" />
+                : <ShoppingBag size={13} />}
+              {response.purchased ? "Comprou ✓" : "Marcar comprou"}
+            </button>
+          </div>
         </SheetHeader>
 
         {/* Body */}
@@ -494,17 +562,11 @@ function ResponseDetailSheet({
                         <CopyButton text={line.value} small label={`Copiar ${line.label}`} />
                       </div>
                     ))}
-                    <div className="flex justify-end pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(addressLines.map((l) => `${l.label}: ${l.value}`).join("\n"));
-                          toast.success("Endereço completo copiado");
-                        }}
-                        className="text-[11px] text-brand hover:underline underline-offset-2 inline-flex items-center gap-1"
-                      >
-                        <Copy size={10} /> Copiar endereço completo
-                      </button>
+                    {/* Endereço completo em uma linha — pronto pra colar em outro sistema */}
+                    <div className="flex items-center gap-2.5 rounded-xl bg-brand/[0.06] border border-brand/20 px-3 py-2 mt-1">
+                      <span className="text-[11px] text-brand/80 w-24 shrink-0">Completo</span>
+                      <span className="text-[13px] text-foreground flex-1 leading-snug break-words">{addressOneLine(addressLines)}</span>
+                      <CopyButton text={addressOneLine(addressLines)} small label="Copiar endereço completo" />
                     </div>
                   </div>
                 ) : (
@@ -572,13 +634,7 @@ function ResponseCard({
   onOpen: () => void;
 }) {
   const reduce = useReducedMotion();
-  const answers = (response.answers ?? {}) as Record<string, any>;
-  const name = response.respondentName || (() => {
-    const nameQ = questions.find((q) => q.type === "name");
-    return (nameQ && formatPlainAnswer(answers[nameQ.id])) || "Sem nome";
-  })();
-  const phoneQ = questions.find((q) => q.type === "phone");
-  const phone = phoneQ ? formatPlainAnswer(answers[phoneQ.id]) : "";
+  const { name, phone } = extractContact(response, questions);
   const wa = phone ? formatWhatsAppLink(phone) : null;
   const dt = formatDate(response.createdAt);
   const hasNotes = !!(response.reviewNotes && String(response.reviewNotes).trim());
@@ -592,38 +648,46 @@ function ResponseCard({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.15, ease: EASE } }}
       transition={{ duration: 0.3, ease: EASE, delay: Math.min(index * 0.04, 0.36) }}
-      className="group w-full text-left rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 sm:p-5 hover:border-brand/30 hover:bg-white/[0.055] transition-[border-color,background-color,transform] duration-200 active:scale-[0.985]"
+      className={`group w-full text-left rounded-2xl border backdrop-blur-xl p-3.5 sm:p-4 transition-[border-color,background-color,transform] duration-200 active:scale-[0.985] ${
+        response.purchased
+          ? "border-violet-400/30 bg-violet-400/[0.05] hover:border-violet-400/50"
+          : "border-white/10 bg-white/[0.035] hover:border-brand/30 hover:bg-white/[0.055]"
+      }`}
       style={{ transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1)" }}
     >
-      <div className="flex items-start justify-between gap-3">
-        {/* BIG client name */}
-        <h3 className="text-lg sm:text-2xl font-display font-bold text-foreground leading-tight break-words min-w-0">
+      <div className="flex items-start justify-between gap-2.5">
+        <h3 className="text-sm sm:text-base font-display font-semibold text-foreground leading-snug break-words min-w-0">
           {name}
         </h3>
-        <div className="shrink-0 pt-0.5">
+        <div className="shrink-0 flex items-center gap-1.5 pt-0.5">
+          {response.purchased && <PurchasedBadge />}
           <StatusChip complete={!!response.isComplete} />
         </div>
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-        {phone && (
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {phone ? (
           <span
             role="link"
             onClick={(e) => { e.stopPropagation(); if (wa) window.open(wa, "_blank", "noopener"); }}
-            className="inline-flex items-center gap-1.5 text-sm text-emerald-400 hover:underline underline-offset-2 cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs sm:text-[13px] font-medium text-emerald-400 hover:underline underline-offset-2 cursor-pointer"
           >
-            <Phone size={13} /> {phone}
+            <Phone size={11} /> {phone}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/60">
+            <Phone size={11} /> sem telefone
           </span>
         )}
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock size={12} /> {dt.day} · {dt.time}
+        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Clock size={10} /> {dt.day} · {dt.time}
         </span>
         {response.protocolCode && (
-          <span className="text-xs font-mono text-brand/80">#{response.protocolCode}</span>
+          <span className="text-[11px] font-mono text-brand/80">#{response.protocolCode}</span>
         )}
         {hasNotes && (
-          <span className="inline-flex items-center gap-1 text-xs text-amber-400/90">
-            <StickyNote size={11} /> obs
+          <span className="inline-flex items-center gap-1 text-[11px] text-amber-400/90">
+            <StickyNote size={10} /> obs
           </span>
         )}
       </div>
@@ -720,6 +784,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     let list = [...responses];
     if (statusFilter === "complete") list = list.filter((r: any) => r.isComplete);
     if (statusFilter === "incomplete") list = list.filter((r: any) => !r.isComplete);
+    if (statusFilter === "purchased") list = list.filter((r: any) => r.purchased);
     if (dateFilter !== "all") {
       const now = Date.now();
       const spans: Record<Exclude<DateFilter, "all">, number> = {
@@ -737,6 +802,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
     total: responses.length,
     complete: responses.filter((r: any) => r.isComplete).length,
     incomplete: responses.filter((r: any) => !r.isComplete).length,
+    purchased: responses.filter((r: any) => r.purchased).length,
   }), [responses]);
 
   const openResponse = useMemo(
@@ -746,12 +812,13 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
 
   // CSV export (kept — status is now Completo/Incompleto + observações)
   const exportCSV = useCallback(() => {
-    const headers = ["Data", "Status", ...actualQuestions.map((q) => q.title), "Observações"];
+    const headers = ["Data", "Status", "Comprou", ...actualQuestions.map((q) => q.title), "Observações"];
     const rows = filtered.map((r: any) => {
       const answers = (r.answers ?? {}) as Record<string, any>;
       return [
         new Date(r.createdAt).toLocaleString("pt-BR"),
         r.isComplete ? "Completo" : "Incompleto",
+        r.purchased ? "Sim" : "Não",
         ...actualQuestions.map((q) => formatPlainAnswer(answers[q.id]).replace(/\n/g, " | ")),
         (r.reviewNotes ?? "").replace(/\n/g, " | "),
       ];
@@ -780,9 +847,10 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
   const dateLabels: Record<DateFilter, string> = { all: "Período", today: "Hoje", "7days": "7 dias", "30days": "30 dias" };
 
   const statTiles: { key: StatusFilter; label: string; value: number; icon: React.ReactNode; accent: string }[] = [
-    { key: "all", label: "Total", value: stats.total, icon: <Inbox size={15} />, accent: "text-brand" },
-    { key: "complete", label: "Completos", value: stats.complete, icon: <CheckCircle2 size={15} />, accent: "text-emerald-400" },
-    { key: "incomplete", label: "Incompletos", value: stats.incomplete, icon: <CircleDashed size={15} />, accent: "text-amber-400" },
+    { key: "all", label: "Total", value: stats.total, icon: <Inbox size={13} />, accent: "text-brand" },
+    { key: "complete", label: "Completos", value: stats.complete, icon: <CheckCircle2 size={13} />, accent: "text-emerald-400" },
+    { key: "incomplete", label: "Incompletos", value: stats.incomplete, icon: <CircleDashed size={13} />, accent: "text-amber-400" },
+    { key: "purchased", label: "Comprou", value: stats.purchased, icon: <ShoppingBag size={13} />, accent: "text-violet-300" },
   ];
 
   return (
@@ -830,7 +898,7 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
         </div>
 
         {/* Stats — clicáveis (filtram) */}
-        <div className="grid grid-cols-3 gap-2.5 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
           {statTiles.map((s, i) => (
             <motion.button
               key={s.key}
@@ -839,16 +907,16 @@ export function ResponsesPanel({ formTitle, responseCount: _rc, questions = [], 
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: EASE, delay: i * 0.05 }}
-              className={`rounded-2xl border px-3.5 py-3 text-left backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 active:scale-[0.98] ${
+              className={`rounded-xl border px-3 py-2 text-left backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 active:scale-[0.98] ${
                 statusFilter === s.key
-                  ? "border-brand/40 bg-brand/[0.08]"
+                  ? s.key === "purchased" ? "border-violet-400/40 bg-violet-400/[0.08]" : "border-brand/40 bg-brand/[0.08]"
                   : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
               }`}
             >
-              <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground`}>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
                 <span className={s.accent}>{s.icon}</span> {s.label}
               </span>
-              <p className={`mt-1 text-xl sm:text-2xl font-display font-bold ${s.accent}`}>{s.value}</p>
+              <p className={`mt-0.5 text-base sm:text-lg font-display font-bold ${s.accent}`}>{s.value}</p>
             </motion.button>
           ))}
         </div>
