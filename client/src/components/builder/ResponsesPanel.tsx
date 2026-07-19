@@ -12,7 +12,7 @@ import {
   ClipboardList, Search, X, FileSpreadsheet, FileText,
   CheckCircle2, Loader2, Check, Copy, Phone, Clock, Calendar,
   ExternalLink, Image as ImageIcon, Trash2, RotateCcw, ChevronDown,
-  StickyNote, UploadCloud, MessageCircle, Inbox, CircleDashed, RefreshCw, ShoppingBag,
+  StickyNote, UploadCloud, MessageCircle, Inbox, CircleDashed, RefreshCw, ShoppingBag, Plus, FolderPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -209,6 +209,73 @@ function PurchasedBadge() {
     >
       <ShoppingBag size={10} /> Comprou
     </motion.span>
+  );
+}
+
+/* ─── Add file: anexa um novo documento a uma pergunta (sem apagar os que já existem) ─── */
+function AddFileButton({
+  responseId, questionId, allFiles, formId, label = "Adicionar arquivo", variant = "ghost",
+}: {
+  responseId: number;
+  questionId: string;
+  allFiles: FileValue[];
+  formId: number;
+  label?: string;
+  variant?: "ghost" | "brand";
+}) {
+  const utils = trpc.useUtils();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const uploadMutation = trpc.files.publicUpload.useMutation();
+  const updateAnswer = trpc.responses.updateAnswer.useMutation({
+    onSuccess: () => utils.responses.listByForm.invalidate({ formId }),
+  });
+
+  const handlePick = useCallback(async (picked: File) => {
+    setBusy(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(picked);
+      });
+      const uploaded = await uploadMutation.mutateAsync({
+        filename: picked.name, contentBase64: base64, mimeType: picked.type, context: "form-response",
+      });
+      const next = [...allFiles, { url: uploaded.url, filename: picked.name, mimeType: uploaded.mimeType }];
+      const value = next.length === 1 ? JSON.stringify(next[0]) : JSON.stringify(next);
+      await updateAnswer.mutateAsync({ responseId, questionId, value });
+      toast.success("Arquivo adicionado");
+    } catch {
+      toast.error("Erro ao adicionar o arquivo");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }, [allFiles, responseId, questionId, uploadMutation, updateAnswer]);
+
+  return (
+    <>
+      <input
+        ref={inputRef} type="file" className="hidden"
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.heic"
+        onChange={(e) => e.target.files?.[0] && handlePick(e.target.files[0])}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+        className={`w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium border border-dashed transition-[transform,background-color] duration-150 active:scale-[0.97] disabled:opacity-50 ${
+          variant === "brand"
+            ? "border-brand/40 bg-brand/[0.06] text-brand hover:bg-brand/[0.12]"
+            : "border-white/15 bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+        }`}
+      >
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+        {label}
+      </button>
+    </>
   );
 }
 
@@ -456,6 +523,14 @@ function ResponseDetailSheet({
     [questions, answers]
   );
 
+  /* Documentos que o cliente ainda não enviou — a equipe pode anexar por ele
+     (recebido por e-mail/WhatsApp, por exemplo). Fica recolhido pra não poluir. */
+  const [pendingDocsOpen, setPendingDocsOpen] = useState(false);
+  const pendingDocs = useMemo(
+    () => questions.filter((q) => q.type === "file-upload" && parseFiles(answers[q.id]).length === 0),
+    [questions, answers]
+  );
+
   const { name, phone } = extractContact(response, questions);
   const wa = phone ? formatWhatsAppLink(phone) : null;
   const dt = formatDate(response.createdAt);
@@ -552,6 +627,10 @@ function ResponseDetailSheet({
                     {files.map((f) => (
                       <DocumentBlock key={f.url} file={f} allFiles={files} responseId={response.id} questionId={q.id} formId={formId} />
                     ))}
+                    <AddFileButton
+                      responseId={response.id} questionId={q.id} allFiles={files} formId={formId}
+                      label="Adicionar outro arquivo"
+                    />
                   </div>
                 ) : addressLines ? (
                   <div className="space-y-1.5">
@@ -581,6 +660,49 @@ function ResponseDetailSheet({
 
           {answered.length === 0 && (
             <div className="py-10 text-center text-sm text-muted-foreground">Nenhuma resposta preenchida ainda.</div>
+          )}
+
+          {/* Anexar um documento que o cliente não enviou */}
+          {pendingDocs.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setPendingDocsOpen((v) => !v)}
+                className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-white/[0.03] transition-colors"
+              >
+                <FolderPlus size={15} className="text-brand shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-foreground flex-1">
+                  Anexar documento que falta
+                </span>
+                <span className="text-[11px] text-muted-foreground">{pendingDocs.length}</span>
+                <motion.span animate={{ rotate: pendingDocsOpen ? 180 : 0 }} transition={{ duration: 0.2, ease: EASE }}>
+                  <ChevronDown size={15} className="text-muted-foreground" />
+                </motion.span>
+              </button>
+              <AnimatePresence initial={false}>
+                {pendingDocsOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: EASE }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3.5 pb-3.5 space-y-2 border-t border-white/[0.06] pt-3">
+                      {pendingDocs.map((q) => (
+                        <div key={q.id} className="space-y-1.5">
+                          <p className="text-[11px] text-muted-foreground">{q.title}</p>
+                          <AddFileButton
+                            responseId={response.id} questionId={q.id} allFiles={[]} formId={formId}
+                            label="Enviar arquivo" variant="brand"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
 
